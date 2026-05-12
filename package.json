@@ -1,0 +1,35 @@
+{
+	"name": "root",
+	"private": true,
+	"scripts": {
+		"build": "dotenv -c -- turbo build",
+		"dev": "dotenv -c -- turbo dev --concurrency 15",
+		"start": "dotenv -c -- turbo start",
+		"lint": "biome lint . ",
+		"check": "biome check",
+		"clean": "turbo clean",
+		"format": "biome format . --write"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.7",
+		"@repo/tsconfig": "workspace:*",
+		"@types/node": "^22.15.3",
+		"dotenv-cli": "^11.0.0",
+		"pg": "^8.20.0",
+		"turbo": "^2.8.17",
+		"typescript": "5.9.2"
+	},
+	"packageManager": "pnpm@9.0.0",
+	"engines": {
+		"node": ">=20"
+	},
+	"dependencies": {},
+	"pnpm": {
+		"overrides": {
+			"@tanstack/query-core": "5.90.20",
+			"@tanstack/react-query": "5.90.20",
+			"@types/react": "19.0.0",
+			"@types/react-dom": "19.0.0"
+		}
+	}
+}

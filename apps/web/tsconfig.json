@@ -1,0 +1,30 @@
+{
+	"extends": "@repo/tsconfig/nextjs.json",
+	"compilerOptions": {
+		"plugins": [{ "name": "next" }],
+		"paths": {
+			"@app/*": ["./app/*"],
+			"@assets/*": ["./assets/*"],
+			"@context/*": ["./context/*"],
+			"@constants": ["./constants/index.ts"],
+			"@constants/*": ["./constants/*"],
+			"@components/*": ["./components/*"],
+			"@marketing/*": ["./modules/marketing/*"],
+			"@saas/*": ["./modules/saas/*"],
+			"@i18n": ["./i18n"],
+			"@i18n/*": ["./i18n/*"],
+			"@hooks/*": ["./hooks/*"],
+			"@shared/*": ["./modules/shared/*"],
+			"content-collections": ["./.content-collections/generated"],
+			"@public/*": ["./public/*"]
+		}
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		"**/*.cjs",
+		"**/*.mjs",
+		".next/types/**/*.ts"
+	],
+	"exclude": ["node_modules"]
+}
