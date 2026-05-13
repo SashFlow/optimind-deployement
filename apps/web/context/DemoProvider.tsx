@@ -1,10 +1,19 @@
 "use client";
 
-import { createContext, type ReactNode, useContext } from "react";
+import {
+	createContext,
+	type ReactNode,
+	useContext,
+	useEffect,
+	useState,
+} from "react";
+
+import { orpcClient } from "@shared/lib/orpc-client";
+import { DemoLinks } from "@repo/database/prisma/generated/client/client";
 
 type DemoContextValue = {
-	mode: string;
-	scenario: any;
+	usecase: DemoLinks | null;
+	loading: boolean;
 };
 
 const DemoContext = createContext<DemoContextValue | undefined>(undefined);
@@ -14,13 +23,42 @@ type DemoProviderProps = {
 	slug: string;
 };
 
-export function DemoProvider({ children, slug }: DemoProviderProps) {
-    const mode = "avatar"; // default mode
-    const scenario = ""; // scenario is determined by the slug
+export function DemoProvider({
+	children,
+	slug,
+}: DemoProviderProps) {
+	const [usecase, setUsecase] = useState<DemoLinks | null>(null);
+	const [loading, setLoading] = useState(true);
 
-    // TODO: will call an API to decode the slug into scenario details. For now, we will hardcode it based on the slug.
+	useEffect(() => {
+		const getConfig = async () => {
+			try {
+				const response = await orpcClient.links.validate({
+					token: slug,
+				});
+
+				if (response) {
+					setUsecase(response);
+				}
+			} catch (error) {
+				console.error("Failed to load demo config", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		getConfig();
+	}, [slug]);
+
 	return (
-		<DemoContext.Provider value={{ mode, scenario }}>{children}</DemoContext.Provider>
+		<DemoContext.Provider
+			value={{
+				usecase,
+				loading,
+			}}
+		>
+			{children}
+		</DemoContext.Provider>
 	);
 }
 
@@ -28,7 +66,9 @@ export function useDemoContext() {
 	const context = useContext(DemoContext);
 
 	if (!context) {
-		throw new Error("useDemoContext must be used within DemoProvider");
+		throw new Error(
+			"useDemoContext must be used within DemoProvider"
+		);
 	}
 
 	return context;

@@ -231,3 +231,11 @@ export const scenarios = {
 		suggestedQuestions: [],
 	},
 } satisfies Record<string, ScenarioDetails>;
+
+
+export const scenariosOptions = [
+	{
+		title: "Medical Examination",
+		slug: "medical-examination"
+	}
+]

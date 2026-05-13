@@ -35,23 +35,28 @@ function AudioWaveformPreview() {
 
 
 const DemoPage = () => {
-  const { mode: selectedMode, scenario: selectedScenario } = useDemoContext();
+  const { usecase, loading } = useDemoContext();
   const [selectedAgentSlug, setSelectedAgentSlug] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
+
+  if (loading || usecase == null) {
+    return null
+  }
 
   const nextHref =
     selectedAgentSlug == null
       ? null
-      : `/${selectedMode}/${selectedScenario.slug}?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}`;
+      : `/demo/try?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}`;
 
+
+  if (usecase.approvedSessions === 0) {
+    return <div>Trial period is over</div>
+  }
   return (
       <main className="bg-background min-h-screen">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 py-10 md:px-10">
         <div className="space-y-3">
           <h1 className="text-4xl font-semibold tracking-tight">Sashflow</h1>
-          <p className="text-muted-foreground max-w-2xl">
-            Explore interaction with {selectedScenario?.name}.
-          </p>
         </div>
 
         <section className="space-y-6">
@@ -65,7 +70,7 @@ const DemoPage = () => {
                   className={isSelected ? 'border-primary ring-primary/20 ring-2' : undefined}
                 >
                   <CardHeader className="space-y-4">
-                    {selectedMode === 'audio' ? (
+                    {usecase.mode === 'audio' ? (
                       <AudioWaveformPreview />
                     ) : (
                       <div className="bg-muted/40 flex aspect-[3/2] w-full items-center justify-center gap-1 rounded-lg border px-4 py-3">

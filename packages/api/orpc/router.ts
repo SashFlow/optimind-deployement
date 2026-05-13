@@ -8,6 +8,7 @@ import { organizationsRouter } from "../modules/organizations/router";
 import { paymentsRouter } from "../modules/payments/router";
 import { tokenRouter } from "../modules/token/router";
 import { usersRouter } from "../modules/users/router";
+import { linkRouter } from "../modules/demo-links/routes";
 import { publicProcedure } from "./procedures";
 
 export const router = publicProcedure
@@ -23,6 +24,7 @@ export const router = publicProcedure
 		ai: aiRouter,
 		token: tokenRouter,
 		browser: browserRouter,
+		links: linkRouter,
 	});
 
 export type ApiRouterClient = RouterClient<typeof router>;

@@ -110,7 +110,7 @@ export const WelcomeView = ({
 					</Button>
 					<Button
 						size="lg"
-						onClick={() => router.push("/")}
+						onClick={() => router.push("/app")}
 						variant={"secondary"}
 						className="mt-8 w-full max-w-sm rounded-full font-mono text-xs font-bold tracking-wider uppercase"
 					>

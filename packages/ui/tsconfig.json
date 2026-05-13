@@ -1,6 +1,7 @@
 {
 	"extends": "@repo/tsconfig/base.json",
 	"compilerOptions": {
+		"jsx": "preserve",
 		"tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
 		"paths": {
 			"~/components": ["./src/shadcn/*"],

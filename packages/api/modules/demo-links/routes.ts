@@ -4,7 +4,7 @@ import { createLink } from "./procedures/create";
 import { deleteLink } from "./procedures/delete";
 import { validateToken, useSession } from "./procedures/session"
 
-export const browserRouter = {
+export const linkRouter = {
 	list: listLink,
 	update: updateLink,
     validate: validateToken,

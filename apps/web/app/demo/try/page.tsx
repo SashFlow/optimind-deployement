@@ -1,10 +1,10 @@
 import { headers } from 'next/headers';
-import { App } from '@components/app/app';
+import { App } from '@components/app/shared-app';
 import { getAppConfig } from '@/lib/utils';
 
 export default async function AudioScenarioPage() {
   const hdrs = await headers();
   const appConfig = await getAppConfig(hdrs);
 
-  return <App appConfig={appConfig} scenarioType="avatar" />;
+  return <App appConfig={appConfig} />;
 }

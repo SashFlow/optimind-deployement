@@ -7,6 +7,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @source "../node_modules/fumadocs-ui/dist/**/*.js";
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
 
 @variant dark (&:where(.dark, .dark *));
 

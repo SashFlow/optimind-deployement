@@ -39,13 +39,15 @@ interface ViewControllerProps {
 		firstTimeGuidance: string[];
 		suggestedQuestions: string[];
 	};
+	useScenario?: () => {},
 }
 
-export function ViewController({ appConfig, scenario }: ViewControllerProps) {
+export function ViewController({ appConfig, scenario, useScenario }: ViewControllerProps) {
 	const { isConnected, start } = useSessionContext();
 	const { resolvedTheme } = useTheme();
 
 	const handleStartCall = async () => {
+		if (useScenario) useScenario();
 		await Promise.resolve(start());
 	};
 
