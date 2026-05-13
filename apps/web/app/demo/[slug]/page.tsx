@@ -46,7 +46,7 @@ const DemoPage = () => {
   const nextHref =
     selectedAgentSlug == null
       ? null
-      : `/demo/try?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}`;
+      : `/demo/${usecase.token}/try?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}`;
 
 
   if (usecase.approvedSessions === 0) {

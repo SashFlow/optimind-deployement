@@ -40,6 +40,9 @@ export default async function proxy(req: NextRequest) {
 
 		return NextResponse.next();
 	}
+	if (pathname.startsWith("/demo")) {
+		return NextResponse.next();
+	}
 
 	const pathsWithoutLocale = [
 		"/onboarding",

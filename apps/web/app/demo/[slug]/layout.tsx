@@ -1,17 +1,11 @@
-'use client'
-import React from 'react'
-import { DemoProvider } from "@context/DemoProvider"
+import type { PropsWithChildren } from "react";
+import { DemoProvider } from "@context/DemoProvider";
 
+export default async function SlugLayout({
+	children,
+	params,
+}: PropsWithChildren<{ params: Promise<{ slug: string }> }>) {
+	const { slug } = await params;
 
-
-
-const SlugLayout = ({ children, mode, slug }: { children: React.ReactNode, mode: string, slug: string }) => {
-  
-  return (
-    <DemoProvider slug={slug}>
-      {children}
-    </DemoProvider>
-  )
+	return <DemoProvider slug={slug}>{children}</DemoProvider>;
 }
-
-export default SlugLayout

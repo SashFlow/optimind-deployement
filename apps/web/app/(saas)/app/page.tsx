@@ -272,35 +272,6 @@ export default function Page() {
     }
   };
 
-  // const handleValidateToken = async (token: string) => {
-  //   setActionId(token);
-  //   setLinksError(null);
-
-  //   try {
-  //     const link = await orpcClient.links.validate({ token });
-  //     const status = link?.published ? 'active' : 'inactive';
-  //     window.alert(`Token is valid. Link is ${status}. Remaining sessions: ${link?.approvedSessions ?? 0}`);
-  //   } catch {
-  //     setLinksError('Token validation failed.');
-  //   } finally {
-  //     setActionId(null);
-  //   }
-  // };
-
-  // const handleUseSession = async (id: string) => {
-  //   setActionId(id);
-  //   setLinksError(null);
-
-  //   try {
-  //     await orpcClient.links.reduceSession({ id });
-  //     await loadDemoLinks();
-  //   } catch {
-  //     setLinksError('Failed to reduce session count.');
-  //   } finally {
-  //     setActionId(null);
-  //   }
-  // };
-
   const nextHref =
     selectedAgentSlug == null
       ? null
