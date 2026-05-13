@@ -258,3 +258,21 @@ model Picture {
 
     @@map("picture")
 }
+
+// ==================================================
+// Invite Links
+// ==================================================
+model DemoLinks {
+    id               String   @id @default(cuid())
+    client           String
+    description      String
+    slug             String
+    mode             String
+    approvedSessions Int
+    token            String   @unique
+    published        Boolean  @default(false)
+    createdAt        DateTime @default(now())
+    updatedAt        DateTime @updatedAt
+
+    @@map("demolinks")
+}
