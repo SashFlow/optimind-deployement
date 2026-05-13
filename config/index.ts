@@ -24,15 +24,15 @@ export const config = {
 	// Organizations
 	organizations: {
 		// Whether organizations are enabled in general
-		enable: true,
+		enable: false,
 		// Whether billing for organizations should be enabled (below you can enable it for users instead)
-		enableBilling: true,
+		enableBilling: false,
 		// Whether the organization should be hidden from the user (use this for multi-tenant applications)
 		hideOrganization: false,
 		// Should users be able to create new organizations? Otherwise only admin users can create them
 		enableUsersToCreateOrganizations: false,
 		// Whether users should be required to be in an organization. This will redirect users to the organization page after sign in
-		requireOrganization: true,
+		requireOrganization: false,
 		// Define forbidden organization slugs. Make sure to add all paths that you define as a route after /app/... to avoid routing issues
 		forbiddenOrganizationSlugs: [
 			"new-organization",
@@ -47,7 +47,7 @@ export const config = {
 		// Whether billing should be enabled for users (above you can enable it for organizations instead)
 		enableBilling: false,
 		// Whether you want the user to go through an onboarding form after signup (can be defined in the OnboardingForm.tsx)
-		enableOnboarding: true,
+		enableOnboarding: false,
 	},
 	// Authentication
 	auth: {
@@ -84,7 +84,7 @@ export const config = {
 		// the saas part of the application
 		saas: {
 			// whether the saas part should be enabled (otherwise all routes will be redirect to the marketing page)
-			enabled: false,
+			enabled: true,
 			// whether the sidebar layout should be used
 			useSidebarLayout: true,
 		},

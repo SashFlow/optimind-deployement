@@ -9,6 +9,7 @@ import {
 	Shield,
 	Zap,
 } from "lucide-react";
+import type { ScenarioDetails } from "@/types/index";
 
 export const industries = [
 	{ name: "HVAC", icon: Building2 },
@@ -202,3 +203,31 @@ export const featuresStrengths = [
 		subheading: "Products built and ready within weeks.",
 	},
 ];
+export const modes = [
+	{ id: "audio", label: "Audio Assistant" },
+	{ id: "avatar", label: "Avatar Assistant" },
+] as const;
+
+export const popularIndianLanguages = [
+	"English",
+	"Hindi",
+	"Marathi",
+	"Bengali",
+	"Multilingual- Primary English",
+];
+
+export const scenarios = {
+	"medical-examination": {
+		sessionType: ["avatar", "Audio"],
+		title: "Medical Examination Assistant",
+		description:
+			"An avatar assistant that guides users through a structured medical examination process for insurance applications.",
+		highlights: [
+			"Guide users through a structured medical examination process",
+			"Collect necessary information for insurance applications",
+			"Provide a clear and supportive user experience",
+		],
+		firstTimeGuidance: [],
+		suggestedQuestions: [],
+	},
+} satisfies Record<string, ScenarioDetails>;

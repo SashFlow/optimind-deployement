@@ -16,7 +16,9 @@
 			"@hooks/*": ["./hooks/*"],
 			"@shared/*": ["./modules/shared/*"],
 			"content-collections": ["./.content-collections/generated"],
-			"@public/*": ["./public/*"]
+			"@public/*": ["./public/*"],
+			"@/types/*": ["./types/*"],
+			"@/lib/*": ["./lib/*"]
 		}
 	},
 	"include": [
