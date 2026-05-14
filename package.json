@@ -8,13 +8,15 @@
 		"lint": "biome lint . ",
 		"check": "biome check",
 		"clean": "turbo clean",
-		"format": "biome format . --write"
+		"format": "biome format . --write",
+		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.7",
 		"@repo/tsconfig": "workspace:*",
 		"@types/node": "^22.15.3",
 		"dotenv-cli": "^11.0.0",
+		"husky": "^9.1.7",
 		"pg": "^8.20.0",
 		"turbo": "^2.8.17",
 		"typescript": "5.9.2"
@@ -23,7 +25,6 @@
 	"engines": {
 		"node": ">=20"
 	},
-	"dependencies": {},
 	"pnpm": {
 		"overrides": {
 			"@tanstack/query-core": "5.90.20",
