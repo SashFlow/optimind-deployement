@@ -276,3 +276,33 @@ model DemoLinks {
 
     @@map("demolinks")
 }
+
+// ==================================================
+// Appointments
+// ==================================================
+
+model RegisteredUsers {
+    id           String @id @default(cuid())
+    phone_number String
+    full_name    String
+    dob          String
+
+    @@map("registered_users")
+}
+
+model Appointments {
+    id               String   @id @default(cuid())
+    dob              String
+    phone_number     String
+    full_name        String
+    appointment_type String
+    appointment_date String
+    appointment_time String
+    exam_type        String
+    pin_code         String
+    address          String
+    createdAt        DateTime @default(now())
+    updatedAt        DateTime @updatedAt
+
+    @@map("appointments")
+}
