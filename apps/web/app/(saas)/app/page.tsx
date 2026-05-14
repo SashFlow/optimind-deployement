@@ -12,6 +12,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@repo/ui/card";
+import { Checkbox } from "@repo/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -125,7 +126,7 @@ export default function Page() {
 		client: "",
 		description: "",
 		sessions: 1,
-		slug: "medical-examination",
+		slugs: ["medical-examination"],
 		mode: "audio",
 	});
 
@@ -175,15 +176,26 @@ export default function Page() {
 		setForm({ ...form, [key]: value });
 	};
 
+	const toggleScenarioSelection = (slug: string, checked: boolean) => {
+		setForm((prev) => ({
+			...prev,
+			slugs: checked
+				? Array.from(new Set([...prev.slugs, slug]))
+				: prev.slugs.filter((selectedSlug) => selectedSlug !== slug),
+		}));
+	};
+
 	const handleGenerateLink = async () => {
 		setIsSubmittingLink(true);
 		setLinksError(null);
 
 		try {
+			const combinedSlug = form.slugs.join(",");
+
 			await orpcClient.links.create({
 				client: form.client,
 				description: form.description,
-				slug: form.slug,
+				slug: combinedSlug,
 				mode: form.mode,
 				sessions: Number(form.sessions),
 			});
@@ -195,7 +207,7 @@ export default function Page() {
 				client: "",
 				description: "",
 				sessions: 1,
-				slug: "medical-examination",
+				slugs: ["medical-examination"],
 				mode: "audio",
 			});
 		} catch {
@@ -214,11 +226,13 @@ export default function Page() {
 		setLinksError(null);
 
 		try {
+			const combinedSlug = form.slugs.join(",");
+
 			await orpcClient.links.update({
 				id: editingId,
 				client: form.client,
 				description: form.description,
-				slug: form.slug,
+				slug: combinedSlug,
 				mode: form.mode,
 				sessions: Number(form.sessions),
 			});
@@ -234,12 +248,18 @@ export default function Page() {
 	};
 
 	const openEditDialog = (link: DemoLinks) => {
+		const parsedSlugs = link.slug
+			.split(",")
+			.map((slug) => slug.trim())
+			.filter(Boolean);
+
 		setEditingId(link.id);
 		setForm({
 			client: link.client,
 			description: link.description,
 			sessions: link.approvedSessions,
-			slug: link.slug,
+			slugs:
+				parsedSlugs.length > 0 ? parsedSlugs : ["medical-examination"],
 			mode: link.mode,
 		});
 		setDialogOpen(true);
@@ -337,7 +357,7 @@ export default function Page() {
 									client: "",
 									description: "",
 									sessions: 1,
-									slug: "medical-examination",
+									slugs: ["medical-examination"],
 									mode: "audio",
 								});
 								setDialogOpen(true);
@@ -461,33 +481,46 @@ export default function Page() {
 									htmlFor="scenario"
 									className="text-sm font-medium"
 								>
-									Select Scenario Option
+									Select Scenario Options
 								</label>
-								<Select
-									value={form.slug}
-									onValueChange={(e) =>
-										onFormChange("slug", e)
-									}
-								>
-									<SelectTrigger>
-										<SelectValue placeholder="Select a scenario" />
-									</SelectTrigger>
-									<SelectContent>
-										{scenariosOptions.map(
-											(option: {
-												title: string;
-												slug: string;
-											}) => (
-												<SelectItem
+								<div className="max-h-40 space-y-2 overflow-y-auto rounded-md border p-3">
+									{scenariosOptions.map(
+										(option: {
+											title: string;
+											slug: string;
+										}) => {
+											const checked = form.slugs.includes(
+												option.slug,
+											);
+
+											return (
+												<label
 													key={option.slug}
-													value={option.slug}
+													htmlFor={`scenario-${option.slug}`}
+													className="flex cursor-pointer items-center gap-2 text-sm"
 												>
-													{option.title}
-												</SelectItem>
-											),
-										)}
-									</SelectContent>
-								</Select>
+													<Checkbox
+														id={`scenario-${option.slug}`}
+														checked={checked}
+														onCheckedChange={(
+															state,
+														) =>
+															toggleScenarioSelection(
+																option.slug,
+																state === true,
+															)
+														}
+													/>
+													<span>{option.title}</span>
+												</label>
+											);
+										},
+									)}
+								</div>
+								<p className="text-muted-foreground text-xs">
+									Selected scenarios will be saved as a
+									comma-separated value on a single demo link.
+								</p>
 							</div>
 						</div>
 						<DialogFooter>
@@ -506,7 +539,8 @@ export default function Page() {
 								disabled={
 									isSubmittingLink ||
 									!form.client.trim() ||
-									form.sessions < 1
+									form.sessions < 1 ||
+									form.slugs.length < 1
 								}
 							>
 								{isSubmittingLink ? (

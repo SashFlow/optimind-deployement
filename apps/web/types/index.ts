@@ -5,4 +5,5 @@ export type ScenarioDetails = {
 	highlights: string[];
 	firstTimeGuidance: string[];
 	suggestedQuestions: string[];
+	url: string;
 };

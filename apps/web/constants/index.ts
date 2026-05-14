@@ -218,7 +218,7 @@ export const popularIndianLanguages = [
 
 export const scenarios = {
 	"medical-examination": {
-		sessionType: ["avatar", "Audio"],
+		sessionType: ["avatar", "audio"],
 		title: "Medical Examination Assistant",
 		description:
 			"An avatar assistant that guides users through a structured medical examination process for insurance applications.",
@@ -227,6 +227,35 @@ export const scenarios = {
 			"Collect necessary information for insurance applications",
 			"Provide a clear and supportive user experience",
 		],
+		url: "/images/mer.svg",
+		firstTimeGuidance: [],
+		suggestedQuestions: [],
+	},
+	"medical-appointment": {
+		sessionType: ["audio"],
+		title: "Medical Appointment - (Inbound)",
+		description:
+			"An AI voice assistant that helps patients schedule, reschedule, and manage medical appointments with clinics, hospitals, and diagnostic centers.",
+		highlights: [
+			"Book and manage medical appointments through voice interaction",
+			"Provide appointment confirmations and reminders",
+			"Assist users in finding available doctors and time slots",
+		],
+		url: "/images/inbound.svg",
+		firstTimeGuidance: [],
+		suggestedQuestions: [],
+	},
+	"reminder-call": {
+		sessionType: ["audio"],
+		title: "Reminder Call - (Outbound)",
+		description:
+			"An AI calling assistant that delivers automated reminders for appointments, medication schedules, renewals, and follow-up actions.",
+		highlights: [
+			"Send automated voice reminders for appointments and tasks",
+			"Reduce missed appointments and improve customer engagement",
+			"Support personalized and multilingual reminder calls",
+		],
+		url: "/images/outbound.svg",
 		firstTimeGuidance: [],
 		suggestedQuestions: [],
 	},
@@ -236,5 +265,13 @@ export const scenariosOptions = [
 	{
 		title: "Medical Examination",
 		slug: "medical-examination",
+	},
+	{
+		title: "Medical Appointment",
+		slug: "medical-appointment",
+	},
+	{
+		title: "Reminder Call",
+		slug: "reminder-call",
 	},
 ];

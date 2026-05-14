@@ -1,18 +1,46 @@
 "use client";
 
+import type { DemoLinks } from "@repo/database/prisma/generated/client/client";
+
+import { orpcClient } from "@shared/lib/orpc-client";
 import {
 	createContext,
+	type Dispatch,
 	type ReactNode,
+	type SetStateAction,
 	useContext,
 	useEffect,
 	useState,
 } from "react";
 
-import { orpcClient } from "@shared/lib/orpc-client";
-import type { DemoLinks } from "@repo/database/prisma/generated/client/client";
+type DemoPersona = {
+	phone_number: string;
+	full_name: string;
+	dob: string;
+};
+
+const demoPersonas: readonly DemoPersona[] = [
+	{
+		phone_number: "9876543210",
+		full_name: "Rohit Sharma",
+		dob: "1992-08-15",
+	},
+	{
+		phone_number: "9876500001",
+		full_name: "Priya Nair",
+		dob: "1995-01-20",
+	},
+];
 
 type DemoContextValue = {
 	usecase: DemoLinks | null;
+	activeUsecase: string | null;
+	slugs?: string[];
+	setActiveUsecase: (active: string) => void;
+	personas: readonly DemoPersona[];
+	selectedPersonaPhone: string | null;
+	selectedPersona: DemoPersona | null;
+	setSelectedPersonaPhone: Dispatch<SetStateAction<string | null>>;
 	loading: boolean;
 };
 
@@ -26,6 +54,14 @@ type DemoProviderProps = {
 export function DemoProvider({ children, slug }: DemoProviderProps) {
 	const [usecase, setUsecase] = useState<DemoLinks | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [activeUsecase, setActiveUsecase] = useState<string | null>(null);
+	const [selectedPersonaPhone, setSelectedPersonaPhone] = useState<
+		string | null
+	>(null);
+	const selectedPersona =
+		demoPersonas.find(
+			(persona) => persona.phone_number === selectedPersonaPhone,
+		) ?? null;
 
 	useEffect(() => {
 		const getConfig = async () => {
@@ -36,6 +72,7 @@ export function DemoProvider({ children, slug }: DemoProviderProps) {
 
 				if (response) {
 					setUsecase(response);
+					setActiveUsecase(response.slug);
 				}
 			} catch (error) {
 				console.error("Failed to load demo config", error);
@@ -52,6 +89,13 @@ export function DemoProvider({ children, slug }: DemoProviderProps) {
 			value={{
 				usecase,
 				loading,
+				activeUsecase,
+				setActiveUsecase,
+				personas: demoPersonas,
+				selectedPersonaPhone,
+				selectedPersona,
+				setSelectedPersonaPhone,
+				slugs: usecase?.slug.split(","),
 			}}
 		>
 			{children}
