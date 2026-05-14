@@ -232,10 +232,9 @@ export const scenarios = {
 	},
 } satisfies Record<string, ScenarioDetails>;
 
-
 export const scenariosOptions = [
 	{
 		title: "Medical Examination",
-		slug: "medical-examination"
-	}
-]
+		slug: "medical-examination",
+	},
+];

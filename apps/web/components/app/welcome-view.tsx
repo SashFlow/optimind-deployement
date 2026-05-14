@@ -46,7 +46,9 @@ export const WelcomeView = ({
 	const beforeStartRef = useRef<() => void>(() => undefined);
 
 	const handleStartCall = async () => {
-		if (!canStart || isStarting) return;
+		if (!canStart || isStarting) {
+			return;
+		}
 
 		setIsStarting(true);
 		try {

@@ -17,6 +17,7 @@ import {
 	User,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
 import React from "react";
 import {
 	type FlashCard,
@@ -145,7 +146,7 @@ function WidgetCard({ widget }: { widget: Widget }) {
 				<div className="mt-2 grid grid-cols-3 gap-1">
 					{widget.highlights.map((url, i) => (
 						/* eslint-disable-next-line @next/next/no-img-element */
-						<img
+						<Image
 							key={i}
 							src={url}
 							alt={`Menu item ${i + 1}`}

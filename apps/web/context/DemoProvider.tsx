@@ -9,7 +9,7 @@ import {
 } from "react";
 
 import { orpcClient } from "@shared/lib/orpc-client";
-import { DemoLinks } from "@repo/database/prisma/generated/client/client";
+import type { DemoLinks } from "@repo/database/prisma/generated/client/client";
 
 type DemoContextValue = {
 	usecase: DemoLinks | null;
@@ -23,10 +23,7 @@ type DemoProviderProps = {
 	slug: string;
 };
 
-export function DemoProvider({
-	children,
-	slug,
-}: DemoProviderProps) {
+export function DemoProvider({ children, slug }: DemoProviderProps) {
 	const [usecase, setUsecase] = useState<DemoLinks | null>(null);
 	const [loading, setLoading] = useState(true);
 
@@ -66,9 +63,7 @@ export function useDemoContext() {
 	const context = useContext(DemoContext);
 
 	if (!context) {
-		throw new Error(
-			"useDemoContext must be used within DemoProvider"
-		);
+		throw new Error("useDemoContext must be used within DemoProvider");
 	}
 
 	return context;

@@ -103,12 +103,16 @@ function AgentChatInput({
 	};
 
 	const handleButtonClick = async () => {
-		if (isDisabled) return;
+		if (isDisabled) {
+			return;
+		}
 		await handleSend();
 	};
 
 	useEffect(() => {
-		if (chatOpen) return;
+		if (chatOpen) {
+			return;
+		}
 		// when not disabled refocus on input
 		inputRef.current?.focus();
 	}, [chatOpen]);
@@ -437,9 +441,11 @@ export function AgentControlBar({
 							pressed={isChatOpen || isChatOpenUncontrolled}
 							aria-label="Toggle transcript"
 							onPressedChange={(state) => {
-								if (!onIsChatOpenChange)
+								if (!onIsChatOpenChange) {
 									setIsChatOpenUncontrolled(state);
-								else onIsChatOpenChange(state);
+								} else {
+									onIsChatOpenChange(state);
+								}
 							}}
 							className={agentTrackToggleVariants({
 								variant:

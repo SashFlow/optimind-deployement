@@ -157,6 +157,7 @@ export function AgentAudioVisualizerRadial({
 			case "sm":
 				return 16;
 			case "md":
+				return 32;
 			default:
 				return 32;
 		}

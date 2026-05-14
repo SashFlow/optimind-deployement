@@ -45,14 +45,15 @@ const RadioGroupItemLabel = (
 ) => {
 	return (
 		<label
+			htmlFor=""
 			className={cn(
 				props.className,
 				"flex cursor-pointer rounded-md" +
 					" border-input items-center space-x-4 border" +
 					" transition-duration-500 focus-within:border-primary p-4 text-sm transition-all",
 				{
-					["bg-muted"]: props.selected,
-					["hover:bg-muted"]: !props.selected,
+					"bg-muted": props.selected,
+					"hover:bg-muted": !props.selected,
 				},
 			)}
 		>

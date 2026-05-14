@@ -1,4 +1,4 @@
-const ROOT_PATH = '/';
+const ROOT_PATH = "/";
 
 /**
  * @name isRouteActive
@@ -8,29 +8,29 @@ const ROOT_PATH = '/';
  * @param currentPath
  */
 export function isRouteActive(
-  path: string,
-  currentPath: string,
-  end?: boolean | ((path: string) => boolean),
+	path: string,
+	currentPath: string,
+	end?: boolean | ((path: string) => boolean),
 ) {
-  // if the path is the same as the current path, we return true
-  if (path === currentPath) {
-    return true;
-  }
+	// if the path is the same as the current path, we return true
+	if (path === currentPath) {
+		return true;
+	}
 
-  // if the end prop is a function, we call it with the current path
-  if (typeof end === 'function') {
-    return !end(currentPath);
-  }
+	// if the end prop is a function, we call it with the current path
+	if (typeof end === "function") {
+		return !end(currentPath);
+	}
 
-  // otherwise - we use the evaluateIsRouteActive function
-  const defaultEnd = end ?? true;
-  const oneLevelDeep = 1;
-  const threeLevelsDeep = 3;
+	// otherwise - we use the evaluateIsRouteActive function
+	const defaultEnd = end ?? true;
+	const oneLevelDeep = 1;
+	const threeLevelsDeep = 3;
 
-  // how far down should segments be matched?
-  const depth = defaultEnd ? oneLevelDeep : threeLevelsDeep;
+	// how far down should segments be matched?
+	const depth = defaultEnd ? oneLevelDeep : threeLevelsDeep;
 
-  return checkIfRouteIsActive(path, currentPath, depth);
+	return checkIfRouteIsActive(path, currentPath, depth);
 }
 
 /**
@@ -42,67 +42,67 @@ export function isRouteActive(
  * @param depth - how far down should segments be matched?
  */
 export function checkIfRouteIsActive(
-  targetLink: string,
-  currentRoute: string,
-  depth = 1,
+	targetLink: string,
+	currentRoute: string,
+	depth = 1,
 ) {
-  // we remove any eventual query param from the route's URL
-  const currentRoutePath = currentRoute.split('?')[0] ?? '';
+	// we remove any eventual query param from the route's URL
+	const currentRoutePath = currentRoute.split("?")[0] ?? "";
 
-  if (!isRoot(currentRoutePath) && isRoot(targetLink)) {
-    return false;
-  }
+	if (!isRoot(currentRoutePath) && isRoot(targetLink)) {
+		return false;
+	}
 
-  if (!currentRoutePath.includes(targetLink)) {
-    return false;
-  }
+	if (!currentRoutePath.includes(targetLink)) {
+		return false;
+	}
 
-  const isSameRoute = targetLink === currentRoutePath;
+	const isSameRoute = targetLink === currentRoutePath;
 
-  if (isSameRoute) {
-    return true;
-  }
+	if (isSameRoute) {
+		return true;
+	}
 
-  return hasMatchingSegments(targetLink, currentRoutePath, depth);
+	return hasMatchingSegments(targetLink, currentRoutePath, depth);
 }
 
 function splitIntoSegments(href: string) {
-  return href.split('/').filter(Boolean);
+	return href.split("/").filter(Boolean);
 }
 
 function hasMatchingSegments(
-  targetLink: string,
-  currentRoute: string,
-  depth: number,
+	targetLink: string,
+	currentRoute: string,
+	depth: number,
 ) {
-  const segments = splitIntoSegments(targetLink);
-  const matchingSegments = numberOfMatchingSegments(currentRoute, segments);
+	const segments = splitIntoSegments(targetLink);
+	const matchingSegments = numberOfMatchingSegments(currentRoute, segments);
 
-  if (targetLink === currentRoute) {
-    return true;
-  }
+	if (targetLink === currentRoute) {
+		return true;
+	}
 
-  // how far down should segments be matched?
-  // - if depth = 1 => only highlight the links of the immediate parent
-  // - if depth = 2 => for url = /account match /account/organization/members
-  return matchingSegments > segments.length - (depth - 1);
+	// how far down should segments be matched?
+	// - if depth = 1 => only highlight the links of the immediate parent
+	// - if depth = 2 => for url = /account match /account/organization/members
+	return matchingSegments > segments.length - (depth - 1);
 }
 
 function numberOfMatchingSegments(href: string, segments: string[]) {
-  let count = 0;
+	let count = 0;
 
-  for (const segment of splitIntoSegments(href)) {
-    // for as long as the segments match, keep counting + 1
-    if (segments.includes(segment)) {
-      count += 1;
-    } else {
-      return count;
-    }
-  }
+	for (const segment of splitIntoSegments(href)) {
+		// for as long as the segments match, keep counting + 1
+		if (segments.includes(segment)) {
+			count += 1;
+		} else {
+			return count;
+		}
+	}
 
-  return count;
+	return count;
 }
 
 function isRoot(path: string) {
-  return path === ROOT_PATH;
+	return path === ROOT_PATH;
 }

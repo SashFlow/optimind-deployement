@@ -58,7 +58,9 @@ export function PreconnectMediaSetup({
 
 	useEffect(() => {
 		const videoElement = videoPreviewRef.current;
-		if (!videoElement) return;
+		if (!videoElement) {
+			return;
+		}
 
 		videoElement.srcObject = previewStream;
 	}, [previewStream]);

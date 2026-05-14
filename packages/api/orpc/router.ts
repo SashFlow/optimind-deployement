@@ -3,12 +3,11 @@ import { adminRouter } from "../modules/admin/router";
 import { aiRouter } from "../modules/ai/router";
 import { browserRouter } from "../modules/browser/routes";
 import { contactRouter } from "../modules/contact/router";
+import { linkRouter } from "../modules/demo-links/routes";
 import { newsletterRouter } from "../modules/newsletter/router";
 import { organizationsRouter } from "../modules/organizations/router";
 import { paymentsRouter } from "../modules/payments/router";
-import { tokenRouter } from "../modules/token/router";
 import { usersRouter } from "../modules/users/router";
-import { linkRouter } from "../modules/demo-links/routes";
 import { publicProcedure } from "./procedures";
 
 export const router = publicProcedure
@@ -22,7 +21,6 @@ export const router = publicProcedure
 		users: usersRouter,
 		payments: paymentsRouter,
 		ai: aiRouter,
-		token: tokenRouter,
 		browser: browserRouter,
 		links: linkRouter,
 	});

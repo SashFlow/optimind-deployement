@@ -87,7 +87,9 @@ export function AgentRpcProvider({ children }: { children: React.ReactNode }) {
 	const [quiz, setQuiz] = useState<Quiz | null>(null);
 
 	useEffect(() => {
-		if (!room) return;
+		if (!room) {
+			return;
+		}
 
 		const widgetHandler = async (
 			data: RpcInvocationData,
