@@ -8,6 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@repo/ui/card";
+import { orpcClient } from "@shared/lib/orpc-client";
 import {
 	ArrowUpCircle as ArrowClockwise,
 	ArrowUpSquare as ArrowSquareOut,
@@ -21,25 +22,10 @@ import { useEffect, useState, useTransition } from "react";
 import { formatBytes, formatUpdatedAt } from "@/lib/browser-format";
 import type { BrowserListResponse } from "@/types/browser";
 
-async function fetchBrowserData(prefix: string, signal: AbortSignal) {
-	const query = new URLSearchParams();
-	if (prefix) {
-		query.set("prefix", prefix);
-	}
+async function fetchBrowserData(prefix: string) {
+	const response = await orpcClient.browser.list({ prefix: prefix });
 
-	const response = await fetch(`/api/browser/list?${query.toString()}`, {
-		cache: "no-store",
-		signal,
-	});
-
-	if (!response.ok) {
-		const payload = (await response.json().catch(() => null)) as {
-			error?: string;
-		} | null;
-		throw new Error(payload?.error ?? "Failed to load bucket contents");
-	}
-
-	return (await response.json()) as BrowserListResponse;
+	return response as BrowserListResponse;
 }
 
 export function BrowserApp() {
@@ -58,7 +44,7 @@ export function BrowserApp() {
 		setIsLoading(true);
 		setError(null);
 
-		fetchBrowserData(currentPrefix, controller.signal)
+		fetchBrowserData(currentPrefix)
 			.then((response) => {
 				setData(response);
 			})
@@ -106,6 +92,13 @@ export function BrowserApp() {
 
 	const bucketLabel = data?.bucketName ?? "GCS bucket";
 	const rootLabel = data?.rootPrefix ? `/${data.rootPrefix}` : "/";
+
+	const downloadFile = async (path: string) => {
+		const response = await orpcClient.browser.download({
+			path: path,
+		});
+		return response.downloadUrl;
+	};
 
 	return (
 		<main className="bg-background min-h-screen px-4 py-8 md:px-8">
@@ -260,7 +253,9 @@ export function BrowserApp() {
 									))}
 
 									{data.files.map((file) => {
-										const downloadHref = `/api/browser/download?path=${encodeURIComponent(file.path)}`;
+										const downloadHref = downloadFile(
+											file.path,
+										);
 
 										return (
 											<div
