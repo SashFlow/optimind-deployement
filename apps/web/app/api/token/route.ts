@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 		const slug = searchParams.get("slug") ?? "";
 		const language = searchParams.get("language");
 		const selectedAgent = searchParams.get("selectedAgent");
-		const persona = searchParams.get("persona");
+		const persona = searchParams.get("selectedPersona");
 		if (slug) {
 			const interactionMode = resolveInteractionMode(scenarioType);
 			const agentMetadata = JSON.stringify({
