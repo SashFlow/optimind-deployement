@@ -212,7 +212,7 @@ export function VoiceDemoModal({
 													className={`font-mono text-[10px] uppercase tracking-widest ${l.who === "ai" ? "text-signal" : "text-pulse"}`}
 												>
 													{l.who === "ai"
-														? "auralis"
+														? "sashflow"
 														: "patient"}
 													<div className="mt-1 text-muted-foreground">
 														{fmt(l.t)}

@@ -10,12 +10,12 @@ import {
 } from "@repo/ui/card";
 import { orpcClient } from "@shared/lib/orpc-client";
 import {
-	ArrowUpCircle as ArrowClockwise,
 	ArrowUpSquare as ArrowSquareOut,
 	Download as DownloadSimple,
 	File,
 	Folder,
 	Loader2,
+	RefreshCcw,
 	FileWarning as WarningCircle,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -98,9 +98,6 @@ export function BrowserApp() {
 		});
 	}
 
-	const bucketLabel = data?.bucketName ?? "GCS bucket";
-	const rootLabel = data?.rootPrefix ? `/${data.rootPrefix}` : "/";
-
 	const handleDownload = async (path: string) => {
 		setDownloadingPaths((prev) => new Set(prev).add(path));
 		try {
@@ -120,44 +117,26 @@ export function BrowserApp() {
 	};
 
 	return (
-		<main className="bg-background min-h-screen px-4 py-8 md:px-8">
+		<main className="bg-background px-4 py-8 md:px-8">
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-				<div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-					<div className="space-y-2">
-						<p className="text-muted-foreground text-sm font-medium tracking-[0.22em] uppercase">
-							Bucket Browser
-						</p>
-						<div>
-							<h1 className="text-3xl font-semibold tracking-tight">
-								{bucketLabel}
-							</h1>
-							<p className="text-muted-foreground text-sm">
-								Read-only access rooted at{" "}
-								<span className="text-foreground font-medium">
-									{rootLabel}
-								</span>
-							</p>
-						</div>
-					</div>
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={handleRefresh}
-							disabled={isPending || isLoading}
-						>
-							<ArrowClockwise className="size-4" />
-							Refresh
-						</Button>
-					</div>
-				</div>
-
 				<Card className="overflow-hidden">
 					<CardHeader className="border-b">
 						<CardTitle>Contents</CardTitle>
-						<CardDescription>
-							Browse folders, inspect metadata, and download files
-							directly from Google Cloud Storage.
+						<CardDescription className="flex justify-between">
+							<div className="content-center">
+								Browse folders, inspect metadata, and download
+								files directly from Google Cloud Storage.
+							</div>
+							<div className="flex items-center gap-2">
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={handleRefresh}
+									disabled={isPending || isLoading}
+								>
+									<RefreshCcw className="size-4" />
+								</Button>
+							</div>
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-6 pt-6">

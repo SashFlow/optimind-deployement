@@ -203,6 +203,7 @@ export const featuresStrengths = [
 		subheading: "Products built and ready within weeks.",
 	},
 ];
+
 export const modes = [
 	{ id: "audio", label: "Audio Assistant" },
 	{ id: "avatar", label: "Avatar Assistant" },

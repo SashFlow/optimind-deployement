@@ -1,29 +1,15 @@
-/** biome-ignore-all lint/a11y/noLabelWithoutControl: <explanation> */
 "use client";
-/** biome-ignore-all lint/a11y/noLabelWithoutControl: <explanation> */
 import { Marquee } from "@components/marketing/home/Marquee";
 import {
 	type DemoData,
 	VoiceDemoModal,
 } from "@components/marketing/home/VoiceDemoModal";
 import { VoiceOrb } from "@components/marketing/home/VoiceOrb";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion } from "motion/react";
 import { useRef, useState } from "react";
-// import heroWave from "@/assets/hero-wave.jpg";
 
-export default function Home({
-	params,
-}: {
-	params: Promise<{ locale: string }>;
-}) {
-	// const { locale } = await params;
-	// setRequestLocale(locale);
+export default function Home() {
 	const ref = useRef<HTMLDivElement>(null);
-	const { scrollYProgress } = useScroll({
-		target: ref,
-		offset: ["start end", "end start"],
-	});
-	const y = useTransform(scrollYProgress, [0, 1], [0, -80]);
 	const [activeDemo, setActiveDemo] = useState<DemoData | null>(null);
 
 	return (
@@ -36,7 +22,7 @@ export default function Home({
 						className="flex items-center gap-2 font-display text-2xl"
 					>
 						<span className="inline-block h-2 w-2 rounded-full bg-signal" />
-						Auralis
+						Sashflow
 					</a>
 					<nav className="hidden gap-8 font-mono text-xs uppercase tracking-widest text-muted-foreground md:flex">
 						<a href="#use-cases" className="hover:text-foreground">
@@ -97,7 +83,7 @@ export default function Home({
 							transition={{ duration: 1, delay: 0.4 }}
 							className="mt-8 max-w-xl text-lg leading-relaxed text-muted-foreground"
 						>
-							Auralis is a voice AI engineered for the moments
+							Sashflow is a voice AI engineered for the moments
 							other models fluff: an elderly patient describing
 							chest pain, a med student lost in a lecture, a
 							radiology report that reads like Latin. Built for
@@ -190,7 +176,7 @@ export default function Home({
 					style={{ y, backgroundImage: `url(${heroWave})` }}
 					className="absolute inset-0 -z-10 bg-cover bg-center opacity-20"
 				/> */}
-				<div className="absolute inset-0 -z-10 bg-gradient-to-b from-background via-background/60 to-background" />
+				<div className="absolute inset-0 -z-10 bg-linear-to-b from-background via-background/60 to-background" />
 				<div className="mx-auto max-w-7xl px-6">
 					<div className="mb-20 max-w-3xl">
 						<div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -247,22 +233,12 @@ export default function Home({
 			{/* CONTACT */}
 			<ContactSection />
 
-			{/* FOOTER */}
-			<footer className="border-t border-border py-12">
-				<div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-6 md:flex-row md:items-center">
-					<div className="font-display text-xl">
-						Auralis<span className="text-signal">.</span>
-					</div>
-					<div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-						© 2026 — built quietly, deployed loudly
-					</div>
-				</div>
-			</footer>
-
 			<VoiceDemoModal
 				open={activeDemo !== null}
 				onOpenChange={(v) => {
-					if (!v) setActiveDemo(null);
+					if (!v) {
+						setActiveDemo(null);
+					}
 				}}
 				demo={activeDemo}
 			/>
@@ -325,7 +301,7 @@ const useCases: Array<{
 				{
 					t: 0.2,
 					who: "ai",
-					text: "Charité dermatology, this is Auralis — how can I help?",
+					text: "Charité dermatology, this is Sashflow — how can I help?",
 				},
 				{
 					t: 3,
@@ -358,7 +334,7 @@ const useCases: Array<{
 				{
 					t: 0.2,
 					who: "ai",
-					text: "Hi Maria, it's Auralis from Dr. Patel's office — quick check on day three after the knee scope?",
+					text: "Hi Maria, it's Sashflow from Dr. Patel's office — quick check on day three after the knee scope?",
 				},
 				{
 					t: 5,
@@ -515,11 +491,11 @@ function ContactSection() {
 					<div className="mt-10 space-y-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
 						<div>
 							<span className="text-signal">↳ </span>
-							hello@auralis.health
+							sai@sashflow.com
 						</div>
 						<div>
-							<span className="text-signal">↳ </span>Berlin ·
-							Singapore · NYC
+							<span className="text-signal">↳ </span>Mumbai ·
+							Bengaluru · Texas
 						</div>
 					</div>
 				</div>
@@ -543,7 +519,10 @@ function ContactSection() {
 						optional
 					/>
 					<div>
-						<label className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+						<label
+							htmlFor="message"
+							className="font-mono text-xs uppercase tracking-widest text-muted-foreground"
+						>
 							The use case
 						</label>
 						<textarea
@@ -596,7 +575,10 @@ function Field({
 }) {
 	return (
 		<div>
-			<label className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+			<label
+				htmlFor={name}
+				className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground"
+			>
 				{label}
 				{optional && (
 					<span className="text-muted-foreground/40">— optional</span>

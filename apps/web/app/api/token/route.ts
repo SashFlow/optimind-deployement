@@ -75,8 +75,9 @@ export async function POST(req: Request) {
 
 		// Generate participant token
 		const participantName = "user";
+		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
-		const roomName = `MER_SESSION_${Math.floor(Math.random() * 10_000)}`;
+		const roomName = `SESSION_${timestamp}_${Math.floor(Math.random() * 10_000)}`;
 
 		const participantToken = await createParticipantToken(
 			{ identity: participantIdentity, name: participantName },

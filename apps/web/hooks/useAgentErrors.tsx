@@ -36,24 +36,24 @@ export function useAgentErrors() {
 	useEffect(() => {
 		if (isConnected && agent.state === "failed") {
 			const reasons = agent.failureReasons;
-
-			toastAlert({
-				title: "Session ended",
-				description: (
-					<>
-						{reasons.length > 1 && (
-							<ul className="list-inside list-disc">
-								{reasons.map((reason) => (
-									<li key={reason}>{reason}</li>
-								))}
-							</ul>
-						)}
-						{reasons.length === 1 && (
-							<p className="w-full">{reasons[0]}</p>
-						)}
-					</>
-				),
-			});
+			console.log("Error:", reasons);
+			// toastAlert({
+			// 	title: "Session ended",
+			// 	description: (
+			// 		<>
+			// 			{reasons.length > 1 && (
+			// 				<ul className="list-inside list-disc">
+			// 					{reasons.map((reason) => (
+			// 						<li key={reason}>{reason}</li>
+			// 					))}
+			// 				</ul>
+			// 			)}
+			// 			{reasons.length === 1 && (
+			// 				<p className="w-full">{reasons[0]}</p>
+			// 			)}
+			// 		</>
+			// 	),
+			// });
 
 			end();
 		}
