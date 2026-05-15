@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { RoomConfiguration } from "@livekit/protocol";
 import {
 	AccessToken,
 	type AccessTokenOptions,
 	type VideoGrant,
 } from "livekit-server-sdk";
-import { RoomConfiguration } from "@livekit/protocol";
+import { NextResponse } from "next/server";
 
 type ConnectionDetails = {
 	serverUrl: string;
@@ -54,6 +54,7 @@ export async function POST(req: Request) {
 		const slug = searchParams.get("slug") ?? "";
 		const language = searchParams.get("language");
 		const selectedAgent = searchParams.get("selectedAgent");
+		const persona = searchParams.get("persona");
 		if (slug) {
 			const interactionMode = resolveInteractionMode(scenarioType);
 			const agentMetadata = JSON.stringify({
@@ -62,6 +63,7 @@ export async function POST(req: Request) {
 				scenarioType,
 				language,
 				selectedAgent,
+				persona,
 			});
 
 			roomConfig.metadata = `${interactionMode}-${slug}`;

@@ -15,27 +15,35 @@ import {
 	Download as DownloadSimple,
 	File,
 	Folder,
+	Loader2,
 	FileWarning as WarningCircle,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { formatBytes, formatUpdatedAt } from "@/lib/browser-format";
 import type { BrowserListResponse } from "@/types/browser";
 
-async function fetchBrowserData(prefix: string) {
-	const response = await orpcClient.browser.list({ prefix: prefix });
+async function fetchBrowserData(prefix: string, signal?: AbortSignal) {
+	const response = await orpcClient.browser.list(
+		{ prefix: prefix },
+		{ signal },
+	);
 
 	return response as BrowserListResponse;
 }
 
 export function BrowserApp() {
 	const router = useRouter();
+	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const [isPending, startTransition] = useTransition();
 	const [data, setData] = useState<BrowserListResponse | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [requestVersion, setRequestVersion] = useState(0);
+	const [downloadingPaths, setDownloadingPaths] = useState<Set<string>>(
+		new Set(),
+	);
 	const currentPrefix = searchParams.get("prefix") ?? "";
 
 	useEffect(() => {
@@ -44,7 +52,7 @@ export function BrowserApp() {
 		setIsLoading(true);
 		setError(null);
 
-		fetchBrowserData(currentPrefix)
+		fetchBrowserData(currentPrefix, controller.signal)
 			.then((response) => {
 				setData(response);
 			})
@@ -80,7 +88,7 @@ export function BrowserApp() {
 			}
 
 			const query = nextSearchParams.toString();
-			router.push(query ? `/browser?${query}` : "/browser");
+			router.push(query ? `${pathname}?${query}` : pathname);
 		});
 	}
 
@@ -93,11 +101,22 @@ export function BrowserApp() {
 	const bucketLabel = data?.bucketName ?? "GCS bucket";
 	const rootLabel = data?.rootPrefix ? `/${data.rootPrefix}` : "/";
 
-	const downloadFile = async (path: string) => {
-		const response = await orpcClient.browser.download({
-			path: path,
-		});
-		return response.downloadUrl;
+	const handleDownload = async (path: string) => {
+		setDownloadingPaths((prev) => new Set(prev).add(path));
+		try {
+			const { downloadUrl } = await orpcClient.browser.download({
+				path,
+			});
+			window.open(downloadUrl, "_blank");
+		} catch (err) {
+			console.error("Download failed:", err);
+		} finally {
+			setDownloadingPaths((prev) => {
+				const next = new Set(prev);
+				next.delete(path);
+				return next;
+			});
+		}
 	};
 
 	return (
@@ -151,7 +170,8 @@ export function BrowserApp() {
 								<Button
 									key={`${crumb.label}-${crumb.prefix}`}
 									variant={
-										crumb.prefix === currentPrefix
+										crumb.prefix ===
+										(data?.currentPrefix ?? "")
 											? "secondary"
 											: "ghost"
 									}
@@ -253,9 +273,8 @@ export function BrowserApp() {
 									))}
 
 									{data.files.map((file) => {
-										const downloadHref = downloadFile(
-											file.path,
-										);
+										const isDownloading =
+											downloadingPaths.has(file.path);
 
 										return (
 											<div
@@ -284,14 +303,23 @@ export function BrowserApp() {
 												</span>
 												<span className="flex justify-start md:justify-end">
 													<Button
-														asChild
 														variant="outline"
 														size="sm"
+														onClick={() =>
+															handleDownload(
+																file.path,
+															)
+														}
+														disabled={isDownloading}
 													>
-														<a href={downloadHref}>
+														{isDownloading ? (
+															<Loader2 className="size-4 animate-spin" />
+														) : (
 															<DownloadSimple className="size-4" />
-															Download
-														</a>
+														)}
+														{isDownloading
+															? "Downloading..."
+															: "Download"}
 													</Button>
 												</span>
 											</div>

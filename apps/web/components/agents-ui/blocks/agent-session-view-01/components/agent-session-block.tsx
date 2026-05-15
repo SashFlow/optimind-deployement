@@ -7,6 +7,7 @@ import {
 } from "@components/agents-ui/agent-control-bar";
 import { AgentDataPanel } from "@components/agents-ui/agent-data-panel";
 import { Shimmer } from "@components/ai-elements/shimmer";
+import type { DemoPersona } from "@context/DemoProvider";
 import {
 	useAgent,
 	useSessionContext,
@@ -160,6 +161,7 @@ export interface AgentSessionView_01Props {
 	forceEnableCameraOnConnect?: boolean;
 	/** Optional class name merged onto the outer `<section>` container. */
 	className?: string;
+	persona?: DemoPersona | null;
 }
 
 export function AgentSessionView_01({
@@ -168,7 +170,7 @@ export function AgentSessionView_01({
 	supportsVideoInput = true,
 	supportsScreenShare = true,
 	isPreConnectBufferEnabled = true,
-
+	persona,
 	audioVisualizerType,
 	audioVisualizerColor,
 	audioVisualizerColorShift,
@@ -237,6 +239,15 @@ export function AgentSessionView_01({
 			</div>
 			{/* Agent data panel (widgets / flashcards / quiz) */}
 			<AgentDataPanel />
+
+			{/* Persona data panel */}
+			{persona && (
+				<div>
+					<p>Name: {persona.full_name}</p>
+					<p>Phone Number: {persona.phone_number}</p>
+					<p>Date of Birth: {persona.dob}</p>
+				</div>
+			)}
 
 			{/* Tile layout */}
 			<TileLayout

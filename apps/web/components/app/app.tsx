@@ -5,6 +5,7 @@ import { AgentSessionProvider } from "@components/agents-ui/agent-session-provid
 import { StartAudioButton } from "@components/agents-ui/start-audio-button";
 import { ViewController } from "@components/app/view-controller";
 import { scenarios } from "@constants";
+import { type DemoPersona, demoPersonas } from "@context/DemoProvider";
 import { useAgentErrors } from "@hooks/useAgentErrors";
 import { useDebugMode } from "@hooks/useDebug";
 import { useSession } from "@livekit/components-react";
@@ -45,6 +46,11 @@ export function App({ appConfig, scenarioType }: AppProps) {
 	const language: string = searchParams.get("language") || "English";
 	const selectedAgent: string | null =
 		searchParams.get("selectedAgent") || "Sanjay";
+	const selectedPersona: DemoPersona | null =
+		demoPersonas.find(
+			(persona) =>
+				persona.phone_number === searchParams.get("selectedPersona"),
+		) ?? null;
 
 	const tokenSource = TokenSource.endpoint(
 		`/api/token?scenarioType=${encodeURIComponent(scenarioType)}&slug=${encodeURIComponent(slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent)}`,
@@ -82,7 +88,11 @@ export function App({ appConfig, scenarioType }: AppProps) {
 			<AgentRpcProvider>
 				<AppSetup />
 				<main className="grid h-full grid-cols-1 place-content-center">
-					<ViewController appConfig={appConfig} scenario={scenario} />
+					<ViewController
+						appConfig={appConfig}
+						scenario={scenario}
+						persona={selectedPersona}
+					/>
 				</main>
 				<StartAudioButton
 					label="Start"

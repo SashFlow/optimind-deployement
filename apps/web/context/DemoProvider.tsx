@@ -13,13 +13,13 @@ import {
 	useState,
 } from "react";
 
-type DemoPersona = {
+export type DemoPersona = {
 	phone_number: string;
 	full_name: string;
 	dob: string;
 };
 
-const demoPersonas: readonly DemoPersona[] = [
+export const demoPersonas: readonly DemoPersona[] = [
 	{
 		phone_number: "9876543210",
 		full_name: "Rohit Sharma",

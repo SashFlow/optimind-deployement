@@ -16,6 +16,7 @@ import { TokenSource } from "livekit-client";
 import { ArrowLeftIcon, FileWarningIcon as WarningIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import type { AppConfig } from "@/types/app-config";
 
 const IN_DEVELOPMENT = process.env.NODE_ENV !== "production";
@@ -37,12 +38,26 @@ function isScenarioSlug(value: string): value is ScenarioSlug {
 	return value in scenarios;
 }
 
-export function App({ appConfig }: AppProps) {
-	const { usecase } = useDemoContext();
+function AppInner({ appConfig }: AppProps) {
+	const { usecase, selectedPersona } = useDemoContext();
 	const searchParams = useSearchParams();
 	const language: string = searchParams.get("language") || "English";
 	const selectedAgent: string | null =
 		searchParams.get("selectedAgent") || "Sanjay";
+
+	const scenario =
+		usecase && isScenarioSlug(usecase.slug)
+			? scenarios[usecase.slug]
+			: scenarios["medical-examination"];
+
+	const tokenSource = TokenSource.endpoint(
+		`/api/token?scenarioType=${encodeURIComponent(usecase?.mode ?? "")}&slug=${encodeURIComponent(usecase?.slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent ?? "")}&persona=${encodeURIComponent(selectedPersona?.phone_number ?? "")}`,
+	);
+
+	const session = useSession(
+		tokenSource,
+		appConfig.agentName ? { agentName: appConfig.agentName } : undefined,
+	);
 
 	if (!usecase) {
 		return (
@@ -67,19 +82,6 @@ export function App({ appConfig }: AppProps) {
 		);
 	}
 
-	const scenario = isScenarioSlug(usecase.slug)
-		? scenarios[usecase.slug]
-		: scenarios["medical-examination"];
-
-	const tokenSource = TokenSource.endpoint(
-		`/api/token?scenarioType=${encodeURIComponent(usecase.mode)}&slug=${encodeURIComponent(usecase.slug)}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent)}`,
-	);
-
-	const session = useSession(
-		tokenSource,
-		appConfig.agentName ? { agentName: appConfig.agentName } : undefined,
-	);
-
 	const handleUseSession = async () => {
 		await orpcClient.links.reduceSession({ id: usecase.id });
 	};
@@ -92,7 +94,8 @@ export function App({ appConfig }: AppProps) {
 					<ViewController
 						appConfig={appConfig}
 						scenario={scenario}
-						useScenario={handleUseSession}
+						persona={selectedPersona}
+						handleScenario={handleUseSession}
 					/>
 				</main>
 				<StartAudioButton
@@ -116,5 +119,13 @@ export function App({ appConfig }: AppProps) {
 				/>
 			</AgentRpcProvider>
 		</AgentSessionProvider>
+	);
+}
+
+export function App(props: AppProps) {
+	return (
+		<Suspense fallback={null}>
+			<AppInner {...props} />
+		</Suspense>
 	);
 }

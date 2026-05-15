@@ -2,6 +2,7 @@
 
 import { AgentSessionView_01 } from "@components/agents-ui/blocks/agent-session-view-01";
 import { WelcomeView } from "@components/app/welcome-view";
+import type { DemoPersona } from "@context/DemoProvider";
 import { useSessionContext } from "@livekit/components-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useTheme } from "next-themes";
@@ -38,21 +39,24 @@ interface ViewControllerProps {
 		highlights: string[];
 		firstTimeGuidance: string[];
 		suggestedQuestions: string[];
+		url: string;
 	};
-	useScenario?: () => void;
+	persona: DemoPersona | null;
+	handleScenario?: () => void;
 }
 
 export function ViewController({
 	appConfig,
 	scenario,
-	useScenario,
+	persona,
+	handleScenario,
 }: ViewControllerProps) {
 	const { isConnected, start } = useSessionContext();
 	const { resolvedTheme } = useTheme();
 
 	const handleStartCall = async () => {
-		if (useScenario) {
-			useScenario();
+		if (handleScenario) {
+			handleScenario();
 		}
 		await Promise.resolve(start());
 	};
@@ -81,6 +85,7 @@ export function ViewController({
 				<MotionSessionView
 					key="session-view"
 					{...VIEW_MOTION_PROPS}
+					persona={persona}
 					supportsChatInput={appConfig.supportsChatInput}
 					supportsVideoInput={appConfig.supportsVideoInput}
 					supportsScreenShare={appConfig.supportsScreenShare}

@@ -2,6 +2,7 @@
 
 import { WelcomeImage } from "@components/app/welcome-view";
 import { popularIndianLanguages, scenariosOptions } from "@constants";
+import { demoPersonas } from "@context/DemoProvider";
 import type { DemoLinks } from "@repo/database/prisma/generated/client/client";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
@@ -138,7 +139,12 @@ export default function Page() {
 	const [selectedAgentSlug, setSelectedAgentSlug] = useState<string | null>(
 		null,
 	);
+	const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
 	const [selectedLanguage, setSelectedLanguage] = useState<string>("English");
+
+	useEffect(() => {
+		setSelectedPersona(null);
+	}, [selectedScenario]);
 
 	const totalPages = Math.max(
 		1,
@@ -304,10 +310,18 @@ export default function Page() {
 		}
 	};
 
+	const selectedPersonaData = demoPersonas.find(
+		(p) => p.full_name === selectedPersona,
+	);
+	const personaQuery = selectedPersonaData
+		? `&selectedPersona=${selectedPersonaData.phone_number}`
+		: "";
+
 	const nextHref =
-		selectedAgentSlug == null
+		selectedAgentSlug == null ||
+		(selectedScenario === "medical-examination" && !selectedPersona)
 			? null
-			: `app/${selectedMode}/${selectedScenario}?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}`;
+			: `app/${selectedMode}/${selectedScenario}?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}${personaQuery}`;
 
 	const origin = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -830,32 +844,62 @@ export default function Page() {
 							})}
 						</div>
 
-						{/* Language + Proceed */}
+						{/* Language + Persona + Proceed */}
 						<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-							<div className="space-y-1.5">
-								<p className="text-sm font-medium">
-									Preferred Language
-								</p>
-								<Select
-									value={selectedLanguage}
-									onValueChange={setSelectedLanguage}
-								>
-									<SelectTrigger className="w-[260px]">
-										<SelectValue placeholder="Select a language" />
-									</SelectTrigger>
-									<SelectContent>
-										{popularIndianLanguages.map(
-											(language) => (
-												<SelectItem
-													key={language}
-													value={language}
-												>
-													{language}
-												</SelectItem>
-											),
-										)}
-									</SelectContent>
-								</Select>
+							<div className="flex flex-col gap-4 sm:flex-row">
+								<div className="space-y-1.5">
+									<p className="text-sm font-medium">
+										Preferred Language
+									</p>
+									<Select
+										value={selectedLanguage}
+										onValueChange={setSelectedLanguage}
+									>
+										<SelectTrigger className="w-[260px]">
+											<SelectValue placeholder="Select a language" />
+										</SelectTrigger>
+										<SelectContent>
+											{popularIndianLanguages.map(
+												(language) => (
+													<SelectItem
+														key={language}
+														value={language}
+													>
+														{language}
+													</SelectItem>
+												),
+											)}
+										</SelectContent>
+									</Select>
+								</div>
+
+								{selectedScenario !== "medical-examination" && (
+									<div className="space-y-1.5">
+										<p className="text-sm font-medium">
+											Persona
+										</p>
+										<Select
+											value={selectedPersona ?? ""}
+											onValueChange={setSelectedPersona}
+										>
+											<SelectTrigger className="w-[260px]">
+												<SelectValue placeholder="Select a persona" />
+											</SelectTrigger>
+											<SelectContent>
+												{demoPersonas.map((persona) => (
+													<SelectItem
+														key={persona.full_name}
+														value={
+															persona.full_name
+														}
+													>
+														{persona.full_name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+								)}
 							</div>
 
 							{nextHref ? (
