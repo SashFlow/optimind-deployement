@@ -52,17 +52,17 @@ export const config = {
 	// Authentication
 	auth: {
 		// Whether users should be able to create accounts (otherwise users can only be by admins)
-		enableSignup: true,
+		enableSignup: false,
 		// Whether users should be able to sign in with a magic link
-		enableMagicLink: true,
+		enableMagicLink: false,
 		// Whether users should be able to sign in with a social provider
-		enableSocialLogin: true,
+		enableSocialLogin: false,
 		// Whether users should be able to sign in with a passkey
-		enablePasskeys: true,
+		enablePasskeys: false,
 		// Whether users should be able to sign in with a password
 		enablePasswordLogin: true,
 		// Whether users should be activate two factor authentication
-		enableTwoFactor: true,
+		enableTwoFactor: false,
 		// where users should be redirected after the sign in
 		redirectAfterSignIn: "/app",
 		// where users should be redirected after logout
