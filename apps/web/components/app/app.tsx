@@ -53,7 +53,7 @@ export function App({ appConfig, scenarioType }: AppProps) {
 		) ?? null;
 
 	const tokenSource = TokenSource.endpoint(
-		`/api/token?scenarioType=${encodeURIComponent(scenarioType)}&slug=${encodeURIComponent(slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent)}`,
+		`/api/token?scenarioType=${encodeURIComponent(scenarioType)}&slug=${encodeURIComponent(slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent)}&selectedPersona=${encodeURIComponent(selectedPersona?.phone_number ?? "")}`,
 	);
 
 	const session = useSession(
