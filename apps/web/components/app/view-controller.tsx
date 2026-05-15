@@ -6,7 +6,6 @@ import type { DemoPersona } from "@context/DemoProvider";
 import { useSessionContext } from "@livekit/components-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useTheme } from "next-themes";
-import { useEffect } from "react";
 import type { AppConfig } from "@/types/app-config";
 
 const MotionWelcomeView = motion.create(WelcomeView);
@@ -28,7 +27,7 @@ const VIEW_MOTION_PROPS = {
 		duration: 0.5,
 		ease: "linear",
 	},
-};
+} as const;
 
 interface ViewControllerProps {
 	appConfig: AppConfig;
@@ -60,11 +59,6 @@ export function ViewController({
 		}
 		await Promise.resolve(start());
 	};
-
-	useEffect(() => {
-		if (isConnected) {
-		}
-	}, [isConnected]);
 
 	return (
 		<AnimatePresence mode="wait">
