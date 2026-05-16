@@ -240,7 +240,7 @@ export function AgentSessionView_01({
 			<AgentDataPanel />
 			{/* Persona data panel */}
 			{persona && (
-				<div className="absolute top-24 right-4 z-40 w-[calc(100%-2rem)] rounded-xl border border-border/70 bg-background/95 p-4 shadow-lg backdrop-blur md:top-24 md:right-6 justify-center">
+				<div className="absolute top-24 right-4 z-400 w-[calc(100%-2rem)] rounded-xl border border-border/70 bg-background/95 p-4 shadow-lg backdrop-blur md:top-24 md:right-6 justify-center">
 					<p className="text-sm font-semibold text-center">
 						Persona Details
 					</p>
