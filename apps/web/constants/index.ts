@@ -1,3 +1,4 @@
+import type { DemoPersona } from "@context/DemoProvider";
 import {
 	Brain,
 	Building2,
@@ -274,5 +275,263 @@ export const scenariosOptions = [
 	{
 		title: "Reminder Call",
 		slug: "reminder-call",
+	},
+];
+
+export const demoPersonas: readonly DemoPersona[] = [
+	{
+		phone_number: "9876543210",
+		full_name: "Rohit Sharma",
+		dob: "1992-08-15",
+	},
+	{
+		phone_number: "9876500001",
+		full_name: "Priya Nair",
+		dob: "1995-01-20",
+	},
+	{
+		phone_number: "9876500002",
+		full_name: "Arjun Mehta",
+		dob: "1990-03-11",
+	},
+	{
+		phone_number: "9876500003",
+		full_name: "Sneha Kapoor",
+		dob: "1993-07-24",
+	},
+	{
+		phone_number: "9876500004",
+		full_name: "Vikram Singh",
+		dob: "1988-12-02",
+	},
+	{
+		phone_number: "9876500005",
+		full_name: "Ananya Reddy",
+		dob: "1996-09-18",
+	},
+	{
+		phone_number: "9876500006",
+		full_name: "Karan Malhotra",
+		dob: "1991-05-14",
+	},
+	{
+		phone_number: "9876500007",
+		full_name: "Neha Verma",
+		dob: "1994-02-28",
+	},
+	{
+		phone_number: "9876500008",
+		full_name: "Rahul Khanna",
+		dob: "1989-11-10",
+	},
+	{
+		phone_number: "9876500009",
+		full_name: "Pooja Iyer",
+		dob: "1997-06-06",
+	},
+	{
+		phone_number: "9876500010",
+		full_name: "Amit Joshi",
+		dob: "1992-01-17",
+	},
+	{
+		phone_number: "9876500011",
+		full_name: "Divya Menon",
+		dob: "1993-10-03",
+	},
+	{
+		phone_number: "9876500012",
+		full_name: "Siddharth Rao",
+		dob: "1987-04-22",
+	},
+	{
+		phone_number: "9876500013",
+		full_name: "Meera Pillai",
+		dob: "1998-08-09",
+	},
+	{
+		phone_number: "9876500014",
+		full_name: "Yash Patel",
+		dob: "1991-12-30",
+	},
+	{
+		phone_number: "9876500015",
+		full_name: "Kavya Shetty",
+		dob: "1995-03-26",
+	},
+	{
+		phone_number: "9876500016",
+		full_name: "Aditya Kulkarni",
+		dob: "1990-07-01",
+	},
+	{
+		phone_number: "9876500017",
+		full_name: "Ritika Bansal",
+		dob: "1994-11-19",
+	},
+	{
+		phone_number: "9876500018",
+		full_name: "Nikhil Jain",
+		dob: "1988-02-13",
+	},
+	{
+		phone_number: "9876500019",
+		full_name: "Shreya Das",
+		dob: "1996-05-29",
+	},
+	{
+		phone_number: "9876500020",
+		full_name: "Manish Tiwari",
+		dob: "1992-09-07",
+	},
+	{
+		phone_number: "9876500021",
+		full_name: "Aisha Khan",
+		dob: "1997-01-12",
+	},
+	{
+		phone_number: "9876500022",
+		full_name: "Rajat Arora",
+		dob: "1989-06-21",
+	},
+	{
+		phone_number: "9876500023",
+		full_name: "Simran Kaur",
+		dob: "1993-04-04",
+	},
+	{
+		phone_number: "9876500024",
+		full_name: "Harsh Vardhan",
+		dob: "1991-08-25",
+	},
+	{
+		phone_number: "9876500025",
+		full_name: "Ishita Roy",
+		dob: "1995-12-08",
+	},
+	{
+		phone_number: "9876500026",
+		full_name: "Deepak Yadav",
+		dob: "1987-10-16",
+	},
+	{
+		phone_number: "9876500027",
+		full_name: "Tanvi Mishra",
+		dob: "1998-02-01",
+	},
+	{
+		phone_number: "9876500028",
+		full_name: "Akash Choudhary",
+		dob: "1990-11-23",
+	},
+	{
+		phone_number: "9876500029",
+		full_name: "Nandini Rao",
+		dob: "1994-06-14",
+	},
+	{
+		phone_number: "9876500030",
+		full_name: "Varun Bhatia",
+		dob: "1992-03-05",
+	},
+	{
+		phone_number: "9876500031",
+		full_name: "Rhea Thomas",
+		dob: "1996-09-27",
+	},
+	{
+		phone_number: "9876500032",
+		full_name: "Abhishek Sinha",
+		dob: "1988-01-31",
+	},
+	{
+		phone_number: "9876500033",
+		full_name: "Mitali Ghosh",
+		dob: "1995-07-13",
+	},
+	{
+		phone_number: "9876500034",
+		full_name: "Sameer Puri",
+		dob: "1991-04-18",
+	},
+	{
+		phone_number: "9876500035",
+		full_name: "Lavanya Krishnan",
+		dob: "1997-11-09",
+	},
+	{
+		phone_number: "9876500036",
+		full_name: "Gaurav Saxena",
+		dob: "1989-05-02",
+	},
+	{
+		phone_number: "9876500037",
+		full_name: "Bhavna Chopra",
+		dob: "1993-08-20",
+	},
+	{
+		phone_number: "9876500038",
+		full_name: "Rohan Desai",
+		dob: "1990-12-11",
+	},
+	{
+		phone_number: "9876500039",
+		full_name: "Sanya Mallick",
+		dob: "1996-03-15",
+	},
+	{
+		phone_number: "9876500040",
+		full_name: "Tushar Anand",
+		dob: "1992-10-28",
+	},
+	{
+		phone_number: "9876500041",
+		full_name: "Keerthi Narayan",
+		dob: "1994-01-07",
+	},
+	{
+		phone_number: "9876500042",
+		full_name: "Mohit Sehgal",
+		dob: "1987-06-26",
+	},
+	{
+		phone_number: "9876500043",
+		full_name: "Pallavi Sen",
+		dob: "1998-04-12",
+	},
+	{
+		phone_number: "9876500044",
+		full_name: "Naveen Kumar",
+		dob: "1991-09-03",
+	},
+	{
+		phone_number: "9876500045",
+		full_name: "Anjali Bhat",
+		dob: "1995-02-22",
+	},
+	{
+		phone_number: "9876500046",
+		full_name: "Prateek Agarwal",
+		dob: "1989-07-30",
+	},
+	{
+		phone_number: "9876500047",
+		full_name: "Shruti Kulshrestha",
+		dob: "1993-11-14",
+	},
+	{
+		phone_number: "9876500048",
+		full_name: "Devansh Gupta",
+		dob: "1990-05-19",
+	},
+	{
+		phone_number: "9876500049",
+		full_name: "Aarushi Bedi",
+		dob: "1997-08-06",
+	},
+	{
+		phone_number: "9876500050",
+		full_name: "Chirag Oberoi",
+		dob: "1992-12-24",
 	},
 ];

@@ -1,5 +1,6 @@
 "use client";
 
+import { demoPersonas } from "@constants";
 import type { DemoLinks } from "@repo/database/prisma/generated/client/client";
 
 import { orpcClient } from "@shared/lib/orpc-client";
@@ -18,19 +19,6 @@ export type DemoPersona = {
 	full_name: string;
 	dob: string;
 };
-
-export const demoPersonas: readonly DemoPersona[] = [
-	{
-		phone_number: "9876543210",
-		full_name: "Rohit Sharma",
-		dob: "1992-08-15",
-	},
-	{
-		phone_number: "9876500001",
-		full_name: "Priya Nair",
-		dob: "1995-01-20",
-	},
-];
 
 type DemoContextValue = {
 	usecase: DemoLinks | null;

@@ -1,8 +1,12 @@
 "use client";
 
 import { WelcomeImage } from "@components/app/welcome-view";
-import { modes, popularIndianLanguages, scenariosOptions } from "@constants";
-import { demoPersonas } from "@context/DemoProvider";
+import {
+	demoPersonas,
+	modes,
+	popularIndianLanguages,
+	scenariosOptions,
+} from "@constants";
 import { Button } from "@repo/ui/button";
 import {
 	Card,
@@ -23,7 +27,7 @@ import {
 	Mars as GenderMaleIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const agents = [
 	{
@@ -59,6 +63,17 @@ const PlaygroundPage = () => {
 	);
 	const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
 	const [selectedLanguage, setSelectedLanguage] = useState<string>("English");
+
+	useEffect(() => {
+		if (selectedScenario === "medical-examination") {
+			setSelectedPersona(null);
+			return;
+		}
+
+		const randomPersona =
+			demoPersonas[Math.floor(Math.random() * demoPersonas.length)];
+		setSelectedPersona(randomPersona?.full_name ?? null);
+	}, [selectedScenario]);
 
 	const selectedPersonaData = demoPersonas.find(
 		(p) => p.full_name === selectedPersona,
@@ -211,27 +226,8 @@ const PlaygroundPage = () => {
 								</div>
 
 								{selectedScenario !== "medical-examination" && (
-									<div className="space-y-1.5">
-										<Select
-											value={selectedPersona ?? ""}
-											onValueChange={setSelectedPersona}
-										>
-											<SelectTrigger className="w-full sm:w-[218px]">
-												<SelectValue placeholder="Select a persona" />
-											</SelectTrigger>
-											<SelectContent>
-												{demoPersonas.map((persona) => (
-													<SelectItem
-														key={persona.full_name}
-														value={
-															persona.full_name
-														}
-													>
-														{persona.full_name}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
+									<div className="flex h-10 min-w-[218px] items-center rounded-md border px-3 text-sm text-muted-foreground">
+										Persona: {selectedPersona ?? "Random"}
 									</div>
 								)}
 							</div>
