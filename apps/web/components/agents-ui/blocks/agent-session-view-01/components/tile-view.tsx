@@ -49,11 +49,7 @@ const tileViewClassNames = {
 	// chatOpen: false
 	// layout: Column 1 / Row 1 / Column-Span 2 / Row-Span 3
 	// align: x-center y-center
-	agentChatClosed: [
-		"col-start-1 row-start-1",
-		"col-span-2 row-span-3",
-		"place-content-center",
-	],
+	agentChatClosed: ["col-start-1 row-start-1", "col-span-2 row-span-3"],
 	// Second tile
 	// chatOpen: true,
 	// hasSecondTile: true
@@ -137,16 +133,22 @@ export function TileLayout({
 				<div className={cn(tileViewClassNames.grid)}>
 					{/* Agent */}
 					<div
-						className={cn([
+						className={cn(
 							"grid",
-							!chatOpen && tileViewClassNames.agentChatClosed,
+							!chatOpen &&
+								cn(
+									tileViewClassNames.agentChatClosed,
+									isCameraEnabled
+										? "place-content-end"
+										: "place-content-center",
+								),
 							chatOpen &&
 								hasSecondTile &&
 								tileViewClassNames.agentChatOpenWithSecondTile,
 							chatOpen &&
 								!hasSecondTile &&
 								tileViewClassNames.agentChatOpenWithoutSecondTile,
-						])}
+						)}
 					>
 						<AnimatePresence mode="popLayout">
 							{!isAvatar && !shouldSwapCameraToPrimary && (
@@ -161,7 +163,7 @@ export function TileLayout({
 										delay: animationDelay,
 									}}
 									className={cn(
-										"relative aspect-square h-[90px]",
+										"relative aspect-video h-[90px]",
 									)}
 								>
 									<AudioVisualizer
@@ -201,7 +203,6 @@ export function TileLayout({
 										}
 										isChatOpen={chatOpen}
 										className={cn(
-											"absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
 											"bg-background rounded-[50px] border border-transparent transition-[border,drop-shadow]",
 											chatOpen &&
 												"border-input shadow-2xl/10 delay-200",

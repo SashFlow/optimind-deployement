@@ -236,44 +236,50 @@ export function AgentSessionView_01({
 					)}
 				</AnimatePresence>
 			</div>
-			Agent data panel (widgets / flashcards / quiz)
-			<AgentDataPanel />
-			{/* Persona data panel */}
-			{persona && (
-				<div className="absolute top-24 right-4 z-400 w-[calc(100%-2rem)] rounded-xl border border-border/70 bg-background/95 p-4 shadow-lg backdrop-blur md:top-24 md:right-6 justify-center">
-					<p className="text-sm font-semibold text-center">
-						Persona Details
-					</p>
-					<p className="text-muted-foreground mt-1 text-xs leading-relaxed  text-center">
-						Use these details only when speaking with the bot in
-						this session so the assistant can respond with the right
-						context.
-					</p>
+			<div className="flex flex-col gap-2 p-4 md:p-6 lg:p-12">
+				Agent data panel (widgets / flashcards / quiz)
+				<AgentDataPanel />
+				{/* Persona data panel */}
+				{persona && (
+					<div className="rounded-xl border border-border/70 bg-background/95 p-4 shadow-lg backdrop-blur justify-center w-full">
+						<p className="text-sm font-semibold text-center">
+							Persona Details
+						</p>
+						<p className="text-muted-foreground mt-1 text-xs leading-relaxed  text-center">
+							Use these details only when speaking with the bot in
+							this session so the assistant can respond with the
+							right context.
+						</p>
 
-					<div className="mt-3 text-sm w-full gap-2 flex-col flex md:flex-row justify-center">
-						<div className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
-							<span className="text-muted-foreground">Name</span>
-							<span className="text-right font-medium">
-								{persona.full_name || "Not provided"}
-							</span>
-						</div>
-						<div className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
-							<span className="text-muted-foreground">
-								Phone Number
-							</span>
-							<span className="text-right font-medium">
-								{persona.phone_number || "Not provided"}
-							</span>
-						</div>
-						<div className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
-							<span className="text-muted-foreground">DoB</span>
-							<span className="text-right font-medium">
-								{persona.dob || "Not provided"}
-							</span>
+						<div className="mt-3 text-sm w-full gap-2 flex-col flex md:flex-row justify-center">
+							<div className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+								<span className="text-muted-foreground">
+									Name
+								</span>
+								<span className="text-right font-medium">
+									{persona.full_name || "Not provided"}
+								</span>
+							</div>
+							<div className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+								<span className="text-muted-foreground">
+									Phone Number
+								</span>
+								<span className="text-right font-medium">
+									{persona.phone_number || "Not provided"}
+								</span>
+							</div>
+							<div className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+								<span className="text-muted-foreground">
+									DoB
+								</span>
+								<span className="text-right font-medium">
+									{persona.dob || "Not provided"}
+								</span>
+							</div>
 						</div>
 					</div>
-				</div>
-			)}
+				)}
+			</div>
 			{/* Tile layout */}
 			<TileLayout
 				chatOpen={chatOpen}

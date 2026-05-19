@@ -56,7 +56,7 @@ export function AudioVisualizer({
 					audioTrack={audioTrack}
 					color={audioVisualizerColor}
 					colorShift={audioVisualizerColorShift}
-					className={cn("size-[300px] md:size-[450px]", className)}
+					className={cn("size-[300px]", className)}
 					{...props}
 				/>
 			);
@@ -74,7 +74,7 @@ export function AudioVisualizer({
 								? audioVisualizerWaveLineWidth * 2
 								: audioVisualizerWaveLineWidth
 						}
-						className="size-[300px] md:size-[450px]"
+						className="size-[300px]"
 					/>
 				</motion.div>
 			);
@@ -107,7 +107,7 @@ export function AudioVisualizer({
 						) / 4,
 					)}
 					className={cn(
-						"size-[350px] gap-0 p-8 *:place-self-center md:size-[450px]",
+						"size-[350px] gap-0 p-8 *:place-self-center",
 						className,
 					)}
 					{...props}
@@ -124,14 +124,13 @@ export function AudioVisualizer({
 						audioTrack={audioTrack}
 						radius={audioVisualizerRadialRadius}
 						barCount={audioVisualizerRadialBarCount}
-						className="size-[450px]"
 					/>
 				</motion.div>
 			);
 		}
 		default: {
 			let size: "icon" | "sm" | "md" | "lg" | "xl" = "icon";
-			let sizedClassName = cn("size-[300px] md:size-[450px]", className);
+			let sizedClassName = cn("size-[300px]", className);
 
 			if (audioVisualizerBarCount <= 5) {
 				size = "xl";
