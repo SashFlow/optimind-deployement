@@ -236,8 +236,8 @@ export function AgentSessionView_01({
 					)}
 				</AnimatePresence>
 			</div>
-			<div className="flex flex-col gap-2 p-4 md:p-6 lg:p-12">
-				Agent data panel (widgets / flashcards / quiz)
+			<div className="flex flex-col gap-2 p-4 md:p-6 lg:p-12 mt-32 md:mt-0">
+				{/* Agent data panel (widgets / flashcards / quiz) */}
 				<AgentDataPanel />
 				{/* Persona data panel */}
 				{persona && (

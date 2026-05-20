@@ -70,8 +70,10 @@ export function ViewController({
 					scenario={scenario}
 					startButtonText={appConfig.startButtonText}
 					onStartCall={handleStartCall}
+					className={handleScenario ? "mt-16 px-4" : "px-4"}
 					requireMediaSetup={appConfig.requireMediaSetupBeforeStart}
 					showCameraPreview={appConfig.showWelcomeCameraPreview}
+					persona={persona}
 				/>
 			)}
 			{/* Session view */}

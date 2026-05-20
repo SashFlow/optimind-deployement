@@ -30,6 +30,7 @@ type DemoContextValue = {
 	selectedPersona: DemoPersona | null;
 	setSelectedPersonaPhone: Dispatch<SetStateAction<string | null>>;
 	loading: boolean;
+	slugCount: number;
 };
 
 const DemoContext = createContext<DemoContextValue | undefined>(undefined);
@@ -71,7 +72,6 @@ export function DemoProvider({ children, slug }: DemoProviderProps) {
 
 		getConfig();
 	}, [slug]);
-
 	return (
 		<DemoContext.Provider
 			value={{
@@ -84,6 +84,7 @@ export function DemoProvider({ children, slug }: DemoProviderProps) {
 				selectedPersona,
 				setSelectedPersonaPhone,
 				slugs: usecase?.slug.split(","),
+				slugCount: usecase?.slug.split(",").length ?? 0,
 			}}
 		>
 			{children}

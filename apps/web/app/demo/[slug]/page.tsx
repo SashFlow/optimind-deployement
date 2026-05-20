@@ -233,11 +233,6 @@ const Step2 = ({
 									))}
 								</SelectContent>
 							</Select>
-							{selectedPersonaDetails && (
-								<p className="text-muted-foreground text-xs">
-									DOB: {selectedPersonaDetails.dob}
-								</p>
-							)}
 						</div>
 					)}
 
@@ -287,8 +282,9 @@ const DemoPage = () => {
 		selectedPersona,
 		selectedPersonaPhone,
 		setSelectedPersonaPhone,
+		slugCount,
 	} = useDemoContext();
-	const [step, setStep] = useState<number>(slugs?.length === 1 ? 2 : 1);
+	const [step, setStep] = useState<number>(slugCount > 1 ? 1 : 2);
 	const [selectedAgentSlug, setSelectedAgentSlug] = useState<string | null>(
 		null,
 	);
@@ -316,18 +312,15 @@ const DemoPage = () => {
 	};
 
 	if (usecase.approvedSessions === 0) {
-		return <div>Trial period is over</div>;
+		return (
+			<div className="text-foreground flex w-full h-full justify-around">
+				Trial period is over
+			</div>
+		);
 	}
 
 	return (
-		<main className="bg-background min-h-screen">
-			<div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 py-10 md:px-10">
-				<div className="space-y-3">
-					<h1 className="text-4xl font-semibold tracking-tight">
-						Sashflow
-					</h1>
-				</div>
-			</div>
+		<main className="bg-background container flex flex-1 h-full px-4 py-32 md:px-8">
 			<div className="container">
 				{step === 1 && (
 					<Step1

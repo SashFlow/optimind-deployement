@@ -1,6 +1,7 @@
 "use client";
 
 import { PreconnectMediaSetup } from "@components/app/preconnect-media-setup";
+import type { DemoPersona } from "@context/DemoProvider";
 import { Button } from "@repo/ui/button";
 import {
 	Table,
@@ -10,6 +11,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { orpcClient } from "@shared/lib/orpc-client";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -56,15 +58,19 @@ interface WelcomeViewProps {
 	scenario: ScenarioDetails;
 	requireMediaSetup?: boolean;
 	showCameraPreview?: boolean;
+	className?: string;
+	persona?: DemoPersona | null;
 }
 
 export const WelcomeView = ({
 	startButtonText,
 	onStartCall,
 	scenario,
+	persona,
 	requireMediaSetup = true,
 	showCameraPreview = true,
 	ref,
+	className,
 }: React.ComponentProps<"div"> & WelcomeViewProps) => {
 	const router = useRouter();
 	const [canStart, setCanStart] = useState(!requireMediaSetup);
@@ -127,291 +133,359 @@ export const WelcomeView = ({
 	}, []);
 
 	return (
-		<div ref={ref}>
-			<section className="bg-background mx-auto flex max-w-5xl flex-col items-center justify-center px-4 py-8 text-center sm:px-6 md:px-10 md:py-10">
-				<WelcomeImage />
+		<div ref={ref} className={className}>
+			<Tabs
+				defaultValue="agent"
+				className="flex w-full justify-center flex-col mt-4"
+			>
+				{persona && (
+					<TabsList>
+						<TabsTrigger value="agent" className="w-full">
+							Agent
+						</TabsTrigger>
+						<TabsTrigger value="appointments" className="w-full">
+							Appointments
+						</TabsTrigger>
+					</TabsList>
+				)}
+				<TabsContent value="agent">
+					<section className="bg-background mx-auto flex max-w-5xl flex-col items-center justify-center px-4 py-8 text-center sm:px-6 md:px-10 md:py-10">
+						<p className="text-foreground text-3xl font-semibold tracking-tight">
+							{scenario.title}
+						</p>
+						<p className="text-muted-foreground max-w-2xl pt-3 text-sm leading-6 md:text-base">
+							{scenario.description}
+						</p>
 
-				<p className="text-foreground text-3xl font-semibold tracking-tight">
-					{scenario.title}
-				</p>
-				<p className="text-muted-foreground max-w-2xl pt-3 text-sm leading-6 md:text-base">
-					{scenario.description}
-				</p>
-
-				<div className="mt-8 grid w-full gap-4 text-left md:grid-cols-2">
-					<div className="border-border/70 bg-card rounded-2xl border p-6 shadow-sm">
-						<h2 className="text-center text-sm font-semibold tracking-wide uppercase">
-							Capabilities
-						</h2>
-						<ul className="mt-4 space-y-3 text-sm leading-6">
-							{scenario.highlights.map((highlight) => (
-								<li
-									key={highlight}
-									className="text-muted-foreground text-center"
-								>
-									{highlight}
-								</li>
-							))}
-						</ul>
-					</div>
-
-					{requireMediaSetup && (
-						<PreconnectMediaSetup
-							requireMicrophone
-							requireCamera
-							showCameraPreview={showCameraPreview}
-							onReadinessChange={setCanStart}
-							onRegisterBeforeStart={(beforeStart) => {
-								beforeStartRef.current = beforeStart;
-							}}
-						/>
-					)}
-				</div>
-
-				<div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-between">
-					<Button
-						size="lg"
-						disabled={!canStart || isStarting}
-						onClick={() => void handleStartCall()}
-						className="mt-8 w-full rounded-full font-mono text-xs font-bold tracking-wider uppercase sm:max-w-sm"
-					>
-						{isStarting ? "Starting..." : startButtonText}
-					</Button>
-					<Button
-						size="lg"
-						onClick={() => router.push("/app")}
-						variant={"secondary"}
-						className="w-full rounded-full font-mono text-xs font-bold tracking-wider uppercase sm:mt-8 sm:max-w-sm"
-					>
-						Go Back
-					</Button>
-				</div>
-
-				<div className="mt-8 grid w-full gap-4 text-left">
-					<div className="border-border/70 bg-card rounded-2xl border p-6 shadow-sm">
-						<div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-							<h2 className="text-sm font-semibold tracking-wide uppercase">
-								Appointments
-							</h2>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => void loadAppointments()}
-								disabled={isLoadingAppointments}
-							>
-								{isLoadingAppointments ? (
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								) : null}
-								Refresh
-							</Button>
-						</div>
-
-						{appointmentsError ? (
-							<div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-								{appointmentsError}
-							</div>
-						) : null}
-
-						<div className="space-y-3 md:hidden">
-							{isLoadingAppointments ? (
-								<div className="text-muted-foreground flex h-24 items-center justify-center rounded-lg border text-sm">
-									<span className="inline-flex items-center gap-2">
-										<Loader2 className="h-4 w-4 animate-spin" />
-										Loading appointments...
-									</span>
-								</div>
-							) : paginatedAppointments.length > 0 ? (
-								paginatedAppointments.map((appointment) => (
-									<div
-										key={appointment.id}
-										className="space-y-2 rounded-lg border p-3"
-									>
-										<p className="text-sm font-semibold">
-											{appointment.full_name}
-										</p>
-										<div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-											<span className="text-muted-foreground">
-												Phone
-											</span>
-											<span className="text-right">
-												{appointment.phone_number}
-											</span>
-											<span className="text-muted-foreground">
-												DOB
-											</span>
-											<span className="text-right">
-												{appointment.dob}
-											</span>
-											<span className="text-muted-foreground">
-												Type
-											</span>
-											<span className="text-right">
-												{appointment.appointment_type}
-											</span>
-											<span className="text-muted-foreground">
-												Date
-											</span>
-											<span className="text-right">
-												{appointment.appointment_date}
-											</span>
-											<span className="text-muted-foreground">
-												Time
-											</span>
-											<span className="text-right">
-												{appointment.appointment_time}
-											</span>
-											<span className="text-muted-foreground">
-												Exam
-											</span>
-											<span className="text-right">
-												{appointment.exam_type}
-											</span>
-											<span className="text-muted-foreground">
-												Pin
-											</span>
-											<span className="text-right">
-												{appointment.pin_code}
-											</span>
-										</div>
-										<p className="text-muted-foreground text-xs">
-											{appointment.address}
-										</p>
+						<div className="mt-8 grid w-full gap-4 text-left md:grid-cols-2">
+							{persona ? (
+								<div className="border-border/70 bg-card rounded-2xl border p-6 shadow-sm">
+									<h2 className="text-center text-sm font-semibold tracking-wide uppercase">
+										Persona
+									</h2>
+									<ul className="mt-4 space-y-3 text-sm leading-6">
+										<li className="text-muted-foreground text-center">
+											You are going to interact with the
+											caller as {persona.full_name} as a
+											registered user for validation
+											purposes.
+										</li>
+									</ul>
+									<div className="mt-12 flex items-center justify-center rounded-lg border border-slate-700">
+										<ul className="p-4 space-y-3 text-sm leading-6">
+											<li className="text-muted-foreground text-center">
+												Name: {persona.full_name}
+											</li>
+											<li className="text-muted-foreground text-center">
+												Phone Number:{" "}
+												{persona.phone_number}
+											</li>
+											<li className="text-muted-foreground text-center">
+												DOB: {persona.dob}
+											</li>
+										</ul>
 									</div>
-								))
-							) : (
-								<div className="text-muted-foreground flex h-24 items-center justify-center rounded-lg border text-center text-sm">
-									No appointments found.
 								</div>
+							) : (
+								<div className="border-border/70 bg-card rounded-2xl border p-6 shadow-sm">
+									<h2 className="text-center text-sm font-semibold tracking-wide uppercase">
+										Capabilities
+									</h2>
+									<ul className="mt-4 space-y-3 text-sm leading-6">
+										{scenario.highlights.map(
+											(highlight) => (
+												<li
+													key={highlight}
+													className="text-muted-foreground text-center"
+												>
+													{highlight}
+												</li>
+											),
+										)}
+									</ul>
+								</div>
+							)}
+
+							{requireMediaSetup && (
+								<PreconnectMediaSetup
+									requireMicrophone
+									requireCamera
+									showCameraPreview={showCameraPreview}
+									onReadinessChange={setCanStart}
+									onRegisterBeforeStart={(beforeStart) => {
+										beforeStartRef.current = beforeStart;
+									}}
+								/>
 							)}
 						</div>
 
-						<div className="hidden w-full overflow-x-auto rounded-lg border md:block">
-							<Table className="min-w-[980px]">
-								<TableHeader>
-									<TableRow>
-										<TableHead>Patient</TableHead>
-										<TableHead>Phone</TableHead>
-										<TableHead>DOB</TableHead>
-										<TableHead>Type</TableHead>
-										<TableHead>Date</TableHead>
-										<TableHead>Time</TableHead>
-										<TableHead>Exam</TableHead>
-										<TableHead>Pin</TableHead>
-										<TableHead>Address</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
+						<div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-between">
+							<Button
+								size="lg"
+								disabled={!canStart || isStarting}
+								onClick={() => void handleStartCall()}
+								className="mt-8 w-full rounded-full font-mono text-xs font-bold tracking-wider uppercase sm:max-w-sm"
+							>
+								{isStarting ? "Starting..." : startButtonText}
+							</Button>
+							<Button
+								size="lg"
+								onClick={() => router.push("/app")}
+								variant={"secondary"}
+								className="w-full rounded-full font-mono text-xs font-bold tracking-wider uppercase sm:mt-8 sm:max-w-sm"
+							>
+								Go Back
+							</Button>
+						</div>
+					</section>
+				</TabsContent>
+				<TabsContent value="appointments">
+					<section className="bg-background mx-auto flex max-w-5xl flex-col items-center justify-center px-4 py-8 text-center sm:px-6 md:px-10 md:py-10">
+						<div className="mt-8 grid gap-4 text-left">
+							<div className="border-border/70 bg-card rounded-2xl border p-6 shadow-sm">
+								<div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+									<h2 className="text-sm font-semibold tracking-wide uppercase">
+										Appointments
+									</h2>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => void loadAppointments()}
+										disabled={isLoadingAppointments}
+									>
+										{isLoadingAppointments ? (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										) : null}
+										Refresh
+									</Button>
+								</div>
+
+								{appointmentsError ? (
+									<div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+										{appointmentsError}
+									</div>
+								) : null}
+
+								<div className="space-y-3 md:hidden">
 									{isLoadingAppointments ? (
-										<TableRow>
-											<TableCell
-												colSpan={9}
-												className="h-24 text-center text-sm"
-											>
-												<span className="text-muted-foreground inline-flex items-center gap-2">
-													<Loader2 className="h-4 w-4 animate-spin" />
-													Loading appointments...
-												</span>
-											</TableCell>
-										</TableRow>
+										<div className="text-muted-foreground flex h-24 items-center justify-center rounded-lg border text-sm">
+											<span className="inline-flex items-center gap-2">
+												<Loader2 className="h-4 w-4 animate-spin" />
+												Loading appointments...
+											</span>
+										</div>
 									) : paginatedAppointments.length > 0 ? (
 										paginatedAppointments.map(
 											(appointment) => (
-												<TableRow key={appointment.id}>
-													<TableCell className="font-medium">
+												<div
+													key={appointment.id}
+													className="space-y-2 rounded-lg border p-3"
+												>
+													<p className="text-sm font-semibold">
 														{appointment.full_name}
-													</TableCell>
-													<TableCell>
-														{
-															appointment.phone_number
-														}
-													</TableCell>
-													<TableCell>
-														{appointment.dob}
-													</TableCell>
-													<TableCell>
-														{
-															appointment.appointment_type
-														}
-													</TableCell>
-													<TableCell>
-														{
-															appointment.appointment_date
-														}
-													</TableCell>
-													<TableCell>
-														{
-															appointment.appointment_time
-														}
-													</TableCell>
-													<TableCell>
-														{appointment.exam_type}
-													</TableCell>
-													<TableCell>
-														{appointment.pin_code}
-													</TableCell>
-													<TableCell className="max-w-[280px] truncate">
+													</p>
+													<div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+														<span className="text-muted-foreground">
+															Phone
+														</span>
+														<span className="text-right">
+															{
+																appointment.phone_number
+															}
+														</span>
+														<span className="text-muted-foreground">
+															DOB
+														</span>
+														<span className="text-right">
+															{appointment.dob}
+														</span>
+														<span className="text-muted-foreground">
+															Type
+														</span>
+														<span className="text-right">
+															{
+																appointment.appointment_type
+															}
+														</span>
+														<span className="text-muted-foreground">
+															Date
+														</span>
+														<span className="text-right">
+															{
+																appointment.appointment_date
+															}
+														</span>
+														<span className="text-muted-foreground">
+															Time
+														</span>
+														<span className="text-right">
+															{
+																appointment.appointment_time
+															}
+														</span>
+														<span className="text-muted-foreground">
+															Exam
+														</span>
+														<span className="text-right">
+															{
+																appointment.exam_type
+															}
+														</span>
+														<span className="text-muted-foreground">
+															Pin
+														</span>
+														<span className="text-right">
+															{
+																appointment.pin_code
+															}
+														</span>
+													</div>
+													<p className="text-muted-foreground text-xs">
 														{appointment.address}
-													</TableCell>
-												</TableRow>
+													</p>
+												</div>
 											),
 										)
 									) : (
-										<TableRow>
-											<TableCell
-												colSpan={9}
-												className="text-muted-foreground h-24 text-center text-sm"
-											>
-												No appointments found.
-											</TableCell>
-										</TableRow>
+										<div className="text-muted-foreground flex h-24 items-center justify-center rounded-lg border text-center text-sm">
+											No appointments found.
+										</div>
 									)}
-								</TableBody>
-							</Table>
-						</div>
-
-						{appointments.length > APPOINTMENTS_PER_PAGE && (
-							<div className="mt-3 flex flex-col items-start gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-								<span className="text-muted-foreground">
-									Page {appointmentsPage} of{" "}
-									{totalAppointmentPages}
-								</span>
-								<div className="flex gap-1">
-									<Button
-										size="icon"
-										variant="ghost"
-										onClick={() =>
-											setAppointmentsPage((page) =>
-												Math.max(1, page - 1),
-											)
-										}
-										disabled={appointmentsPage === 1}
-									>
-										<ChevronLeft className="h-4 w-4" />
-									</Button>
-									<Button
-										size="icon"
-										variant="ghost"
-										onClick={() =>
-											setAppointmentsPage((page) =>
-												Math.min(
-													totalAppointmentPages,
-													page + 1,
-												),
-											)
-										}
-										disabled={
-											appointmentsPage ===
-											totalAppointmentPages
-										}
-									>
-										<ChevronRight className="h-4 w-4" />
-									</Button>
 								</div>
+
+								<div className="hidden w-full overflow-x-auto rounded-lg border md:block">
+									<Table className="min-w-[980px]">
+										<TableHeader>
+											<TableRow>
+												<TableHead>Patient</TableHead>
+												<TableHead>Phone</TableHead>
+												<TableHead>DOB</TableHead>
+												<TableHead>Type</TableHead>
+												<TableHead>Date</TableHead>
+												<TableHead>Time</TableHead>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{isLoadingAppointments ? (
+												<TableRow>
+													<TableCell
+														colSpan={9}
+														className="h-24 text-center text-sm"
+													>
+														<span className="text-muted-foreground inline-flex items-center gap-2">
+															<Loader2 className="h-4 w-4 animate-spin" />
+															Loading
+															appointments...
+														</span>
+													</TableCell>
+												</TableRow>
+											) : paginatedAppointments.length >
+												0 ? (
+												paginatedAppointments.map(
+													(appointment) => (
+														<TableRow
+															key={appointment.id}
+														>
+															<TableCell className="font-medium">
+																{
+																	appointment.full_name
+																}
+															</TableCell>
+															<TableCell>
+																{
+																	appointment.phone_number
+																}
+															</TableCell>
+															<TableCell>
+																{
+																	appointment.dob
+																}
+															</TableCell>
+															<TableCell>
+																{
+																	appointment.appointment_type
+																}
+															</TableCell>
+															<TableCell>
+																{
+																	appointment.appointment_date
+																}
+															</TableCell>
+															<TableCell>
+																{
+																	appointment.appointment_time
+																}
+															</TableCell>
+														</TableRow>
+													),
+												)
+											) : (
+												<TableRow>
+													<TableCell
+														colSpan={9}
+														className="text-muted-foreground h-24 text-center text-sm"
+													>
+														No appointments found.
+													</TableCell>
+												</TableRow>
+											)}
+										</TableBody>
+									</Table>
+								</div>
+
+								{appointments.length >
+									APPOINTMENTS_PER_PAGE && (
+									<div className="mt-3 flex flex-col items-start gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+										<span className="text-muted-foreground">
+											Page {appointmentsPage} of{" "}
+											{totalAppointmentPages}
+										</span>
+										<div className="flex gap-1">
+											<Button
+												size="icon"
+												variant="ghost"
+												onClick={() =>
+													setAppointmentsPage(
+														(page) =>
+															Math.max(
+																1,
+																page - 1,
+															),
+													)
+												}
+												disabled={
+													appointmentsPage === 1
+												}
+											>
+												<ChevronLeft className="h-4 w-4" />
+											</Button>
+											<Button
+												size="icon"
+												variant="ghost"
+												onClick={() =>
+													setAppointmentsPage(
+														(page) =>
+															Math.min(
+																totalAppointmentPages,
+																page + 1,
+															),
+													)
+												}
+												disabled={
+													appointmentsPage ===
+													totalAppointmentPages
+												}
+											>
+												<ChevronRight className="h-4 w-4" />
+											</Button>
+										</div>
+									</div>
+								)}
 							</div>
-						)}
-					</div>
-				</div>
-			</section>
+						</div>
+					</section>
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 };

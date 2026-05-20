@@ -89,7 +89,7 @@ const PlaygroundPage = () => {
 			: `${selectedMode}/${selectedScenario}?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}${personaQuery}`;
 
 	return (
-		<main className="bg-background flex flex-1 h-full px-4 py-32 md:px-8">
+		<main className="bg-background flex flex-1 h-full px-4 py-8 md:px-8">
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
 				<Card>
 					<CardHeader>
