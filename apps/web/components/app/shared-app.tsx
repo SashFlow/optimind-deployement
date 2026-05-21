@@ -53,7 +53,7 @@ function AppInner({ appConfig }: AppProps) {
 			: scenarios["medical-examination"];
 
 	const tokenSource = TokenSource.endpoint(
-		`/api/token?scenarioType=${encodeURIComponent(usecase?.mode ?? "")}&slug=${encodeURIComponent(usecase?.slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent ?? "")}&persona=${encodeURIComponent(persona)}`,
+		`/api/token?scenarioType=${encodeURIComponent(usecase?.mode ?? "")}&slug=${encodeURIComponent(usecase?.slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent ?? "")}&selectedPersona=${encodeURIComponent(persona)}`,
 	);
 
 	const session = useSession(
