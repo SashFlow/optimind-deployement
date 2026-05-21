@@ -241,8 +241,10 @@ export function TileLayout({
 										},
 									}}
 									className={cn(
-										"overflow-hidden bg-black drop-shadow-xl/80",
-										chatOpen ? "h-[90px]" : "h-auto w-full",
+										"overflow-hidden bg-black drop-shadow-xl/80 flex items-center justify-center",
+										chatOpen
+											? "h-[90px]"
+											: "aspect-video w-full",
 									)}
 								>
 									<VideoTrack
@@ -250,8 +252,9 @@ export function TileLayout({
 										height={videoHeight}
 										trackRef={agentVideoTrack}
 										className={cn(
-											chatOpen &&
-												"size-[90px] object-cover",
+											chatOpen
+												? "size-[90px] object-cover"
+												: "h-full w-full object-cover",
 										)}
 									/>
 								</motion.div>
@@ -269,10 +272,10 @@ export function TileLayout({
 										delay: animationDelay,
 									}}
 									className={cn(
-										"overflow-hidden bg-black drop-shadow-xl/80",
+										"overflow-hidden bg-black drop-shadow-xl/80 flex items-center justify-center",
 										chatOpen
 											? "h-[90px] rounded-md"
-											: "h-auto w-full rounded-xl",
+											: "aspect-video w-full rounded-xl",
 									)}
 								>
 									<VideoTrack
@@ -280,8 +283,9 @@ export function TileLayout({
 										height={cameraHeight}
 										trackRef={cameraTrack}
 										className={cn(
-											chatOpen &&
-												"size-[90px] object-cover",
+											chatOpen
+												? "size-[90px] object-cover"
+												: "h-full w-full object-cover",
 										)}
 									/>
 								</motion.div>
