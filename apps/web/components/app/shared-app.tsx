@@ -44,6 +44,8 @@ function AppInner({ appConfig }: AppProps) {
 	const language: string = searchParams.get("language") || "English";
 	const selectedAgent: string | null =
 		searchParams.get("selectedAgent") || "Sanjay";
+	const persona: string | null =
+		searchParams.get("selectedPersona") || "Sanjay";
 
 	const scenario =
 		usecase && isScenarioSlug(usecase.slug)
@@ -51,7 +53,7 @@ function AppInner({ appConfig }: AppProps) {
 			: scenarios["medical-examination"];
 
 	const tokenSource = TokenSource.endpoint(
-		`/api/token?scenarioType=${encodeURIComponent(usecase?.mode ?? "")}&slug=${encodeURIComponent(usecase?.slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent ?? "")}&persona=${encodeURIComponent(selectedPersona?.phone_number ?? "")}`,
+		`/api/token?scenarioType=${encodeURIComponent(usecase?.mode ?? "")}&slug=${encodeURIComponent(usecase?.slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent ?? "")}&persona=${encodeURIComponent(persona)}`,
 	);
 
 	const session = useSession(

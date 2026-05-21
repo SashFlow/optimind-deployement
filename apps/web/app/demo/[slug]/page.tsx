@@ -301,9 +301,7 @@ const DemoPage = () => {
 		});
 
 		if (selectedPersona && activeUsecase !== "medical-examination") {
-			params.set("personaPhoneNumber", selectedPersona.phone_number);
-			params.set("personaFullName", selectedPersona.full_name);
-			params.set("personaDob", selectedPersona.dob);
+			params.set("selectedPersona", selectedPersona.phone_number);
 		}
 
 		const nextHref = `/demo/${usecase.token}/try?${params.toString()}`;
