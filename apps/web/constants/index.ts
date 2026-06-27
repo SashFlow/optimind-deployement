@@ -261,6 +261,19 @@ export const scenarios = {
 		firstTimeGuidance: [],
 		suggestedQuestions: [],
 	},
+	"insurance-feedback": {
+		sessionType: ["audio"],
+		title: "Insurance Feedback",
+		description:
+			"An AI voice assistant that collects feedback from customers about their insurance experience.",
+		highlights: [
+			"Collect feedback from customers about their insurance experience",
+			"Provide a clear and supportive user experience",
+		],
+		url: "/images/outbound.svg",
+		firstTimeGuidance: [],
+		suggestedQuestions: [],
+	},
 } satisfies Record<string, ScenarioDetails>;
 
 export const scenariosOptions = [
