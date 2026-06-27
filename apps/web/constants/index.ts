@@ -276,6 +276,10 @@ export const scenariosOptions = [
 		title: "Reminder Call",
 		slug: "reminder-call",
 	},
+	{
+		title: "Insurance Feedback",
+		slug: "insurance-feedback",
+	},
 ];
 
 export const demoPersonas: readonly DemoPersona[] = [
