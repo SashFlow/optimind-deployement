@@ -25,6 +25,7 @@ interface UsePreconnectMediaReturn {
 	enableCamera: () => Promise<void>;
 	disableCamera: () => void;
 	stopPreview: () => void;
+	releasePreviewStream: () => void;
 }
 
 function stopStream(stream: MediaStream | null) {
@@ -106,12 +107,16 @@ export function usePreconnectMedia({
 		saveAudioInputEnabled(false);
 	}, [saveAudioInputEnabled]);
 
-	const stopPreview = useCallback(() => {
+	const releasePreviewStream = useCallback(() => {
 		stopStream(previewStream);
 		setPreviewStream(null);
+	}, [previewStream]);
+
+	const stopPreview = useCallback(() => {
+		releasePreviewStream();
 		setIsCameraEnabled(false);
 		saveVideoInputEnabled(false);
-	}, [previewStream, saveVideoInputEnabled]);
+	}, [releasePreviewStream, saveVideoInputEnabled]);
 
 	const enableMicrophone = useCallback(
 		async (deviceId?: string) => {
@@ -267,5 +272,6 @@ export function usePreconnectMedia({
 		enableCamera,
 		disableCamera,
 		stopPreview,
+		releasePreviewStream,
 	};
 }

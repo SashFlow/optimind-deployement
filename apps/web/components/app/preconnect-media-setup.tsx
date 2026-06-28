@@ -45,7 +45,7 @@ export function PreconnectMediaSetup({
 		disableMicrophone,
 		enableCamera,
 		disableCamera,
-		stopPreview,
+		releasePreviewStream,
 	} = usePreconnectMedia({ requireMicrophone, requireCamera });
 
 	useEffect(() => {
@@ -53,8 +53,8 @@ export function PreconnectMediaSetup({
 	}, [canStart, onReadinessChange]);
 
 	useEffect(() => {
-		onRegisterBeforeStart?.(stopPreview);
-	}, [onRegisterBeforeStart, stopPreview]);
+		onRegisterBeforeStart?.(releasePreviewStream);
+	}, [onRegisterBeforeStart, releasePreviewStream]);
 
 	useEffect(() => {
 		const videoElement = videoPreviewRef.current;

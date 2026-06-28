@@ -56,9 +56,20 @@ export function App({ appConfig, scenarioType }: AppProps) {
 		`/api/token?scenarioType=${encodeURIComponent(scenarioType)}&slug=${encodeURIComponent(slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent)}&selectedPersona=${encodeURIComponent(selectedPersona?.phone_number ?? "")}`,
 	);
 
+	const effectiveAppConfig: AppConfig =
+		scenarioType === "audio"
+			? {
+					...appConfig,
+					requireCameraBeforeStart: false,
+					forceEnableCameraOnSessionView: false,
+				}
+			: appConfig;
+
 	const session = useSession(
 		tokenSource,
-		appConfig.agentName ? { agentName: appConfig.agentName } : undefined,
+		effectiveAppConfig.agentName
+			? { agentName: effectiveAppConfig.agentName }
+			: undefined,
 	);
 
 	if (!scenario || !slug) {
@@ -89,7 +100,7 @@ export function App({ appConfig, scenarioType }: AppProps) {
 				<AppSetup />
 				<main className="grid h-full grid-cols-1 place-content-center">
 					<ViewController
-						appConfig={appConfig}
+						appConfig={effectiveAppConfig}
 						scenario={scenario}
 						persona={selectedPersona}
 					/>

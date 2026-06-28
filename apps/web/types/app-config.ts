@@ -8,6 +8,7 @@ export interface AppConfig {
 	supportsScreenShare: boolean;
 	isPreConnectBufferEnabled: boolean;
 	requireMediaSetupBeforeStart: boolean;
+	requireCameraBeforeStart: boolean;
 	showWelcomeCameraPreview: boolean;
 	forceEnableCameraOnSessionView: boolean;
 
@@ -45,6 +46,7 @@ export const APP_CONFIG_DEFAULTS: AppConfig = {
 	supportsScreenShare: false,
 	isPreConnectBufferEnabled: true,
 	requireMediaSetupBeforeStart: true,
+	requireCameraBeforeStart: true,
 	showWelcomeCameraPreview: true,
 	forceEnableCameraOnSessionView: true,
 

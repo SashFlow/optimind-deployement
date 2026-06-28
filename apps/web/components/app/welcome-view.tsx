@@ -57,6 +57,7 @@ interface WelcomeViewProps {
 	onStartCall: () => Promise<void> | void;
 	scenario: ScenarioDetails;
 	requireMediaSetup?: boolean;
+	requireCameraBeforeStart?: boolean;
 	showCameraPreview?: boolean;
 	className?: string;
 	persona?: DemoPersona | null;
@@ -68,6 +69,7 @@ export const WelcomeView = ({
 	scenario,
 	persona,
 	requireMediaSetup = true,
+	requireCameraBeforeStart = true,
 	showCameraPreview = true,
 	ref,
 	className,
@@ -209,7 +211,7 @@ export const WelcomeView = ({
 							{requireMediaSetup && (
 								<PreconnectMediaSetup
 									requireMicrophone
-									requireCamera
+									requireCamera={requireCameraBeforeStart}
 									showCameraPreview={showCameraPreview}
 									onReadinessChange={setCanStart}
 									onRegisterBeforeStart={(beforeStart) => {

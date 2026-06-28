@@ -72,6 +72,9 @@ export function ViewController({
 					onStartCall={handleStartCall}
 					className={handleScenario ? "mt-16 px-4" : "px-4"}
 					requireMediaSetup={appConfig.requireMediaSetupBeforeStart}
+					requireCameraBeforeStart={
+						appConfig.requireCameraBeforeStart
+					}
 					showCameraPreview={appConfig.showWelcomeCameraPreview}
 					persona={persona}
 				/>
