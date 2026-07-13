@@ -211,7 +211,7 @@ export const WelcomeView = ({
 							{requireMediaSetup && (
 								<PreconnectMediaSetup
 									requireMicrophone
-									requireCamera={requireCameraBeforeStart}
+									requireCamera={false}
 									showCameraPreview={showCameraPreview}
 									onReadinessChange={setCanStart}
 									onRegisterBeforeStart={(beforeStart) => {

@@ -46,7 +46,10 @@ export function DemoProvider({ children, slug }: DemoProviderProps) {
 	const [activeUsecase, setActiveUsecase] = useState<string | null>(null);
 	const [selectedPersonaPhone, setSelectedPersonaPhone] = useState<
 		string | null
-	>(null);
+	>(
+		demoPersonas[Math.floor(Math.random() * demoPersonas.length)]
+			.phone_number,
+	);
 	const selectedPersona =
 		demoPersonas.find(
 			(persona) => persona.phone_number === selectedPersonaPhone,

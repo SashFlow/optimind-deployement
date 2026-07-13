@@ -207,8 +207,8 @@ const Step2 = ({
 				})}
 			</div>
 
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-				<div
+			<div className="flex justify-between w-full">
+				{/* <div
 					className={`grid w-full gap-4 ${showPersonaSelection ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}
 				>
 					{showPersonaSelection && (
@@ -256,10 +256,10 @@ const Step2 = ({
 							</SelectContent>
 						</Select>
 					</div>
-				</div>
+				</div> */}
 
 				<Button
-					className="w-full sm:w-auto"
+					className="w-full"
 					disabled={!canContinue}
 					onClick={onNext}
 				>
@@ -286,7 +286,7 @@ const DemoPage = () => {
 	} = useDemoContext();
 	const [step, setStep] = useState<number>(slugCount > 1 ? 1 : 2);
 	const [selectedAgentSlug, setSelectedAgentSlug] = useState<string | null>(
-		null,
+		agents[0].name,
 	);
 	const [selectedLanguage, setSelectedLanguage] = useState<string>("English");
 
