@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
-import { listBrowserPrefix } from "../../../lib/gcs-browser";
+import { listBrowserPrefix } from "../../../lib/s3-browser";
 import { protectedProcedure } from "../../../orpc/procedures";
 
 export const list = protectedProcedure
@@ -27,7 +27,7 @@ export const list = protectedProcedure
 						message: error.message,
 					});
 				}
-				if (error.message === "GCP_BUCKET_NAME is not configured") {
+				if (error.message === "S3_BUCKET_NAME is not configured") {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
 						message: error.message,
 					});

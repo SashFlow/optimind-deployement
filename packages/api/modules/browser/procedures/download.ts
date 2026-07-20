@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
-import { getDownloadUrl } from "../../../lib/gcs-browser";
+import { getDownloadUrl } from "../../../lib/s3-browser";
 import { protectedProcedure } from "../../../orpc/procedures";
 
 export const download = protectedProcedure

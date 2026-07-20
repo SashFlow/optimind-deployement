@@ -1,31 +1,58 @@
-import { Storage } from "@google-cloud/storage";
 import type {
 	BrowserBreadcrumb,
 	BrowserFileEntry,
 	BrowserListResponse,
 } from "../types/browser";
 
-const bucketName = process.env.GCP_BUCKET_NAME?.trim() ?? "";
-const rootPrefix = normalizePrefix(process.env.GCP_BROWSER_PREFIX ?? "");
+const bucketName = process.env.S3_BUCKET_NAME?.trim() ?? "";
+const rootPrefix = normalizePrefix(process.env.S3_BROWSER_PREFIX ?? "");
 
-let storageClient: Storage | null = null;
+type S3ClientInstance = import("@aws-sdk/client-s3").S3Client;
 
-function getStorageClient() {
-	if (storageClient) {
-		return storageClient;
+let s3Client: S3ClientInstance | null = null;
+
+async function getS3Client() {
+	if (s3Client) {
+		return s3Client;
 	}
 
-	const credentials = JSON.parse(process.env.GCP_SERVICE_ACCOUNT || "{}");
-	storageClient = new Storage({
-		projectId: credentials.project_id,
-		credentials,
+	const { S3Client } = await import("@aws-sdk/client-s3");
+
+	const s3Endpoint = process.env.S3_ENDPOINT as string | undefined;
+	const s3Region = (process.env.S3_REGION as string) || "auto";
+	const s3AccessKeyId = process.env.S3_ACCESS_KEY_ID as string | undefined;
+	const s3SecretAccessKey = process.env.S3_SECRET_ACCESS_KEY as
+		| string
+		| undefined;
+
+	if (!s3AccessKeyId) {
+		throw new Error("S3_ACCESS_KEY_ID is not configured");
+	}
+
+	if (!s3SecretAccessKey) {
+		throw new Error("S3_SECRET_ACCESS_KEY is not configured");
+	}
+
+	s3Client = new S3Client({
+		region: s3Region,
+		...(s3Endpoint
+			? {
+					endpoint: s3Endpoint,
+					forcePathStyle: true,
+				}
+			: {}),
+		credentials: {
+			accessKeyId: s3AccessKeyId,
+			secretAccessKey: s3SecretAccessKey,
+		},
 	});
-	return storageClient;
+
+	return s3Client;
 }
 
 function assertBucketConfigured() {
 	if (!bucketName) {
-		throw new Error("GCP_BUCKET_NAME is not configured");
+		throw new Error("S3_BUCKET_NAME is not configured");
 	}
 }
 
@@ -106,27 +133,18 @@ function toBreadcrumbs(relativePrefix: string): BrowserBreadcrumb[] {
 }
 
 function mapFileEntry(file: {
-	name: string;
-	metadata?: {
-		size?: string | number;
-		updated?: string;
-		contentType?: string;
-	};
+	Key?: string;
+	Size?: number;
+	LastModified?: Date;
 }): BrowserFileEntry {
-	const rawSize = file.metadata?.size;
-	const size =
-		typeof rawSize === "number"
-			? rawSize
-			: rawSize
-				? Number(rawSize)
-				: null;
+	const key = file.Key ?? "";
 
 	return {
-		name: getDisplayName(file.name),
-		path: toRelativePath(file.name),
-		size: Number.isFinite(size) ? size : null,
-		updatedAt: file.metadata?.updated ?? null,
-		contentType: file.metadata?.contentType ?? null,
+		name: getDisplayName(key),
+		path: toRelativePath(key),
+		size: typeof file.Size === "number" ? file.Size : null,
+		updatedAt: file.LastModified?.toISOString() ?? null,
+		contentType: null,
 	};
 }
 
@@ -135,20 +153,22 @@ export async function listBrowserPrefix(
 ): Promise<BrowserListResponse> {
 	assertBucketConfigured();
 
+	const { ListObjectsV2Command } = await import("@aws-sdk/client-s3");
 	const currentPrefix = normalizePrefix(relativePrefix);
 	const actualPrefix = toActualPrefix(currentPrefix);
-	const [files, , apiResponse] = await getStorageClient()
-		.bucket(bucketName)
-		.getFiles({
-			prefix: actualPrefix,
-			delimiter: "/",
-			autoPaginate: false,
-		});
-	const responseWithPrefixes = apiResponse as
-		| { prefixes?: string[] }
-		| undefined;
+	const client = await getS3Client();
 
-	const folders = (responseWithPrefixes?.prefixes ?? [])
+	const response = await client.send(
+		new ListObjectsV2Command({
+			Bucket: bucketName,
+			Prefix: actualPrefix,
+			Delimiter: "/",
+		}),
+	);
+
+	const folders = (response.CommonPrefixes ?? [])
+		.map((item) => item.Prefix)
+		.filter((prefix): prefix is string => Boolean(prefix))
 		.map((prefix) => toRelativePrefix(prefix))
 		.filter((prefix) => prefix !== currentPrefix)
 		.sort((left, right) => left.localeCompare(right))
@@ -157,11 +177,14 @@ export async function listBrowserPrefix(
 			prefix,
 		}));
 
-	const listedFiles = files
+	const listedFiles = (response.Contents ?? [])
 		.filter(
-			(file) => file.name !== actualPrefix && !file.name.endsWith("/"),
+			(file) =>
+				Boolean(file.Key) &&
+				file.Key !== actualPrefix &&
+				!file.Key?.endsWith("/"),
 		)
-		.sort((left, right) => left.name.localeCompare(right.name))
+		.sort((left, right) => (left.Key ?? "").localeCompare(right.Key ?? ""))
 		.map((file) => mapFileEntry(file));
 
 	return {
@@ -182,23 +205,36 @@ export async function getDownloadUrl(relativePath: string) {
 		throw new Error("File path is required");
 	}
 
-	const actualPath = toActualObjectPath(normalizedPath);
-	const file = getStorageClient().bucket(bucketName).file(actualPath);
-	const [exists] = await file.exists();
+	const { HeadObjectCommand, GetObjectCommand } = await import(
+		"@aws-sdk/client-s3"
+	);
+	const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
 
-	if (!exists) {
+	const actualPath = toActualObjectPath(normalizedPath);
+	const client = await getS3Client();
+
+	try {
+		await client.send(
+			new HeadObjectCommand({
+				Bucket: bucketName,
+				Key: actualPath,
+			}),
+		);
+	} catch {
 		throw new Error("File not found");
 	}
 
 	const downloadName = getDisplayName(normalizedPath);
-	const [signedUrl] = await file.getSignedUrl({
-		version: "v4",
-		action: "read",
-		expires: Date.now() + 15 * 60 * 1000,
-		responseDisposition: `attachment; filename="${downloadName}"`,
-	});
 
-	return signedUrl;
+	return getSignedUrl(
+		client,
+		new GetObjectCommand({
+			Bucket: bucketName,
+			Key: actualPath,
+			ResponseContentDisposition: `attachment; filename="${downloadName}"`,
+		}),
+		{ expiresIn: 15 * 60 },
+	);
 }
 
 export function getBrowserConfig() {

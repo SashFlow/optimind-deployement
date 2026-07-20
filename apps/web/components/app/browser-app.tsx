@@ -48,16 +48,27 @@ export function BrowserApp() {
 
 	useEffect(() => {
 		const controller = new AbortController();
+		let cancelled = false;
 
 		setIsLoading(true);
 		setError(null);
 
-		fetchBrowserData(currentPrefix, controller.signal)
-			.then((response) => {
-				setData(response);
-			})
-			.catch((fetchError: unknown) => {
-				if (controller.signal.aborted) {
+		void (async () => {
+			try {
+				const response = await fetchBrowserData(
+					currentPrefix,
+					controller.signal,
+				);
+				if (!cancelled) {
+					setData(response);
+				}
+			} catch (fetchError: unknown) {
+				if (
+					cancelled ||
+					controller.signal.aborted ||
+					(fetchError instanceof Error &&
+						fetchError.name === "AbortError")
+				) {
 					return;
 				}
 
@@ -66,14 +77,17 @@ export function BrowserApp() {
 						? fetchError.message
 						: "Failed to load bucket contents",
 				);
-			})
-			.finally(() => {
-				if (!controller.signal.aborted) {
+			} finally {
+				if (!cancelled) {
 					setIsLoading(false);
 				}
-			});
+			}
+		})();
 
-		return () => controller.abort();
+		return () => {
+			cancelled = true;
+			controller.abort();
+		};
 	}, [currentPrefix, requestVersion]);
 
 	function navigateToPrefix(prefix: string) {
@@ -121,23 +135,23 @@ export function BrowserApp() {
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
 				<Card className="overflow-hidden">
 					<CardHeader className="border-b">
-						<CardTitle>Contents</CardTitle>
-						<CardDescription className="flex justify-between">
-							<div className="content-center">
-								Browse folders, inspect metadata, and download
-								files directly from Google Cloud Storage.
+						<div className="flex items-start justify-between gap-4">
+							<div>
+								<CardTitle>Contents</CardTitle>
+								<CardDescription>
+									Browse folders, inspect metadata, and
+									download files directly from S3.
+								</CardDescription>
 							</div>
-							<div className="flex items-center gap-2">
-								<Button
-									variant="outline"
-									size="icon"
-									onClick={handleRefresh}
-									disabled={isPending || isLoading}
-								>
-									<RefreshCcw className="size-4" />
-								</Button>
-							</div>
-						</CardDescription>
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={handleRefresh}
+								disabled={isPending || isLoading}
+							>
+								<RefreshCcw className="size-4" />
+							</Button>
+						</div>
 					</CardHeader>
 					<CardContent className="space-y-6 pt-6">
 						<div className="flex flex-wrap items-center gap-2">

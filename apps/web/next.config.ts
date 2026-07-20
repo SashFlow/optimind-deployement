@@ -8,6 +8,12 @@ const withNextIntl = nextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
 	output: "standalone",
+	serverExternalPackages: [
+		"@aws-sdk/client-s3",
+		"@aws-sdk/s3-request-presigner",
+		"fast-xml-parser",
+		"strnum",
+	],
 	transpilePackages: [
 		"@repo/api",
 		"@repo/auth",
