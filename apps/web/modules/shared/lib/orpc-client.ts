@@ -14,7 +14,7 @@ const link = new RPCLink({
 		return Object.fromEntries(await headers());
 	},
 	interceptors: [
-		onError((error, options) => {
+		onError((error, options: { next(): unknown; signal?: AbortSignal }) => {
 			// Aborted requests (incl. Strict Mode remounts) must not hit console.error —
 			// Next.js surfaces those as runtime overlay errors.
 			if (
