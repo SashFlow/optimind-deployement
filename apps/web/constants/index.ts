@@ -208,6 +208,7 @@ export const featuresStrengths = [
 export const modes = [
 	{ id: "audio", label: "Audio Assistant" },
 	{ id: "avatar", label: "Avatar Assistant" },
+	{ id: "phone", label: "Phone Assistant" },
 ] as const;
 
 export const popularIndianLanguages = [
@@ -234,7 +235,7 @@ export const scenarios = {
 		suggestedQuestions: [],
 	},
 	"medical-appointment": {
-		sessionType: ["audio"],
+		sessionType: ["audio", "phone"],
 		title: "Medical Appointment - (Inbound)",
 		description:
 			"An AI voice assistant that helps patients schedule, reschedule, and manage medical appointments with clinics, hospitals, and diagnostic centers.",
@@ -248,7 +249,7 @@ export const scenarios = {
 		suggestedQuestions: [],
 	},
 	"reminder-call": {
-		sessionType: ["audio"],
+		sessionType: ["audio", "phone"],
 		title: "Reminder Call - (Outbound)",
 		description:
 			"An AI calling assistant that delivers automated reminders for appointments, medication schedules, renewals, and follow-up actions.",
@@ -262,7 +263,7 @@ export const scenarios = {
 		suggestedQuestions: [],
 	},
 	"insurance-feedback": {
-		sessionType: ["audio"],
+		sessionType: ["audio", "phone"],
 		title: "Insurance Feedback",
 		description:
 			"An AI voice assistant that collects feedback from customers about their insurance experience.",

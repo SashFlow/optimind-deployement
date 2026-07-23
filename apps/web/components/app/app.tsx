@@ -51,9 +51,10 @@ export function App({ appConfig, scenarioType }: AppProps) {
 			(persona) =>
 				persona.phone_number === searchParams.get("selectedPersona"),
 		) ?? null;
-
+	const selectedStaggeredMode: boolean =
+		searchParams.get("selectedStaggeredMode") === "true";
 	const tokenSource = TokenSource.endpoint(
-		`/api/token?scenarioType=${encodeURIComponent(scenarioType)}&slug=${encodeURIComponent(slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent)}&selectedPersona=${encodeURIComponent(selectedPersona?.phone_number ?? "")}`,
+		`/api/token?scenarioType=${encodeURIComponent(scenarioType)}&slug=${encodeURIComponent(slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent)}&selectedPersona=${encodeURIComponent(selectedPersona?.phone_number ?? "")}&selectedStaggeredMode=${encodeURIComponent(selectedStaggeredMode ?? "false")}`,
 	);
 
 	const effectiveAppConfig: AppConfig =

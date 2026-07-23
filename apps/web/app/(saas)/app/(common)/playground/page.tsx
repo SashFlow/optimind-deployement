@@ -8,6 +8,7 @@ import {
 	scenariosOptions,
 } from "@constants";
 import { Button } from "@repo/ui/button";
+import { Switch } from "@repo/ui/switch";
 import {
 	Card,
 	CardContent,
@@ -63,7 +64,8 @@ const PlaygroundPage = () => {
 	);
 	const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
 	const [selectedLanguage, setSelectedLanguage] = useState<string>("English");
-
+	const [selectedStaggeredMode, setSelectedStaggeredMode] =
+		useState<boolean>(false);
 	useEffect(() => {
 		if (selectedScenario === "medical-examination") {
 			setSelectedPersona(null);
@@ -86,7 +88,7 @@ const PlaygroundPage = () => {
 		selectedAgentSlug == null ||
 		(selectedScenario !== "medical-examination" && !selectedPersona)
 			? null
-			: `${selectedMode}/${selectedScenario}?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}${personaQuery}`;
+			: `${selectedMode}/${selectedScenario}?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}${personaQuery}&selectedStaggeredMode=${selectedStaggeredMode}`;
 
 	return (
 		<main className="bg-background flex flex-1 h-full px-4 py-8 md:px-8">
@@ -99,6 +101,16 @@ const PlaygroundPage = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-6">
+						{/* Staggered Mode */}
+						<div className="flex-col flex sm:flex-row justify-between gap-4">
+							<span className="text-xs">
+								Use Staggered Mode (STT + LLM + TTS)
+							</span>
+							<Switch
+								checked={selectedStaggeredMode}
+								onCheckedChange={setSelectedStaggeredMode}
+							/>
+						</div>
 						{/* Mode selector */}
 						<div className="flex-col flex sm:flex-row justify-between gap-4">
 							<div className="flex gap-2">
@@ -163,7 +175,8 @@ const PlaygroundPage = () => {
 										}
 									>
 										<CardHeader className="space-y-3 pb-3">
-											{selectedMode === "audio" ? (
+											{selectedMode === "audio" ||
+											selectedMode === "phone" ? (
 												<AudioWaveformPreview />
 											) : (
 												<div className="bg-muted/40 flex aspect-3/2 w-full items-center justify-center rounded-lg border">

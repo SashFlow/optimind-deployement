@@ -180,7 +180,8 @@ const Step2 = ({
 							}
 						>
 							<CardHeader className="space-y-4">
-								{usecase.mode === "audio" ? (
+								{usecase.mode === "audio" ||
+								usecase.mode === "phone" ? (
 									<AudioWaveformPreview />
 								) : (
 									<div className="bg-muted/40 flex aspect-3/2 w-full items-center justify-center gap-1 rounded-lg border px-4 py-3">
@@ -304,7 +305,11 @@ const DemoPage = () => {
 			params.set("selectedPersona", selectedPersona.phone_number);
 		}
 
-		const nextHref = `/demo/${usecase.token}/try?${params.toString()}`;
+		const path =
+			usecase.mode === "phone"
+				? `/demo/${usecase.token}/phone`
+				: `/demo/${usecase.token}/try`;
+		const nextHref = `${path}?${params.toString()}`;
 
 		router.push(nextHref);
 	};

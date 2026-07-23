@@ -31,6 +31,7 @@ type DemoContextValue = {
 	setSelectedPersonaPhone: Dispatch<SetStateAction<string | null>>;
 	loading: boolean;
 	slugCount: number;
+	mode: string | null;
 };
 
 const DemoContext = createContext<DemoContextValue | undefined>(undefined);
@@ -43,6 +44,7 @@ type DemoProviderProps = {
 export function DemoProvider({ children, slug }: DemoProviderProps) {
 	const [usecase, setUsecase] = useState<DemoLinks | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [mode, setMode] = useState<string | null>("audio");
 	const [activeUsecase, setActiveUsecase] = useState<string | null>(null);
 	const [selectedPersonaPhone, setSelectedPersonaPhone] = useState<
 		string | null
@@ -65,6 +67,7 @@ export function DemoProvider({ children, slug }: DemoProviderProps) {
 				if (response) {
 					setUsecase(response);
 					setActiveUsecase(response.slug);
+					setMode(response.mode);
 				}
 			} catch (error) {
 				console.error("Failed to load demo config", error);
@@ -88,6 +91,7 @@ export function DemoProvider({ children, slug }: DemoProviderProps) {
 				setSelectedPersonaPhone,
 				slugs: usecase?.slug.split(","),
 				slugCount: usecase?.slug.split(",").length ?? 0,
+				mode,
 			}}
 		>
 			{children}

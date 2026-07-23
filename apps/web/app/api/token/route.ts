@@ -55,6 +55,7 @@ export async function POST(req: Request) {
 		const language = searchParams.get("language");
 		const selectedAgent = searchParams.get("selectedAgent");
 		const persona = searchParams.get("selectedPersona");
+		const selectedStaggeredMode = searchParams.get("selectedStaggeredMode");
 		if (slug) {
 			const interactionMode = resolveInteractionMode(scenarioType);
 			const agentMetadata = JSON.stringify({
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
 				language,
 				selectedAgent,
 				persona,
+				staggeredMode: selectedStaggeredMode,
 			});
 
 			roomConfig.metadata = `${interactionMode}-${slug}`;

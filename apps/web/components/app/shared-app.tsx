@@ -51,9 +51,10 @@ function AppInner({ appConfig }: AppProps) {
 		usecase && isScenarioSlug(usecase.slug)
 			? scenarios[usecase.slug]
 			: scenarios["medical-examination"];
-
+	const selectedStaggeredMode: boolean =
+		searchParams.get("selectedStaggeredMode") === "true";
 	const tokenSource = TokenSource.endpoint(
-		`/api/token?scenarioType=${encodeURIComponent(usecase?.mode ?? "")}&slug=${encodeURIComponent(usecase?.slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent ?? "")}&selectedPersona=${encodeURIComponent(persona)}`,
+		`/api/token?scenarioType=${encodeURIComponent(usecase?.mode ?? "")}&slug=${encodeURIComponent(usecase?.slug ?? "")}&language=${encodeURIComponent(language)}&selectedAgent=${encodeURIComponent(selectedAgent ?? "")}&selectedPersona=${encodeURIComponent(persona)}&selectedStaggeredMode=${encodeURIComponent(selectedStaggeredMode ?? "false")}`,
 	);
 
 	const session = useSession(
