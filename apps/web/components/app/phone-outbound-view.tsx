@@ -39,7 +39,7 @@ export function PhoneOutboundView({
 	const scenario = slug && isScenarioSlug(slug) ? scenarios[slug] : null;
 	const language = searchParams.get("language") || "English";
 	const selectedAgent = searchParams.get("selectedAgent") || "Sanjay";
-
+	const selectedPersona = searchParams.get("selectedPersona") || "9876500044";
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [status, setStatus] = useState<CallStatus>("idle");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -87,6 +87,7 @@ export function PhoneOutboundView({
 					slug,
 					language,
 					selectedAgent,
+					selectedPersona,
 				}),
 			});
 

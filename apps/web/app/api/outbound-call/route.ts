@@ -22,6 +22,7 @@ type OutboundCallBody = {
 	language?: string;
 	selectedAgent?: string;
 	staggeredMode?: boolean;
+	selectedPersona: string;
 };
 
 export async function POST(req: Request) {
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
 		const selectedAgent =
 			(body.selectedAgent ?? "Sanjay").trim() || "Sanjay";
 		const staggeredMode = body.staggeredMode ?? false;
+		const persona = body.selectedPersona;
 		if (!phoneNumber) {
 			return NextResponse.json(
 				{ error: "Invalid phone number" },
@@ -66,6 +68,7 @@ export async function POST(req: Request) {
 			selectedAgent,
 			phone_number: phoneNumber,
 			staggeredMode: staggeredMode,
+			persona: persona,
 		});
 
 		const roomClient = new RoomServiceClient(host, API_KEY, API_SECRET);
