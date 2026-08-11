@@ -158,34 +158,84 @@ export async function listBrowserPrefix(
 	const actualPrefix = toActualPrefix(currentPrefix);
 	const client = await getS3Client();
 
-	const response = await client.send(
-		new ListObjectsV2Command({
-			Bucket: bucketName,
-			Prefix: actualPrefix,
-			Delimiter: "/",
-		}),
-	);
+	const folderMap = new Map<
+		string,
+		{ name: string; prefix: string; updatedAt: string | null }
+	>();
+	const listedFiles: BrowserFileEntry[] = [];
 
-	const folders = (response.CommonPrefixes ?? [])
-		.map((item) => item.Prefix)
-		.filter((prefix): prefix is string => Boolean(prefix))
-		.map((prefix) => toRelativePrefix(prefix))
-		.filter((prefix) => prefix !== currentPrefix)
-		.sort((left, right) => left.localeCompare(right))
-		.map((prefix) => ({
-			name: getDisplayName(prefix),
-			prefix,
-		}));
+	let continuationToken: string | undefined;
 
-	const listedFiles = (response.Contents ?? [])
-		.filter(
-			(file) =>
-				Boolean(file.Key) &&
-				file.Key !== actualPrefix &&
-				!file.Key?.endsWith("/"),
-		)
-		.sort((left, right) => (left.Key ?? "").localeCompare(right.Key ?? ""))
-		.map((file) => mapFileEntry(file));
+	do {
+		const response = await client.send(
+			new ListObjectsV2Command({
+				Bucket: bucketName,
+				Prefix: actualPrefix,
+				ContinuationToken: continuationToken,
+			}),
+		);
+
+		for (const file of response.Contents ?? []) {
+			const key = file.Key;
+			if (!key || key === actualPrefix) {
+				continue;
+			}
+
+			const pathAfterCurrent = key.slice(actualPrefix.length);
+			if (!pathAfterCurrent) {
+				continue;
+			}
+
+			const slashIndex = pathAfterCurrent.indexOf("/");
+			const updatedAt = file.LastModified?.toISOString() ?? null;
+
+			if (slashIndex === -1) {
+				if (key.endsWith("/")) {
+					continue;
+				}
+
+				listedFiles.push(mapFileEntry(file));
+				continue;
+			}
+
+			const folderName = pathAfterCurrent.slice(0, slashIndex);
+			const folderActualPrefix = `${actualPrefix}${folderName}/`;
+			const folderPrefix = toRelativePrefix(folderActualPrefix);
+			const existing = folderMap.get(folderPrefix);
+
+			if (!existing) {
+				folderMap.set(folderPrefix, {
+					name: folderName,
+					prefix: folderPrefix,
+					updatedAt,
+				});
+			} else if (
+				updatedAt &&
+				(!existing.updatedAt || updatedAt > existing.updatedAt)
+			) {
+				existing.updatedAt = updatedAt;
+			}
+		}
+
+		continuationToken = response.IsTruncated
+			? response.NextContinuationToken
+			: undefined;
+	} while (continuationToken);
+
+	const folders = Array.from(folderMap.values()).sort((left, right) => {
+		if (left.updatedAt && right.updatedAt) {
+			return right.updatedAt.localeCompare(left.updatedAt);
+		}
+		if (left.updatedAt) {
+			return -1;
+		}
+		if (right.updatedAt) {
+			return 1;
+		}
+		return left.name.localeCompare(right.name);
+	});
+
+	listedFiles.sort((left, right) => left.path.localeCompare(right.path));
 
 	return {
 		bucketName,

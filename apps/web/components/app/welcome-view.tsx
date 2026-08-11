@@ -140,7 +140,7 @@ export const WelcomeView = ({
 				defaultValue="agent"
 				className="flex w-full justify-center flex-col mt-4"
 			>
-				{persona && (
+				{/* {persona && (
 					<TabsList>
 						<TabsTrigger value="agent" className="w-full">
 							Agent
@@ -149,7 +149,7 @@ export const WelcomeView = ({
 							Appointments
 						</TabsTrigger>
 					</TabsList>
-				)}
+				)} */}
 				<TabsContent value="agent">
 					<section className="bg-background mx-auto flex max-w-5xl flex-col items-center justify-center px-4 py-8 text-center sm:px-6 md:px-10 md:py-10">
 						<p className="text-foreground text-3xl font-semibold tracking-tight">
@@ -437,52 +437,52 @@ export const WelcomeView = ({
 
 								{appointments.length >
 									APPOINTMENTS_PER_PAGE && (
-									<div className="mt-3 flex flex-col items-start gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-										<span className="text-muted-foreground">
-											Page {appointmentsPage} of{" "}
-											{totalAppointmentPages}
-										</span>
-										<div className="flex gap-1">
-											<Button
-												size="icon"
-												variant="ghost"
-												onClick={() =>
-													setAppointmentsPage(
-														(page) =>
-															Math.max(
-																1,
-																page - 1,
-															),
-													)
-												}
-												disabled={
-													appointmentsPage === 1
-												}
-											>
-												<ChevronLeft className="h-4 w-4" />
-											</Button>
-											<Button
-												size="icon"
-												variant="ghost"
-												onClick={() =>
-													setAppointmentsPage(
-														(page) =>
-															Math.min(
-																totalAppointmentPages,
-																page + 1,
-															),
-													)
-												}
-												disabled={
-													appointmentsPage ===
-													totalAppointmentPages
-												}
-											>
-												<ChevronRight className="h-4 w-4" />
-											</Button>
+										<div className="mt-3 flex flex-col items-start gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+											<span className="text-muted-foreground">
+												Page {appointmentsPage} of{" "}
+												{totalAppointmentPages}
+											</span>
+											<div className="flex gap-1">
+												<Button
+													size="icon"
+													variant="ghost"
+													onClick={() =>
+														setAppointmentsPage(
+															(page) =>
+																Math.max(
+																	1,
+																	page - 1,
+																),
+														)
+													}
+													disabled={
+														appointmentsPage === 1
+													}
+												>
+													<ChevronLeft className="h-4 w-4" />
+												</Button>
+												<Button
+													size="icon"
+													variant="ghost"
+													onClick={() =>
+														setAppointmentsPage(
+															(page) =>
+																Math.min(
+																	totalAppointmentPages,
+																	page + 1,
+																),
+														)
+													}
+													disabled={
+														appointmentsPage ===
+														totalAppointmentPages
+													}
+												>
+													<ChevronRight className="h-4 w-4" />
+												</Button>
+											</div>
 										</div>
-									</div>
-								)}
+									)}
 							</div>
 						</div>
 					</section>

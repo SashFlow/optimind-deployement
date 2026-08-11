@@ -4,10 +4,10 @@
 		"jsx": "preserve",
 		"tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
 		"paths": {
-			"~/components": ["./src/shadcn/*"],
+			"~/components/*": ["./src/shadcn/*"],
 			"~/utils": ["./src/utils"],
-			"~/hooks": ["./src/hooks"],
-			"~/ui": ["./src/shadcn/*"],
+			"~/utils/*": ["./src/utils/*"],
+			"~/hooks/*": ["./src/hooks/*"],
 			"~/ui/*": ["./src/shadcn/*"]
 		}
 	},

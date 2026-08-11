@@ -63,9 +63,7 @@ const PlaygroundPage = () => {
 		null,
 	);
 	const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
-	const [selectedLanguage, setSelectedLanguage] = useState<string>("English");
-	const [selectedStaggeredMode, setSelectedStaggeredMode] =
-		useState<boolean>(false);
+
 	useEffect(() => {
 		if (selectedScenario === "medical-examination") {
 			setSelectedPersona(null);
@@ -86,31 +84,17 @@ const PlaygroundPage = () => {
 
 	const nextHref =
 		selectedAgentSlug == null ||
-		(selectedScenario !== "medical-examination" && !selectedPersona)
+			(selectedScenario !== "medical-examination" && !selectedPersona)
 			? null
-			: `${selectedMode}/${selectedScenario}?language=${selectedLanguage}&selectedAgent=${selectedAgentSlug}${personaQuery}&selectedStaggeredMode=${selectedStaggeredMode}`;
+			: `${selectedMode}/${selectedScenario}?selectedAgent=${selectedAgentSlug}${personaQuery}`;
 
 	return (
 		<main className="bg-background flex flex-1 h-full px-4 py-8 md:px-8">
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">Playground</CardTitle>
-						<CardDescription>
-							Configure and launch an assistant session directly.
-						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-6">
-						{/* Staggered Mode */}
-						<div className="flex-col flex sm:flex-row justify-between gap-4">
-							<span className="text-xs">
-								Use Staggered Mode (STT + LLM + TTS)
-							</span>
-							<Switch
-								checked={selectedStaggeredMode}
-								onCheckedChange={setSelectedStaggeredMode}
-							/>
-						</div>
 						{/* Mode selector */}
 						<div className="flex-col flex sm:flex-row justify-between gap-4">
 							<div className="flex gap-2">
@@ -176,7 +160,7 @@ const PlaygroundPage = () => {
 									>
 										<CardHeader className="space-y-3 pb-3">
 											{selectedMode === "audio" ||
-											selectedMode === "phone" ? (
+												selectedMode === "phone" ? (
 												<AudioWaveformPreview />
 											) : (
 												<div className="bg-muted/40 flex aspect-3/2 w-full items-center justify-center rounded-lg border">
@@ -213,47 +197,16 @@ const PlaygroundPage = () => {
 						</div>
 
 						{/* Language + Persona + Proceed */}
-						<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-							<div className="flex flex-col gap-4 sm:flex-row">
-								<div className="space-y-1.5">
-									<Select
-										value={selectedLanguage}
-										onValueChange={setSelectedLanguage}
-									>
-										<SelectTrigger className="w-full sm:w-[218px]">
-											<SelectValue placeholder="Select a language" />
-										</SelectTrigger>
-										<SelectContent>
-											{popularIndianLanguages.map(
-												(language) => (
-													<SelectItem
-														key={language}
-														value={language}
-													>
-														{language}
-													</SelectItem>
-												),
-											)}
-										</SelectContent>
-									</Select>
-								</div>
-
-								{selectedScenario !== "medical-examination" && (
-									<div className="flex h-10 min-w-[218px] items-center rounded-md border px-3 text-sm text-muted-foreground">
-										Persona: {selectedPersona ?? "Random"}
-									</div>
-								)}
-							</div>
-
+						<div className="flex gap-4 justify-center">
 							{nextHref ? (
 								<Button
-									className="w-full sm:w-auto"
+									className="w-full max-w-xs"
 									onClick={() => router.push(nextHref)}
 								>
 									Proceed
 								</Button>
 							) : (
-								<Button className="w-full sm:w-auto" disabled>
+								<Button className="w-full max-w-xs" disabled>
 									Proceed
 								</Button>
 							)}

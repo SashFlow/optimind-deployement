@@ -130,7 +130,7 @@ export function PreconnectMediaSetup({
 						<MicIcon className="size-4" />
 						{isMicrophoneEnabled
 							? "Microphone enabled"
-							: "Enable microphone"}
+							: "Microphone"}
 					</Button>
 				</div>
 
@@ -175,7 +175,7 @@ export function PreconnectMediaSetup({
 						className="w-full"
 					>
 						<CameraIcon className="size-4" />
-						{isCameraEnabled ? "Camera enabled" : "Enable camera"}
+						{isCameraEnabled ? "Camera enabled" : "Camera"}
 					</Button>
 				</div>
 			</div>

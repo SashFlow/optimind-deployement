@@ -3,6 +3,7 @@
 	"compilerOptions": {
 		"plugins": [{ "name": "next" }],
 		"paths": {
+			"@/*": ["./*"],
 			"@app/*": ["./app/*"],
 			"@assets/*": ["./assets/*"],
 			"@context/*": ["./context/*"],

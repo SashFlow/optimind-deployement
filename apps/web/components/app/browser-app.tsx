@@ -8,6 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@repo/ui/card";
+import { Pagination } from "@saas/shared/components/Pagination";
 import { orpcClient } from "@shared/lib/orpc-client";
 import {
 	ArrowUpSquare as ArrowSquareOut,
@@ -22,6 +23,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { formatBytes, formatUpdatedAt } from "@/lib/browser-format";
 import type { BrowserListResponse } from "@/types/browser";
+
+const ITEMS_PER_PAGE = 10;
 
 async function fetchBrowserData(prefix: string, signal?: AbortSignal) {
 	const response = await orpcClient.browser.list(
@@ -41,10 +44,15 @@ export function BrowserApp() {
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [requestVersion, setRequestVersion] = useState(0);
+	const [currentPage, setCurrentPage] = useState(1);
 	const [downloadingPaths, setDownloadingPaths] = useState<Set<string>>(
 		new Set(),
 	);
 	const currentPrefix = searchParams.get("prefix") ?? "";
+
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [currentPrefix]);
 
 	useEffect(() => {
 		const controller = new AbortController();
@@ -129,6 +137,31 @@ export function BrowserApp() {
 			});
 		}
 	};
+
+	const entries = data
+		? [
+				...data.folders.map((folder) => ({
+					type: "folder" as const,
+					folder,
+				})),
+				...data.files.map((file) => ({
+					type: "file" as const,
+					file,
+				})),
+			]
+		: [];
+
+	const totalItems = entries.length;
+	const pageCount = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+	const safePage = Math.min(currentPage, pageCount);
+	const pageStart = (safePage - 1) * ITEMS_PER_PAGE;
+	const pageEntries = entries.slice(pageStart, pageStart + ITEMS_PER_PAGE);
+
+	useEffect(() => {
+		if (currentPage > pageCount) {
+			setCurrentPage(pageCount);
+		}
+	}, [currentPage, pageCount]);
 
 	return (
 		<main className="bg-background px-4 py-8 md:px-8">
@@ -217,8 +250,7 @@ export function BrowserApp() {
 							{!isLoading &&
 							!error &&
 							data &&
-							data.folders.length === 0 &&
-							data.files.length === 0 ? (
+							totalItems === 0 ? (
 								<div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
 									<Folder className="text-muted-foreground size-10" />
 									<div>
@@ -233,39 +265,47 @@ export function BrowserApp() {
 								</div>
 							) : null}
 
-							{!isLoading && !error && data ? (
+							{!isLoading && !error && data && totalItems > 0 ? (
 								<div className="divide-y">
-									{data.folders.map((folder) => (
-										<button
-											key={folder.prefix}
-											type="button"
-											className="hover:bg-muted/40 grid w-full gap-3 px-4 py-4 text-left transition-colors md:grid-cols-[minmax(0,1.6fr)_140px_180px_120px] md:items-center"
-											onClick={() =>
-												navigateToPrefix(folder.prefix)
-											}
-										>
-											<span className="flex min-w-0 items-center gap-3 font-medium">
-												<Folder className="text-primary size-5 shrink-0" />
-												<span className="truncate">
-													{folder.name}
-												</span>
-											</span>
-											<span className="text-muted-foreground text-sm">
-												Folder
-											</span>
-											<span className="text-muted-foreground text-sm">
-												-
-											</span>
-											<span className="flex justify-start md:justify-end">
-												<span className="text-primary inline-flex items-center gap-2 text-sm">
-													Open
-													<ArrowSquareOut className="size-4" />
-												</span>
-											</span>
-										</button>
-									))}
+									{pageEntries.map((entry) => {
+										if (entry.type === "folder") {
+											const { folder } = entry;
+											return (
+												<button
+													key={folder.prefix}
+													type="button"
+													className="hover:bg-muted/40 grid w-full gap-3 px-4 py-4 text-left transition-colors md:grid-cols-[minmax(0,1.6fr)_140px_180px_120px] md:items-center"
+													onClick={() =>
+														navigateToPrefix(
+															folder.prefix,
+														)
+													}
+												>
+													<span className="flex min-w-0 items-center gap-3 font-medium">
+														<Folder className="text-primary size-5 shrink-0" />
+														<span className="truncate">
+															{folder.name}
+														</span>
+													</span>
+													<span className="text-muted-foreground text-sm">
+														Folder
+													</span>
+													<span className="text-muted-foreground text-sm">
+														{formatUpdatedAt(
+															folder.updatedAt,
+														)}
+													</span>
+													<span className="flex justify-start md:justify-end">
+														<span className="text-primary inline-flex items-center gap-2 text-sm">
+															Open
+															<ArrowSquareOut className="size-4" />
+														</span>
+													</span>
+												</button>
+											);
+										}
 
-									{data.files.map((file) => {
+										const { file } = entry;
 										const isDownloading =
 											downloadingPaths.has(file.path);
 
@@ -321,6 +361,15 @@ export function BrowserApp() {
 								</div>
 							) : null}
 						</div>
+
+						{!isLoading && !error && totalItems > ITEMS_PER_PAGE ? (
+							<Pagination
+								totalItems={totalItems}
+								itemsPerPage={ITEMS_PER_PAGE}
+								currentPage={safePage}
+								onChangeCurrentPage={setCurrentPage}
+							/>
+						) : null}
 					</CardContent>
 				</Card>
 			</div>

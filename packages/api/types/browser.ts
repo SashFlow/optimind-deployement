@@ -6,6 +6,7 @@ export interface BrowserBreadcrumb {
 export interface BrowserFolderEntry {
 	name: string;
 	prefix: string;
+	updatedAt: string | null;
 }
 
 export interface BrowserFileEntry {

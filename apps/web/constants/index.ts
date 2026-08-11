@@ -234,34 +234,34 @@ export const scenarios = {
 		firstTimeGuidance: [],
 		suggestedQuestions: [],
 	},
-	"medical-appointment": {
-		sessionType: ["audio", "phone"],
-		title: "Medical Appointment - (Inbound)",
-		description:
-			"An AI voice assistant that helps patients schedule, reschedule, and manage medical appointments with clinics, hospitals, and diagnostic centers.",
-		highlights: [
-			"Book and manage medical appointments through voice interaction",
-			"Provide appointment confirmations and reminders",
-			"Assist users in finding available doctors and time slots",
-		],
-		url: "/images/inbound.svg",
-		firstTimeGuidance: [],
-		suggestedQuestions: [],
-	},
-	"reminder-call": {
-		sessionType: ["audio", "phone"],
-		title: "Reminder Call - (Outbound)",
-		description:
-			"An AI calling assistant that delivers automated reminders for appointments, medication schedules, renewals, and follow-up actions.",
-		highlights: [
-			"Send automated voice reminders for appointments and tasks",
-			"Reduce missed appointments and improve customer engagement",
-			"Support personalized and multilingual reminder calls",
-		],
-		url: "/images/outbound.svg",
-		firstTimeGuidance: [],
-		suggestedQuestions: [],
-	},
+	// "medical-appointment": {
+	// 	sessionType: ["audio", "phone"],
+	// 	title: "Medical Appointment - (Inbound)",
+	// 	description:
+	// 		"An AI voice assistant that helps patients schedule, reschedule, and manage medical appointments with clinics, hospitals, and diagnostic centers.",
+	// 	highlights: [
+	// 		"Book and manage medical appointments through voice interaction",
+	// 		"Provide appointment confirmations and reminders",
+	// 		"Assist users in finding available doctors and time slots",
+	// 	],
+	// 	url: "/images/inbound.svg",
+	// 	firstTimeGuidance: [],
+	// 	suggestedQuestions: [],
+	// },
+	// "reminder-call": {
+	// 	sessionType: ["audio", "phone"],
+	// 	title: "Reminder Call - (Outbound)",
+	// 	description:
+	// 		"An AI calling assistant that delivers automated reminders for appointments, medication schedules, renewals, and follow-up actions.",
+	// 	highlights: [
+	// 		"Send automated voice reminders for appointments and tasks",
+	// 		"Reduce missed appointments and improve customer engagement",
+	// 		"Support personalized and multilingual reminder calls",
+	// 	],
+	// 	url: "/images/outbound.svg",
+	// 	firstTimeGuidance: [],
+	// 	suggestedQuestions: [],
+	// },
 	"insurance-feedback": {
 		sessionType: ["audio", "phone"],
 		title: "Insurance Feedback",
