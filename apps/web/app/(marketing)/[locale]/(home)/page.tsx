@@ -1,29 +1,25 @@
 "use client";
-import { Marquee } from "@components/marketing/home/Marquee";
-import {
-	type DemoData,
-	VoiceDemoModal,
-} from "@components/marketing/home/VoiceDemoModal";
-import { VoiceOrb } from "@components/marketing/home/VoiceOrb";
+
 import { motion } from "motion/react";
+import Link from "next/link";
 import { useRef, useState } from "react";
+import { InteractiveHeroBackground } from "@/components/marketing/home/InteractiveHeroBackground";
 
 export default function Home() {
 	const ref = useRef<HTMLDivElement>(null);
-	const [activeDemo, setActiveDemo] = useState<DemoData | null>(null);
 
 	return (
 		<div className="min-h-screen bg-background text-foreground noise">
 			{/* NAV */}
 			<header className="fixed inset-x-0 top-0 z-50 border-b border-border/50 bg-background/70 backdrop-blur-xl">
 				<div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-					<a
+					<Link
 						href="/"
 						className="flex items-center gap-2 font-display text-2xl"
 					>
 						<span className="inline-block h-2 w-2 rounded-full bg-signal" />
-						Sashflow
-					</a>
+						Optimind
+					</Link>
 					<nav className="hidden gap-8 font-mono text-xs uppercase tracking-widest text-muted-foreground md:flex">
 						<a href="#use-cases" className="hover:text-foreground">
 							Use cases
@@ -38,23 +34,24 @@ export default function Home() {
 					<div className="flex gap-2">
 						<a
 							href="#contact"
-							className="rounded-full border border-signal/30 px-4 py-2 font-mono text-xs uppercase tracking-widest text-signal transition-colors hover:bg-signal hover:text-primary-foreground"
+							className="rounded-full border border-signal/30 px-4 py-2 font-mono text-xs uppercase tracking-widest text-signal"
 						>
 							Book pilot
 						</a>
-						<a
+						<Link
 							href="/auth/login"
-							className="rounded-full border border-signal/30 px-4 py-2 font-mono text-xs uppercase tracking-widest text-signal transition-colors hover:bg-signal hover:text-primary-foreground"
+							className="rounded-full border border-signal/30 px-4 py-2 font-mono text-xs uppercase tracking-widest text-signal"
 						>
 							Login
-						</a>
+						</Link>
 					</div>
 				</div>
 			</header>
 
 			{/* HERO */}
-			<section className="relative grid-bg pt-32 pb-24">
-				<div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 lg:grid-cols-12">
+			<section className="relative overflow-hidden grid-bg pt-32 pb-24">
+				<InteractiveHeroBackground />
+				<div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 lg:grid-cols-12">
 					<div className="lg:col-span-7">
 						<motion.div
 							initial={{ opacity: 0, y: 12 }}
@@ -83,7 +80,7 @@ export default function Home() {
 							transition={{ duration: 1, delay: 0.4 }}
 							className="mt-8 max-w-xl text-lg leading-relaxed text-muted-foreground"
 						>
-							Sashflow is a voice AI engineered for the moments
+							Optimind is a voice AI engineered for the moments
 							other models fluff: an elderly patient describing
 							chest pain, a med student lost in a lecture, a
 							radiology report that reads like Latin. Built for
@@ -112,9 +109,6 @@ export default function Home() {
 					</div>
 
 					<div className="relative lg:col-span-5">
-						<div className="aspect-square w-full">
-							<VoiceOrb />
-						</div>
 						<div className="absolute left-0 top-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
 							<div>● live</div>
 							<div className="mt-1 text-signal">
@@ -128,8 +122,6 @@ export default function Home() {
 					</div>
 				</div>
 			</section>
-
-			<Marquee />
 
 			{/* METRICS */}
 			<section id="metrics" className="border-b border-border py-24">
@@ -193,7 +185,6 @@ export default function Home() {
 							<motion.button
 								key={u.n}
 								type="button"
-								onClick={() => setActiveDemo(u.demo)}
 								initial={{ opacity: 0, y: 30 }}
 								whileInView={{ opacity: 1, y: 0 }}
 								viewport={{ once: true, margin: "-80px" }}
@@ -232,224 +223,225 @@ export default function Home() {
 
 			{/* CONTACT */}
 			<ContactSection />
-
-			<VoiceDemoModal
-				open={activeDemo !== null}
-				onOpenChange={(v) => {
-					if (!v) {
-						setActiveDemo(null);
-					}
-				}}
-				demo={activeDemo}
-			/>
 		</div>
 	);
 }
 
+type TranscriptLine = {
+	t: number; // seconds
+	who: "ai" | "user";
+	text: string;
+};
+type DemoData = {
+	title: string;
+	caller: string;
+	duration: number; // seconds
+	lines: TranscriptLine[];
+};
 const useCases: Array<{
 	n: string;
 	title: string;
 	body: string;
 	demo: DemoData;
 }> = [
-	{
-		n: "01",
-		title: "Medical Examination",
-		body: "Conversational triage that listens, probes, and structures findings into SOAP notes — handed to clinicians, never replacing them.",
-		demo: {
-			title: "Chest pain triage, 71yo",
-			caller: "intake · room 3",
-			duration: 18,
-			lines: [
-				{
-					t: 0.2,
-					who: "ai",
-					text: "Good morning Mr. Hale. Before the doctor sees you, can you describe the chest discomfort in your own words?",
-				},
-				{
-					t: 4.5,
-					who: "user",
-					text: "It's a tightness, here, started after breakfast. Comes and goes.",
-				},
-				{
-					t: 9,
-					who: "ai",
-					text: "Is it sharp or more like a pressure? Does it move to your arm or jaw?",
-				},
-				{
-					t: 13,
-					who: "user",
-					text: "Pressure. Goes a little into my left shoulder.",
-				},
-				{
-					t: 16,
-					who: "ai",
-					text: "Noted. Flagging as possible cardiac — Dr. Okafor will be with you in two minutes.",
-				},
-			],
+		{
+			n: "01",
+			title: "Medical Examination",
+			body: "Conversational triage that listens, probes, and structures findings into SOAP notes — handed to clinicians, never replacing them.",
+			demo: {
+				title: "Chest pain triage, 71yo",
+				caller: "intake · room 3",
+				duration: 18,
+				lines: [
+					{
+						t: 0.2,
+						who: "ai",
+						text: "Good morning Mr. Hale. Before the doctor sees you, can you describe the chest discomfort in your own words?",
+					},
+					{
+						t: 4.5,
+						who: "user",
+						text: "It's a tightness, here, started after breakfast. Comes and goes.",
+					},
+					{
+						t: 9,
+						who: "ai",
+						text: "Is it sharp or more like a pressure? Does it move to your arm or jaw?",
+					},
+					{
+						t: 13,
+						who: "user",
+						text: "Pressure. Goes a little into my left shoulder.",
+					},
+					{
+						t: 16,
+						who: "ai",
+						text: "Noted. Flagging as possible cardiac — Dr. Okafor will be with you in two minutes.",
+					},
+				],
+			},
 		},
-	},
-	{
-		n: "02",
-		title: "Inbound Calls",
-		body: "Answers in 600ms with the warmth of a front-desk veteran. Books, reschedules, escalates — fluent in 38 languages.",
-		demo: {
-			title: "Reschedule + insurance check",
-			caller: "inbound · +49 30 ···",
-			duration: 16,
-			lines: [
-				{
-					t: 0.2,
-					who: "ai",
-					text: "Charité dermatology, this is Sashflow — how can I help?",
-				},
-				{
-					t: 3,
-					who: "user",
-					text: "I need to move my Thursday appointment. Also, do you take TK?",
-				},
-				{
-					t: 7,
-					who: "ai",
-					text: "Of course. I see Thursday 14:00 with Dr. Lange. Next openings are Tuesday 09:30 or Friday 11:00.",
-				},
-				{ t: 12, who: "user", text: "Friday works." },
-				{
-					t: 14,
-					who: "ai",
-					text: "Booked. And yes — TK is in network, no referral needed.",
-				},
-			],
+		{
+			n: "02",
+			title: "Inbound Calls",
+			body: "Answers in 600ms with the warmth of a front-desk veteran. Books, reschedules, escalates — fluent in 38 languages.",
+			demo: {
+				title: "Reschedule + insurance check",
+				caller: "inbound · +49 30 ···",
+				duration: 16,
+				lines: [
+					{
+						t: 0.2,
+						who: "ai",
+						text: "Charité dermatology, this is Sai — how can I help?",
+					},
+					{
+						t: 3,
+						who: "user",
+						text: "I need to move my Thursday appointment. Also, do you take TK?",
+					},
+					{
+						t: 7,
+						who: "ai",
+						text: "Of course. I see Thursday 14:00 with Dr. Lange. Next openings are Tuesday 09:30 or Friday 11:00.",
+					},
+					{ t: 12, who: "user", text: "Friday works." },
+					{
+						t: 14,
+						who: "ai",
+						text: "Booked. And yes — TK is in network, no referral needed.",
+					},
+				],
+			},
 		},
-	},
-	{
-		n: "03",
-		title: "Outbound Calls",
-		body: "Follow-ups, no-show recovery, post-op check-ins. Each call adapts tone to the patient's history, not a script.",
-		demo: {
-			title: "Day-3 post-op check-in",
-			caller: "outbound · ortho",
-			duration: 17,
-			lines: [
-				{
-					t: 0.2,
-					who: "ai",
-					text: "Hi Maria, it's Sashflow from Dr. Patel's office — quick check on day three after the knee scope?",
-				},
-				{
-					t: 5,
-					who: "user",
-					text: "Swelling is down but I'm still pretty sore at night.",
-				},
-				{
-					t: 9,
-					who: "ai",
-					text: "That tracks for day three. Are you icing twenty minutes, four times a day?",
-				},
-				{ t: 13, who: "user", text: "More like twice." },
-				{
-					t: 15,
-					who: "ai",
-					text: "Bump it to four — I'll text the schedule and let Dr. Patel know.",
-				},
-			],
+		{
+			n: "03",
+			title: "Outbound Calls",
+			body: "Follow-ups, no-show recovery, post-op check-ins. Each call adapts tone to the patient's history, not a script.",
+			demo: {
+				title: "Day-3 post-op check-in",
+				caller: "outbound · ortho",
+				duration: 17,
+				lines: [
+					{
+						t: 0.2,
+						who: "ai",
+						text: "Hi Maria, it's Sai from Dr. Patel's office — quick check on day three after the knee scope?",
+					},
+					{
+						t: 5,
+						who: "user",
+						text: "Swelling is down but I'm still pretty sore at night.",
+					},
+					{
+						t: 9,
+						who: "ai",
+						text: "That tracks for day three. Are you icing twenty minutes, four times a day?",
+					},
+					{ t: 13, who: "user", text: "More like twice." },
+					{
+						t: 15,
+						who: "ai",
+						text: "Bump it to four — I'll text the schedule and let Dr. Patel know.",
+					},
+				],
+			},
 		},
-	},
-	{
-		n: "04",
-		title: "Customer Support",
-		body: "Resolves tier-1 in seconds with full memory of the account. Hands warm-transferred context to a human when nuance demands it.",
-		demo: {
-			title: "Billing dispute, account #4471",
-			caller: "support · tier-1",
-			duration: 15,
-			lines: [
-				{
-					t: 0.2,
-					who: "ai",
-					text: "Hi Jonas — I see two charges on Tuesday. Want me to walk through them?",
-				},
-				{
-					t: 4,
-					who: "user",
-					text: "Yeah, the second one looks duplicate.",
-				},
-				{
-					t: 7,
-					who: "ai",
-					text: "It is — same merchant, 11 seconds apart. I've reversed it; funds back in two business days.",
-				},
-				{ t: 12, who: "user", text: "That easy?" },
-				{
-					t: 13.5,
-					who: "ai",
-					text: "That easy. Anything else on the account?",
-				},
-			],
+		{
+			n: "04",
+			title: "Customer Support",
+			body: "Resolves tier-1 in seconds with full memory of the account. Hands warm-transferred context to a human when nuance demands it.",
+			demo: {
+				title: "Billing dispute, account #4471",
+				caller: "support · tier-1",
+				duration: 15,
+				lines: [
+					{
+						t: 0.2,
+						who: "ai",
+						text: "Hi Jonas — I see two charges on Tuesday. Want me to walk through them?",
+					},
+					{
+						t: 4,
+						who: "user",
+						text: "Yeah, the second one looks duplicate.",
+					},
+					{
+						t: 7,
+						who: "ai",
+						text: "It is — same merchant, 11 seconds apart. I've reversed it; funds back in two business days.",
+					},
+					{ t: 12, who: "user", text: "That easy?" },
+					{
+						t: 13.5,
+						who: "ai",
+						text: "That easy. Anything else on the account?",
+					},
+				],
+			},
 		},
-	},
-	{
-		n: "05",
-		title: "Medical Classes",
-		body: "Live transcription of lectures with anatomical disambiguation, drug-name precision, and instant searchable study packs.",
-		demo: {
-			title: "Pharmacology lecture · ACE inhibitors",
-			caller: "lecture · UMC week 9",
-			duration: 16,
-			lines: [
-				{
-					t: 0.2,
-					who: "user",
-					text: "...so lisinopril blocks angiotensin-converting enzyme — note the spelling, two i's.",
-				},
-				{
-					t: 6,
-					who: "ai",
-					text: "Captured: lisinopril (ACE-I). Linked to Goodman & Gilman ch. 26.",
-				},
-				{
-					t: 10,
-					who: "user",
-					text: "Side effect to remember: dry cough, roughly 10% of patients.",
-				},
-				{
-					t: 13.5,
-					who: "ai",
-					text: "Flashcard generated · cough · bradykinin accumulation.",
-				},
-			],
+		{
+			n: "05",
+			title: "Medical Classes",
+			body: "Live transcription of lectures with anatomical disambiguation, drug-name precision, and instant searchable study packs.",
+			demo: {
+				title: "Pharmacology lecture · ACE inhibitors",
+				caller: "lecture · UMC week 9",
+				duration: 16,
+				lines: [
+					{
+						t: 0.2,
+						who: "user",
+						text: "...so lisinopril blocks angiotensin-converting enzyme — note the spelling, two i's.",
+					},
+					{
+						t: 6,
+						who: "ai",
+						text: "Captured: lisinopril (ACE-I). Linked to Goodman & Gilman ch. 26.",
+					},
+					{
+						t: 10,
+						who: "user",
+						text: "Side effect to remember: dry cough, roughly 10% of patients.",
+					},
+					{
+						t: 13.5,
+						who: "ai",
+						text: "Flashcard generated · cough · bradykinin accumulation.",
+					},
+				],
+			},
 		},
-	},
-	{
-		n: "06",
-		title: "Report Explainer",
-		body: "Reads a radiology or lab report aloud in the patient's own vocabulary. Answers follow-ups with cited sources, not vibes.",
-		demo: {
-			title: "MRI lumbar spine · plain-language read",
-			caller: "patient portal",
-			duration: 17,
-			lines: [
-				{
-					t: 0.2,
-					who: "ai",
-					text: "Your MRI shows a small bulge at L4-L5 — think of it as a slightly squeezed cushion between two vertebrae.",
-				},
-				{ t: 7, who: "user", text: "Is that why my leg tingles?" },
-				{
-					t: 10,
-					who: "ai",
-					text: "Likely yes. The bulge sits near the nerve that runs down your left leg. Most cases improve with PT in 6-8 weeks.",
-				},
-				{ t: 15, who: "user", text: "Do I need surgery?" },
-				{
-					t: 16,
-					who: "ai",
-					text: "Not based on this scan. I'll send Dr. Chen a note to confirm.",
-				},
-			],
+		{
+			n: "06",
+			title: "Report Explainer",
+			body: "Reads a radiology or lab report aloud in the patient's own vocabulary. Answers follow-ups with cited sources, not vibes.",
+			demo: {
+				title: "MRI lumbar spine · plain-language read",
+				caller: "patient portal",
+				duration: 17,
+				lines: [
+					{
+						t: 0.2,
+						who: "ai",
+						text: "Your MRI shows a small bulge at L4-L5 — think of it as a slightly squeezed cushion between two vertebrae.",
+					},
+					{ t: 7, who: "user", text: "Is that why my leg tingles?" },
+					{
+						t: 10,
+						who: "ai",
+						text: "Likely yes. The bulge sits near the nerve that runs down your left leg. Most cases improve with PT in 6-8 weeks.",
+					},
+					{ t: 15, who: "user", text: "Do I need surgery?" },
+					{
+						t: 16,
+						who: "ai",
+						text: "Not based on this scan. I'll send Dr. Chen a note to confirm.",
+					},
+				],
+			},
 		},
-	},
-];
+	];
 
 const features = [
 	{ k: "Latency", v: "612ms", note: "median first-token, EU edge" },
@@ -480,18 +472,18 @@ function ContactSection() {
 						/004 — open a line
 					</div>
 					<h2 className="mt-3 font-display text-5xl md:text-6xl text-balance">
-						Tell us what you're{" "}
+						{"Tell us what you're "}
 						<em className="text-signal">trying to hear.</em>
 					</h2>
 					<p className="mt-8 max-w-md text-muted-foreground">
-						Pilots start at four weeks. We'll send a sample call
+						{"Pilots start at four weeks. We'll send a sample call"}
 						from your specialty within 48 hours — no decks, no
 						pricing PDFs.
 					</p>
 					<div className="mt-10 space-y-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
 						<div>
 							<span className="text-signal">↳ </span>
-							sai@sashflow.com
+							growth@sashflow.com
 						</div>
 						<div>
 							<span className="text-signal">↳ </span>Mumbai ·
@@ -551,7 +543,7 @@ function ContactSection() {
 							animate={{ opacity: 1 }}
 							className="font-mono text-xs uppercase tracking-widest text-signal"
 						>
-							◉ received — we'll reply within 48h
+							{"◉ received — we'll reply within 48h"}
 						</motion.p>
 					)}
 				</form>

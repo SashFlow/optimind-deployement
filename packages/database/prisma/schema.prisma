@@ -38,7 +38,7 @@ model User {
     purchases          Purchase[]
     members            Member[]
     twofactors         TwoFactor[]
-    aiChats            AiChat[]
+    auditLogs          AuditLog[]
 
     @@unique([email])
     @@unique([username])
@@ -125,17 +125,31 @@ model TwoFactor {
 }
 
 model Organization {
-    id                 String       @id @default(cuid())
-    name               String
-    slug               String?
-    logo               String?
-    createdAt          DateTime
-    metadata           String?
-    paymentsCustomerId String?
-    members            Member[]
-    invitations        Invitation[]
-    purchases          Purchase[]
-    aiChats            AiChat[]
+    id                  String               @id @default(cuid())
+    name                String
+    slug                String?
+    logo                String?
+    createdAt           DateTime
+    metadata            String?
+    paymentsCustomerId  String?
+    members             Member[]
+    invitations         Invitation[]
+    purchases           Purchase[]
+    auditLogs           AuditLog[]
+    agents              Agent[]
+    agentVersions       AgentVersion[]
+    campaigns           Campaign[]
+    campaignContacts    CampaignContact[]
+    campaignAccessLinks CampaignAccessLink[]
+    campaignSessions    CampaignSession[]
+    knowledgeBases      KnowledgeBase[]
+    phoneNumbers        PhoneNumber[]
+    sipTrunks           SipTrunk[]
+    dispatchRules       DispatchRule[]
+    customVoices        CustomVoice[]
+    egressJobs          EgressJob[]
+    avatarProfiles      AvatarProfile[]
+    usageMetrics        UsageMetric[]
 
     @@unique([slug])
     @@map("organization")
@@ -191,118 +205,694 @@ model Purchase {
     @@map("purchase")
 }
 
-model AiChat {
-    id             String        @id @default(cuid())
-    organizationId String?
-    organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    userId         String?
-    user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-    title          String?
-    /// [ChatMessages]
-    messages       Json          @default("[]")
-    createdAt      DateTime      @default(now())
-    updatedAt      DateTime      @updatedAt
+// ------------------------------------------------------------
+// ----------------------------- Audit Logs -------------------
+// ------------------------------------------------------------
 
-    @@map("ai_chat")
+enum AuditActionType {
+    CREATE
+    UPDATE
+    DELETE
+    PUBLISH
+    INVITE
+    LOGIN
+    LOGOUT
 }
 
-model NoteTag {
-    id        String   @id @default(cuid())
-    name      String
-    notes     Note[]
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@map("note_tag")
+enum AuditActorType {
+    USER
+    SYSTEM
+    API
 }
 
-model Note {
-    id          String   @id @default(cuid())
-    title       String
-    content     Json
-    imageUrl    String?
-    description String?
-    published   Boolean  @default(false)
-    noteTagId   String
-    noteTag     NoteTag  @relation(fields: [noteTagId], references: [id], onDelete: Cascade)
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-
-    @@map("note")
+model AuditLog {
+    id             String          @id @default(cuid())
+    userId         String
+    user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+    createdAt      DateTime        @default(now())
+    updatedAt      DateTime        @updatedAt
+    organizationId String
+    organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    actorType      AuditActorType
+    actionType     AuditActionType
+    resourceType   String
+    resourceId     String
+    requestId      String
+    ipAddress      String
+    userAgent      String
+    before         Json
+    after          Json
 }
 
-model Fell {
-    id        String   @id @default(cuid())
-    name      String
-    weather   String
-    content   Json
-    imageUrl  String?
-    published Boolean  @default(false)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+// ------------------------------------------------------------
+// ----------------------------- Agents -----------------------
+// ------------------------------------------------------------
 
-    @@map("fell")
+enum AgentStatus {
+    ACTIVE
+    INACTIVE
+    DELETED
 }
 
-model Picture {
-    id          String   @id @default(cuid())
+enum AgentVersionStatus {
+    DRAFT
+    PUBLISHED
+    DELETED
+}
+
+model Agent {
+    id                 String              @id @default(cuid())
+    createdAt          DateTime            @default(now())
+    updatedAt          DateTime            @updatedAt
+    organizationId     String
+    organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    name               String
+    description        String?
+    status             AgentStatus         @default(ACTIVE)
+    draftVersionId     String?
+    draftVersion       AgentVersion?       @relation("AgentDraftVersion", fields: [draftVersionId], references: [id], onDelete: SetNull)
+    publishedVersionId String?
+    publishedVersion   AgentVersion?       @relation("AgentPublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
+    versions           AgentVersion[]      @relation("AgentVersions")
+    trials             AgentTrial[]
+    campaigns          Campaign[]
+    knowledgeBases     AgentKnowledgeBase[]
+    phoneNumbers       PhoneNumber[]
+    dispatchRules      DispatchRule[]
+    usageMetrics       UsageMetric[]
+    embedEnabled       Boolean             @default(false)
+    token              String?             @unique
+
+    @@index([organizationId])
+    @@map("agent")
+}
+
+model AgentVersion {
+    id             String             @id @default(cuid())
+    agentId        String
+    agent          Agent              @relation("AgentVersions", fields: [agentId], references: [id], onDelete: Cascade)
+    createdAt      DateTime           @default(now())
+    updatedAt      DateTime           @updatedAt
+    organizationId String
+    organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    isDraft        Boolean            @default(true)
+    version        AgentVersionStatus @default(DRAFT)
+    config         Json               @default("{}")
+    draftFor       Agent[]            @relation("AgentDraftVersion")
+    publishedFor   Agent[]            @relation("AgentPublishedVersion")
+
+    @@index([agentId])
+    @@index([organizationId])
+    @@map("agent_version")
+}
+
+model AgentTrial {
+    id         String    @id @default(cuid())
+    agentId    String
+    agent      Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
+    token      String?   @unique
+    enabled    Boolean   @default(false)
+    usageLimit Int       @default(0)
+    usageCount Int       @default(0)
+    expiresAt  DateTime?
+
+    @@index([agentId])
+    @@map("agent_trial")
+}
+
+// ------------------------------------------------------------
+// ----------------------------- Campaigns --------------------
+// ------------------------------------------------------------
+// Three primary modes:
+// 1) OUTBOUND_LIST — org uploads contacts + personal context; agent dials/messages them
+// 2) INBOUND_OPEN  — open channel (e.g. support line); anyone can start a session
+// 3) WEB_LINK      — shareable/embed link; optional per-person personalized context
+
+enum CampaignStatus {
+    DRAFT
+    ACTIVE
+    PAUSED
+    COMPLETED
+    ARCHIVED
+}
+
+enum CampaignMode {
+    OUTBOUND_LIST
+    INBOUND_OPEN
+    WEB_LINK
+}
+
+enum CampaignChannel {
+    VOICE
+    WEB
+}
+
+enum CampaignPriority {
+    LOW
+    NORMAL
+    HIGH
+}
+
+enum CampaignContactStatus {
+    PENDING
+    QUEUED
+    IN_PROGRESS
+    COMPLETED
+    FAILED
+    SKIPPED
+    DO_NOT_CONTACT
+    PAUSED
+    RESCHEDULED
+    CANCELLED
+}
+
+enum CampaignSessionStatus {
+    QUEUED
+    STARTED
+    IN_PROGRESS
+    COMPLETED
+    FAILED
+    ABANDONED
+    PAUSED
+    RESCHEDULED
+}
+
+enum CampaignSessionDirection {
+    INBOUND
+    OUTBOUND
+    WEB
+}
+
+enum CampaignAccessLinkKind {
+    /// Single open link for the campaign (inbound / public embed)
+    OPEN
+    /// Unique link tied to one contact + prefilled personal context
+    PERSONALIZED
+}
+
+model Campaign {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    agentId        String
+    agent          Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
+
     name        String
-    title       String
     description String?
-    imageUrl    String?
-    published   Boolean  @default(false)
-    likes       Int      @default(0)
-    views       Int      @default(0)
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    status      CampaignStatus   @default(DRAFT)
+    mode        CampaignMode
+    channel     CampaignChannel
+    priority    CampaignPriority @default(NORMAL)
 
-    @@map("picture")
+    /// Declares expected personal-context keys for contacts / embeds
+    /// e.g. [{ "key": "company", "label": "Company", "required": true }]
+    contextSchema Json @default("[]")
+
+    // --- scheduling / dialer (primarily OUTBOUND_LIST) ---
+    startAt                DateTime?
+    endAt                  DateTime?
+    timezone               String?   @default("UTC")
+    callingWindowStartHour Int? // 0-23 local
+    callingWindowEndHour   Int? // 0-23 local
+    maxConcurrentSessions  Int       @default(1)
+    maxAttemptsPerContact  Int       @default(3)
+    retryDelayMinutes      Int       @default(60)
+
+    // --- open access (INBOUND_OPEN / WEB_LINK public entry) ---
+    publicToken String? @unique
+    embedEnabled Boolean @default(false)
+    /// Optional phone / SIP identity for inbound voice
+    inboundAddress String?
+
+    metadata Json @default("{}")
+
+    contacts       CampaignContact[]
+    accessLinks    CampaignAccessLink[]
+    sessions       CampaignSession[]
+    knowledgeBases CampaignKnowledgeBase[]
+    phoneNumbers   PhoneNumber[]
+    dispatchRules  DispatchRule[]
+    usageMetrics   UsageMetric[]
+
+    @@index([organizationId, status])
+    @@index([agentId])
+    @@index([mode, status])
+    @@map("campaign")
 }
 
-// ==================================================
-// Invite Links
-// ==================================================
-model DemoLinks {
-    id               String   @id @default(cuid())
-    client           String
-    description      String
-    slug             String
-    mode             String
-    approvedSessions Int
-    token            String   @unique
-    published        Boolean  @default(false)
-    createdAt        DateTime @default(now())
-    updatedAt        DateTime @updatedAt
+model CampaignContact {
+    id             String                @id @default(cuid())
+    createdAt      DateTime              @default(now())
+    updatedAt      DateTime              @updatedAt
+    organizationId String
+    organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    campaignId     String
+    campaign       Campaign              @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-    @@map("demolinks")
+    displayName String?
+    phoneE164   String?
+    email       String?
+    timezone    String?
+    locale      String?
+    externalId  String? // CRM / upload row id
+
+    /// Freeform personal context injected into the agent (name, company, notes, etc.)
+    context Json @default("{}")
+
+    status           CampaignContactStatus @default(PENDING)
+    attemptCount     Int                   @default(0)
+    lastAttemptAt    DateTime?
+    nextAttemptAt    DateTime?
+    lastOutcome      String?
+    doNotContact     Boolean               @default(false)
+    consentGiven     Boolean               @default(false)
+    consentAt        DateTime?
+    consentSource    String?
+
+    /// Rolling conversation memory for natural recalls
+    memorySummary   String?   @db.Text
+    memoryUpdatedAt DateTime?
+
+    metadata Json @default("{}")
+
+    accessLinks CampaignAccessLink[]
+    sessions    CampaignSession[]
+
+    @@index([campaignId, status])
+    @@index([campaignId, nextAttemptAt])
+    @@index([organizationId])
+    @@index([phoneE164])
+    @@index([email])
+    @@unique([campaignId, externalId])
+    @@map("campaign_contact")
 }
 
-// ==================================================
-// Appointments
-// ==================================================
+model CampaignAccessLink {
+    id             String                 @id @default(cuid())
+    createdAt      DateTime               @default(now())
+    updatedAt      DateTime               @updatedAt
+    organizationId String
+    organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    campaignId     String
+    campaign       Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    contactId      String?
+    contact        CampaignContact?       @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
-model RegisteredUsers {
-    id           String @id @default(cuid())
-    phone_number String
-    full_name    String
-    dob          String
+    kind    CampaignAccessLinkKind
+    token   String                 @unique
+    enabled Boolean                @default(true)
+    label   String?
 
-    @@map("registered_users")
+    /// Extra context baked into this link (merged with contact.context at runtime)
+    contextOverrides Json @default("{}")
+
+    expiresAt DateTime?
+    maxUses   Int?
+    useCount  Int       @default(0)
+
+    metadata Json @default("{}")
+
+    sessions CampaignSession[]
+
+    @@index([campaignId, kind])
+    @@index([contactId])
+    @@index([organizationId])
+    @@map("campaign_access_link")
 }
 
-model Appointments {
-    id               String   @id @default(cuid())
-    dob              String
-    phone_number     String
-    full_name        String
-    appointment_type String
-    appointment_date String
-    appointment_time String
-    exam_type        String
-    pin_code         String
-    address          String
-    createdAt        DateTime @default(now())
-    updatedAt        DateTime @updatedAt
+model CampaignSession {
+    id             String              @id @default(cuid())
+    createdAt      DateTime            @default(now())
+    updatedAt      DateTime            @updatedAt
+    organizationId String
+    organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    campaignId     String
+    campaign       Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    contactId      String?
+    contact        CampaignContact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+    accessLinkId   String?
+    accessLink     CampaignAccessLink? @relation(fields: [accessLinkId], references: [id], onDelete: SetNull)
 
-    @@map("appointments")
+    channel   CampaignChannel
+    direction CampaignSessionDirection @default(WEB)
+    status    CampaignSessionStatus    @default(STARTED)
+    startedAt DateTime                 @default(now())
+    endedAt   DateTime?
+
+    /// Snapshot of personal context used for this session
+    contextSnapshot Json    @default("{}")
+    outcome         String?
+    summary         String? @db.Text
+    transcript      Json?
+    messages        Json?
+    recordingUrl    String?
+    durationSeconds Int?
+
+    livekitRoomName String?
+    livekitRoomSid  String?
+    parentSessionId String?
+    parentSession   CampaignSession?  @relation("SessionContinuation", fields: [parentSessionId], references: [id], onDelete: SetNull)
+    childSessions   CampaignSession[] @relation("SessionContinuation")
+
+    egressId     String?
+    egressStatus String?
+
+    metadata Json @default("{}")
+
+    egressJobs   EgressJob[]
+    usageMetrics UsageMetric[]
+
+    @@index([campaignId, status])
+    @@index([contactId, startedAt])
+    @@index([accessLinkId])
+    @@index([organizationId, startedAt])
+    @@index([livekitRoomName])
+    @@index([parentSessionId])
+    @@map("campaign_session")
+}
+
+// ------------------------------------------------------------
+// ----------------------------- Knowledge Base ---------------
+// ------------------------------------------------------------
+
+enum KnowledgeBaseStatus {
+    ACTIVE
+    ARCHIVED
+    DELETED
+}
+
+enum DocumentStatus {
+    PENDING
+    PROCESSING
+    READY
+    FAILED
+    DELETED
+}
+
+enum DocumentSourceType {
+    UPLOAD
+    URL
+    TEXT
+    API
+}
+
+model KnowledgeBase {
+    id              String              @id @default(cuid())
+    createdAt       DateTime            @default(now())
+    updatedAt       DateTime            @updatedAt
+    organizationId  String
+    organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    name            String
+    description     String?
+    embeddingModel  String              @default("text-embedding-3-small")
+    embeddingDim    Int                 @default(1536)
+    status          KnowledgeBaseStatus @default(ACTIVE)
+    metadata        Json                @default("{}")
+
+    documents  Document[]
+    agents     AgentKnowledgeBase[]
+    campaigns  CampaignKnowledgeBase[]
+
+    @@index([organizationId, status])
+    @@map("knowledge_base")
+}
+
+model Document {
+    id             String             @id @default(cuid())
+    createdAt      DateTime           @default(now())
+    updatedAt      DateTime           @updatedAt
+    knowledgeBaseId String
+    knowledgeBase  KnowledgeBase      @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+    title          String
+    sourceType     DocumentSourceType @default(UPLOAD)
+    sourceUrl      String?
+    storageKey     String?
+    status         DocumentStatus     @default(PENDING)
+    errorMessage   String?
+    metadata       Json               @default("{}")
+
+    chunks DocumentChunk[]
+
+    @@index([knowledgeBaseId, status])
+    @@map("document")
+}
+
+model DocumentChunk {
+    id         String                      @id @default(cuid())
+    createdAt  DateTime                    @default(now())
+    updatedAt  DateTime                    @updatedAt
+    documentId String
+    document   Document                    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+    content    String                      @db.Text
+    chunkIndex Int
+    tokenCount Int?
+    metadata   Json                        @default("{}")
+    /// Embedding vector stored as JSON number array (portable; swap to pgvector later if needed)
+    embedding  Json?
+
+    @@unique([documentId, chunkIndex])
+    @@index([documentId])
+    @@map("document_chunk")
+}
+
+model AgentKnowledgeBase {
+    id              String        @id @default(cuid())
+    createdAt       DateTime      @default(now())
+    agentId         String
+    agent           Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+    knowledgeBaseId String
+    knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+
+    @@unique([agentId, knowledgeBaseId])
+    @@index([knowledgeBaseId])
+    @@map("agent_knowledge_base")
+}
+
+model CampaignKnowledgeBase {
+    id              String        @id @default(cuid())
+    createdAt       DateTime      @default(now())
+    campaignId      String
+    campaign        Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    knowledgeBaseId String
+    knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+
+    @@unique([campaignId, knowledgeBaseId])
+    @@index([knowledgeBaseId])
+    @@map("campaign_knowledge_base")
+}
+
+// ------------------------------------------------------------
+// ----------------------------- Telephony --------------------
+// ------------------------------------------------------------
+
+enum SipTrunkDirection {
+    INBOUND
+    OUTBOUND
+}
+
+enum EgressJobStatus {
+    STARTING
+    ACTIVE
+    ENDING
+    COMPLETE
+    FAILED
+    ABORTED
+}
+
+enum EgressJobType {
+    ROOM_COMPOSITE
+    PARTICIPANT
+    TRACK
+    WEB
+}
+
+model PhoneNumber {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    campaignId     String?
+    campaign       Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+    agentId        String?
+    agent          Agent?       @relation(fields: [agentId], references: [id], onDelete: SetNull)
+    sipTrunkId     String?
+    sipTrunk       SipTrunk?    @relation(fields: [sipTrunkId], references: [id], onDelete: SetNull)
+
+    e164           String
+    plivoNumberId  String?
+    friendlyName   String?
+    capabilities   Json         @default("{}")
+    metadata       Json         @default("{}")
+
+    @@unique([organizationId, e164])
+    @@index([campaignId])
+    @@index([agentId])
+    @@index([sipTrunkId])
+    @@map("phone_number")
+}
+
+model SipTrunk {
+    id             String            @id @default(cuid())
+    createdAt      DateTime          @default(now())
+    updatedAt      DateTime          @updatedAt
+    organizationId String
+    organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    name              String
+    direction         SipTrunkDirection
+    livekitTrunkId    String?
+    plivoTrunkId      String?
+    plivoUriId        String?
+    plivoCredentialId String?
+    authUsername      String?
+    hasCredentials    Boolean          @default(false)
+    numbers           String[]         @default([])
+    metadata          Json             @default("{}")
+
+    phoneNumbers  PhoneNumber[]
+    dispatchRules DispatchRule[]
+
+    @@index([organizationId, direction])
+    @@index([livekitTrunkId])
+    @@map("sip_trunk")
+}
+
+model DispatchRule {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    sipTrunkId     String?
+    sipTrunk       SipTrunk?    @relation(fields: [sipTrunkId], references: [id], onDelete: SetNull)
+    agentId        String?
+    agent          Agent?       @relation(fields: [agentId], references: [id], onDelete: SetNull)
+    campaignId     String?
+    campaign       Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+    name                  String
+    livekitDispatchRuleId String?
+    roomPrefix            String?
+    ruleConfig            Json    @default("{}")
+    metadata              Json    @default("{}")
+
+    @@index([organizationId])
+    @@index([sipTrunkId])
+    @@index([agentId])
+    @@index([campaignId])
+    @@map("dispatch_rule")
+}
+
+model CustomVoice {
+    id                String       @id @default(cuid())
+    createdAt         DateTime     @default(now())
+    updatedAt         DateTime     @updatedAt
+    organizationId    String
+    organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    name              String
+    livekitVoiceId    String?
+    sampleStorageKeys String[]     @default([])
+    metadata          Json         @default("{}")
+
+    @@index([organizationId])
+    @@index([livekitVoiceId])
+    @@map("custom_voice")
+}
+
+model EgressJob {
+    id                String             @id @default(cuid())
+    createdAt         DateTime           @default(now())
+    updatedAt         DateTime           @updatedAt
+    organizationId    String
+    organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    campaignSessionId String?
+    campaignSession   CampaignSession?   @relation(fields: [campaignSessionId], references: [id], onDelete: SetNull)
+
+    livekitEgressId String?
+    type            EgressJobType
+    status          EgressJobStatus      @default(STARTING)
+    roomName        String?
+    outputUrls      String[]             @default([])
+    errorMessage    String?
+    metadata        Json                 @default("{}")
+
+    @@index([organizationId, status])
+    @@index([campaignSessionId])
+    @@index([livekitEgressId])
+    @@map("egress_job")
+}
+
+// ------------------------------------------------------------
+// ----------------------------- Avatars (Anam) ---------------
+// ------------------------------------------------------------
+
+model AvatarProfile {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    name          String
+    anamAvatarId  String
+    anamPersonaId String?
+    previewUrl    String?
+    metadata      Json          @default("{}")
+
+    @@index([organizationId])
+    @@index([anamAvatarId])
+    @@map("avatar_profile")
+}
+
+// ------------------------------------------------------------
+// ----------------------------- Usage Metrics ----------------
+// ------------------------------------------------------------
+
+enum UsageMetricSource {
+    AGENT
+    CAMPAIGN
+    SESSION
+}
+
+enum UsageMetricCategory {
+    LLM
+    STT
+    TTS
+    AVATAR
+    SIP
+    EGRESS
+    ROOM
+}
+
+model UsageMetric {
+    id                String              @id @default(cuid())
+    createdAt         DateTime            @default(now())
+    organizationId    String
+    organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    agentId           String?
+    agent             Agent?              @relation(fields: [agentId], references: [id], onDelete: SetNull)
+    campaignId        String?
+    campaign          Campaign?           @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+    campaignSessionId String?
+    campaignSession   CampaignSession?    @relation(fields: [campaignSessionId], references: [id], onDelete: SetNull)
+
+    source     UsageMetricSource
+    category   UsageMetricCategory
+    provider   String?
+    metric     String
+    value      Decimal            @db.Decimal(20, 6)
+    unit       String
+    recordedAt DateTime           @default(now())
+    metadata   Json               @default("{}")
+
+    @@index([organizationId, recordedAt])
+    @@index([agentId, recordedAt])
+    @@index([campaignId, recordedAt])
+    @@index([campaignSessionId])
+    @@map("usage_metric")
 }

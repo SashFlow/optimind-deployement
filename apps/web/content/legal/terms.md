@@ -15,7 +15,7 @@ The words of which the initial letter is capitalized have meanings defined under
 
 ### Definitions
 For the purposes of these Terms and Conditions:
-* **Company** (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to Sashflow.
+* **Company** (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to Sashflow Technologies Private Limited.
 * **Service** refers to the Website.
 * **Terms and Conditions** (also referred as "Terms") mean these Terms and Conditions that form the entire agreement between You and the Company regarding the use of the Service.
 * **You** means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.
@@ -39,4 +39,4 @@ By continuing to access or use Our Service after those revisions become effectiv
 
 ## Contact Us
 If you have any questions about these Terms and Conditions, You can contact us:
-* By email: contact@sashflow.com
+* By email: growth@sashflow.com

@@ -28,10 +28,10 @@ export async function generateMetadata(props: { params: Promise<Params> }) {
 			description: post?.excerpt,
 			images: post?.image
 				? [
-						post.image.startsWith("http")
-							? post.image
-							: new URL(post.image, getBaseUrl()).toString(),
-					]
+					post.image.startsWith("http")
+						? post.image
+						: new URL(post.image, getBaseUrl()).toString(),
+				]
 				: [],
 		},
 	};

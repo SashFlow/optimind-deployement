@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
+import type { z } from "zod";
 import { db } from "../client";
-import type { DemoLinks } from "../generated/client";
+import type { DemoLinksSchema } from "../zod";
 
 export async function getDemoLink({
 	limit,
@@ -37,7 +38,7 @@ export async function getDemoLinkByToken(token: string) {
 }
 
 export async function updateDemoLink(
-	demolink: Partial<DemoLinks> & {
+	demolink: Partial<z.infer<typeof DemoLinksSchema>> & {
 		id: string;
 	},
 ) {
@@ -62,7 +63,10 @@ export async function reduceSession(id: string) {
 	});
 }
 
-export async function deleteDemoLink(id: string) {
+
+export async function deleteDemoLink(
+	id: string
+) {
 	const link = await db.demoLinks.findUnique({
 		where: { id },
 	});

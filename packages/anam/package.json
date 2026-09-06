@@ -1,0 +1,24 @@
+{
+	"name": "@repo/anam",
+	"version": "0.0.0",
+	"main": "./index.ts",
+	"types": "./index.ts",
+	"exports": {
+		".": {
+			"types": "./index.ts",
+			"default": "./index.ts"
+		}
+	},
+	"scripts": {
+		"type-check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"zod": "^4.1.11"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.2.4",
+		"@repo/tsconfig": "workspace:*",
+		"@types/node": "^24.6.0",
+		"typescript": "5.9.2"
+	}
+}

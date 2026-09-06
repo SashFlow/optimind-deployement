@@ -37,4 +37,4 @@ Usage Data may include information such as Your Device's Internet Protocol addre
 
 ## Contact Us
 If you have any questions about this Privacy Policy, You can contact us:
-* By email: contact@sashflow.com
+* By email: growth@sashflow.com

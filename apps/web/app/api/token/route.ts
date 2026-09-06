@@ -1,9 +1,5 @@
 import { RoomConfiguration } from "@livekit/protocol";
-import {
-	AccessToken,
-	type AccessTokenOptions,
-	type VideoGrant,
-} from "livekit-server-sdk";
+import { createParticipantToken, getLiveKitConfig } from "@repo/livekit";
 import { NextResponse } from "next/server";
 
 type ConnectionDetails = {
@@ -13,12 +9,6 @@ type ConnectionDetails = {
 	participantToken: string;
 };
 
-// NOTE: you are expected to define the following environment variables in `.env.local`:
-const API_KEY = process.env.LIVEKIT_API_KEY;
-const API_SECRET = process.env.LIVEKIT_API_SECRET;
-const LIVEKIT_URL = process.env.LIVEKIT_URL;
-
-// don't cache the results
 export const revalidate = 0;
 
 function resolveInteractionMode(scenarioType: string): "audio" | "video" {
@@ -29,17 +19,8 @@ function resolveInteractionMode(scenarioType: string): "audio" | "video" {
 
 export async function POST(req: Request) {
 	try {
-		if (LIVEKIT_URL === undefined) {
-			throw new Error("LIVEKIT_URL is not defined");
-		}
-		if (API_KEY === undefined) {
-			throw new Error("LIVEKIT_API_KEY is not defined");
-		}
-		if (API_SECRET === undefined) {
-			throw new Error("LIVEKIT_API_SECRET is not defined");
-		}
+		const cfg = getLiveKitConfig();
 
-		// Parse room config from request body.
 		const body = await req.json();
 		const roomConfig = body?.room_config
 			? RoomConfiguration.fromJson(body.room_config, {
@@ -47,8 +28,6 @@ export async function POST(req: Request) {
 				})
 			: new RoomConfiguration();
 
-		// Attach scenario details to the dispatched agent so the worker can read
-		// them from ctx.job.metadata when the room is created from this token.
 		const { searchParams } = new URL(req.url);
 		const scenarioType = searchParams.get("scenarioType") ?? "audio";
 		const slug = searchParams.get("slug") ?? "";
@@ -75,58 +54,31 @@ export async function POST(req: Request) {
 			});
 		}
 
-		// Generate participant token
 		const participantName = "user";
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
 		const roomName = `SESSION_${timestamp}_${Math.floor(Math.random() * 10_000)}`;
 
-		const participantToken = await createParticipantToken(
-			{ identity: participantIdentity, name: participantName },
+		const participantToken = await createParticipantToken({
+			identity: participantIdentity,
+			name: participantName,
 			roomName,
 			roomConfig,
-		);
+		});
 
-		// Return connection details
 		const data: ConnectionDetails = {
-			serverUrl: LIVEKIT_URL,
+			serverUrl: cfg.url,
 			roomName,
 			participantName,
 			participantToken,
 		};
-		const headers = new Headers({
-			"Cache-Control": "no-store",
+		return NextResponse.json(data, {
+			headers: { "Cache-Control": "no-store" },
 		});
-		return NextResponse.json(data, { headers });
 	} catch (error) {
 		if (error instanceof Error) {
 			console.error(error);
 			return new NextResponse(error.message, { status: 500 });
 		}
 	}
-}
-
-function createParticipantToken(
-	userInfo: AccessTokenOptions,
-	roomName: string,
-	roomConfig: RoomConfiguration | undefined,
-): Promise<string> {
-	const at = new AccessToken(API_KEY, API_SECRET, {
-		...userInfo,
-		ttl: "15m",
-	});
-	const grant: VideoGrant = {
-		room: roomName,
-		roomJoin: true,
-		canPublish: true,
-		canPublishData: true,
-		canSubscribe: true,
-	};
-	at.addGrant(grant);
-
-	if (roomConfig) {
-		at.roomConfig = roomConfig;
-	}
-
-	return at.toJwt();
 }

@@ -96,6 +96,9 @@ importers:
       '@repo/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@repo/livekit':
+        specifier: workspace:*
+        version: link:../../packages/livekit
       '@repo/logs':
         specifier: workspace:*
         version: link:../../packages/logs
@@ -381,6 +384,25 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  packages/anam:
+    dependencies:
+      zod:
+        specifier: ^4.1.11
+        version: 4.3.6
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 2.2.4
+        version: 2.2.4
+      '@repo/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: ^24.6.0
+        version: 24.10.1
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
   packages/api:
     dependencies:
       '@aws-sdk/client-s3':
@@ -410,6 +432,9 @@ importers:
       '@repo/ai':
         specifier: workspace:*
         version: link:../ai
+      '@repo/anam':
+        specifier: workspace:*
+        version: link:../anam
       '@repo/auth':
         specifier: workspace:*
         version: link:../auth
@@ -422,6 +447,9 @@ importers:
       '@repo/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@repo/livekit':
+        specifier: workspace:*
+        version: link:../livekit
       '@repo/logs':
         specifier: workspace:*
         version: link:../logs
@@ -431,6 +459,9 @@ importers:
       '@repo/payments':
         specifier: workspace:*
         version: link:../payments
+      '@repo/plivo':
+        specifier: workspace:*
+        version: link:../plivo
       '@repo/storage':
         specifier: workspace:*
         version: link:../storage
@@ -449,9 +480,6 @@ importers:
       hono:
         specifier: ^4.9.8
         version: 4.12.8
-      livekit-server-sdk:
-        specifier: ^2.15.3
-        version: 2.15.3
       nanoid:
         specifier: ^5.1.6
         version: 5.1.7
@@ -586,6 +614,31 @@ importers:
         specifier: ^24.6.0
         version: 24.6.0
 
+  packages/livekit:
+    dependencies:
+      '@livekit/protocol':
+        specifier: ^1.45.8
+        version: 1.45.8
+      livekit-server-sdk:
+        specifier: ^2.15.3
+        version: 2.15.3
+      zod:
+        specifier: ^4.1.11
+        version: 4.3.6
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 2.2.4
+        version: 2.2.4
+      '@repo/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: ^24.6.0
+        version: 24.10.1
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
   packages/logs:
     dependencies:
       '@repo/config':
@@ -696,6 +749,25 @@ importers:
       tsx:
         specifier: ^4.20.6
         version: 4.21.0
+
+  packages/plivo:
+    dependencies:
+      zod:
+        specifier: ^4.1.11
+        version: 4.3.6
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 2.2.4
+        version: 2.2.4
+      '@repo/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/node':
+        specifier: ^24.6.0
+        version: 24.10.1
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
 
   packages/storage:
     dependencies:
