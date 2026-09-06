@@ -4,11 +4,11 @@ import { authClient } from "@repo/auth/client";
 import { Button } from "@repo/ui/button";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { useOrganizationListQuery } from "@saas/organizations/lib/api";
-import { useConfirmationAlert } from "@saas/shared/components/ConfirmationAlertProvider";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useRouter } from "@shared/hooks/router";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { useConfirmationAlert } from "@/components/saas/shared/ConfirmationAlertProvider";
+import { SettingsItem } from "@/components/saas/shared/SettingsItem";
 
 export function DeleteOrganizationForm() {
 	const t = useTranslations();

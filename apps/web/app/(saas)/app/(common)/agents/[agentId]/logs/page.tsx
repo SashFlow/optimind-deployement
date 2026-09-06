@@ -1,11 +1,19 @@
+"use client";
+
+import { useParams } from "next/navigation";
+import { AgentSessionsTable } from "@/components/saas/agents/AgentSessionsTable";
+import { useAgentSessionsQuery } from "@/components/saas/agents/lib/hooks";
+
 export default function AgentLogsPage() {
+	const params = useParams<{ agentId: string }>();
+	const sessionsQuery = useAgentSessionsQuery(params.agentId);
+
 	return (
-		<section className="overflow-hidden rounded-3xl border bg-card p-6 shadow-sm ring-1 ring-black/5">
-			<h2 className="font-semibold text-xl tracking-tight">Logs</h2>
-			<p className="mt-2 text-muted-foreground text-sm">
-				Session history for this agent will list here once sessions are
-				available.
-			</p>
-		</section>
+		<AgentSessionsTable
+			sessions={sessionsQuery.data ?? []}
+			agentId={params.agentId}
+			isLoading={sessionsQuery.isLoading}
+			isError={sessionsQuery.isError}
+		/>
 	);
 }

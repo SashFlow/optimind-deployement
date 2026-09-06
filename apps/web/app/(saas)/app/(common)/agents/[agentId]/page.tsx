@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-export default async function AgentIndexPage({
+export default async function AgentDetailPage({
 	params,
 }: {
 	params: Promise<{ agentId: string }>;

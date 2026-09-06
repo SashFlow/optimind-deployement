@@ -108,7 +108,7 @@ export function ActiveOrganizationProvider({
 		});
 
 		if (params.organizationSlug) {
-			router.push(`/app/dashboard`);
+			router.push("/app/dashboard");
 		} else {
 			router.refresh();
 		}

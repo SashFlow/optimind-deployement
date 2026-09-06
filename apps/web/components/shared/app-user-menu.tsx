@@ -85,7 +85,7 @@ export function AppUserMenu({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" sideOffset={8}>
 				<DropdownMenuItem asChild className="h-12 cursor-pointer">
-					<Link href="/app/settings/general">
+					<Link href="/app/dashboard">
 						<BadgeCheckIcon className="mr-3 size-5" />
 						Account
 					</Link>

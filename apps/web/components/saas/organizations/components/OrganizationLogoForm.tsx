@@ -3,7 +3,6 @@
 import { authClient } from "@repo/auth/client";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { organizationListQueryKey } from "@saas/organizations/lib/api";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { Spinner } from "@shared/components/Spinner";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +10,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
-import { CropImageDialog } from "../../settings/components/CropImageDialog";
+import { SettingsItem } from "@/components/saas/shared/SettingsItem";
+import { CropImageDialog } from "../../settings/CropImageDialog";
 import { OrganizationLogo } from "./OrganizationLogo";
 
 export function OrganizationLogoForm() {

@@ -11,7 +11,7 @@ export function AppShell({ children }: PropsWithChildren) {
 	return (
 		<SidebarProvider
 			open={false}
-			onOpenChange={() => {}}
+			onOpenChange={() => { }}
 			className="relative isolate flex flex-col bg-transparent"
 			style={
 				{
@@ -27,7 +27,7 @@ export function AppShell({ children }: PropsWithChildren) {
 					<div className="flex min-h-0 flex-1 overflow-hidden">
 						<AppSidebar />
 						<SidebarInset className="bg-transparent!">
-							<div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2 pt-24">
+							<div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2 pb-24 lg:pb-2">
 								{children}
 							</div>
 						</SidebarInset>

@@ -2,11 +2,11 @@
 
 import { usePlanData } from "@saas/payments/hooks/plan-data";
 import { usePurchases } from "@saas/payments/hooks/purchases";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { BadgeCheckIcon, CheckIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-import { CustomerPortalButton } from "../../settings/components/CustomerPortalButton";
-import { SubscriptionStatusBadge } from "../../settings/components/SubscriptionStatusBadge";
+import { SettingsItem } from "@/components/saas/shared/SettingsItem";
+import { CustomerPortalButton } from "../../settings/CustomerPortalButton";
+import { SubscriptionStatusBadge } from "../../settings/SubscriptionStatusBadge";
 
 export function ActivePlan({
 	organizationId,
@@ -75,11 +75,11 @@ export function ActivePlan({
 									{" / "}
 									{price.interval === "month"
 										? t("pricing.month", {
-												count: price.intervalCount ?? 1,
-											})
+											count: price.intervalCount ?? 1,
+										})
 										: t("pricing.year", {
-												count: price.intervalCount ?? 1,
-											})}
+											count: price.intervalCount ?? 1,
+										})}
 								</span>
 							)}
 							{organizationId &&

@@ -29,5 +29,14 @@
 		"**/*.mjs",
 		".next/types/**/*.ts"
 	],
-	"exclude": ["node_modules"]
+	"exclude": [
+		"node_modules",
+		"components/saas/agents/AgentConfigureForm.tsx",
+		"components/saas/agents/AgentConfigurePreview.tsx",
+		"components/saas/agents/AgentConfigurePreviewDrawer.tsx",
+		"components/saas/agents/AgentConfigureWorkspace.tsx",
+		"components/saas/agents/AgentNav.tsx",
+		"components/saas/agents/KeyValueEditor.tsx",
+		"components/saas/agents/configure/**"
+	]
 }

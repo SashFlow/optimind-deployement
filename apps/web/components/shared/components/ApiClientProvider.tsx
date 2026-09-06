@@ -1,5 +1,6 @@
 "use client";
 
+import { orpcClient } from "@shared/lib/orpc-client";
 import { createQueryClient } from "@shared/lib/query-client";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
@@ -15,6 +16,10 @@ function getQueryClient() {
 	}
 
 	return clientQueryClientSingleton;
+}
+
+export function useApiClient() {
+	return orpcClient;
 }
 
 export function ApiClientProvider({ children }: PropsWithChildren) {

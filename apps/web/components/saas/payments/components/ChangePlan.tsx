@@ -1,7 +1,7 @@
 "use client";
 import { PricingTable } from "@saas/payments/components/PricingTable";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useTranslations } from "next-intl";
+import { SettingsItem } from "@/components/saas/shared/SettingsItem";
 
 export function ChangePlan({
 	organizationId,

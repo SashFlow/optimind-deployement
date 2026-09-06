@@ -70,8 +70,6 @@ export default async function Layout({ children }: PropsWithChildren) {
 	}
 
 	return (
-		<div className="relative min-h-svh overflow-hidden bg-background text-foreground">
-			<AppShell>{children}</AppShell>
-		</div>
+		<AppShell>{children}</AppShell>
 	);
 }

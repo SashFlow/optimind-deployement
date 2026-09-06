@@ -1,79 +1,25 @@
-import { config } from "@repo/config";
 import { getSession } from "@saas/auth/lib/server";
-import { SettingsMenu } from "@saas/settings/components/SettingsMenu";
-import { PageHeader } from "@saas/shared/components/PageHeader";
-import { SidebarContentLayout } from "@saas/shared/components/SidebarContentLayout";
-import { UserAvatar } from "@shared/components/UserAvatar";
-import {
-	CreditCardIcon,
-	LockKeyholeIcon,
-	SettingsIcon,
-	TriangleAlertIcon,
-} from "lucide-react";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 import type { PropsWithChildren } from "react";
+import { AdminSettingsActionsProvider } from "@/components/saas/admin/AdminSettingsActions";
+import { AdminSettingsNav } from "@/components/saas/admin/AdminSettingsNav";
+
 export default async function SettingsLayout({ children }: PropsWithChildren) {
-	const t = await getTranslations();
 	const session = await getSession();
 
 	if (!session) {
 		redirect("/auth/login");
 	}
 
-	const menuItems = [
-		{
-			title: t("settings.menu.account.title"),
-			avatar: (
-				<UserAvatar
-					name={session.user.name ?? ""}
-					avatarUrl={session.user.image}
-				/>
-			),
-			items: [
-				{
-					title: t("settings.menu.account.general"),
-					href: "/app/settings/general",
-					icon: <SettingsIcon className="size-4 opacity-50" />,
-				},
-				{
-					title: t("settings.menu.account.security"),
-					href: "/app/settings/security",
-					icon: <LockKeyholeIcon className="size-4 opacity-50" />,
-				},
-				...(config.users.enableBilling
-					? [
-							{
-								title: t("settings.menu.account.billing"),
-								href: "/app/settings/billing",
-								icon: (
-									<CreditCardIcon className="size-4 opacity-50" />
-								),
-							},
-						]
-					: []),
-				{
-					title: t("settings.menu.account.dangerZone"),
-					href: "/app/settings/danger-zone",
-					icon: <TriangleAlertIcon className="size-4 opacity-50" />,
-				},
-			],
-		},
-	];
+	if (session.user.role !== "admin") {
+		redirect("/app/dashboard");
+	}
 
 	return (
-		<div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6">
-			<PageHeader
-				title={t("settings.account.title")}
-				subtitle={t("settings.account.subtitle")}
-			/>
-			<div className="overflow-hidden rounded-3xl border bg-card p-4 shadow-sm ring-1 ring-black/5 md:p-6">
-				<SidebarContentLayout
-					sidebar={<SettingsMenu menuItems={menuItems} />}
-				>
-					{children}
-				</SidebarContentLayout>
-			</div>
+		<div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-auto pt-16">
+			<AdminSettingsActionsProvider>
+				<AdminSettingsNav>{children}</AdminSettingsNav>
+			</AdminSettingsActionsProvider>
 		</div>
 	);
 }

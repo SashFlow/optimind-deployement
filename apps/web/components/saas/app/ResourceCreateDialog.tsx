@@ -24,8 +24,8 @@ type ResourceCreateDialogProps = {
 	descriptionLabel?: string;
 	descriptionPlaceholder: string;
 	submitLabel: string;
-	onCreate: (name: string, description: string) => void | Promise<void>;
 	loading?: boolean;
+	onCreate: (name: string, description: string) => void | Promise<void>;
 };
 
 export function ResourceCreateDialog({
@@ -36,8 +36,8 @@ export function ResourceCreateDialog({
 	descriptionLabel = "Description (optional)",
 	descriptionPlaceholder,
 	submitLabel,
+	loading = false,
 	onCreate,
-	loading,
 }: ResourceCreateDialogProps) {
 	const [open, setOpen] = React.useState(false);
 	const [name, setName] = React.useState("");
@@ -51,18 +51,22 @@ export function ResourceCreateDialog({
 		}
 	}
 
-	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const trimmedName = name.trim();
-		if (!trimmedName) return;
-		await onCreate(trimmedName, details.trim());
+
+		if (!trimmedName) {
+			return;
+		}
+
+		onCreate(trimmedName, details.trim());
 		handleOpenChange(false);
 	}
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>
-				<Button className="gap-2 rounded-full">
+				<Button className="gap-2" loading={loading}>
 					<PlusIcon className="size-4" />
 					{submitLabel}
 				</Button>
@@ -82,16 +86,20 @@ export function ResourceCreateDialog({
 							placeholder={namePlaceholder}
 							autoFocus
 							required
+							disabled={loading}
 						/>
 					</div>
 					<div className="space-y-2">
-						<Label htmlFor="resource-description">{descriptionLabel}</Label>
+						<Label htmlFor="resource-description">
+							{descriptionLabel}
+						</Label>
 						<Textarea
 							id="resource-description"
 							value={details}
 							onChange={(event) => setDetails(event.target.value)}
 							placeholder={descriptionPlaceholder}
 							rows={3}
+							disabled={loading}
 						/>
 					</div>
 					<DialogFooter>
@@ -99,6 +107,7 @@ export function ResourceCreateDialog({
 							type="button"
 							variant="outline"
 							onClick={() => handleOpenChange(false)}
+							disabled={loading}
 						>
 							Cancel
 						</Button>

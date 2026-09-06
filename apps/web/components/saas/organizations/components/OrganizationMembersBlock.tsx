@@ -1,8 +1,8 @@
 "use client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { SettingsItem } from "@/components/saas/shared/SettingsItem";
 import { OrganizationInvitationsList } from "./OrganizationInvitationsList";
 import { OrganizationMembersList } from "./OrganizationMembersList";
 

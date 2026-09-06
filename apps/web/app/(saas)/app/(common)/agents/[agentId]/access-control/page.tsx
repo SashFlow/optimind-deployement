@@ -1,10 +1,28 @@
+"use client";
+
+import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
+import { useParams } from "next/navigation";
+import { AgentAccessControlForm } from "@/components/saas/agents/AgentAccessControlForm";
+
 export default function AgentAccessControlPage() {
-	return (
-		<section className="overflow-hidden rounded-3xl border bg-card p-6 shadow-sm ring-1 ring-black/5">
-			<h2 className="font-semibold text-xl tracking-tight">Access control</h2>
-			<p className="mt-2 text-muted-foreground text-sm">
-				Manage embed tokens, trial links, and who can access this agent.
+	const params = useParams<{ agentId: string }>();
+	const { activeOrganization } = useActiveOrganization();
+	const activeOrganizationId = activeOrganization?.id;
+
+	if (!activeOrganizationId) {
+		return (
+			<p className="p-6 text-sm text-muted-foreground">
+				Select an organization.
 			</p>
-		</section>
+		);
+	}
+
+	return (
+		<div className="mx-auto w-full max-w-[1600px] px-5 py-6 md:px-6">
+			<AgentAccessControlForm
+				agentId={params.agentId}
+				organizationId={activeOrganizationId}
+			/>
+		</div>
 	);
 }

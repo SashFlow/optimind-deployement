@@ -1,9 +1,9 @@
 import { auth } from "@repo/auth";
 import { getOrganizationById } from "@repo/database";
 import { OrganizationInvitationModal } from "@saas/organizations/components/OrganizationInvitationModal";
-import { AuthWrapper } from "@saas/shared/components/AuthWrapper";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { AuthWrapper } from "@/components/saas/shared/AuthWrapper";
 
 export default async function OrganizationInvitationPage({
 	params,

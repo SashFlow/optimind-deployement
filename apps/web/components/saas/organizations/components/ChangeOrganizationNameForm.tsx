@@ -5,13 +5,13 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { organizationListQueryKey } from "@saas/organizations/lib/api";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useRouter } from "@shared/hooks/router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { SettingsItem } from "@/components/saas/shared/SettingsItem";
 
 const formSchema = z.object({
 	name: z.string().min(3),

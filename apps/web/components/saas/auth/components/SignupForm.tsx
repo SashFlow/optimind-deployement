@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@repo/auth/client";
 import { config } from "@repo/config";
-import { Alert, AlertDescription, AlertTitle } from "@repo/ui/alert";
+import { Alert, AlertTitle } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
 import {
 	Form,

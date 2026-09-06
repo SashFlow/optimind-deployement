@@ -3,10 +3,10 @@ import { createPurchasesHelper } from "@repo/payments/lib/helper";
 import { getOrganizationList, getSession } from "@saas/auth/lib/server";
 import { PricingTable } from "@saas/payments/components/PricingTable";
 import { getPurchases } from "@saas/payments/lib/server";
-import { AuthWrapper } from "@saas/shared/components/AuthWrapper";
 import { attemptAsync } from "es-toolkit";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { AuthWrapper } from "@/components/saas/shared/AuthWrapper";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -67,11 +67,11 @@ export default async function ChoosePlanPage() {
 				<PricingTable
 					{...(organizationId
 						? {
-								organizationId,
-							}
+							organizationId,
+						}
 						: {
-								userId: session.user.id,
-							})}
+							userId: session.user.id,
+						})}
 				/>
 			</div>
 		</AuthWrapper>

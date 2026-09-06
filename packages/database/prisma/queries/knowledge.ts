@@ -25,6 +25,22 @@ export async function getKnowledgeBaseById(id: string) {
 	});
 }
 
+export async function getDocumentById(id: string) {
+	return db.document.findUnique({
+		where: { id },
+		include: {
+			knowledgeBase: true,
+			chunks: { orderBy: { chunkIndex: "asc" } },
+		},
+	});
+}
+
+export async function deleteDocumentChunks(documentId: string) {
+	return db.documentChunk.deleteMany({
+		where: { documentId },
+	});
+}
+
 export async function createKnowledgeBase(data: {
 	organizationId: string;
 	name: string;

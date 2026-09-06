@@ -13,13 +13,13 @@ import {
 import { Input } from "@repo/ui/input";
 import { OrganizationRoleSelect } from "@saas/organizations/components/OrganizationRoleSelect";
 import { fullOrganizationQueryKey } from "@saas/organizations/lib/api";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { SettingsItem } from "@/components/saas/shared/SettingsItem";
 
 const formSchema = z.object({
 	email: z.string().email(),

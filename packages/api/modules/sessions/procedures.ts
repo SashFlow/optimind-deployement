@@ -88,6 +88,7 @@ export const create = protectedProcedure
 		z.object({
 			organizationId: z.string(),
 			agentId: z.string(),
+			agentVersionId: z.string().optional(),
 			channel: z.enum(["WEB", "SIP", "PHONE"]).default("WEB"),
 			direction: z
 				.enum(["NONE", "INBOUND", "OUTBOUND", "WEB"])
@@ -118,7 +119,11 @@ export const create = protectedProcedure
 			throw new ORPCError("NOT_FOUND", { message: "Agent not found" });
 		}
 
-		const version = agent.publishedVersion ?? agent.draftVersion;
+		const version = input.agentVersionId
+			? [agent.draftVersion, agent.publishedVersion].find(
+					(item) => item?.id === input.agentVersionId,
+				)
+			: (agent.publishedVersion ?? agent.draftVersion);
 		if (!version) {
 			throw new ORPCError("BAD_REQUEST", {
 				message: "Agent has no version to dispatch",

@@ -14,18 +14,26 @@ export const GET = async (
 		return new Response("Invalid path", { status: 400 });
 	}
 
-	if (bucket === config.storage.bucketNames.avatars) {
-		const signedUrl = await getSignedUrl(filePath, {
-			bucket,
-			expiresIn: 60 * 60,
-		});
+	const allowedBuckets = new Set(
+		[
+			config.storage.bucketNames.avatars,
+			config.storage.bucketNames.notes,
+			process.env.S3_BUCKET_NAME?.trim(),
+		].filter(Boolean) as string[],
+	);
 
-		return NextResponse.redirect(signedUrl, {
-			headers: { "Cache-Control": "max-age=3600" },
+	if (!allowedBuckets.has(bucket)) {
+		return new Response("Not found", {
+			status: 404,
 		});
 	}
 
-	return new Response("Not found", {
-		status: 404,
+	const signedUrl = await getSignedUrl(filePath, {
+		bucket,
+		expiresIn: 60 * 60,
+	});
+
+	return NextResponse.redirect(signedUrl, {
+		headers: { "Cache-Control": "max-age=3600" },
 	});
 };

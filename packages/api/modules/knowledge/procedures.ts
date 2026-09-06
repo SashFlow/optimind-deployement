@@ -4,21 +4,40 @@ import {
 	createDocumentChunks,
 	createKnowledgeBase,
 	deleteDocument,
+	getDocumentById,
 	getKnowledgeBaseById,
 	listKnowledgeBases,
 	searchChunks,
 	updateDocument,
 	updateKnowledgeBase,
 } from "@repo/database";
+import { nanoid } from "nanoid";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
+import {
+	titleFromFileName,
+	titleFromText,
+	titleFromUrl,
+} from "./lib/document-title";
+import { processKnowledgeDocument } from "./lib/process-document";
+import {
+	createKnowledgeSignedUploadUrl,
+	getKnowledgeBucket,
+} from "./lib/s3";
 
 async function requireKb(id: string, userId: string) {
 	const kb = await getKnowledgeBaseById(id);
 	if (!kb) throw new ORPCError("NOT_FOUND");
 	await requireOrgMembership(kb.organizationId, userId);
 	return kb;
+}
+
+async function requireDocument(documentId: string, userId: string) {
+	const document = await getDocumentById(documentId);
+	if (!document) throw new ORPCError("NOT_FOUND");
+	await requireOrgMembership(document.knowledgeBase.organizationId, userId);
+	return document;
 }
 
 export const list = protectedProcedure
@@ -92,6 +111,40 @@ export const update = protectedProcedure
 		return { knowledgeBase: await updateKnowledgeBase(id, data) };
 	});
 
+export const createUploadUrl = protectedProcedure
+	.route({
+		method: "POST",
+		path: "/knowledge-bases/{id}/upload-url",
+		tags: ["Knowledge"],
+		summary: "Create signed upload URL for a knowledge document",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			fileName: z.string().min(1),
+			contentType: z.string().min(1),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		const kb = await requireKb(input.id, context.user.id);
+		const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+		const path = `knowledge/${kb.organizationId}/${input.id}/${nanoid()}-${safeName}`;
+		const bucket = getKnowledgeBucket();
+		const signedUploadUrl = await createKnowledgeSignedUploadUrl({
+			bucket,
+			key: path,
+			contentType: input.contentType,
+		});
+
+		return {
+			signedUploadUrl,
+			path,
+			bucket,
+			title: titleFromFileName(input.fileName),
+			url: `/image-proxy/${bucket}/${path}`,
+		};
+	});
+
 export const createDoc = protectedProcedure
 	.route({
 		method: "POST",
@@ -102,22 +155,101 @@ export const createDoc = protectedProcedure
 	.input(
 		z.object({
 			id: z.string(),
-			title: z.string().min(1),
+			title: z.string().min(1).optional(),
 			sourceType: z.enum(["UPLOAD", "URL", "TEXT", "API"]).optional(),
 			sourceUrl: z.string().optional(),
 			storageKey: z.string().optional(),
+			content: z.string().optional(),
+			fileName: z.string().optional(),
+			contentType: z.string().optional(),
+			bucket: z.string().optional(),
+			process: z.boolean().optional(),
 		}),
 	)
 	.handler(async ({ input, context }) => {
 		await requireKb(input.id, context.user.id);
+
+		const sourceType = input.sourceType ?? "UPLOAD";
+		const title =
+			input.title?.trim() ||
+			(sourceType === "URL" && input.sourceUrl
+				? titleFromUrl(input.sourceUrl)
+				: null) ||
+			(sourceType === "TEXT" && input.content
+				? titleFromText(input.content)
+				: null) ||
+			(input.fileName ? titleFromFileName(input.fileName) : null) ||
+			"Untitled document";
+
 		const document = await createDocument({
 			knowledgeBaseId: input.id,
-			title: input.title,
-			sourceType: input.sourceType,
+			title,
+			sourceType,
 			sourceUrl: input.sourceUrl,
 			storageKey: input.storageKey,
+			metadata: {
+				...(input.fileName ? { fileName: input.fileName } : {}),
+				...(input.contentType ? { contentType: input.contentType } : {}),
+				bucket: input.bucket ?? getKnowledgeBucket(),
+				queuedAt: new Date().toISOString(),
+			},
 		});
-		return { document };
+
+		if (input.process === false) {
+			return { document };
+		}
+
+		try {
+			const result = await processKnowledgeDocument({
+				documentId: document.id,
+				textContent:
+					sourceType === "TEXT" ? input.content : undefined,
+			});
+			return {
+				document: result.document,
+				chunkCount: result.chunkCount,
+			};
+		} catch (error) {
+			const failed = await getDocumentById(document.id);
+			return {
+				document: failed ?? document,
+				error:
+					error instanceof Error
+						? error.message
+						: "Processing failed",
+			};
+		}
+	});
+
+export const processDocument = protectedProcedure
+	.route({
+		method: "POST",
+		path: "/knowledge-bases/documents/{documentId}/process",
+		tags: ["Knowledge"],
+		summary: "Process document: extract, chunk, embed, and mark ready",
+	})
+	.input(
+		z.object({
+			documentId: z.string(),
+			textContent: z.string().optional(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		await requireDocument(input.documentId, context.user.id);
+		try {
+			const result = await processKnowledgeDocument(input);
+			return {
+				document: result.document,
+				chunkCount: result.chunkCount,
+			};
+		} catch (error) {
+			throw new ORPCError("BAD_REQUEST", {
+				message:
+					error instanceof Error
+						? error.message
+						: "Document processing failed",
+			});
+		}
 	});
 
 export const ingestChunks = protectedProcedure
@@ -143,6 +275,7 @@ export const ingestChunks = protectedProcedure
 		}),
 	)
 	.handler(async ({ input, context }) => {
+		await requireDocument(input.documentId, context.user.id);
 		const created = await createDocumentChunks(
 			input.chunks.map((c) => ({
 				documentId: input.documentId,
@@ -154,14 +287,10 @@ export const ingestChunks = protectedProcedure
 			})),
 		);
 		if (input.markReady !== false) {
-			const doc = await updateDocument(input.documentId, {
+			await updateDocument(input.documentId, {
 				status: "READY",
 			});
-			// soft org check via document's KB — fetch through update result path
-			void doc;
 		}
-		// membership verified loosely: worker/API should pass org-authenticated session
-		void context;
 		return { chunks: created };
 	});
 
@@ -194,7 +323,7 @@ export const removeDocument = protectedProcedure
 	})
 	.input(z.object({ documentId: z.string() }))
 	.handler(async ({ input, context }) => {
-		void context;
+		await requireDocument(input.documentId, context.user.id);
 		const document = await deleteDocument(input.documentId);
 		return { document };
 	});
