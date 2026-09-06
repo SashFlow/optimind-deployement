@@ -18,11 +18,11 @@ const FIELD_TYPE_OPTIONS: {
 	value: DataCollectionField["field_type"];
 	label: string;
 }[] = [
-		{ value: "string", label: "String" },
-		{ value: "number", label: "Number" },
-		{ value: "boolean", label: "Boolean" },
-		{ value: "enum", label: "Enum" },
-	];
+	{ value: "string", label: "String" },
+	{ value: "number", label: "Number" },
+	{ value: "boolean", label: "Boolean" },
+	{ value: "enum", label: "Enum" },
+];
 
 function createEmptyField(): DataCollectionField {
 	return {

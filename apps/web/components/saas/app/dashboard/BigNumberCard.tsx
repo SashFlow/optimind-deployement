@@ -22,9 +22,13 @@ export function BigNumberCard({
 			</CardHeader>
 			<CardContent>
 				{unavailable ? (
-					<p className="text-sm text-muted-foreground">Analytics unavailable</p>
+					<p className="text-sm text-muted-foreground">
+						Analytics unavailable
+					</p>
 				) : (
-					<div className="text-3xl font-semibold tabular-nums">{value}</div>
+					<div className="text-3xl font-semibold tabular-nums">
+						{value}
+					</div>
 				)}
 			</CardContent>
 		</Card>

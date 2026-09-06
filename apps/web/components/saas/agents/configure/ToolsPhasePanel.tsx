@@ -257,7 +257,7 @@ export function ToolsPhasePanel({
 															checked={
 																config
 																	.tools_config[
-																key
+																	key
 																]
 															}
 															onCheckedChange={(
@@ -266,7 +266,7 @@ export function ToolsPhasePanel({
 																updateBuiltinTool(
 																	key,
 																	checked ===
-																	true,
+																		true,
 																)
 															}
 														/>
@@ -304,7 +304,7 @@ export function ToolsPhasePanel({
 																	"on_call",
 																	tool.id,
 																	checked ===
-																	true,
+																		true,
 																)
 															}
 														/>
@@ -342,7 +342,7 @@ export function ToolsPhasePanel({
 																phase.value,
 																tool.id,
 																checked ===
-																true,
+																	true,
 															)
 														}
 													/>

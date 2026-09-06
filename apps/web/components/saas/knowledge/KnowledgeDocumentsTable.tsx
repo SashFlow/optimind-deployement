@@ -165,8 +165,7 @@ export function KnowledgeDocumentsTable({
 						<Select
 							value={statusFilter}
 							onValueChange={(value) =>
-								value &&
-								setStatusFilter(value as StatusFilter)
+								value && setStatusFilter(value as StatusFilter)
 							}
 						>
 							<SelectTrigger className="w-full sm:w-40">
@@ -235,7 +234,9 @@ export function KnowledgeDocumentsTable({
 											</TableCell>
 											<TableCell className="text-muted-foreground text-sm">
 												<span>
-													{sourceLabel(doc.sourceType)}
+													{sourceLabel(
+														doc.sourceType,
+													)}
 												</span>
 												{doc.sourceUrl ? (
 													<p className="mt-0.5 max-w-[240px] truncate text-xs">

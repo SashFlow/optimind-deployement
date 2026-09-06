@@ -62,7 +62,10 @@ export function AgentAccessControlForm({
 				}
 			).user;
 			return {
-				id: user?.id ?? (member as { userId?: string }).userId ?? "unknown",
+				id:
+					user?.id ??
+					(member as { userId?: string }).userId ??
+					"unknown",
 				name: user?.name ?? "Member",
 				email: user?.email ?? "—",
 				role: (member as { role?: string }).role ?? "member",
@@ -102,7 +105,8 @@ export function AgentAccessControlForm({
 								Allow all org members
 							</p>
 							<p className="text-xs text-muted-foreground">
-								Mock toggle — persisted access API not wired yet.
+								Mock toggle — persisted access API not wired
+								yet.
 							</p>
 						</div>
 						<Switch
@@ -133,7 +137,9 @@ export function AgentAccessControlForm({
 									{members.map((member) => (
 										<TableRow key={member.id}>
 											<TableCell>
-												<p className="font-medium">{member.name}</p>
+												<p className="font-medium">
+													{member.name}
+												</p>
 												<p className="text-xs text-muted-foreground">
 													{member.email}
 												</p>
@@ -167,7 +173,9 @@ export function AgentAccessControlForm({
 							<Input
 								id="trial-label"
 								value={label}
-								onChange={(event) => setLabel(event.target.value)}
+								onChange={(event) =>
+									setLabel(event.target.value)
+								}
 								placeholder="Sales demo"
 							/>
 						</div>

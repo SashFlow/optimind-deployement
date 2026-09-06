@@ -99,7 +99,9 @@ export function AgentSessionsTable({
 							<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 							<Input
 								value={search}
-								onChange={(event) => setSearch(event.target.value)}
+								onChange={(event) =>
+									setSearch(event.target.value)
+								}
 								placeholder="Search sessions..."
 								className="pl-9"
 							/>
@@ -147,7 +149,9 @@ export function AgentSessionsTable({
 									<TableHead>Channel</TableHead>
 									<TableHead>Started</TableHead>
 									<TableHead>Duration</TableHead>
-									<TableHead className="text-right">Actions</TableHead>
+									<TableHead className="text-right">
+										Actions
+									</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -168,7 +172,9 @@ export function AgentSessionsTable({
 											<span
 												className={cn(
 													"inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
-													statusPillClass(session.status),
+													statusPillClass(
+														session.status,
+													),
 												)}
 											>
 												{session.status}
@@ -180,7 +186,9 @@ export function AgentSessionsTable({
 										<TableCell className="text-muted-foreground text-sm">
 											{session.startedAt
 												? formatDistanceToNow(
-														new Date(session.startedAt),
+														new Date(
+															session.startedAt,
+														),
 														{ addSuffix: true },
 													)
 												: "—"}

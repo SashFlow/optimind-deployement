@@ -73,7 +73,9 @@ export function AppSidebarLogo({ className }: { className?: string }) {
 								<GalleryVerticalEndIcon className="size-3.5" />
 							</div>
 							<span className="truncate">{team.name}</span>
-							<DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+							<DropdownMenuShortcut>
+								⌘{index + 1}
+							</DropdownMenuShortcut>
 						</DropdownMenuItem>
 					))}
 				</DropdownMenuGroup>

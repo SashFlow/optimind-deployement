@@ -96,13 +96,19 @@ export function PlivoBuyPanel({
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					<div className="space-y-2">
 						<Label>Country</Label>
-						<Select value={countryIso} onValueChange={setCountryIso}>
+						<Select
+							value={countryIso}
+							onValueChange={setCountryIso}
+						>
 							<SelectTrigger className="w-full">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
 								{COUNTRIES.map((country) => (
-									<SelectItem key={country.iso} value={country.iso}>
+									<SelectItem
+										key={country.iso}
+										value={country.iso}
+									>
 										{country.label}
 									</SelectItem>
 								))}
@@ -156,7 +162,9 @@ export function PlivoBuyPanel({
 								<SelectItem value="auto">
 									Create / sync automatically
 								</SelectItem>
-								<SelectItem value="existing">Use existing trunk</SelectItem>
+								<SelectItem value="existing">
+									Use existing trunk
+								</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
@@ -175,7 +183,9 @@ export function PlivoBuyPanel({
 								<SelectValue placeholder="Select trunk" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="none">Select trunk</SelectItem>
+								<SelectItem value="none">
+									Select trunk
+								</SelectItem>
 								{inboundTrunks.map((trunk) => (
 									<SelectItem key={trunk.id} value={trunk.id}>
 										{trunk.name}
@@ -194,8 +204,8 @@ export function PlivoBuyPanel({
 					Search numbers
 				</Button>
 				<p className="text-xs text-muted-foreground">
-					Buy flow is mocked — results are sample numbers; purchase syncs
-					Plivo inventory.
+					Buy flow is mocked — results are sample numbers; purchase
+					syncs Plivo inventory.
 				</p>
 			</div>
 
@@ -208,7 +218,9 @@ export function PlivoBuyPanel({
 			) : searchQuery.isError ? (
 				<p className="p-6 text-sm text-destructive">Search failed.</p>
 			) : (searchQuery.data ?? []).length === 0 ? (
-				<p className="p-6 text-sm text-muted-foreground">No numbers found.</p>
+				<p className="p-6 text-sm text-muted-foreground">
+					No numbers found.
+				</p>
 			) : (
 				<div className="overflow-x-auto scrollbar-none">
 					<Table>
@@ -218,7 +230,9 @@ export function PlivoBuyPanel({
 								<TableHead>Capabilities</TableHead>
 								<TableHead>Monthly</TableHead>
 								<TableHead>Setup</TableHead>
-								<TableHead className="text-right">Action</TableHead>
+								<TableHead className="text-right">
+									Action
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -246,11 +260,16 @@ export function PlivoBuyPanel({
 											size="sm"
 											disabled={
 												buyMutation.isPending ||
-												(trunkMode === "existing" && !sipTrunkId)
+												(trunkMode === "existing" &&
+													!sipTrunkId)
 											}
-											onClick={() => void buyNumber(item.number)}
+											onClick={() =>
+												void buyNumber(item.number)
+											}
 										>
-											{buyingNumber === item.number ? "Buying…" : "Buy"}
+											{buyingNumber === item.number
+												? "Buying…"
+												: "Buy"}
 										</Button>
 									</TableCell>
 								</TableRow>

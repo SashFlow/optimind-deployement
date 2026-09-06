@@ -1,8 +1,5 @@
 import { RoomAgentDispatch, RoomConfiguration } from "@livekit/protocol";
-import {
-	createAgentSession,
-	getAgentById,
-} from "@repo/database";
+import { createAgentSession, getAgentById } from "@repo/database";
 import {
 	createParticipantToken,
 	createRoom,
@@ -78,7 +75,9 @@ export async function POST(req: Request) {
 			}
 			const version = agent.publishedVersion ?? agent.draftVersion;
 			if (!version) {
-				return new NextResponse("Agent has no version", { status: 400 });
+				return new NextResponse("Agent has no version", {
+					status: 400,
+				});
 			}
 			const configSnapshot =
 				(version.config as Record<string, unknown>) ?? {};

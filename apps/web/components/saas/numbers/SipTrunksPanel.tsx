@@ -42,7 +42,10 @@ import {
 	useDeleteSipTrunkMutation,
 	useSipTrunksQuery,
 } from "@/components/saas/numbers/lib/hooks";
-import type { SipTrunk, TrunkDirection } from "@/components/saas/numbers/lib/types";
+import type {
+	SipTrunk,
+	TrunkDirection,
+} from "@/components/saas/numbers/lib/types";
 import { Pagination } from "@/components/saas/shared/Pagination";
 
 const ITEMS_PER_PAGE = 10;
@@ -91,7 +94,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 			setDirection("inbound");
 		} catch (cause) {
 			toast.error(
-				cause instanceof Error ? cause.message : "Failed to create trunk",
+				cause instanceof Error
+					? cause.message
+					: "Failed to create trunk",
 			);
 		}
 	}
@@ -104,7 +109,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 			setDeleteTarget(null);
 		} catch (cause) {
 			toast.error(
-				cause instanceof Error ? cause.message : "Failed to delete trunk",
+				cause instanceof Error
+					? cause.message
+					: "Failed to delete trunk",
 			);
 		}
 	}
@@ -114,7 +121,11 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 	return (
 		<>
 			<div className="flex justify-end border-b p-5">
-				<Button type="button" size="sm" onClick={() => setFormOpen(true)}>
+				<Button
+					type="button"
+					size="sm"
+					onClick={() => setFormOpen(true)}
+				>
 					Create trunk
 				</Button>
 			</div>
@@ -122,9 +133,13 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 			{trunksQuery.isPending ? (
 				<LoadingState />
 			) : trunksQuery.isError ? (
-				<p className="p-6 text-sm text-destructive">Unable to load trunks.</p>
+				<p className="p-6 text-sm text-destructive">
+					Unable to load trunks.
+				</p>
 			) : trunks.length === 0 ? (
-				<p className="p-6 text-sm text-muted-foreground">No SIP trunks yet.</p>
+				<p className="p-6 text-sm text-muted-foreground">
+					No SIP trunks yet.
+				</p>
 			) : (
 				<>
 					<div className="overflow-x-auto scrollbar-none">
@@ -143,8 +158,12 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 							<TableBody>
 								{paged.map((trunk) => (
 									<TableRow key={trunk.id}>
-										<TableCell className="font-medium">{trunk.name}</TableCell>
-										<TableCell className="capitalize">{trunk.direction}</TableCell>
+										<TableCell className="font-medium">
+											{trunk.name}
+										</TableCell>
+										<TableCell className="capitalize">
+											{trunk.direction}
+										</TableCell>
 										<TableCell>
 											<span
 												className={cn(
@@ -158,7 +177,8 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 											</span>
 										</TableCell>
 										<TableCell className="font-mono text-xs text-muted-foreground">
-											{trunk.livekit_trunk_id ?? "unsynced"}
+											{trunk.livekit_trunk_id ??
+												"unsynced"}
 										</TableCell>
 										<TableCell>
 											<DropdownMenu>
@@ -176,7 +196,11 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 												<DropdownMenuContent align="end">
 													<DropdownMenuItem
 														className="text-destructive focus:text-destructive"
-														onClick={() => setDeleteTarget(trunk)}
+														onClick={() =>
+															setDeleteTarget(
+																trunk,
+															)
+														}
 													>
 														Delete
 													</DropdownMenuItem>
@@ -204,7 +228,8 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 					<DialogHeader>
 						<DialogTitle>Create SIP trunk</DialogTitle>
 						<DialogDescription>
-							Provisions inbound or outbound SIP via telephony ORPC.
+							Provisions inbound or outbound SIP via telephony
+							ORPC.
 						</DialogDescription>
 					</DialogHeader>
 					<form onSubmit={handleCreate} className="space-y-4">
@@ -213,7 +238,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 							<Input
 								id="trunk-name"
 								value={name}
-								onChange={(event) => setName(event.target.value)}
+								onChange={(event) =>
+									setName(event.target.value)
+								}
 								required
 							/>
 						</div>
@@ -222,7 +249,10 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 							<Select
 								value={direction}
 								onValueChange={(value) => {
-									if (value === "inbound" || value === "outbound") {
+									if (
+										value === "inbound" ||
+										value === "outbound"
+									) {
 										setDirection(value);
 									}
 								}}
@@ -231,8 +261,12 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="inbound">Inbound</SelectItem>
-									<SelectItem value="outbound">Outbound</SelectItem>
+									<SelectItem value="inbound">
+										Inbound
+									</SelectItem>
+									<SelectItem value="outbound">
+										Outbound
+									</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
@@ -245,7 +279,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 							<Input
 								id="trunk-address"
 								value={address}
-								onChange={(event) => setAddress(event.target.value)}
+								onChange={(event) =>
+									setAddress(event.target.value)
+								}
 								placeholder={
 									direction === "inbound"
 										? "example.sip.livekit.cloud"
@@ -261,8 +297,13 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 							>
 								Cancel
 							</Button>
-							<Button type="submit" disabled={busy || !name.trim()}>
-								{createMutation.isPending ? "Creating…" : "Create"}
+							<Button
+								type="submit"
+								disabled={busy || !name.trim()}
+							>
+								{createMutation.isPending
+									? "Creating…"
+									: "Create"}
 							</Button>
 						</DialogFooter>
 					</form>
@@ -278,7 +319,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>Delete trunk?</DialogTitle>
-						<DialogDescription>{deleteTarget?.name}</DialogDescription>
+						<DialogDescription>
+							{deleteTarget?.name}
+						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
 						<Button

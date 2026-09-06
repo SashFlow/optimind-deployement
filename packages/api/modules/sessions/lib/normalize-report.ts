@@ -163,9 +163,7 @@ function usageRowsFromPayload(usage: unknown): UsageRow[] {
 				row.input_tokens ?? row.prompt_tokens ?? row.inputTokens,
 			),
 			outputTokens: num(
-				row.output_tokens ??
-					row.completion_tokens ??
-					row.outputTokens,
+				row.output_tokens ?? row.completion_tokens ?? row.outputTokens,
 			),
 			inputCachedTokens: num(
 				row.input_cached_tokens ?? row.cached_tokens,

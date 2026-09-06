@@ -68,7 +68,8 @@ export function useDispatchRulesQuery(
 				.map(mapDispatchRule)
 				.filter((rule) => rule.is_enabled || true)
 				.filter((rule) => {
-					const metaDeleted = !rule.is_enabled && rule.numbers.length === 0;
+					const metaDeleted =
+						!rule.is_enabled && rule.numbers.length === 0;
 					return !metaDeleted || rule.is_enabled;
 				}),
 	});
@@ -127,7 +128,8 @@ export function useCreatePhoneNumberMutation(
 			assigned_agent_id?: string | null;
 			sip_trunk_id?: string | null;
 		}) => {
-			if (!organizationId) throw new Error("Select an organization first");
+			if (!organizationId)
+				throw new Error("Select an organization first");
 			await orpcClient.telephony.syncPlivoNumbers({ organizationId });
 			toast.message(
 				"Synced Plivo numbers. Manual register without Plivo is not available yet.",
@@ -149,7 +151,9 @@ export function useDeletePhoneNumberMutation(
 ) {
 	return useMutation({
 		mutationFn: async (_id: string) => {
-			toast.message("Remove from inventory is not available via ORPC yet");
+			toast.message(
+				"Remove from inventory is not available via ORPC yet",
+			);
 		},
 	});
 }
@@ -179,7 +183,8 @@ export function useCreateSipTrunkMutation(
 			sync_livekit?: boolean;
 			numbers?: string[];
 		}) => {
-			if (!organizationId) throw new Error("Select an organization first");
+			if (!organizationId)
+				throw new Error("Select an organization first");
 			const numbers = input.numbers?.length
 				? input.numbers
 				: ["+10000000000"];
@@ -260,7 +265,8 @@ export function useCreateDispatchRuleMutation(
 			is_enabled?: boolean;
 			name?: string;
 		}) => {
-			if (!organizationId) throw new Error("Select an organization first");
+			if (!organizationId)
+				throw new Error("Select an organization first");
 			await orpcClient.telephony.createDispatch({
 				organizationId,
 				name: input.name || input.room_prefix || "Dispatch rule",
@@ -387,7 +393,8 @@ export function useBuyPlivoNumberMutation(
 			sip_trunk_id?: string | null;
 			create_inbound_trunk?: boolean;
 		}) => {
-			if (!organizationId) throw new Error("Select an organization first");
+			if (!organizationId)
+				throw new Error("Select an organization first");
 			await orpcClient.telephony.syncPlivoNumbers({ organizationId });
 			toast.message(
 				"Buy flow is mocked — synced existing Plivo numbers instead.",

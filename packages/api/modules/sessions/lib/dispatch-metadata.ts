@@ -35,8 +35,6 @@ export function buildDispatchMetadata(
 	return dispatchMetadataSchema.parse(input);
 }
 
-export function serializeDispatchMetadata(
-	metadata: DispatchMetadata,
-): string {
+export function serializeDispatchMetadata(metadata: DispatchMetadata): string {
 	return JSON.stringify(metadata);
 }

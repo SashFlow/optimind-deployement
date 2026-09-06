@@ -1,8 +1,5 @@
 import { ORPCError } from "@orpc/client";
-import {
-	getOrganizationById,
-	updateOrganization,
-} from "@repo/database";
+import { getOrganizationById, updateOrganization } from "@repo/database";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";

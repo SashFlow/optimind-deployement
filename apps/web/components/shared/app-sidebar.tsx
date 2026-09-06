@@ -29,8 +29,7 @@ export const workspaceNavItems = [
 	},
 ];
 
-const pillClass =
-	"rounded-full bg-sidebar shadow-sm ring-1 ring-black/5";
+const pillClass = "rounded-full bg-sidebar shadow-sm ring-1 ring-black/5";
 
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 	return (
@@ -61,7 +60,10 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 						"pointer-events-auto flex h-auto w-auto max-w-[calc(100vw-2rem)] flex-row items-center overflow-x-auto",
 					)}
 				>
-					<NavMain items={workspaceNavItems} orientation="horizontal" />
+					<NavMain
+						items={workspaceNavItems}
+						orientation="horizontal"
+					/>
 				</div>
 			</nav>
 		</>

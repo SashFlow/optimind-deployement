@@ -23,19 +23,26 @@ type FirstMessageFieldsProps = {
 	onChange: (greeting: AgentConfigDocument["greeting"]) => void;
 };
 
-export function FirstMessageFields({ greeting, onChange }: FirstMessageFieldsProps) {
+export function FirstMessageFields({
+	greeting,
+	onChange,
+}: FirstMessageFieldsProps) {
 	return (
 		<div className="space-y-4">
 			<label className="flex items-center gap-2 text-sm">
 				<Switch
 					checked={greeting.enabled}
-					onCheckedChange={(enabled) => onChange({ ...greeting, enabled })}
+					onCheckedChange={(enabled) =>
+						onChange({ ...greeting, enabled })
+					}
 				/>
 				Enabled
 			</label>
 			<Textarea
 				value={greeting.text}
-				onChange={(e) => onChange({ ...greeting, text: e.target.value })}
+				onChange={(e) =>
+					onChange({ ...greeting, text: e.target.value })
+				}
 				placeholder="Write your greeting message..."
 				rows={4}
 				className="min-h-24 bg-background text-sm"
@@ -48,7 +55,8 @@ export function FirstMessageFields({ greeting, onChange }: FirstMessageFieldsPro
 						value &&
 						onChange({
 							...greeting,
-							trigger: value as AgentConfigDocument["greeting"]["trigger"],
+							trigger:
+								value as AgentConfigDocument["greeting"]["trigger"],
 						})
 					}
 					items={[...GREETING_TRIGGER_OPTIONS]}

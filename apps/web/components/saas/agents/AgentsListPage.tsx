@@ -26,7 +26,9 @@ export function AgentsListPage() {
 		orpc.agents.create.mutationOptions({
 			onSuccess: async (data) => {
 				await queryClient.invalidateQueries({
-					queryKey: orpc.agents.list.key({ input: { organizationId } }),
+					queryKey: orpc.agents.list.key({
+						input: { organizationId },
+					}),
 				});
 				toast.success("Agent created");
 				router.push(`/app/agents/${data.agent.id}/configure`);

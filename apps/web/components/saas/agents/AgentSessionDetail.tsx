@@ -66,7 +66,11 @@ export function AgentSessionDetail({
 		endedAt?: string | Date | null;
 		durationMs?: number | null;
 		errorMessage?: string | null;
-		events?: Array<{ id: string; type?: string; createdAt?: string | Date }>;
+		events?: Array<{
+			id: string;
+			type?: string;
+			createdAt?: string | Date;
+		}>;
 		transcript?: { text?: string | null } | null;
 		egressJobs?: Array<{ id: string; status?: string }>;
 	};
@@ -107,13 +111,19 @@ export function AgentSessionDetail({
 					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 						<Card className="rounded-3xl">
 							<CardHeader>
-								<CardTitle className="text-sm">Channel</CardTitle>
+								<CardTitle className="text-sm">
+									Channel
+								</CardTitle>
 							</CardHeader>
-							<CardContent>{session.channel ?? "WEB"}</CardContent>
+							<CardContent>
+								{session.channel ?? "WEB"}
+							</CardContent>
 						</Card>
 						<Card className="rounded-3xl">
 							<CardHeader>
-								<CardTitle className="text-sm">Started</CardTitle>
+								<CardTitle className="text-sm">
+									Started
+								</CardTitle>
 							</CardHeader>
 							<CardContent>
 								{formatDateTime(session.startedAt)}
@@ -129,7 +139,9 @@ export function AgentSessionDetail({
 						</Card>
 						<Card className="rounded-3xl">
 							<CardHeader>
-								<CardTitle className="text-sm">Duration</CardTitle>
+								<CardTitle className="text-sm">
+									Duration
+								</CardTitle>
 							</CardHeader>
 							<CardContent>
 								{formatDuration(session.durationMs)}
@@ -160,7 +172,9 @@ export function AgentSessionDetail({
 
 				<TabsContent value="events" className="mt-4">
 					{events.length === 0 ? (
-						<p className="text-sm text-muted-foreground">No events.</p>
+						<p className="text-sm text-muted-foreground">
+							No events.
+						</p>
 					) : (
 						<ul className="space-y-2">
 							{events.map((event) => (

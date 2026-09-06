@@ -54,8 +54,8 @@ export function AdminSettingsActionsProvider({
 			bulkRef.current = handlers;
 			setHasBulk(
 				handlers != null &&
-				(handlers.cancelFailed != null ||
-					handlers.retryFailed != null),
+					(handlers.cancelFailed != null ||
+						handlers.retryFailed != null),
 			);
 		},
 		[],

@@ -199,7 +199,7 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 						</p>
 					</div>
 					{!fullOrganizationQuery.isPending &&
-						!fullOrganizationQuery.isError ? (
+					!fullOrganizationQuery.isError ? (
 						<span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
 							<UsersIcon className="size-3.5" />
 							{members.length}
@@ -252,7 +252,7 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 															{displayName}
 														</p>
 														{member.name &&
-															member.email ? (
+														member.email ? (
 															<p className="truncate text-xs text-muted-foreground">
 																{member.email}
 															</p>

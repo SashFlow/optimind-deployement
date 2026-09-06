@@ -9,6 +9,8 @@ export default function AgentDetailLayout({ children }: PropsWithChildren) {
 	const agentId = params.agentId;
 
 	return (
-		<AgentWorkspaceLayout agentId={agentId}>{children}</AgentWorkspaceLayout>
+		<AgentWorkspaceLayout agentId={agentId}>
+			{children}
+		</AgentWorkspaceLayout>
 	);
 }

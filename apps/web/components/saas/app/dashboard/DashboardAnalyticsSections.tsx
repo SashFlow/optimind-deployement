@@ -7,11 +7,7 @@ import { BigNumberCard } from "./BigNumberCard";
 import { ConnectionSuccessCard } from "./ConnectionSuccessCard";
 import { DonutBreakdownCard } from "./DonutBreakdownCard";
 import { TopCountriesCard } from "./TopCountriesCard";
-import {
-	formatBytes,
-	formatDurationMs,
-	formatMinutes,
-} from "./format";
+import { formatBytes, formatDurationMs, formatMinutes } from "./format";
 
 export function DashboardAnalyticsSections({
 	analytics,
@@ -119,7 +115,9 @@ export function DashboardAnalyticsSections({
 						{ key: "outbound", label: "Outbound" },
 						{ key: "total", label: "Total minutes" },
 					]}
-					yTickFormatter={(v) => (v < 1 ? `${Math.round(v * 60)}s` : `${Math.round(v)}m`)}
+					yTickFormatter={(v) =>
+						v < 1 ? `${Math.round(v * 60)}s` : `${Math.round(v)}m`
+					}
 				/>
 				<BigNumberCard
 					title="Total inbound"

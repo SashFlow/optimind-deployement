@@ -190,11 +190,11 @@ export function TwoFactorBlock() {
 						<DialogTitle>
 							{dialogView === "password"
 								? t(
-									"settings.account.security.twoFactor.dialog.password.title",
-								)
+										"settings.account.security.twoFactor.dialog.password.title",
+									)
 								: t(
-									"settings.account.security.twoFactor.dialog.totpUrl.title",
-								)}
+										"settings.account.security.twoFactor.dialog.totpUrl.title",
+									)}
 						</DialogTitle>
 					</DialogHeader>
 

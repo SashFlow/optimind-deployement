@@ -125,7 +125,9 @@ export function DispatchRulesPanel({
 			setFormOpen(false);
 		} catch (cause) {
 			toast.error(
-				cause instanceof Error ? cause.message : "Failed to create rule",
+				cause instanceof Error
+					? cause.message
+					: "Failed to create rule",
 			);
 		}
 	}
@@ -138,7 +140,9 @@ export function DispatchRulesPanel({
 			setDeleteTarget(null);
 		} catch (cause) {
 			toast.error(
-				cause instanceof Error ? cause.message : "Failed to delete rule",
+				cause instanceof Error
+					? cause.message
+					: "Failed to delete rule",
 			);
 		}
 	}
@@ -176,9 +180,13 @@ export function DispatchRulesPanel({
 			{rulesQuery.isPending ? (
 				<LoadingState />
 			) : rulesQuery.isError ? (
-				<p className="p-6 text-sm text-destructive">Unable to load rules.</p>
+				<p className="p-6 text-sm text-destructive">
+					Unable to load rules.
+				</p>
 			) : rules.length === 0 ? (
-				<p className="p-6 text-sm text-muted-foreground">No routing rules yet.</p>
+				<p className="p-6 text-sm text-muted-foreground">
+					No routing rules yet.
+				</p>
 			) : (
 				<>
 					<div className="overflow-x-auto scrollbar-none">
@@ -197,16 +205,25 @@ export function DispatchRulesPanel({
 							<TableBody>
 								{paged.map((rule) => (
 									<TableRow key={rule.id}>
-										<TableCell className="font-medium">{rule.name}</TableCell>
+										<TableCell className="font-medium">
+											{rule.name}
+										</TableCell>
 										<TableCell className="text-muted-foreground">
 											{rule.sip_trunk_id
-												? (trunkNameById.get(rule.sip_trunk_id) ??
-													rule.sip_trunk_id.slice(0, 8))
+												? (trunkNameById.get(
+														rule.sip_trunk_id,
+													) ??
+													rule.sip_trunk_id.slice(
+														0,
+														8,
+													))
 												: "—"}
 										</TableCell>
 										<TableCell className="text-muted-foreground">
 											{rule.agent_id
-												? (agentNameById.get(rule.agent_id) ??
+												? (agentNameById.get(
+														rule.agent_id,
+													) ??
 													rule.agent_id.slice(0, 8))
 												: "—"}
 										</TableCell>
@@ -229,7 +246,11 @@ export function DispatchRulesPanel({
 												<DropdownMenuContent align="end">
 													<DropdownMenuItem
 														className="text-destructive focus:text-destructive"
-														onClick={() => setDeleteTarget(rule)}
+														onClick={() =>
+															setDeleteTarget(
+																rule,
+															)
+														}
 													>
 														Delete
 													</DropdownMenuItem>
@@ -263,13 +284,19 @@ export function DispatchRulesPanel({
 					<form onSubmit={handleCreate} className="space-y-4">
 						<div className="space-y-2">
 							<Label>SIP trunk</Label>
-							<Select value={sipTrunkId} onValueChange={setSipTrunkId}>
+							<Select
+								value={sipTrunkId}
+								onValueChange={setSipTrunkId}
+							>
 								<SelectTrigger className="w-full">
 									<SelectValue placeholder="Select trunk" />
 								</SelectTrigger>
 								<SelectContent>
 									{inboundTrunks.map((trunk) => (
-										<SelectItem key={trunk.id} value={trunk.id}>
+										<SelectItem
+											key={trunk.id}
+											value={trunk.id}
+										>
 											{trunk.name}
 										</SelectItem>
 									))}
@@ -284,7 +311,10 @@ export function DispatchRulesPanel({
 								</SelectTrigger>
 								<SelectContent>
 									{agents.map((agent) => (
-										<SelectItem key={agent.id} value={agent.id}>
+										<SelectItem
+											key={agent.id}
+											value={agent.id}
+										>
 											{agent.name}
 										</SelectItem>
 									))}
@@ -292,11 +322,15 @@ export function DispatchRulesPanel({
 							</Select>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="room-prefix">Room prefix (optional)</Label>
+							<Label htmlFor="room-prefix">
+								Room prefix (optional)
+							</Label>
 							<Input
 								id="room-prefix"
 								value={roomPrefix}
-								onChange={(event) => setRoomPrefix(event.target.value)}
+								onChange={(event) =>
+									setRoomPrefix(event.target.value)
+								}
 							/>
 						</div>
 						<DialogFooter>
@@ -308,7 +342,9 @@ export function DispatchRulesPanel({
 								Cancel
 							</Button>
 							<Button type="submit" disabled={busy}>
-								{createMutation.isPending ? "Creating…" : "Create"}
+								{createMutation.isPending
+									? "Creating…"
+									: "Create"}
 							</Button>
 						</DialogFooter>
 					</form>
@@ -324,7 +360,9 @@ export function DispatchRulesPanel({
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>Delete rule?</DialogTitle>
-						<DialogDescription>{deleteTarget?.name}</DialogDescription>
+						<DialogDescription>
+							{deleteTarget?.name}
+						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
 						<Button

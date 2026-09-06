@@ -29,7 +29,9 @@ export function formatBytes(bytes: number | null | undefined): string {
 		unit += 1;
 	}
 	const rounded =
-		unit === 0 ? String(Math.round(value)) : value.toFixed(value >= 10 ? 1 : 2);
+		unit === 0
+			? String(Math.round(value))
+			: value.toFixed(value >= 10 ? 1 : 2);
 	const label = units[unit];
 	if (unit === 0 && Math.round(value) !== 1) return `${rounded} bytes`;
 	return `${rounded} ${label}`;

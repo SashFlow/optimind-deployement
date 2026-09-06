@@ -103,7 +103,11 @@ export function mapSipTrunk(row: {
 		transport: "udp",
 		address: meta.address ?? null,
 		allowed_addresses: [],
-		status: meta.deleted ? "deleted" : row.livekitTrunkId ? "active" : "pending",
+		status: meta.deleted
+			? "deleted"
+			: row.livekitTrunkId
+				? "active"
+				: "pending",
 		numbers: row.numbers ?? [],
 		livekit_trunk_id: row.livekitTrunkId ?? null,
 	};

@@ -23,12 +23,18 @@ function SectionHeader({
 	return (
 		<div>
 			<h3 className="text-sm font-semibold">{title}</h3>
-			<p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+			<p className="mt-0.5 text-xs text-muted-foreground">
+				{description}
+			</p>
 		</div>
 	);
 }
 
-export function AdvancedSection({ config, onConfigChange, versionId }: AdvancedSectionProps) {
+export function AdvancedSection({
+	config,
+	onConfigChange,
+	versionId,
+}: AdvancedSectionProps) {
 	return (
 		<div className="divide-y rounded-xl border bg-card">
 			<div className="space-y-4 px-4 py-4 md:px-5">

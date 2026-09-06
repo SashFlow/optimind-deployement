@@ -26,7 +26,9 @@ export function ConfigureToggleRow({
 			<div className="min-w-0 flex-1">
 				<p className="text-sm font-medium">{label}</p>
 				{description ? (
-					<p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+					<p className="mt-0.5 text-xs text-muted-foreground">
+						{description}
+					</p>
 				) : null}
 			</div>
 			<Switch checked={checked} onCheckedChange={onCheckedChange} />

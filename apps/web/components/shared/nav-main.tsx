@@ -85,7 +85,9 @@ export function NavMain({
 							>
 								<Link href={item.url}>
 									{item.icon}
-									<span className="sr-only">{item.title}</span>
+									<span className="sr-only">
+										{item.title}
+									</span>
 								</Link>
 							</SidebarMenuButton>
 						</SidebarMenuItem>

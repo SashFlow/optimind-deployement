@@ -70,7 +70,9 @@ export function AppUserMenu({
 			>
 				<Avatar className="size-14!">
 					<AvatarImage src={user?.image ?? undefined} alt={name} />
-					<AvatarFallback className="text-xs">{initials}</AvatarFallback>
+					<AvatarFallback className="text-xs">
+						{initials}
+					</AvatarFallback>
 				</Avatar>
 				{showMeta && name && email ? (
 					<div className="mr-2 hidden min-w-0 text-end leading-tight lg:block">

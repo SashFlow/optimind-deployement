@@ -69,7 +69,5 @@ export default async function Layout({ children }: PropsWithChildren) {
 		}
 	}
 
-	return (
-		<AppShell>{children}</AppShell>
-	);
+	return <AppShell>{children}</AppShell>;
 }

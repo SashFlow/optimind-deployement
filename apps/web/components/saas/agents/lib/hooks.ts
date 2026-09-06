@@ -3,11 +3,7 @@
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
-import {
-	type AgentSessionRow,
-	computeAgentStats,
-	mapSession,
-} from "./types";
+import { type AgentSessionRow, computeAgentStats, mapSession } from "./types";
 
 export function useAgentSessionsQuery(
 	agentId: string | null | undefined,

@@ -46,9 +46,7 @@ export function CampaignsListPage() {
 
 	return (
 		<ResourcePage
-			filters={[
-				{ label: "All", value: "all", count: campaigns.length },
-			]}
+			filters={[{ label: "All", value: "all", count: campaigns.length }]}
 			items={campaigns.map((campaign) => ({
 				id: campaign.id,
 				title: campaign.name,
@@ -73,7 +71,9 @@ export function CampaignsListPage() {
 					loading={createMutation.isPending}
 					onCreate={async (name, description) => {
 						if (!organizationId || !defaultAgentId) {
-							toast.error("Create an agent before starting a campaign");
+							toast.error(
+								"Create an agent before starting a campaign",
+							);
 							return;
 						}
 						await createMutation.mutateAsync({
@@ -90,7 +90,8 @@ export function CampaignsListPage() {
 			empty={{
 				icon: <SendHorizonalIcon className="size-8" />,
 				title: "No campaigns",
-				description: "Create a campaign to dial contacts with an agent.",
+				description:
+					"Create a campaign to dial contacts with an agent.",
 			}}
 		/>
 	);

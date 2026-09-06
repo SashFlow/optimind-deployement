@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@repo/ui/card";
 import type { AgentStats } from "./lib/types";
 
 export function AgentMonitorBreakdown({ stats }: { stats: AgentStats }) {
@@ -13,9 +19,9 @@ export function AgentMonitorBreakdown({ stats }: { stats: AgentStats }) {
 			value: Math.max(
 				0,
 				stats.total_sessions -
-				stats.completed_sessions -
-				stats.failed_sessions -
-				stats.active_sessions,
+					stats.completed_sessions -
+					stats.failed_sessions -
+					stats.active_sessions,
 			),
 		},
 	];
@@ -32,8 +38,12 @@ export function AgentMonitorBreakdown({ stats }: { stats: AgentStats }) {
 						key={row.label}
 						className="flex items-center justify-between text-sm"
 					>
-						<span className="text-muted-foreground">{row.label}</span>
-						<span className="font-medium tabular-nums">{row.value}</span>
+						<span className="text-muted-foreground">
+							{row.label}
+						</span>
+						<span className="font-medium tabular-nums">
+							{row.value}
+						</span>
 					</div>
 				))}
 			</CardContent>

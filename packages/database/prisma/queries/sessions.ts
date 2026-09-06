@@ -20,7 +20,9 @@ function toJson(value: unknown): Prisma.InputJsonValue {
 const sessionDetailInclude = {
 	agent: true,
 	agentVersion: true,
-	transcript: { include: { segments: { orderBy: { sequence: "asc" as const } } } },
+	transcript: {
+		include: { segments: { orderBy: { sequence: "asc" as const } } },
+	},
 	usages: true,
 	egressJobs: { orderBy: { createdAt: "desc" as const } },
 	toolCalls: { orderBy: { createdAt: "asc" as const } },
@@ -251,9 +253,7 @@ export async function upsertTranscriptFromHistory(data: {
 		.map((s) => s.text)
 		.filter(Boolean)
 		.join("\n");
-	const wordCount = fullText
-		.split(/\s+/)
-		.filter((w) => w.length > 0).length;
+	const wordCount = fullText.split(/\s+/).filter((w) => w.length > 0).length;
 	const status = data.status ?? "FINAL";
 
 	return db.$transaction(async (tx) => {

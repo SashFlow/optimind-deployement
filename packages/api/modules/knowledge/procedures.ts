@@ -21,10 +21,7 @@ import {
 	titleFromUrl,
 } from "./lib/document-title";
 import { processKnowledgeDocument } from "./lib/process-document";
-import {
-	createKnowledgeSignedUploadUrl,
-	getKnowledgeBucket,
-} from "./lib/s3";
+import { createKnowledgeSignedUploadUrl, getKnowledgeBucket } from "./lib/s3";
 
 async function requireKb(id: string, userId: string) {
 	const kb = await getKnowledgeBaseById(id);
@@ -189,7 +186,9 @@ export const createDoc = protectedProcedure
 			storageKey: input.storageKey,
 			metadata: {
 				...(input.fileName ? { fileName: input.fileName } : {}),
-				...(input.contentType ? { contentType: input.contentType } : {}),
+				...(input.contentType
+					? { contentType: input.contentType }
+					: {}),
 				bucket: input.bucket ?? getKnowledgeBucket(),
 				queuedAt: new Date().toISOString(),
 			},
@@ -202,8 +201,7 @@ export const createDoc = protectedProcedure
 		try {
 			const result = await processKnowledgeDocument({
 				documentId: document.id,
-				textContent:
-					sourceType === "TEXT" ? input.content : undefined,
+				textContent: sourceType === "TEXT" ? input.content : undefined,
 			});
 			return {
 				document: result.document,

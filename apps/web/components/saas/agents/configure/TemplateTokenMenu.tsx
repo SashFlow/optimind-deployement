@@ -138,12 +138,12 @@ export function TemplateTokenMenu({
 			style={
 				resolvedPosition
 					? {
-						position: "fixed",
-						top: resolvedPosition.top,
-						left: resolvedPosition.left,
-						width: MENU_WIDTH,
-						zIndex: 9999,
-					}
+							position: "fixed",
+							top: resolvedPosition.top,
+							left: resolvedPosition.left,
+							width: MENU_WIDTH,
+							zIndex: 9999,
+						}
 					: undefined
 			}
 			className={cn(

@@ -131,7 +131,12 @@ export function useCreateKnowledgeSourceMutation(
 					}),
 				});
 			}
-			await options?.onSuccess?.(data, variables, onMutateResult, context);
+			await options?.onSuccess?.(
+				data,
+				variables,
+				onMutateResult,
+				context,
+			);
 		},
 		onError: options?.onError,
 	});
@@ -274,7 +279,12 @@ export function useCreateDocumentMutation(
 			await queryClient.invalidateQueries({
 				queryKey: orpc.knowledge.list.key(),
 			});
-			await options?.onSuccess?.(data, variables, onMutateResult, context);
+			await options?.onSuccess?.(
+				data,
+				variables,
+				onMutateResult,
+				context,
+			);
 		},
 		onError: options?.onError,
 	});
@@ -304,7 +314,12 @@ export function useDeleteDocumentMutation(
 			await queryClient.invalidateQueries({
 				queryKey: orpc.knowledge.list.key(),
 			});
-			await options?.onSuccess?.(data, variables, onMutateResult, context);
+			await options?.onSuccess?.(
+				data,
+				variables,
+				onMutateResult,
+				context,
+			);
 		},
 		onError: options?.onError,
 	});
@@ -386,7 +401,12 @@ export function useCreateToolMutation(
 					input: { organizationId },
 				}),
 			});
-			await options?.onSuccess?.(data, variables, onMutateResult, context);
+			await options?.onSuccess?.(
+				data,
+				variables,
+				onMutateResult,
+				context,
+			);
 		},
 		onError: options?.onError,
 	});
@@ -419,7 +439,8 @@ export function useAgentQuery(
 		? {
 				id: query.data.agent.id,
 				name: query.data.agent.name,
-				published_version_id: query.data.agent.publishedVersionId ?? null,
+				published_version_id:
+					query.data.agent.publishedVersionId ?? null,
 			}
 		: undefined;
 
@@ -453,11 +474,7 @@ export function useUpdateAgentVersionMutation(
 	agentId: string,
 	_versionId: string,
 	options?: Pick<
-		UseMutationOptions<
-			unknown,
-			Error,
-			{ config: Record<string, unknown> }
-		>,
+		UseMutationOptions<unknown, Error, { config: Record<string, unknown> }>,
 		"onSuccess" | "onError"
 	>,
 ) {
@@ -480,7 +497,12 @@ export function useUpdateAgentVersionMutation(
 			await queryClient.invalidateQueries({
 				queryKey: orpc.agents.get.key({ input: { id: agentId } }),
 			});
-			await options?.onSuccess?.(data, variables, onMutateResult, context);
+			await options?.onSuccess?.(
+				data,
+				variables,
+				onMutateResult,
+				context,
+			);
 		},
 		onError: options?.onError,
 	});
@@ -507,7 +529,12 @@ export function usePublishAgentVersionMutation(
 			await queryClient.invalidateQueries({
 				queryKey: orpc.agents.get.key({ input: { id: agentId } }),
 			});
-			await options?.onSuccess?.(data, variables, onMutateResult, context);
+			await options?.onSuccess?.(
+				data,
+				variables,
+				onMutateResult,
+				context,
+			);
 		},
 		onError: options?.onError,
 	});

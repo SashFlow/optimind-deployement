@@ -9,9 +9,14 @@ async function parsePdf(buffer: Buffer): Promise<string> {
 	// local test PDF under apps/web/test/data/.
 	const pdfParseModule = await import("pdf-parse/lib/pdf-parse.js");
 	const pdfParse =
-		(pdfParseModule as { default?: (data: Buffer) => Promise<{ text?: string }> })
-			.default ??
-		(pdfParseModule as unknown as (data: Buffer) => Promise<{ text?: string }>);
+		(
+			pdfParseModule as {
+				default?: (data: Buffer) => Promise<{ text?: string }>;
+			}
+		).default ??
+		(pdfParseModule as unknown as (
+			data: Buffer,
+		) => Promise<{ text?: string }>);
 	const parsed = await pdfParse(buffer);
 	return (parsed.text ?? "").trim();
 }

@@ -98,7 +98,9 @@ export function LoginForm() {
 					throw error;
 				}
 
-				if ((data as { twoFactorRedirect?: boolean }).twoFactorRedirect) {
+				if (
+					(data as { twoFactorRedirect?: boolean }).twoFactorRedirect
+				) {
 					router.replace(
 						withQuery(
 							"/auth/verify",
@@ -151,10 +153,7 @@ export function LoginForm() {
 
 	const signinMode = form.watch("mode");
 
-	if (
-		form.formState.isSubmitSuccessful &&
-		signinMode === "magic-link"
-	) {
+	if (form.formState.isSubmitSuccessful && signinMode === "magic-link") {
 		return (
 			<AuthCard title={t("auth.login.title")}>
 				<Alert variant="success">

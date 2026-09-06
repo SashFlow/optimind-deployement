@@ -1,4 +1,8 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+	GetObjectCommand,
+	PutObjectCommand,
+	S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl as getS3SignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ORPCError } from "@orpc/client";
 import { config } from "@repo/config";
@@ -8,8 +12,7 @@ let s3Client: S3Client | null = null;
 /** Knowledge uploads use S3_BUCKET_NAME (e.g. optimind-knowledge), not the notes bucket. */
 export function getKnowledgeBucket() {
 	return (
-		process.env.S3_BUCKET_NAME?.trim() ||
-		config.storage.bucketNames.notes
+		process.env.S3_BUCKET_NAME?.trim() || config.storage.bucketNames.notes
 	);
 }
 
@@ -49,7 +52,12 @@ export async function createKnowledgeSignedUploadUrl(input: {
 }
 
 async function streamToBuffer(
-	body: ReadableStream | NodeJS.ReadableStream | Blob | Uint8Array | undefined,
+	body:
+		| ReadableStream
+		| NodeJS.ReadableStream
+		| Blob
+		| Uint8Array
+		| undefined,
 ): Promise<Buffer> {
 	if (!body) {
 		return Buffer.alloc(0);

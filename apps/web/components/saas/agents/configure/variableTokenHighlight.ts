@@ -37,7 +37,10 @@ export function variableTokenHighlight(secretNames: Set<string>) {
 
 			update(update: import("@codemirror/view").ViewUpdate) {
 				if (update.docChanged || update.viewportChanged) {
-					this.decorations = buildDecorations(update.view, secretNames);
+					this.decorations = buildDecorations(
+						update.view,
+						secretNames,
+					);
 				}
 			}
 		},
@@ -53,15 +56,18 @@ export const variableTokenTheme = EditorView.baseTheme({
 		color: "var(--primary)",
 		borderRadius: "0.25rem",
 		padding: "0 0.125rem",
-		fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+		fontFamily:
+			"ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
 		fontSize: "0.8125em",
 	},
 	".cm-template-secret": {
-		backgroundColor: "color-mix(in oklch, var(--color-amber-500) 14%, transparent)",
+		backgroundColor:
+			"color-mix(in oklch, var(--color-amber-500) 14%, transparent)",
 		color: "var(--color-amber-700)",
 		borderRadius: "0.25rem",
 		padding: "0 0.125rem",
-		fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+		fontFamily:
+			"ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
 		fontSize: "0.8125em",
 	},
 });

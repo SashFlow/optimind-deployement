@@ -20,7 +20,9 @@ export function KnowledgeBaseSelect({
 	sources,
 	onChange,
 }: KnowledgeBaseSelectProps) {
-	const sourceMap = new Map(sources.map((source) => [source.id, source.label]));
+	const sourceMap = new Map(
+		sources.map((source) => [source.id, source.label]),
+	);
 	const orphanedIds = selectedIds.filter((id) => !sourceMap.has(id));
 
 	function toggleSource(id: string, checked: boolean) {
@@ -39,7 +41,8 @@ export function KnowledgeBaseSelect({
 		return (
 			<div className="space-y-3">
 				<p className="text-sm text-muted-foreground">
-					No knowledge sources available yet. Add sources in Knowledge Base.
+					No knowledge sources available yet. Add sources in Knowledge
+					Base.
 				</p>
 				{orphanedIds.length > 0 ? (
 					<div className="flex flex-wrap gap-2">
@@ -75,12 +78,16 @@ export function KnowledgeBaseSelect({
 							key={source.id}
 							className={cn(
 								"flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-								checked ? "border-foreground/20 bg-background" : "border-transparent bg-background/60",
+								checked
+									? "border-foreground/20 bg-background"
+									: "border-transparent bg-background/60",
 							)}
 						>
 							<Checkbox
 								checked={checked}
-								onCheckedChange={(value) => toggleSource(source.id, value === true)}
+								onCheckedChange={(value) =>
+									toggleSource(source.id, value === true)
+								}
 							/>
 							<span className="text-sm">{source.label}</span>
 						</label>
@@ -89,7 +96,9 @@ export function KnowledgeBaseSelect({
 			</div>
 			{orphanedIds.length > 0 ? (
 				<div className="space-y-1.5">
-					<Label className="text-xs text-muted-foreground">Unavailable sources</Label>
+					<Label className="text-xs text-muted-foreground">
+						Unavailable sources
+					</Label>
 					<div className="flex flex-wrap gap-2">
 						{orphanedIds.map((id) => (
 							<span

@@ -16,7 +16,9 @@ type EgressJobStatus =
 	| "FAILED"
 	| "ABORTED";
 
-function mapEgressStatus(status: EgressStatus | number | undefined): EgressJobStatus {
+function mapEgressStatus(
+	status: EgressStatus | number | undefined,
+): EgressJobStatus {
 	switch (status) {
 		case EgressStatus.EGRESS_STARTING:
 			return "STARTING";
@@ -45,7 +47,9 @@ function extractFileUrl(egressInfo: {
 	return first?.location;
 }
 
-export async function livekitWebhookHandler(request: Request): Promise<Response> {
+export async function livekitWebhookHandler(
+	request: Request,
+): Promise<Response> {
 	try {
 		getLiveKitConfig();
 	} catch {
@@ -69,9 +73,12 @@ export async function livekitWebhookHandler(request: Request): Promise<Response>
 			if (livekitEgressId) {
 				const job = await getEgressJobByLivekitId(livekitEgressId);
 				if (job) {
-					const fileUrl = extractFileUrl(info as never) ?? job.fileUrl;
+					const fileUrl =
+						extractFileUrl(info as never) ?? job.fileUrl;
 					const outputUrls = fileUrl
-						? Array.from(new Set([...(job.outputUrls ?? []), fileUrl]))
+						? Array.from(
+								new Set([...(job.outputUrls ?? []), fileUrl]),
+							)
 						: job.outputUrls;
 
 					await updateEgressJob(job.id, {
@@ -81,7 +88,8 @@ export async function livekitWebhookHandler(request: Request): Promise<Response>
 						errorMessage: info.error || undefined,
 						durationMs:
 							info.endedAt && info.startedAt
-								? Number(info.endedAt - info.startedAt) / 1_000_000
+								? Number(info.endedAt - info.startedAt) /
+									1_000_000
 								: undefined,
 					});
 				}
@@ -104,11 +112,16 @@ export async function livekitWebhookHandler(request: Request): Promise<Response>
 			}
 		}
 
-		if (eventName === "room_started" && event.room?.name && event.room.sid) {
+		if (
+			eventName === "room_started" &&
+			event.room?.name &&
+			event.room.sid
+		) {
 			const session = await getAgentSessionByRoomName(event.room.name);
 			if (session && !session.livekitRoomSid) {
 				await updateAgentSessionLifecycle(session.id, {
-					status: session.status === "QUEUED" ? "QUEUED" : session.status,
+					status:
+						session.status === "QUEUED" ? "QUEUED" : session.status,
 					livekitRoomSid: event.room.sid,
 				});
 			}

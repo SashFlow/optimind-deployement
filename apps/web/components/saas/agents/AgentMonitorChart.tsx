@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@repo/ui/card";
 import type { AgentStats } from "./lib/types";
 
 export function AgentMonitorChart({ stats }: { stats: AgentStats }) {
@@ -34,7 +40,8 @@ export function AgentMonitorChart({ stats }: { stats: AgentStats }) {
 				<div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
 					<span>{stats.daily[0]?.date.slice(5) ?? ""}</span>
 					<span>
-						{stats.daily[stats.daily.length - 1]?.date.slice(5) ?? ""}
+						{stats.daily[stats.daily.length - 1]?.date.slice(5) ??
+							""}
 					</span>
 				</div>
 			</CardContent>

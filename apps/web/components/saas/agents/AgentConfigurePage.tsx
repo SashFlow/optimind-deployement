@@ -18,8 +18,11 @@ export function AgentConfigurePage({ agentId }: { agentId: string }) {
 	);
 
 	const agent = agentQuery.data?.agent;
-	const draftConfig = (agent as { draftVersion?: { config?: Record<string, unknown> } } | undefined)
-		?.draftVersion?.config;
+	const draftConfig = (
+		agent as
+			| { draftVersion?: { config?: Record<string, unknown> } }
+			| undefined
+	)?.draftVersion?.config;
 
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
@@ -86,7 +89,9 @@ export function AgentConfigurePage({ agentId }: { agentId: string }) {
 		<div className="grid gap-6 lg:grid-cols-[1fr_360px]">
 			<section className="space-y-6 overflow-hidden rounded-3xl border bg-card p-6 shadow-sm ring-1 ring-black/5">
 				<div>
-					<h2 className="font-semibold text-xl tracking-tight">Configure</h2>
+					<h2 className="font-semibold text-xl tracking-tight">
+						Configure
+					</h2>
 					<p className="text-muted-foreground text-sm">
 						Update identity and draft prompt for this agent.
 					</p>
@@ -169,8 +174,8 @@ export function AgentConfigurePage({ agentId }: { agentId: string }) {
 			<aside className="overflow-hidden rounded-3xl border bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
 				<h3 className="font-semibold text-sm">Preview</h3>
 				<p className="mt-2 text-muted-foreground text-sm">
-					Live trial preview will attach here. For now, review the prompt and
-					publish when ready.
+					Live trial preview will attach here. For now, review the
+					prompt and publish when ready.
 				</p>
 				<div className="mt-4 rounded-2xl bg-muted/50 p-4 text-sm">
 					<p className="font-medium">{name || "Untitled agent"}</p>

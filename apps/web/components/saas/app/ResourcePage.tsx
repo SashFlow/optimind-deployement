@@ -127,7 +127,7 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 				className={cn(
 					"group flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-colors",
 					isInteractive &&
-					"cursor-pointer hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+						"cursor-pointer hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 				)}
 				onClick={() => {
 					if (item.href) router.push(item.href);

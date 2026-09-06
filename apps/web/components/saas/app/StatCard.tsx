@@ -33,9 +33,13 @@ export function StatCard({
 				</div>
 				<div className="mt-4 space-y-1">
 					<p className="text-muted-foreground text-sm">{title}</p>
-					<p className="font-semibold text-3xl tracking-tight">{value}</p>
+					<p className="font-semibold text-3xl tracking-tight">
+						{value}
+					</p>
 					{description ? (
-						<p className="text-muted-foreground text-xs">{description}</p>
+						<p className="text-muted-foreground text-xs">
+							{description}
+						</p>
 					) : null}
 				</div>
 			</CardContent>

@@ -69,8 +69,7 @@ export async function POST(req: Request) {
 			const configSnapshot =
 				(version.config as Record<string, unknown>) ?? {};
 			const recordingEnabled =
-				body.recordingEnabled ??
-				configRecordingEnabled(configSnapshot);
+				body.recordingEnabled ?? configRecordingEnabled(configSnapshot);
 
 			const session = await createAgentSession({
 				organizationId: body.organizationId,

@@ -41,9 +41,7 @@ export function KnowledgeListPage() {
 
 	return (
 		<ResourcePage
-			filters={[
-				{ label: "All", value: "all", count: items.length },
-			]}
+			filters={[{ label: "All", value: "all", count: items.length }]}
 			items={items.map((kb) => ({
 				id: kb.id,
 				title: kb.name,

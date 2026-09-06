@@ -249,8 +249,7 @@ async function startEgressForSession(
 		roomName: session.livekitRoomName,
 	});
 	const resolvedAudioOnly =
-		audioOnly ??
-		(session.channel === "SIP" || session.channel === "PHONE");
+		audioOnly ?? (session.channel === "SIP" || session.channel === "PHONE");
 
 	const remote = await startRoomCompositeEgress({
 		roomName: session.livekitRoomName,

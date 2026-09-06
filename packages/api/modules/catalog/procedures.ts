@@ -50,7 +50,8 @@ export const listVoices = publicProcedure
 	.handler(async ({ input }) => ({
 		voices: input.providerModelId
 			? CATALOG_VOICES.filter(
-					(voice) => voice.provider_model_id === input.providerModelId,
+					(voice) =>
+						voice.provider_model_id === input.providerModelId,
 				)
 			: CATALOG_VOICES,
 	}));

@@ -11,7 +11,7 @@ export function AppShell({ children }: PropsWithChildren) {
 	return (
 		<SidebarProvider
 			open={false}
-			onOpenChange={() => { }}
+			onOpenChange={() => {}}
 			className="relative isolate flex flex-col bg-transparent"
 			style={
 				{

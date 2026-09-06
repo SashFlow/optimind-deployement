@@ -90,8 +90,8 @@ export function ActiveSessionsBlock() {
 									<strong className="block text-sm">
 										{session.id === currentSession?.id
 											? t(
-												"settings.account.security.activeSessions.currentSession",
-											)
+													"settings.account.security.activeSessions.currentSession",
+												)
 											: session.ipAddress}
 									</strong>
 									<small className="block text-foreground/60 text-xs leading-tight">

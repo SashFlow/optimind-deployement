@@ -56,8 +56,7 @@ type TabValue = (typeof TABS)[number]["value"];
 
 function tabFromPathname(pathname: string): TabValue {
 	const match = TABS.find(
-		(tab) =>
-			pathname === tab.href || pathname.startsWith(`${tab.href}/`),
+		(tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`),
 	);
 	return match?.value ?? "users";
 }

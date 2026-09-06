@@ -17,10 +17,7 @@ import {
 	livekitHttpHost,
 	type LiveKitConfig,
 } from "./config";
-import {
-	buildS3Upload,
-	type EgressS3Config,
-} from "./egress-s3";
+import { buildS3Upload, type EgressS3Config } from "./egress-s3";
 
 export {
 	buildS3Upload,

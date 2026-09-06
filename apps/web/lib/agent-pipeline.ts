@@ -145,7 +145,9 @@ export function selectRealtimeOutputModality(
 			...config.realtime,
 			provider_model_id: config.realtime?.provider_model_id ?? null,
 			voice_id:
-				modality === "audio" ? config.realtime?.voice_id ?? null : null,
+				modality === "audio"
+					? (config.realtime?.voice_id ?? null)
+					: null,
 			output_modality: modality,
 			params: config.realtime?.params ?? {},
 		},

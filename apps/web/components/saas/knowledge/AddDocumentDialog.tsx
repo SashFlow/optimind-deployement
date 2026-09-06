@@ -104,8 +104,7 @@ export function AddDocumentDialog({
 
 		await onCreate({
 			sourceType,
-			sourceUrl:
-				sourceType === "URL" ? sourceUrl.trim() : undefined,
+			sourceUrl: sourceType === "URL" ? sourceUrl.trim() : undefined,
 			content: sourceType === "TEXT" ? content.trim() : undefined,
 			file: sourceType === "UPLOAD" ? (file ?? undefined) : undefined,
 		});
@@ -124,9 +123,9 @@ export function AddDocumentDialog({
 					<DialogHeader>
 						<DialogTitle>Add document</DialogTitle>
 						<DialogDescription>
-							Upload a file or add text/URL. The title is generated
-							automatically, then we chunk, embed, and queue the
-							document for search.
+							Upload a file or add text/URL. The title is
+							generated automatically, then we chunk, embed, and
+							queue the document for search.
 						</DialogDescription>
 					</DialogHeader>
 					<div className="mt-4 space-y-4">

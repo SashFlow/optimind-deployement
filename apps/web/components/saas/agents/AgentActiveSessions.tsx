@@ -56,7 +56,9 @@ export function AgentActiveSessions({
 								<TableHead>Started</TableHead>
 								<TableHead>Channel</TableHead>
 								<TableHead>Status</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
+								<TableHead className="text-right">
+									Actions
+								</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -73,13 +75,17 @@ export function AgentActiveSessions({
 									<TableCell className="text-muted-foreground text-sm">
 										{session.startedAt
 											? formatDistanceToNow(
-												new Date(session.startedAt),
-												{ addSuffix: true },
-											)
+													new Date(session.startedAt),
+													{ addSuffix: true },
+												)
 											: "—"}
 									</TableCell>
-									<TableCell className="text-sm">{session.channel}</TableCell>
-									<TableCell className="text-sm">{session.status}</TableCell>
+									<TableCell className="text-sm">
+										{session.channel}
+									</TableCell>
+									<TableCell className="text-sm">
+										{session.status}
+									</TableCell>
 									<TableCell className="text-right">
 										<Button
 											type="button"

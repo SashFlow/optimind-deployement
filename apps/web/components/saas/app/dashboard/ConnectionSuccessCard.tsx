@@ -25,10 +25,14 @@ export function ConnectionSuccessCard({
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{unavailable ? (
-					<p className="text-sm text-muted-foreground">Analytics unavailable</p>
+					<p className="text-sm text-muted-foreground">
+						Analytics unavailable
+					</p>
 				) : (
 					<>
-						<div className="text-3xl font-semibold tabular-nums">{display}</div>
+						<div className="text-3xl font-semibold tabular-nums">
+							{display}
+						</div>
 						<Progress value={value} className="w-full" />
 					</>
 				)}

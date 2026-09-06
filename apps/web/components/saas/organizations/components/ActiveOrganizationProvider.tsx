@@ -71,11 +71,11 @@ export function ActiveOrganizationProvider({
 			await authClient.organization.setActive(
 				organizationSlug
 					? {
-						organizationSlug,
-					}
+							organizationSlug,
+						}
 					: {
-						organizationId: null,
-					},
+							organizationId: null,
+						},
 			);
 
 		if (!newActiveOrganization) {

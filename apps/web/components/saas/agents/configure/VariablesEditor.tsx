@@ -18,11 +18,11 @@ const VARIABLE_TYPE_OPTIONS: {
 	value: AgentVariableDefinition["variable_type"];
 	label: string;
 }[] = [
-		{ value: "text", label: "Text" },
-		{ value: "number", label: "Number" },
-		{ value: "link", label: "Link" },
-		{ value: "file", label: "File" },
-	];
+	{ value: "text", label: "Text" },
+	{ value: "number", label: "Number" },
+	{ value: "link", label: "Link" },
+	{ value: "file", label: "File" },
+];
 
 function createEmptyVariable(): AgentVariableDefinition {
 	return {

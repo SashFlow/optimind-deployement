@@ -160,10 +160,10 @@ export function AgentConfigureForm({
 												style={
 													isActive
 														? {
-															backgroundColor:
-																"var(--foreground)",
-															color: "var(--background)",
-														}
+																backgroundColor:
+																	"var(--foreground)",
+																color: "var(--background)",
+															}
 														: undefined
 												}
 											>

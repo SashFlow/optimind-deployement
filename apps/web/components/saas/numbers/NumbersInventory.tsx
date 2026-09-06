@@ -398,9 +398,7 @@ export function NumbersInventory({
 							<Select
 								value={addAgentId || "none"}
 								onValueChange={(value) =>
-									setAddAgentId(
-										value === "none" ? "" : value,
-									)
+									setAddAgentId(value === "none" ? "" : value)
 								}
 							>
 								<SelectTrigger className="w-full">
@@ -426,9 +424,7 @@ export function NumbersInventory({
 							<Select
 								value={addTrunkId || "none"}
 								onValueChange={(value) =>
-									setAddTrunkId(
-										value === "none" ? "" : value,
-									)
+									setAddTrunkId(value === "none" ? "" : value)
 								}
 							>
 								<SelectTrigger className="w-full">

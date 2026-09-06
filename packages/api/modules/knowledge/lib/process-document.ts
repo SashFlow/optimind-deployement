@@ -6,10 +6,7 @@ import {
 } from "@repo/database";
 import { chunkText } from "./chunk-text";
 import { embedTexts } from "./embeddings";
-import {
-	extractTextFromBuffer,
-	extractTextFromUrl,
-} from "./extract-text";
+import { extractTextFromBuffer, extractTextFromUrl } from "./extract-text";
 import { downloadKnowledgeObject, getKnowledgeBucket } from "./s3";
 
 export async function processKnowledgeDocument(input: {
@@ -107,7 +104,9 @@ export async function processKnowledgeDocument(input: {
 		};
 	} catch (error) {
 		const message =
-			error instanceof Error ? error.message : "Document processing failed";
+			error instanceof Error
+				? error.message
+				: "Document processing failed";
 		await updateDocument(input.documentId, {
 			status: "FAILED",
 			errorMessage: message,
