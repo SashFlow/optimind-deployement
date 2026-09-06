@@ -13,11 +13,16 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@repo/ui/form";
-import { PasswordInput } from "@repo/ui/password-input";
+import {
+	AuthCard,
+	AuthError,
+	authSubmitClassName,
+} from "@saas/auth/components/AuthCard";
+import { AuthPasswordInput } from "@saas/auth/components/AuthPasswordInput";
 import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { useSession } from "@saas/auth/hooks/use-session";
 import { useRouter } from "@shared/hooks/router";
-import { AlertTriangleIcon, ArrowLeftIcon, MailboxIcon } from "lucide-react";
+import { MailboxIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -70,69 +75,82 @@ export function ResetPasswordForm() {
 		}
 	});
 
-	return (
-		<>
-			<h1 className="font-bold text-xl md:text-2xl">
-				{t("auth.resetPassword.title")}
-			</h1>
-			<p className="mt-1 mb-6 text-foreground/60">
-				{t("auth.resetPassword.message")}{" "}
+	if (!token) {
+		return (
+			<p className="text-destructive text-sm">
+				Invalid or missing reset token.
 			</p>
+		);
+	}
 
-			{form.formState.isSubmitSuccessful ? (
+	if (form.formState.isSubmitSuccessful) {
+		return (
+			<AuthCard title={t("auth.resetPassword.title")}>
 				<Alert variant="success">
 					<MailboxIcon />
 					<AlertTitle>
 						{t("auth.resetPassword.hints.success")}
 					</AlertTitle>
 				</Alert>
-			) : (
-				<Form {...form}>
-					<form
-						className="flex flex-col items-stretch gap-4"
-						onSubmit={onSubmit}
+				<div className="mt-6 text-center text-sm">
+					<Link
+						href="/auth/login"
+						className="font-medium text-primary hover:underline"
 					>
-						{form.formState.errors.root && (
-							<Alert variant="destructive">
-								<AlertTriangleIcon />
-								<AlertTitle>
-									{form.formState.errors.root.message}
-								</AlertTitle>
-							</Alert>
-						)}
+						{t("auth.resetPassword.backToSignin")}
+					</Link>
+				</div>
+			</AuthCard>
+		);
+	}
 
-						<FormField
-							control={form.control}
-							name="password"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										{t("auth.resetPassword.newPassword")}
-									</FormLabel>
-									<FormControl>
-										<PasswordInput
-											autoComplete="new-password"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<Button loading={form.formState.isSubmitting}>
-							{t("auth.resetPassword.submit")}
-						</Button>
-					</form>
-				</Form>
-			)}
-
-			<div className="mt-6 text-center text-sm">
-				<Link href="/auth/login">
-					<ArrowLeftIcon className="mr-1 inline size-4 align-middle" />
+	return (
+		<AuthCard
+			title={t("auth.resetPassword.title")}
+			description={t("auth.resetPassword.message")}
+			footer={
+				<Link
+					href="/auth/login"
+					className="font-medium text-primary hover:underline"
+				>
 					{t("auth.resetPassword.backToSignin")}
 				</Link>
-			</div>
-		</>
+			}
+		>
+			<Form {...form}>
+				<form className="space-y-5" onSubmit={onSubmit}>
+					<AuthError
+						message={form.formState.errors.root?.message ?? null}
+					/>
+
+					<FormField
+						control={form.control}
+						name="password"
+						render={({ field }) => (
+							<FormItem className="space-y-2">
+								<FormLabel className="font-medium text-sm">
+									{t("auth.resetPassword.newPassword")}
+								</FormLabel>
+								<FormControl>
+									<AuthPasswordInput
+										autoComplete="new-password"
+										placeholder="Enter new password"
+										{...field}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<Button
+						className={authSubmitClassName}
+						loading={form.formState.isSubmitting}
+					>
+						{t("auth.resetPassword.submit")}
+					</Button>
+				</form>
+			</Form>
+		</AuthCard>
 	);
 }

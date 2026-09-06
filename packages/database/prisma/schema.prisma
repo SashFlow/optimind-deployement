@@ -138,6 +138,11 @@ model Organization {
     auditLogs           AuditLog[]
     agents              Agent[]
     agentVersions       AgentVersion[]
+    agentSessions       AgentSession[]
+    sessionEvents       SessionEvent[]
+    transcripts         Transcript[]
+    toolCallRecords     ToolCallRecord[]
+    sessionUsages       SessionUsage[]
     campaigns           Campaign[]
     campaignContacts    CampaignContact[]
     campaignAccessLinks CampaignAccessLink[]
@@ -275,6 +280,10 @@ model Agent {
     publishedVersion   AgentVersion?       @relation("AgentPublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
     versions           AgentVersion[]      @relation("AgentVersions")
     trials             AgentTrial[]
+    sessions           AgentSession[]
+    transcripts        Transcript[]
+    sessionUsages      SessionUsage[]
+    egressJobs         EgressJob[]
     campaigns          Campaign[]
     knowledgeBases     AgentKnowledgeBase[]
     phoneNumbers       PhoneNumber[]
@@ -300,6 +309,7 @@ model AgentVersion {
     config         Json               @default("{}")
     draftFor       Agent[]            @relation("AgentDraftVersion")
     publishedFor   Agent[]            @relation("AgentPublishedVersion")
+    sessions       AgentSession[]
 
     @@index([agentId])
     @@index([organizationId])
@@ -320,6 +330,242 @@ model AgentTrial {
 
     @@index([agentId])
     @@map("agent_trial")
+}
+
+// ------------------------------------------------------------
+// ----------------------------- Runtime sessions (LiveKit) ---
+// ------------------------------------------------------------
+
+enum AgentSessionStatus {
+    QUEUED
+    ACTIVE
+    COMPLETED
+    FAILED
+    CANCELLED
+}
+
+enum AgentSessionChannel {
+    WEB
+    SIP
+    PHONE
+}
+
+enum AgentSessionDirection {
+    NONE
+    INBOUND
+    OUTBOUND
+    WEB
+}
+
+enum SessionEndReason {
+    COMPLETED
+    PARTICIPANT_LEFT
+    ROOM_FINISHED
+    ERROR
+    CANCELLED
+    TIMEOUT
+}
+
+enum TranscriptStatus {
+    PENDING
+    PARTIAL
+    FINAL
+    FAILED
+}
+
+enum TranscriptRole {
+    USER
+    ASSISTANT
+    SYSTEM
+    TOOL
+}
+
+enum ToolCallStatus {
+    PENDING
+    RUNNING
+    COMPLETED
+    FAILED
+}
+
+enum SessionEventActor {
+    AGENT
+    USER
+    SYSTEM
+    WORKER
+}
+
+enum UsageModality {
+    LLM
+    REALTIME
+    STT
+    TTS
+    VAD
+    AVATAR
+    SIP
+    LIVEKIT_ROOM
+    EGRESS
+}
+
+enum UnitSource {
+    LIVEKIT_INFERENCE
+    BYOK
+    PLATFORM
+}
+
+model AgentSession {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    agentId        String
+    agent          Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
+    agentVersionId String
+    agentVersion   AgentVersion @relation(fields: [agentVersionId], references: [id], onDelete: Restrict)
+
+    livekitRoomName  String
+    livekitRoomSid   String?
+    livekitJobId     String?
+    livekitWorkerId  String?
+
+    channel   AgentSessionChannel   @default(WEB)
+    direction AgentSessionDirection @default(NONE)
+
+    sipTrunkId         String?
+    sipTrunk           SipTrunk?     @relation(fields: [sipTrunkId], references: [id], onDelete: SetNull)
+    sipDispatchRuleId  String?
+    sipDispatchRule    DispatchRule? @relation(fields: [sipDispatchRuleId], references: [id], onDelete: SetNull)
+    sipCallId          String?
+    fromNumber         String?
+    toNumber           String?
+    sipAttrs           Json          @default("{}")
+
+    status      AgentSessionStatus @default(QUEUED)
+    startedAt   DateTime?
+    connectedAt DateTime?
+    endedAt     DateTime?
+    durationMs  Int?
+
+    endReason    SessionEndReason?
+    errorCode    String?
+    errorMessage String?           @db.Text
+
+    configSnapshot       Json             @default("{}")
+    livekitSessionReport Json?
+    recordingEnabled     Boolean          @default(false)
+    transcriptStatus     TranscriptStatus @default(PENDING)
+
+    campaignSession CampaignSession? @relation("CampaignAgentSession")
+
+    externalUserId String?
+    metadata       Json    @default("{}")
+
+    events     SessionEvent[]
+    transcript Transcript?
+    toolCalls  ToolCallRecord[]
+    usages     SessionUsage[]
+    egressJobs EgressJob[]
+
+    @@index([organizationId, startedAt])
+    @@index([agentId, startedAt])
+    @@index([livekitRoomName])
+    @@index([livekitRoomSid])
+    @@index([livekitJobId])
+    @@index([status])
+    @@index([sipTrunkId])
+    @@index([sipDispatchRuleId])
+    @@map("agent_session")
+}
+
+model SessionEvent {
+    id             String            @id @default(cuid())
+    createdAt      DateTime          @default(now())
+    organizationId String
+    organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    sessionId      String
+    session        AgentSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    sequence       Int
+    eventType      String
+    actor          SessionEventActor @default(AGENT)
+    occurredAt     DateTime          @default(now())
+    payload        Json              @default("{}")
+
+    @@unique([sessionId, sequence])
+    @@index([organizationId, occurredAt])
+    @@index([sessionId, occurredAt])
+    @@map("session_event")
+}
+
+model Transcript {
+    id             String           @id @default(cuid())
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime         @updatedAt
+    organizationId String
+    organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    sessionId      String           @unique
+    session        AgentSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    agentId        String
+    agent          Agent            @relation(fields: [agentId], references: [id], onDelete: Restrict)
+    language       String?
+    status         TranscriptStatus @default(PENDING)
+    fullText       String           @default("") @db.Text
+    wordCount      Int              @default(0)
+    storageUri     String?
+    retentionExpiresAt DateTime?
+
+    segments TranscriptSegment[]
+
+    @@index([organizationId])
+    @@index([agentId])
+    @@map("transcript")
+}
+
+model TranscriptSegment {
+    id               String         @id @default(cuid())
+    createdAt        DateTime       @default(now())
+    transcriptId     String
+    transcript       Transcript     @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+    sessionId        String
+    sequence         Int
+    role             TranscriptRole
+    speakerIdentity  String?
+    text             String         @default("") @db.Text
+    startMs          Int?
+    endMs            Int?
+    confidence       Float?
+    isFinal          Boolean        @default(false)
+    interrupted      Boolean        @default(false)
+    livekitMessageId String?
+    metrics          Json           @default("{}")
+
+    toolCalls ToolCallRecord[]
+
+    @@unique([transcriptId, sequence])
+    @@index([sessionId, sequence])
+    @@map("transcript_segment")
+}
+
+model ToolCallRecord {
+    id                   String         @id @default(cuid())
+    createdAt            DateTime       @default(now())
+    organizationId       String
+    organization         Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    sessionId            String
+    session              AgentSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    transcriptSegmentId  String?
+    transcriptSegment    TranscriptSegment? @relation(fields: [transcriptSegmentId], references: [id], onDelete: SetNull)
+    toolName             String
+    arguments            Json           @default("{}")
+    result               Json           @default("{}")
+    status               ToolCallStatus @default(COMPLETED)
+    error                String?        @db.Text
+    startedAt            DateTime?
+    completedAt          DateTime?
+
+    @@index([sessionId])
+    @@index([organizationId])
+    @@index([transcriptSegmentId])
+    @@map("tool_call_record")
 }
 
 // ------------------------------------------------------------
@@ -561,6 +807,9 @@ model CampaignSession {
     egressId     String?
     egressStatus String?
 
+    agentSessionId String?       @unique
+    agentSession   AgentSession? @relation("CampaignAgentSession", fields: [agentSessionId], references: [id], onDelete: SetNull)
+
     metadata Json @default("{}")
 
     egressJobs   EgressJob[]
@@ -756,6 +1005,7 @@ model SipTrunk {
 
     phoneNumbers  PhoneNumber[]
     dispatchRules DispatchRule[]
+    agentSessions AgentSession[]
 
     @@index([organizationId, direction])
     @@index([livekitTrunkId])
@@ -780,6 +1030,8 @@ model DispatchRule {
     roomPrefix            String?
     ruleConfig            Json    @default("{}")
     metadata              Json    @default("{}")
+
+    agentSessions AgentSession[]
 
     @@index([organizationId])
     @@index([sipTrunkId])
@@ -812,17 +1064,27 @@ model EgressJob {
     organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     campaignSessionId String?
     campaignSession   CampaignSession?   @relation(fields: [campaignSessionId], references: [id], onDelete: SetNull)
+    agentSessionId    String?
+    agentSession      AgentSession?      @relation(fields: [agentSessionId], references: [id], onDelete: SetNull)
+    agentId           String?
+    agent             Agent?             @relation(fields: [agentId], references: [id], onDelete: SetNull)
 
     livekitEgressId String?
     type            EgressJobType
     status          EgressJobStatus      @default(STARTING)
     roomName        String?
     outputUrls      String[]             @default([])
+    destination     Json                 @default("{}")
+    fileUrl         String?
+    durationMs      Int?
+    sizeBytes       Int?
     errorMessage    String?
     metadata        Json                 @default("{}")
 
     @@index([organizationId, status])
     @@index([campaignSessionId])
+    @@index([agentSessionId])
+    @@index([agentId])
     @@index([livekitEgressId])
     @@map("egress_job")
 }
@@ -895,4 +1157,54 @@ model UsageMetric {
     @@index([campaignId, recordedAt])
     @@index([campaignSessionId])
     @@map("usage_metric")
+}
+
+model SessionUsage {
+    id             String         @id @default(cuid())
+    createdAt      DateTime       @default(now())
+    updatedAt      DateTime       @updatedAt
+    organizationId String
+    organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    sessionId      String
+    session        AgentSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    agentId        String
+    agent          Agent          @relation(fields: [agentId], references: [id], onDelete: Restrict)
+    modality       UsageModality
+    provider       String
+    model          String
+    unitSource     UnitSource     @default(LIVEKIT_INFERENCE)
+
+    inputTokens             Int @default(0)
+    inputCachedTokens       Int @default(0)
+    inputCachedAudioTokens  Int @default(0)
+    inputCachedTextTokens   Int @default(0)
+    inputCachedImageTokens  Int @default(0)
+    inputAudioTokens        Int @default(0)
+    inputTextTokens         Int @default(0)
+    inputImageTokens        Int @default(0)
+    outputTokens            Int @default(0)
+    outputAudioTokens       Int @default(0)
+    outputTextTokens        Int @default(0)
+    providerSessionDurationMs Int @default(0)
+
+    charactersCount Int @default(0)
+    audioDurationMs Int @default(0)
+    totalRequests   Int @default(0)
+
+    videoDurationMs    Int @default(0)
+    callDurationMs     Int @default(0)
+    billableMinutes    Int @default(0)
+    participantMinutes Int @default(0)
+    egressMinutes      Int @default(0)
+    egressBytes        Int @default(0)
+
+    raw       Json     @default("{}")
+    capturedAt DateTime @default(now())
+    isFinal   Boolean  @default(false)
+
+    @@unique([sessionId, modality, provider, model])
+    @@index([organizationId, capturedAt])
+    @@index([agentId])
+    @@index([sessionId])
+    @@map("session_usage")
 }

@@ -35,7 +35,7 @@ export default async function SettingsLayout({
 		session?.user,
 	);
 
-	const organizationSettingsBasePath = `/app/${organizationSlug}/settings`;
+	const organizationSettingsBasePath = `/app/settings`;
 
 	const menuItems = [
 		{
@@ -58,30 +58,30 @@ export default async function SettingsLayout({
 					icon: <Users2Icon className="size-4 opacity-50" />,
 				},
 				...(config.organizations.enable &&
-				config.organizations.enableBilling &&
-				userIsOrganizationAdmin
+					config.organizations.enableBilling &&
+					userIsOrganizationAdmin
 					? [
-							{
-								title: t("settings.menu.organization.billing"),
-								href: `${organizationSettingsBasePath}/billing`,
-								icon: (
-									<CreditCardIcon className="size-4 opacity-50" />
-								),
-							},
-						]
+						{
+							title: t("settings.menu.organization.billing"),
+							href: `${organizationSettingsBasePath}/billing`,
+							icon: (
+								<CreditCardIcon className="size-4 opacity-50" />
+							),
+						},
+					]
 					: []),
 				...(userIsOrganizationAdmin
 					? [
-							{
-								title: t(
-									"settings.menu.organization.dangerZone",
-								),
-								href: `${organizationSettingsBasePath}/danger-zone`,
-								icon: (
-									<TriangleAlertIcon className="size-4 opacity-50" />
-								),
-							},
-						]
+						{
+							title: t(
+								"settings.menu.organization.dangerZone",
+							),
+							href: `${organizationSettingsBasePath}/danger-zone`,
+							icon: (
+								<TriangleAlertIcon className="size-4 opacity-50" />
+							),
+						},
+					]
 					: []),
 			],
 		},

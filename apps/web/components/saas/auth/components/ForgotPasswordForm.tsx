@@ -13,8 +13,14 @@ import {
 	FormMessage,
 } from "@repo/ui/form";
 import { Input } from "@repo/ui/input";
+import {
+	AuthCard,
+	AuthError,
+	authInputClassName,
+	authSubmitClassName,
+} from "@saas/auth/components/AuthCard";
 import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
-import { AlertTriangleIcon, ArrowLeftIcon, MailboxIcon } from "lucide-react";
+import { MailboxIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
@@ -63,16 +69,9 @@ export function ForgotPasswordForm() {
 		}
 	});
 
-	return (
-		<>
-			<h1 className="font-bold text-xl md:text-2xl">
-				{t("auth.forgotPassword.title")}
-			</h1>
-			<p className="mt-1 mb-6 text-foreground/60">
-				{t("auth.forgotPassword.message")}{" "}
-			</p>
-
-			{form.formState.isSubmitSuccessful ? (
+	if (form.formState.isSubmitSuccessful) {
+		return (
+			<AuthCard title={t("auth.forgotPassword.title")}>
 				<Alert variant="success">
 					<MailboxIcon />
 					<AlertTitle>
@@ -82,53 +81,58 @@ export function ForgotPasswordForm() {
 						{t("auth.forgotPassword.hints.linkSent.message")}
 					</AlertDescription>
 				</Alert>
-			) : (
-				<Form {...form}>
-					<form
-						className="flex flex-col items-stretch gap-4"
-						onSubmit={onSubmit}
-					>
-						{form.formState.errors.root && (
-							<Alert variant="destructive">
-								<AlertTriangleIcon />
-								<AlertTitle>
-									{form.formState.errors.root.message}
-								</AlertTitle>
-							</Alert>
-						)}
+			</AuthCard>
+		);
+	}
 
-						<FormField
-							control={form.control}
-							name="email"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										{t("auth.forgotPassword.email")}
-									</FormLabel>
-									<FormControl>
-										<Input
-											{...field}
-											autoComplete="email"
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<Button loading={form.formState.isSubmitting}>
-							{t("auth.forgotPassword.submit")}
-						</Button>
-					</form>
-				</Form>
-			)}
-
-			<div className="mt-6 text-center text-sm">
-				<Link href="/auth/login">
-					<ArrowLeftIcon className="mr-1 inline size-4 align-middle" />
+	return (
+		<AuthCard
+			title={t("auth.forgotPassword.title")}
+			description={t("auth.forgotPassword.message")}
+			footer={
+				<Link
+					href="/auth/login"
+					className="font-medium text-primary hover:underline"
+				>
 					{t("auth.forgotPassword.backToSignin")}
 				</Link>
-			</div>
-		</>
+			}
+		>
+			<Form {...form}>
+				<form className="space-y-5" onSubmit={onSubmit}>
+					<AuthError
+						message={form.formState.errors.root?.message ?? null}
+					/>
+
+					<FormField
+						control={form.control}
+						name="email"
+						render={({ field }) => (
+							<FormItem className="space-y-2">
+								<FormLabel className="font-medium text-sm">
+									{t("auth.forgotPassword.email")}
+								</FormLabel>
+								<FormControl>
+									<Input
+										{...field}
+										autoComplete="email"
+										className={authInputClassName}
+										placeholder="Enter your email"
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<Button
+						className={authSubmitClassName}
+						loading={form.formState.isSubmitting}
+					>
+						{t("auth.forgotPassword.submit")}
+					</Button>
+				</form>
+			</Form>
+		</AuthCard>
 	);
 }

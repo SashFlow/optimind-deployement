@@ -13,23 +13,23 @@ import {
 	FormLabel,
 } from "@repo/ui/form";
 import { Input } from "@repo/ui/input";
+import {
+	AuthCard,
+	AuthError,
+	authInputClassName,
+	authSubmitClassName,
+} from "@saas/auth/components/AuthCard";
+import { AuthPasswordInput } from "@saas/auth/components/AuthPasswordInput";
 import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { sessionQueryKey } from "@saas/auth/lib/api";
 import { OrganizationInvitationAlert } from "@saas/organizations/components/OrganizationInvitationAlert";
 import { useRouter } from "@shared/hooks/router";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-	AlertTriangleIcon,
-	ArrowRightIcon,
-	EyeIcon,
-	EyeOffIcon,
-	KeyIcon,
-	MailboxIcon,
-} from "lucide-react";
+import { KeyIcon, MailboxIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { withQuery } from "ufo";
@@ -64,7 +64,6 @@ export function LoginForm() {
 	const searchParams = useSearchParams();
 	const { user, loaded: sessionLoaded } = useSession();
 
-	const [showPassword, setShowPassword] = useState(false);
 	const invitationId = searchParams.get("invitationId");
 	const email = searchParams.get("email");
 	const redirectTo = searchParams.get("redirectTo");
@@ -86,7 +85,7 @@ export function LoginForm() {
 		if (sessionLoaded && user) {
 			router.replace(redirectPath);
 		}
-	}, [user, sessionLoaded]);
+	}, [user, sessionLoaded, redirectPath, router]);
 
 	const onSubmit: SubmitHandler<FormValues> = async (values) => {
 		try {
@@ -99,7 +98,7 @@ export function LoginForm() {
 					throw error;
 				}
 
-				if ((data as any).twoFactorRedirect) {
+				if ((data as { twoFactorRedirect?: boolean }).twoFactorRedirect) {
 					router.replace(
 						withQuery(
 							"/auth/verify",
@@ -138,7 +137,6 @@ export function LoginForm() {
 	const signInWithPasskey = async () => {
 		try {
 			await authClient.signIn.passkey();
-
 			router.replace(redirectPath);
 		} catch (e) {
 			form.setError("root", {
@@ -153,17 +151,12 @@ export function LoginForm() {
 
 	const signinMode = form.watch("mode");
 
-	return (
-		<div>
-			<h1 className="font-bold text-xl md:text-2xl">
-				{t("auth.login.title")}
-			</h1>
-			<p className="mt-1 mb-6 text-foreground/60">
-				{t("auth.login.subtitle")}
-			</p>
-
-			{form.formState.isSubmitSuccessful &&
-			signinMode === "magic-link" ? (
+	if (
+		form.formState.isSubmitSuccessful &&
+		signinMode === "magic-link"
+	) {
+		return (
+			<AuthCard title={t("auth.login.title")}>
 				<Alert variant="success">
 					<MailboxIcon />
 					<AlertTitle>
@@ -173,185 +166,155 @@ export function LoginForm() {
 						{t("auth.login.hints.linkSent.message")}
 					</AlertDescription>
 				</Alert>
-			) : (
-				<>
-					{invitationId && (
-						<OrganizationInvitationAlert className="mb-6" />
-					)}
+			</AuthCard>
+		);
+	}
 
-					<Form {...form}>
-						<form
-							className="space-y-4"
-							onSubmit={form.handleSubmit(onSubmit)}
+	return (
+		<AuthCard
+			title={t("auth.login.title")}
+			description={t("auth.login.subtitle")}
+			footer={
+				config.auth.enableSignup ? (
+					<>
+						{t("auth.login.dontHaveAnAccount")}{" "}
+						<Link
+							href={withQuery(
+								"/auth/signup",
+								Object.fromEntries(searchParams.entries()),
+							)}
+							className="font-medium text-primary hover:underline"
 						>
-							{config.auth.enableMagicLink &&
-								config.auth.enablePasswordLogin && (
-									<LoginModeSwitch
-										activeMode={signinMode}
-										onChange={(mode) =>
-											form.setValue(
-												"mode",
-												mode as typeof signinMode,
-											)
-										}
+							{t("auth.login.createAnAccount")}
+						</Link>
+					</>
+				) : undefined
+			}
+		>
+			{invitationId && <OrganizationInvitationAlert className="mb-6" />}
+
+			<Form {...form}>
+				<form
+					className="space-y-5"
+					onSubmit={form.handleSubmit(onSubmit)}
+				>
+					{config.auth.enableMagicLink &&
+						config.auth.enablePasswordLogin && (
+							<LoginModeSwitch
+								activeMode={signinMode}
+								onChange={(mode) =>
+									form.setValue(
+										"mode",
+										mode as typeof signinMode,
+									)
+								}
+							/>
+						)}
+
+					<AuthError
+						message={
+							form.formState.isSubmitted
+								? (form.formState.errors.root?.message ?? null)
+								: null
+						}
+					/>
+
+					<FormField
+						control={form.control}
+						name="email"
+						render={({ field }) => (
+							<FormItem className="space-y-2">
+								<FormLabel className="font-medium text-sm">
+									{t("auth.signup.email")}
+								</FormLabel>
+								<FormControl>
+									<Input
+										{...field}
+										autoComplete="email"
+										placeholder="Enter your email"
+										className={authInputClassName}
 									/>
-								)}
+								</FormControl>
+							</FormItem>
+						)}
+					/>
 
-							{form.formState.isSubmitted &&
-								form.formState.errors.root?.message && (
-									<Alert variant="destructive">
-										<AlertTriangleIcon />
-										<AlertTitle>
-											{form.formState.errors.root.message}
-										</AlertTitle>
-									</Alert>
-								)}
-
+					{config.auth.enablePasswordLogin &&
+						signinMode === "password" && (
 							<FormField
 								control={form.control}
-								name="email"
+								name="password"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>
-											{t("auth.signup.email")}
-										</FormLabel>
+									<FormItem className="space-y-2">
+										<div className="flex items-center justify-between text-sm">
+											<FormLabel className="font-medium">
+												{t("auth.signup.password")}
+											</FormLabel>
+											<Link
+												href="/auth/forgot-password"
+												className="text-primary hover:underline"
+											>
+												{t("auth.login.forgotPassword")}
+											</Link>
+										</div>
 										<FormControl>
-											<Input
+											<AuthPasswordInput
 												{...field}
-												autoComplete="email"
+												autoComplete="current-password"
+												placeholder="Enter password"
 											/>
 										</FormControl>
 									</FormItem>
 								)}
 							/>
+						)}
 
-							{config.auth.enablePasswordLogin &&
-								signinMode === "password" && (
-									<FormField
-										control={form.control}
-										name="password"
-										render={({ field }) => (
-											<FormItem>
-												<div className="flex justify-between gap-4">
-													<FormLabel>
-														{t(
-															"auth.signup.password",
-														)}
-													</FormLabel>
+					<Button
+						className={authSubmitClassName}
+						type="submit"
+						loading={form.formState.isSubmitting}
+					>
+						{signinMode === "magic-link"
+							? t("auth.login.sendMagicLink")
+							: t("auth.login.submit")}
+					</Button>
+				</form>
+			</Form>
 
-													<Link
-														href="/auth/forgot-password"
-														className="text-foreground/60 text-xs"
-													>
-														{t(
-															"auth.login.forgotPassword",
-														)}
-													</Link>
-												</div>
-												<FormControl>
-													<div className="relative">
-														<Input
-															type={
-																showPassword
-																	? "text"
-																	: "password"
-															}
-															className="pr-10"
-															{...field}
-															autoComplete="current-password"
-														/>
-														<button
-															type="button"
-															onClick={() =>
-																setShowPassword(
-																	!showPassword,
-																)
-															}
-															className="absolute inset-y-0 right-0 flex items-center pr-4 text-primary text-xl"
-														>
-															{showPassword ? (
-																<EyeOffIcon className="size-4" />
-															) : (
-																<EyeIcon className="size-4" />
-															)}
-														</button>
-													</div>
-												</FormControl>
-											</FormItem>
-										)}
-									/>
-								)}
+			{(config.auth.enablePasskeys ||
+				(config.auth.enableSignup &&
+					config.auth.enableSocialLogin)) && (
+				<>
+					<div className="relative my-6 h-4">
+						<hr className="relative top-2" />
+						<p className="-translate-x-1/2 absolute top-0 left-1/2 mx-auto inline-block h-4 bg-white px-2 text-center font-medium text-muted-foreground text-sm leading-tight">
+							{t("auth.login.continueWith")}
+						</p>
+					</div>
 
+					<div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2">
+						{config.auth.enableSignup &&
+							config.auth.enableSocialLogin &&
+							Object.keys(oAuthProviders).map((providerId) => (
+								<SocialSigninButton
+									key={providerId}
+									provider={providerId as OAuthProvider}
+								/>
+							))}
+
+						{config.auth.enablePasskeys && (
 							<Button
-								className="w-full"
-								type="submit"
-								variant="secondary"
-								loading={form.formState.isSubmitting}
+								variant="outline"
+								className="w-full rounded-full sm:col-span-2"
+								onClick={() => signInWithPasskey()}
 							>
-								{signinMode === "magic-link"
-									? t("auth.login.sendMagicLink")
-									: t("auth.login.submit")}
+								<KeyIcon className="mr-1.5 size-4" />
+								{t("auth.login.loginWithPasskey")}
 							</Button>
-						</form>
-					</Form>
-
-					{(config.auth.enablePasskeys ||
-						(config.auth.enableSignup &&
-							config.auth.enableSocialLogin)) && (
-						<>
-							<div className="relative my-6 h-4">
-								<hr className="relative top-2" />
-								<p className="-translate-x-1/2 absolute top-0 left-1/2 mx-auto inline-block h-4 bg-card px-2 text-center font-medium text-foreground/60 text-sm leading-tight">
-									{t("auth.login.continueWith")}
-								</p>
-							</div>
-
-							<div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2">
-								{config.auth.enableSignup &&
-									config.auth.enableSocialLogin &&
-									Object.keys(oAuthProviders).map(
-										(providerId) => (
-											<SocialSigninButton
-												key={providerId}
-												provider={
-													providerId as OAuthProvider
-												}
-											/>
-										),
-									)}
-
-								{config.auth.enablePasskeys && (
-									<Button
-										variant="destructive"
-										className="w-full sm:col-span-2"
-										onClick={() => signInWithPasskey()}
-									>
-										<KeyIcon className="mr-1.5 size-4 text-primary" />
-										{t("auth.login.loginWithPasskey")}
-									</Button>
-								)}
-							</div>
-						</>
-					)}
-
-					{config.auth.enableSignup && (
-						<div className="mt-6 text-center text-sm">
-							<span className="text-foreground/60">
-								{t("auth.login.dontHaveAnAccount")}{" "}
-							</span>
-							<Link
-								href={withQuery(
-									"/auth/signup",
-									Object.fromEntries(searchParams.entries()),
-								)}
-							>
-								{t("auth.login.createAnAccount")}
-								<ArrowRightIcon className="ml-1 inline size-4 align-middle" />
-							</Link>
-						</div>
-					)}
+						)}
+					</div>
 				</>
 			)}
-		</div>
+		</AuthCard>
 	);
 }

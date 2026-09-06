@@ -9,7 +9,6 @@
 		"@orpc/openapi": "^1.9.0",
 		"@orpc/server": "^1.9.0",
 		"@orpc/zod": "^1.9.0",
-		"@repo/ai": "workspace:*",
 		"@repo/anam": "workspace:*",
 		"@repo/auth": "workspace:*",
 		"@repo/config": "workspace:*",

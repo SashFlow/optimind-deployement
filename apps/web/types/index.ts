@@ -1,9 +1,1 @@
-export type ScenarioDetails = {
-	sessionType: string[];
-	title: string;
-	description: string;
-	highlights: string[];
-	firstTimeGuidance: string[];
-	suggestedQuestions: string[];
-	url: string;
-};
+export type { AppConfig } from "./app-config";

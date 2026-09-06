@@ -177,10 +177,17 @@ export async function createEgressJob(data: {
 	organizationId: string;
 	type: EgressJobType;
 	campaignSessionId?: string;
+	agentSessionId?: string;
+	agentId?: string;
 	livekitEgressId?: string;
 	roomName?: string;
 	status?: EgressJobStatus;
 	outputUrls?: string[];
+	destination?: Prisma.InputJsonValue;
+	fileUrl?: string;
+	durationMs?: number;
+	sizeBytes?: number;
+	errorMessage?: string;
 	metadata?: Prisma.InputJsonValue;
 }) {
 	return db.egressJob.create({
@@ -188,10 +195,17 @@ export async function createEgressJob(data: {
 			organizationId: data.organizationId,
 			type: data.type,
 			campaignSessionId: data.campaignSessionId,
+			agentSessionId: data.agentSessionId,
+			agentId: data.agentId,
 			livekitEgressId: data.livekitEgressId,
 			roomName: data.roomName,
 			status: data.status ?? "STARTING",
 			outputUrls: data.outputUrls ?? [],
+			destination: data.destination ?? {},
+			fileUrl: data.fileUrl,
+			durationMs: data.durationMs,
+			sizeBytes: data.sizeBytes,
+			errorMessage: data.errorMessage,
 			metadata: data.metadata ?? {},
 		},
 	});

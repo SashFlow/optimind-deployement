@@ -8,13 +8,14 @@ import { sessionQueryKey } from "@saas/auth/lib/api";
 import {
 	activeOrganizationQueryKey,
 	useActiveOrganizationQuery,
+	useOrganizationListQuery,
 } from "@saas/organizations/lib/api";
 import { useRouter } from "@shared/hooks/router";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import nProgress from "nprogress";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { ActiveOrganizationContext } from "../lib/active-organization-context";
 
 export function ActiveOrganizationProvider({
@@ -26,19 +27,41 @@ export function ActiveOrganizationProvider({
 	const queryClient = useQueryClient();
 	const { session, user } = useSession();
 	const params = useParams();
+	const { data: organizationList } = useOrganizationListQuery();
 
-	const activeOrganizationSlug = params.organizationSlug as string;
+	const activeOrganizationSlugFromParams = params.organizationSlug as
+		| string
+		| undefined;
+
+	const resolvedSlug = useMemo(() => {
+		if (activeOrganizationSlugFromParams) {
+			return activeOrganizationSlugFromParams;
+		}
+		const activeId = session?.activeOrganizationId;
+		if (activeId && organizationList) {
+			return (
+				organizationList.find((org) => org.id === activeId)?.slug ??
+				organizationList[0]?.slug
+			);
+		}
+		return organizationList?.[0]?.slug;
+	}, [
+		activeOrganizationSlugFromParams,
+		session?.activeOrganizationId,
+		organizationList,
+	]);
 
 	const { data: activeOrganization } = useActiveOrganizationQuery(
-		activeOrganizationSlug,
+		resolvedSlug ?? "",
 		{
-			enabled: !!activeOrganizationSlug,
+			enabled: !!resolvedSlug,
 		},
 	);
 
 	const refetchActiveOrganization = async () => {
+		if (!resolvedSlug) return;
 		await queryClient.refetchQueries({
-			queryKey: activeOrganizationQueryKey(activeOrganizationSlug),
+			queryKey: activeOrganizationQueryKey(resolvedSlug),
 		});
 	};
 
@@ -48,11 +71,11 @@ export function ActiveOrganizationProvider({
 			await authClient.organization.setActive(
 				organizationSlug
 					? {
-							organizationSlug,
-						}
+						organizationSlug,
+					}
 					: {
-							organizationId: null,
-						},
+						organizationId: null,
+					},
 			);
 
 		if (!newActiveOrganization) {
@@ -60,7 +83,9 @@ export function ActiveOrganizationProvider({
 			return;
 		}
 
-		await refetchActiveOrganization();
+		await queryClient.invalidateQueries({
+			queryKey: ["user", "activeOrganization"],
+		});
 
 		if (config.organizations.enableBilling) {
 			await queryClient.prefetchQuery(
@@ -82,7 +107,12 @@ export function ActiveOrganizationProvider({
 			};
 		});
 
-		router.push(`/app/${newActiveOrganization.slug}`);
+		if (params.organizationSlug) {
+			router.push(`/app/dashboard`);
+		} else {
+			router.refresh();
+		}
+		nProgress.done();
 	};
 
 	const [loaded, setLoaded] = useState(activeOrganization !== undefined);
@@ -91,7 +121,7 @@ export function ActiveOrganizationProvider({
 		if (!loaded && activeOrganization !== undefined) {
 			setLoaded(true);
 		}
-	}, [activeOrganization]);
+	}, [activeOrganization, loaded]);
 
 	const activeOrganizationUserRole = activeOrganization?.members.find(
 		(member) => member.userId === session?.userId,

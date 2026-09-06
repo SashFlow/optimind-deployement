@@ -70,16 +70,8 @@ export default async function Layout({ children }: PropsWithChildren) {
 	}
 
 	return (
-		<div className="min-h-screen bg-background text-foreground noise">
-			<AppShell
-				user={{
-					name: session.user.name ?? "User",
-					email: session.user.email,
-					image: session.user.image,
-				}}
-			>
-				{children}
-			</AppShell>
+		<div className="relative min-h-svh overflow-hidden bg-background text-foreground">
+			<AppShell>{children}</AppShell>
 		</div>
 	);
 }

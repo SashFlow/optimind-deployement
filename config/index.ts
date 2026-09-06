@@ -1,7 +1,7 @@
 import type { Config } from "./types";
 
 export const config = {
-	appName: "Sashflow",
+	appName: "Optimind",
 	// Internationalization
 	i18n: {
 		// Whether internationalization should be enabled (if disabled, you still need to define the locale you want to use below and set it as the default locale)
@@ -24,15 +24,15 @@ export const config = {
 	// Organizations
 	organizations: {
 		// Whether organizations are enabled in general
-		enable: false,
+		enable: true,
 		// Whether billing for organizations should be enabled (below you can enable it for users instead)
 		enableBilling: false,
 		// Whether the organization should be hidden from the user (use this for multi-tenant applications)
 		hideOrganization: false,
 		// Should users be able to create new organizations? Otherwise only admin users can create them
-		enableUsersToCreateOrganizations: false,
+		enableUsersToCreateOrganizations: true,
 		// Whether users should be required to be in an organization. This will redirect users to the organization page after sign in
-		requireOrganization: false,
+		requireOrganization: true,
 		// Define forbidden organization slugs. Make sure to add all paths that you define as a route after /app/... to avoid routing issues
 		forbiddenOrganizationSlugs: [
 			"new-organization",
@@ -40,6 +40,14 @@ export const config = {
 			"settings",
 			"ai-demo",
 			"organization-invitation",
+			"dashboard",
+			"agents",
+			"knowledge-base",
+			"campaigns",
+			"integrations",
+			"playground",
+			"browser",
+			"share",
 		],
 	},
 	// Users
@@ -64,7 +72,7 @@ export const config = {
 		// Whether users should be activate two factor authentication
 		enableTwoFactor: false,
 		// where users should be redirected after the sign in
-		redirectAfterSignIn: "/app",
+		redirectAfterSignIn: "/app/dashboard",
 		// where users should be redirected after logout
 		redirectAfterLogout: "/",
 		// how long a session should be valid
@@ -80,7 +88,7 @@ export const config = {
 		// the themes that should be available in the app
 		enabledThemes: ["light", "dark"],
 		// the default theme
-		defaultTheme: "dark",
+		defaultTheme: "light",
 		// the saas part of the application
 		saas: {
 			// whether the saas part should be enabled (otherwise all routes will be redirect to the marketing page)

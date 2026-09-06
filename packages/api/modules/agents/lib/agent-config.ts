@@ -40,6 +40,7 @@ export const agentConfigSchema = z
 		customVoiceId: z.string().optional(),
 		knowledgeBaseIds: z.array(z.string()).default([]),
 		systemPrompt: z.string().optional(),
+		recordingEnabled: z.boolean().optional(),
 	})
 	.passthrough();
 

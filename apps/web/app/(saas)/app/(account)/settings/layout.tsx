@@ -62,16 +62,18 @@ export default async function SettingsLayout({ children }: PropsWithChildren) {
 	];
 
 	return (
-		<>
+		<div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6">
 			<PageHeader
 				title={t("settings.account.title")}
 				subtitle={t("settings.account.subtitle")}
 			/>
-			<SidebarContentLayout
-				sidebar={<SettingsMenu menuItems={menuItems} />}
-			>
-				{children}
-			</SidebarContentLayout>
-		</>
+			<div className="overflow-hidden rounded-3xl border bg-card p-4 shadow-sm ring-1 ring-black/5 md:p-6">
+				<SidebarContentLayout
+					sidebar={<SettingsMenu menuItems={menuItems} />}
+				>
+					{children}
+				</SidebarContentLayout>
+			</div>
+		</div>
 	);
 }

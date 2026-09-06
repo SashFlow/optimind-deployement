@@ -24,7 +24,6 @@ const nextConfig: NextConfig = {
 		"@repo/payments",
 		"@repo/storage",
 		"@repo/ui",
-		"@repo/ai",
 		"@repo/logs",
 	],
 	images: {
@@ -60,8 +59,8 @@ const nextConfig: NextConfig = {
 		return [
 			{
 				source: "/app",
-				destination: "/app/playground",
-				permanent: true,
+				destination: "/app/dashboard",
+				permanent: false,
 			},
 		];
 	},

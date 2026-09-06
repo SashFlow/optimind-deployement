@@ -1,38 +1,39 @@
 "use client";
 
-import { Separator } from "@repo/ui/separator";
-import {
-	SidebarInset,
-	SidebarProvider,
-	SidebarTrigger,
-} from "@repo/ui/shadcn-sidebar";
-import type { PropsWithChildren } from "react";
-import { AppSidebar } from "./app-sidebar";
-import { useState } from "react";
+import { AppCanvas } from "@components/shared/app-canvas";
+import { AppHeader } from "@components/shared/app-header";
+import { AppHeaderProvider } from "@components/shared/app-header-provider";
+import { AppSidebar } from "@components/shared/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@repo/ui/shadcn-sidebar";
+import type { CSSProperties, PropsWithChildren } from "react";
 
-type AppShellProps = PropsWithChildren<{
-	user: {
-		name: string;
-		email: string;
-		image?: string | null;
-	};
-}>;
-
-export function AppShell({ user, children }: AppShellProps) {
-	const [title, setTitle] = useState<string>("Playground");
+export function AppShell({ children }: PropsWithChildren) {
 	return (
-		<SidebarProvider>
-			<AppSidebar user={user} setTitle={setTitle} />
-			<SidebarInset>
-				<header className="flex h-14 shrink-0 items-center gap-2 px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-					<SidebarTrigger className="-ml-1" />
-					<Separator orientation="vertical" className="mr-2 h-4" />
-					<span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-						{title}
-					</span>
-				</header>
-				<div className="flex flex-1 flex-col p-4 pt-0">{children}</div>
-			</SidebarInset>
+		<SidebarProvider
+			open={false}
+			onOpenChange={() => {}}
+			className="relative isolate flex flex-col bg-transparent"
+			style={
+				{
+					"--app-rail-size": "7rem",
+					"--sidebar-width-icon": "5rem",
+				} as CSSProperties
+			}
+		>
+			<AppCanvas />
+			<AppHeaderProvider>
+				<div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
+					<AppHeader />
+					<div className="flex min-h-0 flex-1 overflow-hidden">
+						<AppSidebar />
+						<SidebarInset className="bg-transparent!">
+							<div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2 pt-24">
+								{children}
+							</div>
+						</SidebarInset>
+					</div>
+				</div>
+			</AppHeaderProvider>
 		</SidebarProvider>
 	);
 }

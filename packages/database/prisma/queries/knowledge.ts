@@ -2,8 +2,8 @@ import type {
 	DocumentSourceType,
 	DocumentStatus,
 	KnowledgeBaseStatus,
-	Prisma,
 } from "../generated/client";
+import { Prisma } from "../generated/client";
 import { db } from "../client";
 
 export async function listKnowledgeBases(organizationId: string) {

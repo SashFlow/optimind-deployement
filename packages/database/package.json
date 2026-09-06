@@ -13,7 +13,7 @@
 		"@types/node": "24.6.0",
 		"dotenv-cli": "^10.0.0",
 		"prisma": "6.16.2",
-		"prisma-zod-generator": "^1.25.0"
+		"prisma-zod-generator": "1.25.0"
 	},
 	"main": "./index.ts",
 	"name": "@repo/database",

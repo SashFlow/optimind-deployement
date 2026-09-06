@@ -30,6 +30,8 @@ import {
 	getLiveKitConfig,
 	startRoomCompositeEgress,
 	stopEgress,
+	getEgressS3Config,
+	recordingFilepath,
 } from "@repo/livekit";
 import {
 	assignNumberToTrunk,
@@ -456,25 +458,51 @@ export const startEgress = protectedProcedure
 		z.object({
 			organizationId: z.string(),
 			roomName: z.string(),
-			filepath: z.string(),
+			filepath: z.string().optional(),
 			campaignSessionId: z.string().optional(),
+			agentSessionId: z.string().optional(),
+			agentId: z.string().optional(),
 			audioOnly: z.boolean().optional(),
 		}),
 	)
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
+		const s3 = getEgressS3Config();
+		const filepath =
+			input.filepath ??
+			(input.agentSessionId
+				? recordingFilepath({
+						organizationId: input.organizationId,
+						sessionId: input.agentSessionId,
+						roomName: input.roomName,
+					})
+				: `${input.organizationId}/${input.roomName}.mp4`);
+
 		const remote = await startRoomCompositeEgress({
 			roomName: input.roomName,
-			filepath: input.filepath,
+			filepath,
 			audioOnly: input.audioOnly,
+			s3,
 		});
 		const job = await createEgressJob({
 			organizationId: input.organizationId,
 			type: "ROOM_COMPOSITE",
 			campaignSessionId: input.campaignSessionId,
+			agentSessionId: input.agentSessionId,
+			agentId: input.agentId,
 			livekitEgressId: remote.egressId,
 			roomName: input.roomName,
 			status: "ACTIVE",
+			destination: s3
+				? {
+						bucket: s3.bucket,
+						region: s3.region,
+						filepath,
+						endpoint: s3.endpoint ?? null,
+					}
+				: { filepath },
+			fileUrl: s3 ? `s3://${s3.bucket}/${filepath}` : undefined,
+			outputUrls: s3 ? [`s3://${s3.bucket}/${filepath}`] : [],
 		});
 		return { job, remote };
 	});
