@@ -437,52 +437,52 @@ export const WelcomeView = ({
 
 								{appointments.length >
 									APPOINTMENTS_PER_PAGE && (
-										<div className="mt-3 flex flex-col items-start gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-											<span className="text-muted-foreground">
-												Page {appointmentsPage} of{" "}
-												{totalAppointmentPages}
-											</span>
-											<div className="flex gap-1">
-												<Button
-													size="icon"
-													variant="ghost"
-													onClick={() =>
-														setAppointmentsPage(
-															(page) =>
-																Math.max(
-																	1,
-																	page - 1,
-																),
-														)
-													}
-													disabled={
-														appointmentsPage === 1
-													}
-												>
-													<ChevronLeft className="h-4 w-4" />
-												</Button>
-												<Button
-													size="icon"
-													variant="ghost"
-													onClick={() =>
-														setAppointmentsPage(
-															(page) =>
-																Math.min(
-																	totalAppointmentPages,
-																	page + 1,
-																),
-														)
-													}
-													disabled={
-														appointmentsPage ===
-														totalAppointmentPages
-													}
-												>
-													<ChevronRight className="h-4 w-4" />
-												</Button>
-											</div>
+									<div className="mt-3 flex flex-col items-start gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+										<span className="text-muted-foreground">
+											Page {appointmentsPage} of{" "}
+											{totalAppointmentPages}
+										</span>
+										<div className="flex gap-1">
+											<Button
+												size="icon"
+												variant="ghost"
+												onClick={() =>
+													setAppointmentsPage(
+														(page) =>
+															Math.max(
+																1,
+																page - 1,
+															),
+													)
+												}
+												disabled={
+													appointmentsPage === 1
+												}
+											>
+												<ChevronLeft className="h-4 w-4" />
+											</Button>
+											<Button
+												size="icon"
+												variant="ghost"
+												onClick={() =>
+													setAppointmentsPage(
+														(page) =>
+															Math.min(
+																totalAppointmentPages,
+																page + 1,
+															),
+													)
+												}
+												disabled={
+													appointmentsPage ===
+													totalAppointmentPages
+												}
+											>
+												<ChevronRight className="h-4 w-4" />
+											</Button>
 										</div>
-									)}
+									</div>
+								)}
 							</div>
 						</div>
 					</section>

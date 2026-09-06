@@ -136,7 +136,10 @@ export async function listOutboundSipTrunks(config?: LiveKitConfig) {
 	return sip.listSipOutboundTrunk();
 }
 
-export async function deleteSipTrunk(sipTrunkId: string, config?: LiveKitConfig) {
+export async function deleteSipTrunk(
+	sipTrunkId: string,
+	config?: LiveKitConfig,
+) {
 	const { sip } = clients(config);
 	return sip.deleteSipTrunk(sipTrunkId);
 }
@@ -191,11 +194,16 @@ export async function createSipParticipant(opts: {
 	config?: LiveKitConfig;
 }) {
 	const { sip } = clients(opts.config);
-	return sip.createSipParticipant(opts.trunkId, opts.phoneNumber, opts.roomName, {
-		participantIdentity: opts.participantIdentity,
-		participantName: opts.participantName,
-		playDialtone: opts.playDialtone,
-	});
+	return sip.createSipParticipant(
+		opts.trunkId,
+		opts.phoneNumber,
+		opts.roomName,
+		{
+			participantIdentity: opts.participantIdentity,
+			participantName: opts.participantName,
+			playDialtone: opts.playDialtone,
+		},
+	);
 }
 
 export async function startRoomCompositeEgress(opts: {
@@ -251,4 +259,3 @@ export async function createOutboundRoomWithDispatch(opts: {
 	});
 	return { roomName: opts.roomName, dispatch };
 }
-

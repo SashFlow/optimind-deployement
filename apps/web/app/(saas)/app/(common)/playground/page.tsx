@@ -84,7 +84,7 @@ const PlaygroundPage = () => {
 
 	const nextHref =
 		selectedAgentSlug == null ||
-			(selectedScenario !== "medical-examination" && !selectedPersona)
+		(selectedScenario !== "medical-examination" && !selectedPersona)
 			? null
 			: `${selectedMode}/${selectedScenario}?selectedAgent=${selectedAgentSlug}${personaQuery}`;
 
@@ -92,8 +92,7 @@ const PlaygroundPage = () => {
 		<main className="bg-background flex flex-1 h-full px-4 py-8 md:px-8">
 			<div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
 				<Card>
-					<CardHeader>
-					</CardHeader>
+					<CardHeader></CardHeader>
 					<CardContent className="space-y-6">
 						{/* Mode selector */}
 						<div className="flex-col flex sm:flex-row justify-between gap-4">
@@ -160,7 +159,7 @@ const PlaygroundPage = () => {
 									>
 										<CardHeader className="space-y-3 pb-3">
 											{selectedMode === "audio" ||
-												selectedMode === "phone" ? (
+											selectedMode === "phone" ? (
 												<AudioWaveformPreview />
 											) : (
 												<div className="bg-muted/40 flex aspect-3/2 w-full items-center justify-center rounded-lg border">

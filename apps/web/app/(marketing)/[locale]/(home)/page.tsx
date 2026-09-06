@@ -244,204 +244,204 @@ const useCases: Array<{
 	body: string;
 	demo: DemoData;
 }> = [
-		{
-			n: "01",
-			title: "Medical Examination",
-			body: "Conversational triage that listens, probes, and structures findings into SOAP notes — handed to clinicians, never replacing them.",
-			demo: {
-				title: "Chest pain triage, 71yo",
-				caller: "intake · room 3",
-				duration: 18,
-				lines: [
-					{
-						t: 0.2,
-						who: "ai",
-						text: "Good morning Mr. Hale. Before the doctor sees you, can you describe the chest discomfort in your own words?",
-					},
-					{
-						t: 4.5,
-						who: "user",
-						text: "It's a tightness, here, started after breakfast. Comes and goes.",
-					},
-					{
-						t: 9,
-						who: "ai",
-						text: "Is it sharp or more like a pressure? Does it move to your arm or jaw?",
-					},
-					{
-						t: 13,
-						who: "user",
-						text: "Pressure. Goes a little into my left shoulder.",
-					},
-					{
-						t: 16,
-						who: "ai",
-						text: "Noted. Flagging as possible cardiac — Dr. Okafor will be with you in two minutes.",
-					},
-				],
-			},
+	{
+		n: "01",
+		title: "Medical Examination",
+		body: "Conversational triage that listens, probes, and structures findings into SOAP notes — handed to clinicians, never replacing them.",
+		demo: {
+			title: "Chest pain triage, 71yo",
+			caller: "intake · room 3",
+			duration: 18,
+			lines: [
+				{
+					t: 0.2,
+					who: "ai",
+					text: "Good morning Mr. Hale. Before the doctor sees you, can you describe the chest discomfort in your own words?",
+				},
+				{
+					t: 4.5,
+					who: "user",
+					text: "It's a tightness, here, started after breakfast. Comes and goes.",
+				},
+				{
+					t: 9,
+					who: "ai",
+					text: "Is it sharp or more like a pressure? Does it move to your arm or jaw?",
+				},
+				{
+					t: 13,
+					who: "user",
+					text: "Pressure. Goes a little into my left shoulder.",
+				},
+				{
+					t: 16,
+					who: "ai",
+					text: "Noted. Flagging as possible cardiac — Dr. Okafor will be with you in two minutes.",
+				},
+			],
 		},
-		{
-			n: "02",
-			title: "Inbound Calls",
-			body: "Answers in 600ms with the warmth of a front-desk veteran. Books, reschedules, escalates — fluent in 38 languages.",
-			demo: {
-				title: "Reschedule + insurance check",
-				caller: "inbound · +49 30 ···",
-				duration: 16,
-				lines: [
-					{
-						t: 0.2,
-						who: "ai",
-						text: "Charité dermatology, this is Sai — how can I help?",
-					},
-					{
-						t: 3,
-						who: "user",
-						text: "I need to move my Thursday appointment. Also, do you take TK?",
-					},
-					{
-						t: 7,
-						who: "ai",
-						text: "Of course. I see Thursday 14:00 with Dr. Lange. Next openings are Tuesday 09:30 or Friday 11:00.",
-					},
-					{ t: 12, who: "user", text: "Friday works." },
-					{
-						t: 14,
-						who: "ai",
-						text: "Booked. And yes — TK is in network, no referral needed.",
-					},
-				],
-			},
+	},
+	{
+		n: "02",
+		title: "Inbound Calls",
+		body: "Answers in 600ms with the warmth of a front-desk veteran. Books, reschedules, escalates — fluent in 38 languages.",
+		demo: {
+			title: "Reschedule + insurance check",
+			caller: "inbound · +49 30 ···",
+			duration: 16,
+			lines: [
+				{
+					t: 0.2,
+					who: "ai",
+					text: "Charité dermatology, this is Sai — how can I help?",
+				},
+				{
+					t: 3,
+					who: "user",
+					text: "I need to move my Thursday appointment. Also, do you take TK?",
+				},
+				{
+					t: 7,
+					who: "ai",
+					text: "Of course. I see Thursday 14:00 with Dr. Lange. Next openings are Tuesday 09:30 or Friday 11:00.",
+				},
+				{ t: 12, who: "user", text: "Friday works." },
+				{
+					t: 14,
+					who: "ai",
+					text: "Booked. And yes — TK is in network, no referral needed.",
+				},
+			],
 		},
-		{
-			n: "03",
-			title: "Outbound Calls",
-			body: "Follow-ups, no-show recovery, post-op check-ins. Each call adapts tone to the patient's history, not a script.",
-			demo: {
-				title: "Day-3 post-op check-in",
-				caller: "outbound · ortho",
-				duration: 17,
-				lines: [
-					{
-						t: 0.2,
-						who: "ai",
-						text: "Hi Maria, it's Sai from Dr. Patel's office — quick check on day three after the knee scope?",
-					},
-					{
-						t: 5,
-						who: "user",
-						text: "Swelling is down but I'm still pretty sore at night.",
-					},
-					{
-						t: 9,
-						who: "ai",
-						text: "That tracks for day three. Are you icing twenty minutes, four times a day?",
-					},
-					{ t: 13, who: "user", text: "More like twice." },
-					{
-						t: 15,
-						who: "ai",
-						text: "Bump it to four — I'll text the schedule and let Dr. Patel know.",
-					},
-				],
-			},
+	},
+	{
+		n: "03",
+		title: "Outbound Calls",
+		body: "Follow-ups, no-show recovery, post-op check-ins. Each call adapts tone to the patient's history, not a script.",
+		demo: {
+			title: "Day-3 post-op check-in",
+			caller: "outbound · ortho",
+			duration: 17,
+			lines: [
+				{
+					t: 0.2,
+					who: "ai",
+					text: "Hi Maria, it's Sai from Dr. Patel's office — quick check on day three after the knee scope?",
+				},
+				{
+					t: 5,
+					who: "user",
+					text: "Swelling is down but I'm still pretty sore at night.",
+				},
+				{
+					t: 9,
+					who: "ai",
+					text: "That tracks for day three. Are you icing twenty minutes, four times a day?",
+				},
+				{ t: 13, who: "user", text: "More like twice." },
+				{
+					t: 15,
+					who: "ai",
+					text: "Bump it to four — I'll text the schedule and let Dr. Patel know.",
+				},
+			],
 		},
-		{
-			n: "04",
-			title: "Customer Support",
-			body: "Resolves tier-1 in seconds with full memory of the account. Hands warm-transferred context to a human when nuance demands it.",
-			demo: {
-				title: "Billing dispute, account #4471",
-				caller: "support · tier-1",
-				duration: 15,
-				lines: [
-					{
-						t: 0.2,
-						who: "ai",
-						text: "Hi Jonas — I see two charges on Tuesday. Want me to walk through them?",
-					},
-					{
-						t: 4,
-						who: "user",
-						text: "Yeah, the second one looks duplicate.",
-					},
-					{
-						t: 7,
-						who: "ai",
-						text: "It is — same merchant, 11 seconds apart. I've reversed it; funds back in two business days.",
-					},
-					{ t: 12, who: "user", text: "That easy?" },
-					{
-						t: 13.5,
-						who: "ai",
-						text: "That easy. Anything else on the account?",
-					},
-				],
-			},
+	},
+	{
+		n: "04",
+		title: "Customer Support",
+		body: "Resolves tier-1 in seconds with full memory of the account. Hands warm-transferred context to a human when nuance demands it.",
+		demo: {
+			title: "Billing dispute, account #4471",
+			caller: "support · tier-1",
+			duration: 15,
+			lines: [
+				{
+					t: 0.2,
+					who: "ai",
+					text: "Hi Jonas — I see two charges on Tuesday. Want me to walk through them?",
+				},
+				{
+					t: 4,
+					who: "user",
+					text: "Yeah, the second one looks duplicate.",
+				},
+				{
+					t: 7,
+					who: "ai",
+					text: "It is — same merchant, 11 seconds apart. I've reversed it; funds back in two business days.",
+				},
+				{ t: 12, who: "user", text: "That easy?" },
+				{
+					t: 13.5,
+					who: "ai",
+					text: "That easy. Anything else on the account?",
+				},
+			],
 		},
-		{
-			n: "05",
-			title: "Medical Classes",
-			body: "Live transcription of lectures with anatomical disambiguation, drug-name precision, and instant searchable study packs.",
-			demo: {
-				title: "Pharmacology lecture · ACE inhibitors",
-				caller: "lecture · UMC week 9",
-				duration: 16,
-				lines: [
-					{
-						t: 0.2,
-						who: "user",
-						text: "...so lisinopril blocks angiotensin-converting enzyme — note the spelling, two i's.",
-					},
-					{
-						t: 6,
-						who: "ai",
-						text: "Captured: lisinopril (ACE-I). Linked to Goodman & Gilman ch. 26.",
-					},
-					{
-						t: 10,
-						who: "user",
-						text: "Side effect to remember: dry cough, roughly 10% of patients.",
-					},
-					{
-						t: 13.5,
-						who: "ai",
-						text: "Flashcard generated · cough · bradykinin accumulation.",
-					},
-				],
-			},
+	},
+	{
+		n: "05",
+		title: "Medical Classes",
+		body: "Live transcription of lectures with anatomical disambiguation, drug-name precision, and instant searchable study packs.",
+		demo: {
+			title: "Pharmacology lecture · ACE inhibitors",
+			caller: "lecture · UMC week 9",
+			duration: 16,
+			lines: [
+				{
+					t: 0.2,
+					who: "user",
+					text: "...so lisinopril blocks angiotensin-converting enzyme — note the spelling, two i's.",
+				},
+				{
+					t: 6,
+					who: "ai",
+					text: "Captured: lisinopril (ACE-I). Linked to Goodman & Gilman ch. 26.",
+				},
+				{
+					t: 10,
+					who: "user",
+					text: "Side effect to remember: dry cough, roughly 10% of patients.",
+				},
+				{
+					t: 13.5,
+					who: "ai",
+					text: "Flashcard generated · cough · bradykinin accumulation.",
+				},
+			],
 		},
-		{
-			n: "06",
-			title: "Report Explainer",
-			body: "Reads a radiology or lab report aloud in the patient's own vocabulary. Answers follow-ups with cited sources, not vibes.",
-			demo: {
-				title: "MRI lumbar spine · plain-language read",
-				caller: "patient portal",
-				duration: 17,
-				lines: [
-					{
-						t: 0.2,
-						who: "ai",
-						text: "Your MRI shows a small bulge at L4-L5 — think of it as a slightly squeezed cushion between two vertebrae.",
-					},
-					{ t: 7, who: "user", text: "Is that why my leg tingles?" },
-					{
-						t: 10,
-						who: "ai",
-						text: "Likely yes. The bulge sits near the nerve that runs down your left leg. Most cases improve with PT in 6-8 weeks.",
-					},
-					{ t: 15, who: "user", text: "Do I need surgery?" },
-					{
-						t: 16,
-						who: "ai",
-						text: "Not based on this scan. I'll send Dr. Chen a note to confirm.",
-					},
-				],
-			},
+	},
+	{
+		n: "06",
+		title: "Report Explainer",
+		body: "Reads a radiology or lab report aloud in the patient's own vocabulary. Answers follow-ups with cited sources, not vibes.",
+		demo: {
+			title: "MRI lumbar spine · plain-language read",
+			caller: "patient portal",
+			duration: 17,
+			lines: [
+				{
+					t: 0.2,
+					who: "ai",
+					text: "Your MRI shows a small bulge at L4-L5 — think of it as a slightly squeezed cushion between two vertebrae.",
+				},
+				{ t: 7, who: "user", text: "Is that why my leg tingles?" },
+				{
+					t: 10,
+					who: "ai",
+					text: "Likely yes. The bulge sits near the nerve that runs down your left leg. Most cases improve with PT in 6-8 weeks.",
+				},
+				{ t: 15, who: "user", text: "Do I need surgery?" },
+				{
+					t: 16,
+					who: "ai",
+					text: "Not based on this scan. I'll send Dr. Chen a note to confirm.",
+				},
+			],
 		},
-	];
+	},
+];
 
 const features = [
 	{ k: "Latency", v: "612ms", note: "median first-token, EU edge" },

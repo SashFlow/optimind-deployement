@@ -28,7 +28,9 @@ export async function getCampaignById(id: string) {
 		include: {
 			agent: { include: { publishedVersion: true } },
 			knowledgeBases: { include: { knowledgeBase: true } },
-			_count: { select: { contacts: true, sessions: true, accessLinks: true } },
+			_count: {
+				select: { contacts: true, sessions: true, accessLinks: true },
+			},
 		},
 	});
 }
@@ -141,7 +143,10 @@ export async function getCampaignContactById(id: string) {
 	return db.campaignContact.findUnique({ where: { id } });
 }
 
-export async function enqueueCampaignContacts(campaignId: string, contactIds?: string[]) {
+export async function enqueueCampaignContacts(
+	campaignId: string,
+	contactIds?: string[],
+) {
 	return db.campaignContact.updateMany({
 		where: {
 			campaignId,
@@ -177,16 +182,16 @@ export async function rescheduleCampaignContact(
 	});
 }
 
-export async function listQueuedContacts(
-	campaignId: string,
-	limit = 20,
-) {
+export async function listQueuedContacts(campaignId: string, limit = 20) {
 	return db.campaignContact.findMany({
 		where: {
 			campaignId,
 			status: "QUEUED",
 			doNotContact: false,
-			OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: new Date() } }],
+			OR: [
+				{ nextAttemptAt: null },
+				{ nextAttemptAt: { lte: new Date() } },
+			],
 		},
 		orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "asc" }],
 		take: limit,

@@ -164,7 +164,10 @@ export function UserMenu({ showUserName }: { showUserName?: boolean }) {
 					</Link>
 				</DropdownMenuItem>
 
-				<DropdownMenuItem onClick={onLogout} className="w-full justify-between">
+				<DropdownMenuItem
+					onClick={onLogout}
+					className="w-full justify-between"
+				>
 					<LogOutIcon className="mr-2 h-4 w-4" />
 					{t("app.userMenu.logout")}
 				</DropdownMenuItem>

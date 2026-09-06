@@ -22,15 +22,27 @@ async function requireKb(id: string, userId: string) {
 }
 
 export const list = protectedProcedure
-	.route({ method: "GET", path: "/knowledge-bases", tags: ["Knowledge"], summary: "List knowledge bases" })
+	.route({
+		method: "GET",
+		path: "/knowledge-bases",
+		tags: ["Knowledge"],
+		summary: "List knowledge bases",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
-		return { knowledgeBases: await listKnowledgeBases(input.organizationId) };
+		return {
+			knowledgeBases: await listKnowledgeBases(input.organizationId),
+		};
 	});
 
 export const get = protectedProcedure
-	.route({ method: "GET", path: "/knowledge-bases/{id}", tags: ["Knowledge"], summary: "Get knowledge base" })
+	.route({
+		method: "GET",
+		path: "/knowledge-bases/{id}",
+		tags: ["Knowledge"],
+		summary: "Get knowledge base",
+	})
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const knowledgeBase = await requireKb(input.id, context.user.id);
@@ -38,7 +50,12 @@ export const get = protectedProcedure
 	});
 
 export const create = protectedProcedure
-	.route({ method: "POST", path: "/knowledge-bases", tags: ["Knowledge"], summary: "Create knowledge base" })
+	.route({
+		method: "POST",
+		path: "/knowledge-bases",
+		tags: ["Knowledge"],
+		summary: "Create knowledge base",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -55,7 +72,12 @@ export const create = protectedProcedure
 	});
 
 export const update = protectedProcedure
-	.route({ method: "PATCH", path: "/knowledge-bases/{id}", tags: ["Knowledge"], summary: "Update knowledge base" })
+	.route({
+		method: "PATCH",
+		path: "/knowledge-bases/{id}",
+		tags: ["Knowledge"],
+		summary: "Update knowledge base",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -71,7 +93,12 @@ export const update = protectedProcedure
 	});
 
 export const createDoc = protectedProcedure
-	.route({ method: "POST", path: "/knowledge-bases/{id}/documents", tags: ["Knowledge"], summary: "Create document" })
+	.route({
+		method: "POST",
+		path: "/knowledge-bases/{id}/documents",
+		tags: ["Knowledge"],
+		summary: "Create document",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -94,7 +121,12 @@ export const createDoc = protectedProcedure
 	});
 
 export const ingestChunks = protectedProcedure
-	.route({ method: "POST", path: "/knowledge-bases/documents/{documentId}/chunks", tags: ["Knowledge"], summary: "Ingest chunks" })
+	.route({
+		method: "POST",
+		path: "/knowledge-bases/documents/{documentId}/chunks",
+		tags: ["Knowledge"],
+		summary: "Ingest chunks",
+	})
 	.input(
 		z.object({
 			documentId: z.string(),
@@ -122,7 +154,9 @@ export const ingestChunks = protectedProcedure
 			})),
 		);
 		if (input.markReady !== false) {
-			const doc = await updateDocument(input.documentId, { status: "READY" });
+			const doc = await updateDocument(input.documentId, {
+				status: "READY",
+			});
 			// soft org check via document's KB — fetch through update result path
 			void doc;
 		}
@@ -132,7 +166,12 @@ export const ingestChunks = protectedProcedure
 	});
 
 export const search = protectedProcedure
-	.route({ method: "POST", path: "/knowledge-bases/{id}/search", tags: ["Knowledge"], summary: "Vector search" })
+	.route({
+		method: "POST",
+		path: "/knowledge-bases/{id}/search",
+		tags: ["Knowledge"],
+		summary: "Vector search",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -147,7 +186,12 @@ export const search = protectedProcedure
 	});
 
 export const removeDocument = protectedProcedure
-	.route({ method: "DELETE", path: "/knowledge-bases/documents/{documentId}", tags: ["Knowledge"], summary: "Delete document" })
+	.route({
+		method: "DELETE",
+		path: "/knowledge-bases/documents/{documentId}",
+		tags: ["Knowledge"],
+		summary: "Delete document",
+	})
 	.input(z.object({ documentId: z.string() }))
 	.handler(async ({ input, context }) => {
 		void context;

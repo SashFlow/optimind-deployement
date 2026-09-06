@@ -138,9 +138,9 @@ export function InteractiveHeroBackground() {
 		const gl = reducedMotion
 			? null
 			: canvas.getContext("webgl", {
-				alpha: true,
-				premultipliedAlpha: true,
-			});
+					alpha: true,
+					premultipliedAlpha: true,
+				});
 
 		if (!gl) {
 			return;

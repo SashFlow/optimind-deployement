@@ -43,7 +43,9 @@ export async function aggregateUsageByAgent(
 ) {
 	const where: Prisma.UsageMetricWhereInput = {
 		organizationId,
-		...(opts?.agentId ? { agentId: opts.agentId } : { agentId: { not: null } }),
+		...(opts?.agentId
+			? { agentId: opts.agentId }
+			: { agentId: { not: null } }),
 		...(opts?.from || opts?.to
 			? {
 					recordedAt: {

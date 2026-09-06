@@ -44,7 +44,12 @@ import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
 
 export const listNumbers = protectedProcedure
-	.route({ method: "GET", path: "/telephony/numbers", tags: ["Telephony"], summary: "List phone numbers" })
+	.route({
+		method: "GET",
+		path: "/telephony/numbers",
+		tags: ["Telephony"],
+		summary: "List phone numbers",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
@@ -52,7 +57,12 @@ export const listNumbers = protectedProcedure
 	});
 
 export const syncPlivoNumbers = protectedProcedure
-	.route({ method: "POST", path: "/telephony/numbers/sync", tags: ["Telephony"], summary: "Sync Plivo numbers" })
+	.route({
+		method: "POST",
+		path: "/telephony/numbers/sync",
+		tags: ["Telephony"],
+		summary: "Sync Plivo numbers",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
@@ -77,7 +87,12 @@ export const syncPlivoNumbers = protectedProcedure
 	});
 
 export const assignNumber = protectedProcedure
-	.route({ method: "PATCH", path: "/telephony/numbers/{id}", tags: ["Telephony"], summary: "Assign phone number" })
+	.route({
+		method: "PATCH",
+		path: "/telephony/numbers/{id}",
+		tags: ["Telephony"],
+		summary: "Assign phone number",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -98,19 +113,27 @@ export const assignNumber = protectedProcedure
 			campaignId: input.campaignId,
 			agentId: input.agentId,
 			sipTrunkId: input.sipTrunkId,
-			friendlyName: input.friendlyName ?? existing.friendlyName ?? undefined,
+			friendlyName:
+				input.friendlyName ?? existing.friendlyName ?? undefined,
 		});
 		return { phoneNumber };
 	});
 
 export const provisionInboundSip = protectedProcedure
-	.route({ method: "POST", path: "/telephony/sip/inbound", tags: ["Telephony"], summary: "Provision inbound SIP" })
+	.route({
+		method: "POST",
+		path: "/telephony/sip/inbound",
+		tags: ["Telephony"],
+		summary: "Provision inbound SIP",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
 			name: z.string(),
 			numbers: z.array(z.string()).min(1),
-			livekitSipHost: z.string().describe("LiveKit SIP host, e.g. xxx.sip.livekit.cloud"),
+			livekitSipHost: z
+				.string()
+				.describe("LiveKit SIP host, e.g. xxx.sip.livekit.cloud"),
 			secure: z.boolean().optional(),
 		}),
 	)
@@ -152,7 +175,12 @@ export const provisionInboundSip = protectedProcedure
 	});
 
 export const provisionOutboundSip = protectedProcedure
-	.route({ method: "POST", path: "/telephony/sip/outbound", tags: ["Telephony"], summary: "Provision outbound SIP" })
+	.route({
+		method: "POST",
+		path: "/telephony/sip/outbound",
+		tags: ["Telephony"],
+		summary: "Provision outbound SIP",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -208,7 +236,12 @@ export const provisionOutboundSip = protectedProcedure
 	});
 
 export const listTrunks = protectedProcedure
-	.route({ method: "GET", path: "/telephony/sip/trunks", tags: ["Telephony"], summary: "List SIP trunks" })
+	.route({
+		method: "GET",
+		path: "/telephony/sip/trunks",
+		tags: ["Telephony"],
+		summary: "List SIP trunks",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
@@ -216,7 +249,12 @@ export const listTrunks = protectedProcedure
 	});
 
 export const createDispatch = protectedProcedure
-	.route({ method: "POST", path: "/telephony/dispatch-rules", tags: ["Telephony"], summary: "Create dispatch rule" })
+	.route({
+		method: "POST",
+		path: "/telephony/dispatch-rules",
+		tags: ["Telephony"],
+		summary: "Create dispatch rule",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -258,7 +296,12 @@ export const createDispatch = protectedProcedure
 	});
 
 export const listRules = protectedProcedure
-	.route({ method: "GET", path: "/telephony/dispatch-rules", tags: ["Telephony"], summary: "List dispatch rules" })
+	.route({
+		method: "GET",
+		path: "/telephony/dispatch-rules",
+		tags: ["Telephony"],
+		summary: "List dispatch rules",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
@@ -266,7 +309,12 @@ export const listRules = protectedProcedure
 	});
 
 export const deleteRule = protectedProcedure
-	.route({ method: "DELETE", path: "/telephony/dispatch-rules/{id}", tags: ["Telephony"], summary: "Delete dispatch rule" })
+	.route({
+		method: "DELETE",
+		path: "/telephony/dispatch-rules/{id}",
+		tags: ["Telephony"],
+		summary: "Delete dispatch rule",
+	})
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const rule = await getDispatchRuleById(input.id);
@@ -283,7 +331,12 @@ export const deleteRule = protectedProcedure
 	});
 
 export const createVoice = protectedProcedure
-	.route({ method: "POST", path: "/telephony/custom-voices", tags: ["Telephony"], summary: "Register custom voice" })
+	.route({
+		method: "POST",
+		path: "/telephony/custom-voices",
+		tags: ["Telephony"],
+		summary: "Register custom voice",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -299,7 +352,12 @@ export const createVoice = protectedProcedure
 	});
 
 export const listVoices = protectedProcedure
-	.route({ method: "GET", path: "/telephony/custom-voices", tags: ["Telephony"], summary: "List custom voices" })
+	.route({
+		method: "GET",
+		path: "/telephony/custom-voices",
+		tags: ["Telephony"],
+		summary: "List custom voices",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
@@ -307,7 +365,12 @@ export const listVoices = protectedProcedure
 	});
 
 export const mintToken = protectedProcedure
-	.route({ method: "POST", path: "/telephony/rooms/token", tags: ["Telephony"], summary: "Mint room token" })
+	.route({
+		method: "POST",
+		path: "/telephony/rooms/token",
+		tags: ["Telephony"],
+		summary: "Mint room token",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -334,7 +397,12 @@ export const mintToken = protectedProcedure
 	});
 
 export const startOutbound = protectedProcedure
-	.route({ method: "POST", path: "/telephony/outbound", tags: ["Telephony"], summary: "Start outbound room+dispatch" })
+	.route({
+		method: "POST",
+		path: "/telephony/outbound",
+		tags: ["Telephony"],
+		summary: "Start outbound room+dispatch",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -378,7 +446,12 @@ export const startOutbound = protectedProcedure
 	});
 
 export const startEgress = protectedProcedure
-	.route({ method: "POST", path: "/telephony/egress", tags: ["Telephony"], summary: "Start room egress" })
+	.route({
+		method: "POST",
+		path: "/telephony/egress",
+		tags: ["Telephony"],
+		summary: "Start room egress",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -407,7 +480,12 @@ export const startEgress = protectedProcedure
 	});
 
 export const stopEgressJob = protectedProcedure
-	.route({ method: "POST", path: "/telephony/egress/{id}/stop", tags: ["Telephony"], summary: "Stop egress" })
+	.route({
+		method: "POST",
+		path: "/telephony/egress/{id}/stop",
+		tags: ["Telephony"],
+		summary: "Stop egress",
+	})
 	.input(z.object({ id: z.string(), livekitEgressId: z.string() }))
 	.handler(async ({ input, context }) => {
 		const existing = await getEgressJobById(input.id);
@@ -418,9 +496,13 @@ export const stopEgressJob = protectedProcedure
 		return { job, remote };
 	});
 
-
 export const listEgressJobsProc = protectedProcedure
-	.route({ method: "GET", path: "/telephony/egress", tags: ["Telephony"], summary: "List egress jobs" })
+	.route({
+		method: "GET",
+		path: "/telephony/egress",
+		tags: ["Telephony"],
+		summary: "List egress jobs",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
@@ -428,7 +510,12 @@ export const listEgressJobsProc = protectedProcedure
 	});
 
 export const deleteTrunk = protectedProcedure
-	.route({ method: "DELETE", path: "/telephony/sip/trunks/{id}", tags: ["Telephony"], summary: "Delete SIP trunk" })
+	.route({
+		method: "DELETE",
+		path: "/telephony/sip/trunks/{id}",
+		tags: ["Telephony"],
+		summary: "Delete SIP trunk",
+	})
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const trunk = await getSipTrunkById(input.id);

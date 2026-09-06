@@ -9,7 +9,12 @@ import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
 
 export const ingest = protectedProcedure
-	.route({ method: "POST", path: "/metrics", tags: ["Metrics"], summary: "Ingest usage metric" })
+	.route({
+		method: "POST",
+		path: "/metrics",
+		tags: ["Metrics"],
+		summary: "Ingest usage metric",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -44,7 +49,12 @@ export const ingest = protectedProcedure
 	});
 
 export const byAgent = protectedProcedure
-	.route({ method: "GET", path: "/metrics/by-agent", tags: ["Metrics"], summary: "Aggregate by agent" })
+	.route({
+		method: "GET",
+		path: "/metrics/by-agent",
+		tags: ["Metrics"],
+		summary: "Aggregate by agent",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -64,7 +74,12 @@ export const byAgent = protectedProcedure
 	});
 
 export const byCampaign = protectedProcedure
-	.route({ method: "GET", path: "/metrics/by-campaign", tags: ["Metrics"], summary: "Aggregate by campaign" })
+	.route({
+		method: "GET",
+		path: "/metrics/by-campaign",
+		tags: ["Metrics"],
+		summary: "Aggregate by campaign",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -84,7 +99,12 @@ export const byCampaign = protectedProcedure
 	});
 
 export const list = protectedProcedure
-	.route({ method: "GET", path: "/metrics", tags: ["Metrics"], summary: "List usage metrics" })
+	.route({
+		method: "GET",
+		path: "/metrics",
+		tags: ["Metrics"],
+		summary: "List usage metrics",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),

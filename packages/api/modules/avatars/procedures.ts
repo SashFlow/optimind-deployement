@@ -16,7 +16,12 @@ import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
 
 export const list = protectedProcedure
-	.route({ method: "GET", path: "/avatars", tags: ["Avatars"], summary: "List avatar profiles" })
+	.route({
+		method: "GET",
+		path: "/avatars",
+		tags: ["Avatars"],
+		summary: "List avatar profiles",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
@@ -24,7 +29,12 @@ export const list = protectedProcedure
 	});
 
 export const create = protectedProcedure
-	.route({ method: "POST", path: "/avatars", tags: ["Avatars"], summary: "Create avatar profile" })
+	.route({
+		method: "POST",
+		path: "/avatars",
+		tags: ["Avatars"],
+		summary: "Create avatar profile",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -41,7 +51,12 @@ export const create = protectedProcedure
 	});
 
 export const update = protectedProcedure
-	.route({ method: "PATCH", path: "/avatars/{id}", tags: ["Avatars"], summary: "Update avatar profile" })
+	.route({
+		method: "PATCH",
+		path: "/avatars/{id}",
+		tags: ["Avatars"],
+		summary: "Update avatar profile",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -60,7 +75,12 @@ export const update = protectedProcedure
 	});
 
 export const remove = protectedProcedure
-	.route({ method: "DELETE", path: "/avatars/{id}", tags: ["Avatars"], summary: "Delete avatar profile" })
+	.route({
+		method: "DELETE",
+		path: "/avatars/{id}",
+		tags: ["Avatars"],
+		summary: "Delete avatar profile",
+	})
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const existing = await getAvatarProfileById(input.id);
@@ -71,7 +91,12 @@ export const remove = protectedProcedure
 	});
 
 export const mintSessionToken = protectedProcedure
-	.route({ method: "POST", path: "/avatars/session-token", tags: ["Avatars"], summary: "Mint Anam session token" })
+	.route({
+		method: "POST",
+		path: "/avatars/session-token",
+		tags: ["Avatars"],
+		summary: "Mint Anam session token",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -134,7 +159,12 @@ export const mintSessionToken = protectedProcedure
 	});
 
 export const listRemote = protectedProcedure
-	.route({ method: "GET", path: "/avatars/remote", tags: ["Avatars"], summary: "List Anam personas/avatars" })
+	.route({
+		method: "GET",
+		path: "/avatars/remote",
+		tags: ["Avatars"],
+		summary: "List Anam personas/avatars",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);

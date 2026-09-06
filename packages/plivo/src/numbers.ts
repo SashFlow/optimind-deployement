@@ -30,10 +30,13 @@ export async function createOriginationUri(opts: {
 	uri: string;
 	config?: PlivoConfig;
 }) {
-	return plivoRequest<{ uri_uuid: string; message: string }>("/Zentrunk/URI/", {
-		body: { name: opts.name, uri: opts.uri },
-		config: opts.config,
-	});
+	return plivoRequest<{ uri_uuid: string; message: string }>(
+		"/Zentrunk/URI/",
+		{
+			body: { name: opts.name, uri: opts.uri },
+			config: opts.config,
+		},
+	);
 }
 
 export async function createInboundTrunk(opts: {
@@ -94,5 +97,9 @@ export async function assignNumberToTrunk(
 	trunkId: string,
 	config?: PlivoConfig,
 ) {
-	return updatePhoneNumber(numberE164WithoutPlus, { app_id: trunkId }, config);
+	return updatePhoneNumber(
+		numberE164WithoutPlus,
+		{ app_id: trunkId },
+		config,
+	);
 }

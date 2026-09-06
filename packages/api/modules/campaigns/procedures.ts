@@ -31,7 +31,12 @@ async function requireCampaign(id: string, userId: string) {
 }
 
 export const list = protectedProcedure
-	.route({ method: "GET", path: "/campaigns", tags: ["Campaigns"], summary: "List campaigns" })
+	.route({
+		method: "GET",
+		path: "/campaigns",
+		tags: ["Campaigns"],
+		summary: "List campaigns",
+	})
 	.input(z.object({ organizationId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
@@ -39,7 +44,12 @@ export const list = protectedProcedure
 	});
 
 export const get = protectedProcedure
-	.route({ method: "GET", path: "/campaigns/{id}", tags: ["Campaigns"], summary: "Get campaign" })
+	.route({
+		method: "GET",
+		path: "/campaigns/{id}",
+		tags: ["Campaigns"],
+		summary: "Get campaign",
+	})
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const campaign = await requireCampaign(input.id, context.user.id);
@@ -47,7 +57,12 @@ export const get = protectedProcedure
 	});
 
 export const create = protectedProcedure
-	.route({ method: "POST", path: "/campaigns", tags: ["Campaigns"], summary: "Create campaign" })
+	.route({
+		method: "POST",
+		path: "/campaigns",
+		tags: ["Campaigns"],
+		summary: "Create campaign",
+	})
 	.input(
 		z.object({
 			organizationId: z.string(),
@@ -76,7 +91,12 @@ export const create = protectedProcedure
 	});
 
 export const update = protectedProcedure
-	.route({ method: "PATCH", path: "/campaigns/{id}", tags: ["Campaigns"], summary: "Update campaign" })
+	.route({
+		method: "PATCH",
+		path: "/campaigns/{id}",
+		tags: ["Campaigns"],
+		summary: "Update campaign",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -89,8 +109,20 @@ export const update = protectedProcedure
 			startAt: z.coerce.date().nullable().optional(),
 			endAt: z.coerce.date().nullable().optional(),
 			timezone: z.string().nullable().optional(),
-			callingWindowStartHour: z.number().int().min(0).max(23).nullable().optional(),
-			callingWindowEndHour: z.number().int().min(0).max(23).nullable().optional(),
+			callingWindowStartHour: z
+				.number()
+				.int()
+				.min(0)
+				.max(23)
+				.nullable()
+				.optional(),
+			callingWindowEndHour: z
+				.number()
+				.int()
+				.min(0)
+				.max(23)
+				.nullable()
+				.optional(),
 			maxConcurrentSessions: z.number().int().positive().optional(),
 			maxAttemptsPerContact: z.number().int().positive().optional(),
 			retryDelayMinutes: z.number().int().nonnegative().optional(),
@@ -106,7 +138,12 @@ export const update = protectedProcedure
 	});
 
 export const listContacts = protectedProcedure
-	.route({ method: "GET", path: "/campaigns/{id}/contacts", tags: ["Campaigns"], summary: "List contacts" })
+	.route({
+		method: "GET",
+		path: "/campaigns/{id}/contacts",
+		tags: ["Campaigns"],
+		summary: "List contacts",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -139,7 +176,12 @@ export const listContacts = protectedProcedure
 	});
 
 export const createContact = protectedProcedure
-	.route({ method: "POST", path: "/campaigns/{id}/contacts", tags: ["Campaigns"], summary: "Create contact" })
+	.route({
+		method: "POST",
+		path: "/campaigns/{id}/contacts",
+		tags: ["Campaigns"],
+		summary: "Create contact",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -173,7 +215,12 @@ export const createContact = protectedProcedure
 	});
 
 export const enqueueContacts = protectedProcedure
-	.route({ method: "POST", path: "/campaigns/{id}/enqueue", tags: ["Campaigns"], summary: "Enqueue contacts" })
+	.route({
+		method: "POST",
+		path: "/campaigns/{id}/enqueue",
+		tags: ["Campaigns"],
+		summary: "Enqueue contacts",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -182,12 +229,20 @@ export const enqueueContacts = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		await requireCampaign(input.id, context.user.id);
-		const result = await enqueueCampaignContacts(input.id, input.contactIds);
+		const result = await enqueueCampaignContacts(
+			input.id,
+			input.contactIds,
+		);
 		return { result };
 	});
 
 export const pauseContact = protectedProcedure
-	.route({ method: "POST", path: "/campaigns/contacts/{contactId}/pause", tags: ["Campaigns"], summary: "Pause contact" })
+	.route({
+		method: "POST",
+		path: "/campaigns/contacts/{contactId}/pause",
+		tags: ["Campaigns"],
+		summary: "Pause contact",
+	})
 	.input(z.object({ contactId: z.string() }))
 	.handler(async ({ input, context }) => {
 		const existing = await getCampaignContactById(input.contactId);
@@ -197,7 +252,12 @@ export const pauseContact = protectedProcedure
 	});
 
 export const rescheduleContact = protectedProcedure
-	.route({ method: "POST", path: "/campaigns/contacts/{contactId}/reschedule", tags: ["Campaigns"], summary: "Reschedule contact" })
+	.route({
+		method: "POST",
+		path: "/campaigns/contacts/{contactId}/reschedule",
+		tags: ["Campaigns"],
+		summary: "Reschedule contact",
+	})
 	.input(
 		z.object({
 			contactId: z.string(),
@@ -216,7 +276,12 @@ export const rescheduleContact = protectedProcedure
 	});
 
 export const recallContext = protectedProcedure
-	.route({ method: "GET", path: "/campaigns/contacts/{contactId}/recall", tags: ["Campaigns"], summary: "Get recall context" })
+	.route({
+		method: "GET",
+		path: "/campaigns/contacts/{contactId}/recall",
+		tags: ["Campaigns"],
+		summary: "Get recall context",
+	})
 	.input(
 		z.object({
 			contactId: z.string(),
@@ -226,12 +291,20 @@ export const recallContext = protectedProcedure
 	.handler(async ({ input, context }) => {
 		const data = await getRecallContext(input.contactId, input.limit);
 		if (!data) throw new ORPCError("NOT_FOUND");
-		await requireOrgMembership(data.contact.organizationId, context.user.id);
+		await requireOrgMembership(
+			data.contact.organizationId,
+			context.user.id,
+		);
 		return data;
 	});
 
 export const queue = protectedProcedure
-	.route({ method: "GET", path: "/campaigns/{id}/queue", tags: ["Campaigns"], summary: "List queued contacts" })
+	.route({
+		method: "GET",
+		path: "/campaigns/{id}/queue",
+		tags: ["Campaigns"],
+		summary: "List queued contacts",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -244,7 +317,12 @@ export const queue = protectedProcedure
 	});
 
 export const createSession = protectedProcedure
-	.route({ method: "POST", path: "/campaigns/{id}/sessions", tags: ["Campaigns"], summary: "Create session" })
+	.route({
+		method: "POST",
+		path: "/campaigns/{id}/sessions",
+		tags: ["Campaigns"],
+		summary: "Create session",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -276,7 +354,12 @@ export const createSession = protectedProcedure
 	});
 
 export const updateSession = protectedProcedure
-	.route({ method: "PATCH", path: "/campaigns/sessions/{sessionId}", tags: ["Campaigns"], summary: "Update session" })
+	.route({
+		method: "PATCH",
+		path: "/campaigns/sessions/{sessionId}",
+		tags: ["Campaigns"],
+		summary: "Update session",
+	})
 	.input(
 		z.object({
 			sessionId: z.string(),
@@ -306,8 +389,14 @@ export const updateSession = protectedProcedure
 		}),
 	)
 	.handler(async ({ input, context }) => {
-		const { sessionId, memorySummary, contactId, transcript, messages, ...rest } =
-			input;
+		const {
+			sessionId,
+			memorySummary,
+			contactId,
+			transcript,
+			messages,
+			...rest
+		} = input;
 		const session = await updateCampaignSession(sessionId, {
 			...rest,
 			transcript: transcript as object | undefined,
@@ -324,7 +413,12 @@ export const updateSession = protectedProcedure
 	});
 
 export const listSessions = protectedProcedure
-	.route({ method: "GET", path: "/campaigns/{id}/sessions", tags: ["Campaigns"], summary: "List sessions" })
+	.route({
+		method: "GET",
+		path: "/campaigns/{id}/sessions",
+		tags: ["Campaigns"],
+		summary: "List sessions",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -344,7 +438,12 @@ export const listSessions = protectedProcedure
 	});
 
 export const createAccessLink = protectedProcedure
-	.route({ method: "POST", path: "/campaigns/{id}/access-links", tags: ["Campaigns"], summary: "Create access link" })
+	.route({
+		method: "POST",
+		path: "/campaigns/{id}/access-links",
+		tags: ["Campaigns"],
+		summary: "Create access link",
+	})
 	.input(
 		z.object({
 			id: z.string(),
@@ -372,7 +471,12 @@ export const createAccessLink = protectedProcedure
 	});
 
 export const attachKnowledgeBase = protectedProcedure
-	.route({ method: "POST", path: "/campaigns/{id}/knowledge-bases", tags: ["Campaigns"], summary: "Attach KB" })
+	.route({
+		method: "POST",
+		path: "/campaigns/{id}/knowledge-bases",
+		tags: ["Campaigns"],
+		summary: "Attach KB",
+	})
 	.input(z.object({ id: z.string(), knowledgeBaseId: z.string() }))
 	.handler(async ({ input, context }) => {
 		await requireCampaign(input.id, context.user.id);

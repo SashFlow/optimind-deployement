@@ -63,10 +63,7 @@ export async function reduceSession(id: string) {
 	});
 }
 
-
-export async function deleteDemoLink(
-	id: string
-) {
+export async function deleteDemoLink(id: string) {
 	const link = await db.demoLinks.findUnique({
 		where: { id },
 	});
