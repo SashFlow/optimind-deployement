@@ -6,6 +6,7 @@ import {
 	getAgentById,
 	listAgents,
 	publishAgentVersion,
+	syncAgentKnowledgeBases,
 	updateAgent,
 	updateAgentDraftConfig,
 } from "@repo/database";
@@ -115,6 +116,12 @@ export const updateConfig = protectedProcedure
 			input.id,
 			input.config as object,
 		);
+		if (Array.isArray(input.config.knowledge_base_ids)) {
+			await syncAgentKnowledgeBases(
+				input.id,
+				input.config.knowledge_base_ids,
+			);
+		}
 		return { version };
 	});
 

@@ -126,7 +126,6 @@ export function VariablesEditor({
 											value as AgentVariableDefinition["variable_type"],
 									})
 								}
-								items={VARIABLE_TYPE_OPTIONS}
 							>
 								<SelectTrigger className="h-8 w-full bg-background">
 									<SelectValue />
@@ -160,7 +159,7 @@ export function VariablesEditor({
 								<Button
 									type="button"
 									variant="ghost"
-									size="icon-sm"
+									size="icon"
 									onClick={() => removeVariable(index)}
 									aria-label="Remove variable"
 									className="text-muted-foreground"

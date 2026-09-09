@@ -21,7 +21,11 @@ type OutboundCallBody = {
 
 function configRecordingEnabled(config: unknown): boolean {
 	if (!config || typeof config !== "object") return false;
-	return Boolean((config as { recordingEnabled?: boolean }).recordingEnabled);
+	const c = config as {
+		recording_enabled?: boolean;
+		recordingEnabled?: boolean;
+	};
+	return Boolean(c.recording_enabled ?? c.recordingEnabled);
 }
 
 export async function POST(req: Request) {

@@ -154,8 +154,12 @@ function VariableInput({
 	);
 }
 
-function isAgentParticipant(identity: string) {
-	return !identity.startsWith("user-");
+function isUserParticipant(identity: string) {
+	return (
+		identity.startsWith("user-") ||
+		identity.startsWith("user_") ||
+		identity.startsWith("voice_assistant_user_")
+	);
 }
 
 function AvatarVideo({
@@ -202,7 +206,10 @@ function PreviewSessionControls({
 	const participants = useParticipants();
 	const { videoTrack } = useVoiceAssistant();
 	const isConnected = connectionState === ConnectionState.Connected;
-	const hasAgent = participants.some((p) => isAgentParticipant(p.identity));
+	const localIdentity = room.localParticipant?.identity ?? "";
+	const hasAgent = participants.some(
+		(p) => p.identity !== localIdentity && !isUserParticipant(p.identity),
+	);
 	const [agentWaitTimedOut, setAgentWaitTimedOut] = useState(false);
 	const showAvatar =
 		avatarEnabled && (Boolean(videoTrack) || Boolean(avatarPreviewUrl));
@@ -267,7 +274,7 @@ function PreviewSessionControls({
 			</p>
 			<Button
 				type="button"
-				size="icon-lg"
+				size="icon"
 				aria-label={hasAgent ? `Talking to ${agent.name}` : statusLabel}
 				className={cn(
 					"size-16 rounded-full shadow-sm",
@@ -280,7 +287,7 @@ function PreviewSessionControls({
 			<Button
 				type="button"
 				variant="outline"
-				size="icon-lg"
+				size="icon"
 				aria-label="End preview session"
 				className="size-11 rounded-full"
 				onClick={() => {

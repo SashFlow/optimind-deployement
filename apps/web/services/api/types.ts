@@ -113,6 +113,13 @@ export type ProviderVoice = {
 	provider_model_id: string;
 };
 
+export type CatalogAudioClip = {
+	id: "office_ambience" | "keyboard_typing" | "keyboard_typing2" | "custom";
+	label: string;
+	description: string;
+	builtin: boolean;
+};
+
 export type ToolDefinition = {
 	id: string;
 	name: string;

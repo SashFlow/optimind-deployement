@@ -59,7 +59,6 @@ export function FirstMessageFields({
 								value as AgentConfigDocument["greeting"]["trigger"],
 						})
 					}
-					items={[...GREETING_TRIGGER_OPTIONS]}
 				>
 					<SelectTrigger className="w-full bg-background sm:max-w-xs">
 						<SelectValue />

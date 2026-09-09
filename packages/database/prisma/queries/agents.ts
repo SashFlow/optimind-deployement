@@ -167,3 +167,38 @@ export async function detachKnowledgeBaseFromAgent(
 		},
 	});
 }
+
+export async function syncAgentKnowledgeBases(
+	agentId: string,
+	knowledgeBaseIds: string[],
+) {
+	const desired = [...new Set(knowledgeBaseIds)];
+	const existing = await db.agentKnowledgeBase.findMany({
+		where: { agentId },
+		select: { knowledgeBaseId: true },
+	});
+	const existingIds = new Set(existing.map((row) => row.knowledgeBaseId));
+	const desiredIds = new Set(desired);
+
+	const toAttach = desired.filter((id) => !existingIds.has(id));
+	const toDetach = [...existingIds].filter((id) => !desiredIds.has(id));
+
+	await db.$transaction(async (tx) => {
+		for (const knowledgeBaseId of toAttach) {
+			await tx.agentKnowledgeBase.upsert({
+				where: {
+					agentId_knowledgeBaseId: { agentId, knowledgeBaseId },
+				},
+				create: { agentId, knowledgeBaseId },
+				update: {},
+			});
+		}
+		for (const knowledgeBaseId of toDetach) {
+			await tx.agentKnowledgeBase.delete({
+				where: {
+					agentId_knowledgeBaseId: { agentId, knowledgeBaseId },
+				},
+			});
+		}
+	});
+}

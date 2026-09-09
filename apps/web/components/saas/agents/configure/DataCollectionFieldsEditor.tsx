@@ -132,7 +132,6 @@ export function DataCollectionFieldsEditor({
 												: [],
 									})
 								}
-								items={FIELD_TYPE_OPTIONS}
 							>
 								<SelectTrigger className="h-8 w-full bg-background">
 									<SelectValue />
@@ -161,7 +160,7 @@ export function DataCollectionFieldsEditor({
 								<Button
 									type="button"
 									variant="ghost"
-									size="icon-sm"
+									size="icon"
 									onClick={() => removeField(index)}
 									aria-label="Remove field"
 									className="text-muted-foreground"

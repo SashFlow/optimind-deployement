@@ -155,12 +155,13 @@ export function selectRealtimeOutputModality(
 }
 
 export function selectPrimaryLanguage(
-	_config: AgentConfigDocument,
+	config: AgentConfigDocument,
 	primary: string | null,
 ): Partial<AgentConfigDocument> {
 	return {
 		language: {
 			primary: primary === "none" ? null : primary,
+			secondary: config.language.secondary,
 		},
 	};
 }

@@ -45,31 +45,26 @@ export function LocaleCombobox({
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger
-				render={
-					<Button
-						variant="outline"
-						role="combobox"
-						aria-expanded={open}
-						disabled={disabled || isLoading}
-						className={cn(
-							"w-full justify-between bg-background font-normal",
-							className,
-						)}
-					>
-						{isLoading ? (
-							<Spinner className="size-3.5" />
-						) : (
-							selectedLabel
-						)}
-						<ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
-					</Button>
-				}
-			/>
-			<PopoverContent
-				className="w-[var(--anchor-width)] p-0"
-				align="start"
-			>
+			<PopoverTrigger asChild>
+				<Button
+					variant="outline"
+					role="combobox"
+					aria-expanded={open}
+					disabled={disabled || isLoading}
+					className={cn(
+						"w-full justify-between bg-background font-normal",
+						className,
+					)}
+				>
+					{isLoading ? (
+						<Spinner className="size-3.5" />
+					) : (
+						selectedLabel
+					)}
+					<ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
 				<Command>
 					<CommandInput
 						placeholder={`Search ${placeholder.toLowerCase()}...`}

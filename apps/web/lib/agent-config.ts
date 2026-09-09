@@ -47,8 +47,22 @@ export type ExpressiveSpeechConfig = {
 	intensity: number;
 };
 
+export type AudioClipId =
+	| "office_ambience"
+	| "keyboard_typing"
+	| "keyboard_typing2"
+	| "custom";
+
 export type ToolCallAudioConfig = {
 	enabled: boolean;
+	clip: AudioClipId;
+	url: string;
+	volume: number;
+};
+
+export type BackgroundAudioConfig = {
+	enabled: boolean;
+	clip: AudioClipId;
 	url: string;
 	volume: number;
 };
@@ -136,11 +150,7 @@ export type AgentConfigDocument = {
 	variables: AgentVariableDefinition[];
 	environment_variables: Record<string, string>;
 	prompts: PromptSections;
-	background_audio: {
-		enabled: boolean;
-		url: string;
-		volume: number;
-	};
+	background_audio: BackgroundAudioConfig;
 	ssml_enabled: boolean;
 	data_collection_fields: DataCollectionField[];
 	call_ending: {
@@ -239,13 +249,23 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 		},
 		keyword_boosting: { keywords: [] },
 		expressive_speech: { enabled: false, intensity: 0.5 },
-		tool_call_audio: { enabled: false, url: "", volume: 0.5 },
+		tool_call_audio: {
+			enabled: false,
+			clip: "keyboard_typing",
+			url: "",
+			volume: 0.5,
+		},
 		tools_by_phase: { pre_call: [], on_call: [], post_call: [] },
 		knowledge_base_ids: [],
 		variables: [],
 		environment_variables: {},
 		prompts: { ...defaultPromptSections },
-		background_audio: { enabled: false, url: "", volume: 0.5 },
+		background_audio: {
+			enabled: false,
+			clip: "office_ambience",
+			url: "",
+			volume: 0.5,
+		},
 		ssml_enabled: false,
 		data_collection_fields: [],
 		call_ending: {
@@ -319,6 +339,12 @@ export function normalizeAgentConfig(
 		background_audio: {
 			...defaults.background_audio,
 			...(c.background_audio ?? {}),
+			clip:
+				(c.background_audio as BackgroundAudioConfig | undefined)
+					?.clip ??
+				(c.background_audio?.url
+					? "custom"
+					: defaults.background_audio.clip),
 		},
 		call_ending: { ...defaults.call_ending, ...(c.call_ending ?? {}) },
 		tools_config: { ...defaults.tools_config, ...(c.tools_config ?? {}) },
@@ -354,6 +380,11 @@ export function normalizeAgentConfig(
 		tool_call_audio: {
 			...defaults.tool_call_audio,
 			...(c.tool_call_audio ?? {}),
+			clip:
+				(c.tool_call_audio as ToolCallAudioConfig | undefined)?.clip ??
+				(c.tool_call_audio?.url
+					? "custom"
+					: defaults.tool_call_audio.clip),
 		},
 		tools_by_phase: toolsByPhase,
 		knowledge_base_ids: c.knowledge_base_ids ?? defaults.knowledge_base_ids,

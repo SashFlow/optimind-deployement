@@ -1,3 +1,5 @@
+/// <reference path="./pdf-parse.d.ts" />
+
 function extensionFromName(name: string): string {
 	const parts = name.toLowerCase().split(".");
 	return parts.length > 1 ? (parts.at(-1) ?? "") : "";

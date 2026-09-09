@@ -18,16 +18,14 @@ import {
 	KnowledgeBaseSelect,
 	type KnowledgeBaseSource,
 } from "@/components/saas/agents/configure/KnowledgeBaseSelect";
-import { LocaleCombobox } from "@/components/saas/agents/configure/LocaleCombobox";
 import { ModelSelect } from "@/components/saas/agents/configure/ModelSelect";
-import { VoicePreviewButton } from "@/components/saas/agents/configure/VoicePreviewButton";
+import { VoiceSelect } from "@/components/saas/agents/configure/VoiceSelect";
 import type { AgentConfigDocument } from "@/lib/agent-config";
 import {
 	isRealtimePipeline,
 	modelSupportsTextOutput,
 	realtimeUsesExternalTts,
 	selectLlmModel,
-	selectPrimaryLanguage,
 	selectRealtimeModel,
 	selectRealtimeOutputModality,
 	selectRealtimeVoice,
@@ -36,7 +34,6 @@ import {
 	selectTtsVoice,
 	setPipelineMode,
 } from "@/lib/agent-pipeline";
-import { useLanguagesQuery } from "@/services/api/hooks";
 import type {
 	Provider,
 	ProviderModel,
@@ -98,7 +95,6 @@ export function GeneralSection({
 	voices,
 	knowledgeBases,
 }: GeneralSectionProps) {
-	const languagesQuery = useLanguagesQuery();
 	const isRealtime = isRealtimePipeline(config);
 	const selectedRealtimeModel = realtimeModels.find(
 		(model) => model.id === config.realtime?.provider_model_id,
@@ -109,12 +105,6 @@ export function GeneralSection({
 		selectedRealtimeModel,
 	);
 	const outputModality = config.realtime?.output_modality ?? "audio";
-	const activeVoiceId = usesExternalTts
-		? config.tts?.voice_id
-		: isRealtime
-			? config.realtime?.voice_id
-			: config.tts?.voice_id;
-	const selectedVoice = voices.find((v) => v.voice_id === activeVoiceId);
 
 	function update(patch: Partial<AgentConfigDocument>) {
 		onConfigChange(patch);
@@ -284,70 +274,36 @@ export function GeneralSection({
 										/>
 									</FieldBlock>
 
-									<FieldBlock label="Voice">
-										<div className="flex items-center gap-2">
-											<Select
-												value={
-													config.tts?.voice_id ?? ""
-												}
-												onValueChange={(value) =>
-													value &&
-													update(
-														selectTtsVoice(
-															config,
-															value,
-														),
-													)
-												}
-												disabled={
-													!config.tts
-														?.provider_model_id
-												}
-												items={voices.map((voice) => ({
-													value: voice.voice_id,
-													label: voice.label,
-												}))}
-											>
-												<SelectTrigger className="w-full bg-background">
-													<SelectValue
-														placeholder={
-															config.tts
-																?.provider_model_id
-																? "Select voice"
-																: "Select a TTS model first"
-														}
-													/>
-												</SelectTrigger>
-												<SelectContent>
-													{voices.map((voice) => (
-														<SelectItem
-															key={voice.id}
-															value={
-																voice.voice_id
-															}
-														>
-															{voice.label}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-											<VoicePreviewButton
-												previewUrl={
-													selectedVoice?.preview_url
-												}
-											/>
-										</div>
+									<FieldBlock
+										label="Voice"
+									>
+										<VoiceSelect
+											voices={voices}
+											value={config.tts?.voice_id}
+											onValueChange={(value) =>
+												update(
+													selectTtsVoice(
+														config,
+														value,
+													),
+												)
+											}
+											disabled={
+												!config.tts?.provider_model_id
+											}
+											disabledPlaceholder="Select a TTS model first"
+										/>
 									</FieldBlock>
 								</div>
 							) : (
-								<FieldBlock label="Voice">
-									<div className="flex items-center gap-2 sm:max-w-xs">
-										<Select
-											value={
-												config.realtime?.voice_id ?? ""
-											}
+								<FieldBlock
+									label="Voice"
+								>
+									<div className="sm:max-w-xs">
+										<VoiceSelect
+											voices={voices}
+											value={config.realtime?.voice_id}
 											onValueChange={(value) =>
-												value &&
 												update(
 													selectRealtimeVoice(
 														config,
@@ -359,36 +315,7 @@ export function GeneralSection({
 												!config.realtime
 													?.provider_model_id
 											}
-											items={voices.map((voice) => ({
-												value: voice.voice_id,
-												label: voice.label,
-											}))}
-										>
-											<SelectTrigger className="w-full bg-background">
-												<SelectValue
-													placeholder={
-														config.realtime
-															?.provider_model_id
-															? "Select voice"
-															: "Select a realtime model first"
-													}
-												/>
-											</SelectTrigger>
-											<SelectContent>
-												{voices.map((voice) => (
-													<SelectItem
-														key={voice.id}
-														value={voice.voice_id}
-													>
-														{voice.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-										<VoicePreviewButton
-											previewUrl={
-												selectedVoice?.preview_url
-											}
+											disabledPlaceholder="Select a realtime model first"
 										/>
 									</div>
 								</FieldBlock>
@@ -414,76 +341,21 @@ export function GeneralSection({
 								/>
 							</FieldBlock>
 
-							<FieldBlock label="Voice">
-								<div className="flex items-center gap-2">
-									<Select
-										value={config.tts?.voice_id ?? ""}
-										onValueChange={(value) =>
-											value &&
-											update(
-												selectTtsVoice(config, value),
-											)
-										}
-										disabled={
-											!config.tts?.provider_model_id
-										}
-										items={voices.map((voice) => ({
-											value: voice.voice_id,
-											label: voice.label,
-										}))}
-									>
-										<SelectTrigger className="w-full bg-background">
-											<SelectValue
-												placeholder={
-													config.tts
-														?.provider_model_id
-														? "Select voice"
-														: "Select a TTS model first"
-												}
-											/>
-										</SelectTrigger>
-										<SelectContent>
-											{voices.map((voice) => (
-												<SelectItem
-													key={voice.id}
-													value={voice.voice_id}
-												>
-													{voice.label}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<VoicePreviewButton
-										previewUrl={selectedVoice?.preview_url}
-									/>
-								</div>
+							<FieldBlock
+								label="Voice"
+							>
+								<VoiceSelect
+									voices={voices}
+									value={config.tts?.voice_id}
+									onValueChange={(value) =>
+										update(selectTtsVoice(config, value))
+									}
+									disabled={!config.tts?.provider_model_id}
+									disabledPlaceholder="Select a TTS model first"
+								/>
 							</FieldBlock>
 						</div>
 					)}
-				</div>
-
-				<div className="px-4 py-4 md:px-5">
-					<FieldBlock
-						label="Primary language"
-						description="Optional. Helps the assistant default to a specific language."
-					>
-						<LocaleCombobox
-							options={languagesQuery.data ?? []}
-							value={config.language.primary}
-							onChange={(primary) =>
-								update(
-									selectPrimaryLanguage(
-										config,
-										primary ?? "none",
-									),
-								)
-							}
-							placeholder="Select language"
-							allowNone
-							isLoading={languagesQuery.isLoading}
-							className="sm:max-w-xs"
-						/>
-					</FieldBlock>
 				</div>
 
 				<div className="px-4 py-4 md:px-5">
@@ -537,7 +409,6 @@ export function GeneralSection({
 											},
 										})
 									}
-									items={[...GREETING_TRIGGER_OPTIONS]}
 								>
 									<SelectTrigger className="w-full bg-background sm:max-w-xs">
 										<SelectValue />

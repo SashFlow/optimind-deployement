@@ -21,181 +21,366 @@ export type CatalogVoice = {
 	provider_model_id: string;
 };
 
+export type CatalogAudioClip = {
+	id: "office_ambience" | "keyboard_typing" | "keyboard_typing2" | "custom";
+	label: string;
+	description: string;
+	builtin: boolean;
+};
+
 export const CATALOG_PROVIDERS: CatalogProvider[] = [
 	{ id: "openai", display_name: "OpenAI" },
 	{ id: "gemini", display_name: "Google Gemini" },
-	{ id: "deepgram", display_name: "Deepgram" },
-	{ id: "elevenlabs", display_name: "ElevenLabs" },
-	{ id: "cartesia", display_name: "Cartesia" },
 	{ id: "sarvam", display_name: "Sarvam" },
 	{ id: "inworld", display_name: "Inworld" },
 ];
 
+function model(
+	id: string,
+	display_name: string,
+	provider_id: string,
+	kind: CatalogModel["kind"],
+	extra?: Partial<CatalogModel>,
+): CatalogModel {
+	return {
+		id,
+		display_name,
+		provider_id,
+		is_enabled: true,
+		delivery_mode: "hosted",
+		kind,
+		...extra,
+	};
+}
+
 export const CATALOG_MODELS: CatalogModel[] = [
-	{
-		id: "openai:gpt-4.1",
-		display_name: "GPT-4.1",
-		provider_id: "openai",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "llm",
-	},
-	{
-		id: "openai:gpt-4.1-mini",
-		display_name: "GPT-4.1 Mini",
-		provider_id: "openai",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "llm",
-	},
-	{
-		id: "gemini:gemini-2.5-flash",
-		display_name: "Gemini 2.5 Flash",
-		provider_id: "gemini",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "llm",
-	},
-	{
-		id: "openai:gpt-realtime",
-		display_name: "GPT Realtime",
-		provider_id: "openai",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "realtime",
+	// LLM — OpenAI
+	model("openai:chat-latest", "ChatGPT Latest", "openai", "llm"),
+	model("openai:gpt-4.1", "GPT-4.1", "openai", "llm"),
+	model("openai:gpt-4.1-mini", "GPT-4.1 Mini", "openai", "llm"),
+	model("openai:gpt-4.1-nano", "GPT-4.1 Nano", "openai", "llm"),
+	model("openai:gpt-4o", "GPT-4o", "openai", "llm"),
+	model("openai:gpt-4o-mini", "GPT-4o Mini", "openai", "llm"),
+	model("openai:gpt-5", "GPT-5", "openai", "llm"),
+	model("openai:gpt-5-mini", "GPT-5 Mini", "openai", "llm"),
+	model("openai:gpt-5-nano", "GPT-5 Nano", "openai", "llm"),
+	model("openai:gpt-5.1", "GPT-5.1", "openai", "llm"),
+	model("openai:gpt-5.2", "GPT-5.2", "openai", "llm"),
+	model("openai:gpt-5.4", "GPT-5.4", "openai", "llm"),
+	model("openai:gpt-5.4-mini", "GPT-5.4 Mini", "openai", "llm"),
+	model("openai:gpt-5.4-nano", "GPT-5.4 Nano", "openai", "llm"),
+	model("openai:gpt-5.5", "GPT-5.5", "openai", "llm"),
+	model("openai:gpt-5.6-luna", "GPT-5.6 Luna", "openai", "llm"),
+	model("openai:gpt-5.6-sol", "GPT-5.6 Sol", "openai", "llm"),
+	model("openai:gpt-5.6-terra", "GPT-5.6 Terra", "openai", "llm"),
+
+	// LLM — Gemini
+	model(
+		"gemini:gemini-3-flash-preview",
+		"Gemini 3 Flash",
+		"gemini",
+		"llm",
+	),
+	model(
+		"gemini:gemini-3.1-flash-lite",
+		"Gemini 3.1 Flash Lite",
+		"gemini",
+		"llm",
+	),
+	model(
+		"gemini:gemini-3.1-pro-preview",
+		"Gemini 3.1 Pro",
+		"gemini",
+		"llm",
+	),
+	model("gemini:gemini-3.5-flash", "Gemini 3.5 Flash", "gemini", "llm"),
+	model(
+		"gemini:gemini-3.5-flash-lite",
+		"Gemini 3.5 Flash Lite",
+		"gemini",
+		"llm",
+	),
+	model("gemini:gemini-3.6-flash", "Gemini 3.6 Flash", "gemini", "llm"),
+	model("gemini:gemini-3.7-flash", "Gemini 3.7 Flash", "gemini", "llm"),
+	model("gemini:gemini-3.8-flash", "Gemini 3.8 Flash", "gemini", "llm"),
+
+	// Realtime
+	model("openai:gpt-realtime", "GPT Realtime", "openai", "realtime", {
 		supports_text_output: true,
-	},
-	{
-		id: "gemini:gemini-live",
-		display_name: "Gemini Live",
-		provider_id: "gemini",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "realtime",
+	}),
+	model("gemini:gemini-live", "Gemini Live", "gemini", "realtime", {
 		supports_text_output: false,
-	},
-	{
-		id: "deepgram:nova-3",
-		display_name: "Nova 3",
-		provider_id: "deepgram",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "stt",
-	},
-	{
-		id: "openai:whisper-1",
-		display_name: "Whisper",
-		provider_id: "openai",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "stt",
-	},
-	{
-		id: "sarvam:saarika",
-		display_name: "Saarika",
-		provider_id: "sarvam",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "stt",
-	},
-	{
-		id: "elevenlabs:eleven_multilingual_v2",
-		display_name: "Multilingual v2",
-		provider_id: "elevenlabs",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "tts",
-	},
-	{
-		id: "cartesia:sonic-2",
-		display_name: "Sonic 2",
-		provider_id: "cartesia",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "tts",
-	},
-	{
-		id: "openai:gpt-4o-mini-tts",
-		display_name: "GPT-4o Mini TTS",
-		provider_id: "openai",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "tts",
-	},
-	{
-		id: "inworld:tts-1",
-		display_name: "Inworld TTS",
-		provider_id: "inworld",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "tts",
-	},
-	{
-		id: "sarvam:bulbul",
-		display_name: "Bulbul",
-		provider_id: "sarvam",
-		is_enabled: true,
-		delivery_mode: "hosted",
-		kind: "tts",
-	},
+	}),
+
+	// STT — OpenAI
+	model("openai:whisper-1", "Whisper", "openai", "stt"),
+	model("openai:gpt-4o-transcribe", "GPT-4o Transcribe", "openai", "stt"),
+	model(
+		"openai:gpt-4o-mini-transcribe",
+		"GPT-4o Mini Transcribe",
+		"openai",
+		"stt",
+	),
+	model(
+		"openai:gpt-realtime-whisper",
+		"GPT Realtime Whisper",
+		"openai",
+		"stt",
+	),
+
+	// STT — Gemini
+	model(
+		"gemini:gemini-3.5-transcribe-live",
+		"Gemini 3.5 Transcribe Live",
+		"gemini",
+		"stt",
+	),
+	model("gemini:gemini-3.5-flash", "Gemini 3.5 Flash STT", "gemini", "stt"),
+	model(
+		"gemini:gemini-3-flash-preview",
+		"Gemini 3 Flash STT",
+		"gemini",
+		"stt",
+	),
+	model(
+		"gemini:gemini-3-pro-preview",
+		"Gemini 3 Pro STT",
+		"gemini",
+		"stt",
+	),
+	model("gemini:gemini-2.5-flash", "Gemini 2.5 Flash STT", "gemini", "stt"),
+
+	// TTS — OpenAI
+	model("openai:gpt-4o-mini-tts", "GPT-4o Mini TTS", "openai", "tts"),
+	model("openai:tts-1", "TTS-1", "openai", "tts"),
+	model("openai:tts-1-hd", "TTS-1 HD", "openai", "tts"),
+
+	// TTS — Gemini
+	model(
+		"gemini:gemini-3.1-flash-tts-preview",
+		"Gemini 3.1 Flash TTS",
+		"gemini",
+		"tts",
+	),
+	model(
+		"gemini:gemini-2.5-flash-preview-tts",
+		"Gemini 2.5 Flash TTS",
+		"gemini",
+		"tts",
+	),
+	model(
+		"gemini:gemini-2.5-pro-preview-tts",
+		"Gemini 2.5 Pro TTS",
+		"gemini",
+		"tts",
+	),
+
+	// TTS — Sarvam
+	model("sarvam:bulbul:v3", "Bulbul v3", "sarvam", "tts"),
+	model("sarvam:bulbul:v2", "Bulbul v2", "sarvam", "tts"),
+
+	// TTS — Inworld
+	model("inworld:inworld-tts-1.5-max", "Inworld TTS 1.5 Max", "inworld", "tts"),
+	model(
+		"inworld:inworld-tts-1.5-mini",
+		"Inworld TTS 1.5 Mini",
+		"inworld",
+		"tts",
+	),
+	model("inworld:inworld-tts-2", "Inworld TTS 2", "inworld", "tts"),
+	model(
+		"inworld:inworld-tts-2-flash",
+		"Inworld TTS 2 Flash",
+		"inworld",
+		"tts",
+	),
 ];
 
+const OPENAI_VOICES = [
+	"alloy",
+	"ash",
+	"ballad",
+	"coral",
+	"echo",
+	"fable",
+	"nova",
+	"onyx",
+	"sage",
+	"shimmer",
+	"verse",
+	"marin",
+	"cedar",
+] as const;
+
+const OPENAI_TTS_1_VOICES = [
+	"alloy",
+	"ash",
+	"coral",
+	"echo",
+	"fable",
+	"onyx",
+	"nova",
+	"sage",
+	"shimmer",
+] as const;
+
+const GEMINI_VOICES = [
+	{ id: "Zephyr", label: "Zephyr (Bright)" },
+	{ id: "Puck", label: "Puck (Upbeat)" },
+	{ id: "Charon", label: "Charon (Informative)" },
+	{ id: "Kore", label: "Kore (Firm)" },
+	{ id: "Fenrir", label: "Fenrir (Excitable)" },
+	{ id: "Leda", label: "Leda (Youthful)" },
+	{ id: "Orus", label: "Orus (Firm)" },
+	{ id: "Aoede", label: "Aoede (Breezy)" },
+	{ id: "Callirrhoe", label: "Callirrhoe (Easy-going)" },
+	{ id: "Autonoe", label: "Autonoe (Bright)" },
+	{ id: "Enceladus", label: "Enceladus (Breathy)" },
+	{ id: "Iapetus", label: "Iapetus (Clear)" },
+	{ id: "Umbriel", label: "Umbriel (Easy-going)" },
+	{ id: "Algieba", label: "Algieba (Smooth)" },
+	{ id: "Despina", label: "Despina (Smooth)" },
+	{ id: "Erinome", label: "Erinome (Clear)" },
+	{ id: "Algenib", label: "Algenib (Gravelly)" },
+	{ id: "Rasalgethi", label: "Rasalgethi (Informative)" },
+	{ id: "Laomedeia", label: "Laomedeia (Upbeat)" },
+	{ id: "Achernar", label: "Achernar (Soft)" },
+	{ id: "Alnilam", label: "Alnilam (Firm)" },
+	{ id: "Schedar", label: "Schedar (Even)" },
+	{ id: "Gacrux", label: "Gacrux (Mature)" },
+	{ id: "Pulcherrima", label: "Pulcherrima (Forward)" },
+	{ id: "Achird", label: "Achird (Friendly)" },
+	{ id: "Zubenelgenubi", label: "Zubenelgenubi (Casual)" },
+	{ id: "Vindemiatrix", label: "Vindemiatrix (Gentle)" },
+	{ id: "Sadachbia", label: "Sadachbia (Lively)" },
+	{ id: "Sadaltager", label: "Sadaltager (Knowledgeable)" },
+	{ id: "Sulafat", label: "Sulafat (Warm)" },
+] as const;
+
+const SARVAM_V3_SPEAKERS = [
+	"amelia",
+	"ishita",
+	"kavitha",
+	"kavya",
+	"neha",
+	"pooja",
+	"priya",
+	"ritu",
+	"roopa",
+	"rupali",
+	"shruti",
+	"shreya",
+	"simran",
+	"sophia",
+	"suhani",
+	"tanya",
+	"aayan",
+	"aditya",
+	"advait",
+	"amit",
+	"ashutosh",
+	"dev",
+	"kabir",
+	"manan",
+	"rahul",
+	"ratan",
+	"rohan",
+	"shubh",
+	"sumit",
+	"varun",
+] as const;
+
+const SARVAM_V2_SPEAKERS = [
+	"anushka",
+	"arya",
+	"manisha",
+	"vidya",
+	"abhilash",
+	"hitesh",
+	"karun",
+] as const;
+
+const INWORLD_VOICES = [
+	{ id: "Ashley", label: "Ashley (Warm American female)" },
+	{ id: "Diego", label: "Diego (Mexican male)" },
+	{ id: "Edward", label: "Edward (American male)" },
+	{ id: "Olivia", label: "Olivia (British female)" },
+] as const;
+
+const OPENAI_REALTIME_VOICES = [
+	"alloy",
+	"ash",
+	"ballad",
+	"coral",
+	"echo",
+	"sage",
+	"shimmer",
+	"verse",
+	"marin",
+	"cedar",
+] as const;
+
+function voicesFor(
+	providerModelId: string,
+	voices: readonly string[] | readonly { id: string; label: string }[],
+): CatalogVoice[] {
+	return voices.map((voice) => {
+		const voiceId = typeof voice === "string" ? voice : voice.id;
+		const label =
+			typeof voice === "string"
+				? voice.charAt(0).toUpperCase() + voice.slice(1)
+				: voice.label;
+		return {
+			id: `${providerModelId}:${voiceId}`,
+			voice_id: voiceId,
+			label,
+			provider_model_id: providerModelId,
+			preview_url: null,
+		};
+	});
+}
+
 export const CATALOG_VOICES: CatalogVoice[] = [
+	...voicesFor("openai:gpt-4o-mini-tts", OPENAI_VOICES),
+	...voicesFor("openai:tts-1", OPENAI_TTS_1_VOICES),
+	...voicesFor("openai:tts-1-hd", OPENAI_TTS_1_VOICES),
+	...voicesFor("openai:gpt-realtime", OPENAI_REALTIME_VOICES),
+	...voicesFor("gemini:gemini-3.1-flash-tts-preview", GEMINI_VOICES),
+	...voicesFor("gemini:gemini-2.5-flash-preview-tts", GEMINI_VOICES),
+	...voicesFor("gemini:gemini-2.5-pro-preview-tts", GEMINI_VOICES),
+	...voicesFor("gemini:gemini-live", GEMINI_VOICES),
+	...voicesFor("sarvam:bulbul:v3", SARVAM_V3_SPEAKERS),
+	...voicesFor("sarvam:bulbul:v2", SARVAM_V2_SPEAKERS),
+	...voicesFor("inworld:inworld-tts-1.5-max", INWORLD_VOICES),
+	...voicesFor("inworld:inworld-tts-1.5-mini", INWORLD_VOICES),
+	...voicesFor("inworld:inworld-tts-2", INWORLD_VOICES),
+	...voicesFor("inworld:inworld-tts-2-flash", INWORLD_VOICES),
+];
+
+export const CATALOG_AUDIO_CLIPS: CatalogAudioClip[] = [
 	{
-		id: "el-rachel",
-		voice_id: "rachel",
-		label: "Rachel",
-		provider_model_id: "elevenlabs:eleven_multilingual_v2",
-		preview_url: null,
+		id: "office_ambience",
+		label: "Office ambience",
+		description: "Busy office chatter and background noise (LiveKit default).",
+		builtin: true,
 	},
 	{
-		id: "el-adam",
-		voice_id: "adam",
-		label: "Adam",
-		provider_model_id: "elevenlabs:eleven_multilingual_v2",
-		preview_url: null,
+		id: "keyboard_typing",
+		label: "Keyboard typing",
+		description: "Close-mic keyboard typing (LiveKit default).",
+		builtin: true,
 	},
 	{
-		id: "cartesia-katie",
-		voice_id: "katie",
-		label: "Katie",
-		provider_model_id: "cartesia:sonic-2",
-		preview_url: null,
+		id: "keyboard_typing2",
+		label: "Keyboard typing (short)",
+		description: "Shorter keyboard typing clip (LiveKit default).",
+		builtin: true,
 	},
 	{
-		id: "openai-alloy",
-		voice_id: "alloy",
-		label: "Alloy",
-		provider_model_id: "openai:gpt-4o-mini-tts",
-		preview_url: null,
-	},
-	{
-		id: "openai-verse",
-		voice_id: "verse",
-		label: "Verse",
-		provider_model_id: "openai:gpt-realtime",
-		preview_url: null,
-	},
-	{
-		id: "openai-alloy-rt",
-		voice_id: "alloy",
-		label: "Alloy",
-		provider_model_id: "openai:gpt-realtime",
-		preview_url: null,
-	},
-	{
-		id: "sarvam-meera",
-		voice_id: "meera",
-		label: "Meera",
-		provider_model_id: "sarvam:bulbul",
-		preview_url: null,
-	},
-	{
-		id: "inworld-default",
-		voice_id: "default",
-		label: "Default",
-		provider_model_id: "inworld:tts-1",
-		preview_url: null,
+		id: "custom",
+		label: "Custom URL",
+		description: "Provide your own audio file URL.",
+		builtin: false,
 	},
 ];
 

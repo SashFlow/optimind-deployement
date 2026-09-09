@@ -34,21 +34,23 @@ const pillClass = "rounded-full bg-sidebar shadow-sm ring-1 ring-black/5";
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 	return (
 		<>
-			<Sidebar
-				collapsible="icon"
-				variant="floating"
-				className="top-1/2! bottom-auto! ml-5! h-auto! -translate-y-1/2! [&_[data-sidebar=sidebar]]:bg-transparent! [&_[data-sidebar=sidebar]]:border-transparent! [&_[data-sidebar=sidebar]]:shadow-none!"
-				{...props}
-			>
-				<SidebarContent
-					className={cn(
-						pillClass,
-						"no-scrollbar h-fit w-20! flex-none items-center overflow-visible",
-					)}
+			<div className="hidden lg:contents">
+				<Sidebar
+					collapsible="icon"
+					variant="floating"
+					className="top-1/2! bottom-auto! ml-5! h-auto! -translate-y-1/2! [&_[data-sidebar=sidebar]]:bg-transparent! [&_[data-sidebar=sidebar]]:border-transparent! [&_[data-sidebar=sidebar]]:shadow-none!"
+					{...props}
 				>
-					<NavMain items={workspaceNavItems} />
-				</SidebarContent>
-			</Sidebar>
+					<SidebarContent
+						className={cn(
+							pillClass,
+							"no-scrollbar h-fit w-20! flex-none items-center overflow-visible",
+						)}
+					>
+						<NavMain items={workspaceNavItems} />
+					</SidebarContent>
+				</Sidebar>
+			</div>
 
 			<nav
 				aria-label="Primary"

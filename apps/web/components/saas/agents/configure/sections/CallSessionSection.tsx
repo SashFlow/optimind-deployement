@@ -139,7 +139,6 @@ export function CallSessionSection({
 									},
 								})
 							}
-							items={DURATION_OPTIONS}
 						>
 							<SelectTrigger className="w-full bg-background">
 								<ClockIcon className="size-4 text-muted-foreground" />
@@ -191,7 +190,6 @@ export function CallSessionSection({
 									},
 								})
 							}
-							items={INACTIVITY_OPTIONS}
 						>
 							<SelectTrigger className="w-full bg-background">
 								<TriangleAlertIcon className="size-4 text-muted-foreground" />
@@ -224,7 +222,6 @@ export function CallSessionSection({
 									},
 								})
 							}
-							items={INACTIVITY_OPTIONS}
 						>
 							<SelectTrigger className="w-full bg-background">
 								<BellOffIcon className="size-4 text-muted-foreground" />

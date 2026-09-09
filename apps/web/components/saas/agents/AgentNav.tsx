@@ -67,12 +67,6 @@ export function AgentNav({ agentId }: AgentNavProps) {
 	const router = useRouter();
 	const active = tabFromPathname(pathname, agentId);
 	const tabs = TABS;
-	const tabItems = tabs.map((tab) => ({
-		value: tab.value,
-		label: tab.label,
-	}));
-	const activeLabel =
-		tabs.find((tab) => tab.value === active)?.label ?? "Settings";
 
 	function navigateToTab(value: string | null) {
 		const next = tabs.find((tab) => tab.value === value);
@@ -84,16 +78,12 @@ export function AgentNav({ agentId }: AgentNavProps) {
 			<TooltipProvider>
 				<div className="flex items-center justify-between gap-3">
 					<div className="min-w-0 flex-1 sm:flex-none">
-						<Select
-							value={active}
-							onValueChange={navigateToTab}
-							items={tabItems}
-						>
+						<Select value={active} onValueChange={navigateToTab}>
 							<SelectTrigger
 								aria-label="Settings section"
 								className="w-full max-w-56 bg-background sm:hidden"
 							>
-								<SelectValue>{activeLabel}</SelectValue>
+								<SelectValue placeholder="Settings" />
 							</SelectTrigger>
 							<SelectContent>
 								{tabs.map((tab) => (
@@ -117,13 +107,12 @@ export function AgentNav({ agentId }: AgentNavProps) {
 									<TabsTrigger
 										key={tab.value}
 										value={tab.value}
-										nativeButton={false}
-										render={
-											<Link href={tab.href(agentId)} />
-										}
+										asChild
 										className="flex-none px-3"
 									>
-										{tab.label}
+										<Link href={tab.href(agentId)}>
+											{tab.label}
+										</Link>
 									</TabsTrigger>
 								))}
 							</TabsList>

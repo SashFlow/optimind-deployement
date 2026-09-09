@@ -133,7 +133,7 @@ export function KeyValueEditor({
 						<Button
 							type="button"
 							variant="ghost"
-							size="icon-sm"
+							size="icon"
 							onClick={() => removeEntry(index)}
 							aria-label="Remove entry"
 							className="shrink-0 text-muted-foreground"

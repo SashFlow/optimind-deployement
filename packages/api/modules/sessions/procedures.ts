@@ -14,13 +14,11 @@ import {
 import {
 	createOutboundRoomWithDispatch,
 	createParticipantToken,
-	createRoom,
 	getEgressS3Config,
 	getLiveKitConfig,
 	recordingFilepath,
 	startRoomCompositeEgress,
 } from "@repo/livekit";
-import { RoomAgentDispatch, RoomConfiguration } from "@livekit/protocol";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
@@ -35,7 +33,11 @@ const AGENT_NAME = process.env.AGENT_NAME || "demo-agent";
 
 function configRecordingEnabled(config: unknown): boolean {
 	if (!config || typeof config !== "object") return false;
-	return Boolean((config as { recordingEnabled?: boolean }).recordingEnabled);
+	const c = config as {
+		recording_enabled?: boolean;
+		recordingEnabled?: boolean;
+	};
+	return Boolean(c.recording_enabled ?? c.recordingEnabled);
 }
 
 export const list = protectedProcedure
@@ -190,44 +192,20 @@ export const create = protectedProcedure
 		let participantToken: string | null = null;
 		const cfg = getLiveKitConfig();
 
-		if (input.channel === "WEB" && input.mintParticipantToken) {
-			const roomConfig = new RoomConfiguration({
-				agents: [
-					new RoomAgentDispatch({
-						agentName,
-						metadata: metadataJson,
-					}),
-				],
-				metadata: metadataJson,
-			});
-
-			await createRoom({
-				name: roomName,
-				metadata: metadataJson,
-			});
-
-			const identity = `user_${Math.floor(Math.random() * 10_000)}`;
-			participantToken = await createParticipantToken({
-				identity,
-				name: input.participantName,
-				roomName,
-				roomConfig,
-			});
-
-			return {
-				session,
-				roomName,
-				serverUrl: cfg.url,
-				participantToken,
-				dispatchMetadata,
-			};
-		}
-
 		await createOutboundRoomWithDispatch({
 			roomName,
 			agentName,
 			metadata: metadataJson,
 		});
+
+		if (input.channel === "WEB" && input.mintParticipantToken) {
+			const identity = `user-${Math.floor(Math.random() * 10_000)}`;
+			participantToken = await createParticipantToken({
+				identity,
+				name: input.participantName,
+				roomName,
+			});
+		}
 
 		return {
 			session,

@@ -1,6 +1,7 @@
 import { RoomAgentDispatch, RoomConfiguration } from "@livekit/protocol";
 import { createAgentSession, getAgentById } from "@repo/database";
 import {
+	createAgentDispatch,
 	createParticipantToken,
 	createRoom,
 	getLiveKitConfig,
@@ -27,7 +28,11 @@ function resolveInteractionMode(scenarioType: string): "audio" | "video" {
 
 function configRecordingEnabled(config: unknown): boolean {
 	if (!config || typeof config !== "object") return false;
-	return Boolean((config as { recordingEnabled?: boolean }).recordingEnabled);
+	const c = config as {
+		recording_enabled?: boolean;
+		recordingEnabled?: boolean;
+	};
+	return Boolean(c.recording_enabled ?? c.recordingEnabled);
 }
 
 export async function POST(req: Request) {
@@ -121,13 +126,12 @@ export async function POST(req: Request) {
 			});
 
 			await createRoom({ name: roomName, metadata: agentMetadata });
+			await createAgentDispatch({
+				roomName,
+				agentName: AGENT_NAME,
+				metadata: agentMetadata,
+			});
 			roomConfig.metadata = agentMetadata;
-			roomConfig.agents = [
-				new RoomAgentDispatch({
-					agentName: AGENT_NAME,
-					metadata: agentMetadata,
-				}),
-			];
 		} else if (slug) {
 			const interactionMode = resolveInteractionMode(scenarioType);
 			agentMetadata = JSON.stringify({

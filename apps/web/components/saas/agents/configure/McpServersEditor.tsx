@@ -85,7 +85,7 @@ export function McpServersEditor({ mcp, onChange }: McpServersEditorProps) {
 						<Button
 							type="button"
 							variant="ghost"
-							size="icon-sm"
+							size="icon"
 							onClick={() => removeServer(index)}
 							aria-label="Remove server"
 							className="text-muted-foreground"

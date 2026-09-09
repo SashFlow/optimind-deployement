@@ -355,6 +355,13 @@ export function useProviderVoicesQuery(
 	});
 }
 
+export function useAudioClipsQuery() {
+	return useQuery({
+		...orpc.catalog.listAudioClips.queryOptions({ input: undefined }),
+		select: (data) => data.clips,
+	});
+}
+
 export function useLanguagesQuery() {
 	return useQuery({
 		...orpc.catalog.listLanguages.queryOptions({ input: undefined }),
@@ -486,10 +493,7 @@ export function useUpdateAgentVersionMutation(
 			}
 			const { version } = await orpcClient.agents.updateConfig({
 				id: agentId,
-				config: input.config as {
-					knowledgeBaseIds: string[];
-					[key: string]: unknown;
-				},
+				config: input.config,
 			});
 			return version;
 		},

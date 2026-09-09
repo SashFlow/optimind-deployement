@@ -79,10 +79,6 @@ export function ModelSelect({
 			<Select
 				value={value}
 				onValueChange={(next) => next && onValueChange(next)}
-				items={enabledModels.map((model) => ({
-					value: model.id,
-					label: formatModelLabel(model),
-				}))}
 			>
 				<SelectTrigger className={className ?? "w-full bg-background"}>
 					<SelectValue placeholder={placeholder} />

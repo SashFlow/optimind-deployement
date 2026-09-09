@@ -1,4 +1,5 @@
 import {
+	listAudioClips,
 	listLanguages,
 	listModels,
 	listProviders,
@@ -10,6 +11,7 @@ export const catalogRouter = {
 	listProviders,
 	listModels,
 	listVoices,
+	listAudioClips,
 	listLanguages,
 	listTimezones,
 };

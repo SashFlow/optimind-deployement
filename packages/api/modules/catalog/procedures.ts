@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { publicProcedure } from "../../orpc/procedures";
 import {
+	CATALOG_AUDIO_CLIPS,
 	CATALOG_LANGUAGES,
 	CATALOG_MODELS,
 	CATALOG_PROVIDERS,
@@ -55,6 +56,15 @@ export const listVoices = publicProcedure
 				)
 			: CATALOG_VOICES,
 	}));
+
+export const listAudioClips = publicProcedure
+	.route({
+		method: "GET",
+		path: "/catalog/audio-clips",
+		tags: ["Catalog"],
+		summary: "List LiveKit background/tool audio clips",
+	})
+	.handler(async () => ({ clips: CATALOG_AUDIO_CLIPS }));
 
 export const listLanguages = publicProcedure
 	.route({

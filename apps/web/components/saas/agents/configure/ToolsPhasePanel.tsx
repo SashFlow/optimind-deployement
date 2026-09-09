@@ -130,10 +130,7 @@ export function ToolsPhasePanel({
 					}
 					className="w-full gap-4"
 				>
-					<TabsList
-						variant="line"
-						className="h-9 w-full justify-start rounded-none border-b bg-transparent p-0"
-					>
+					<TabsList className="h-9 w-full justify-start rounded-none border-b bg-transparent p-0">
 						{PHASES.map((phase) => (
 							<TabsTrigger
 								key={phase.value}

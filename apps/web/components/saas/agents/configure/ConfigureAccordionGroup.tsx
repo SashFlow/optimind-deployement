@@ -19,7 +19,11 @@ export function ConfigureAccordionGroup({
 }>) {
 	return (
 		<div className={cn("rounded-xl border bg-card p-2", className)}>
-			<Accordion multiple defaultValue={defaultValue} className="gap-0">
+			<Accordion
+				type="multiple"
+				defaultValue={defaultValue}
+				className="gap-0"
+			>
 				{children}
 			</Accordion>
 		</div>
