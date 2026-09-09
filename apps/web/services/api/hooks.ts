@@ -16,6 +16,7 @@ import type {
 	OrgAvatar,
 	ToolCreateInput,
 	ToolDefinition,
+	ToolUpdateInput,
 } from "./types";
 
 export function useDashboardStatsQuery(organizationId?: string, days = 30) {
@@ -31,12 +32,16 @@ export function useDashboardStatsQuery(organizationId?: string, days = 30) {
 	});
 }
 
-export function useDashboardAnalyticsQuery(organizationId: string, days = 7) {
+export function useDashboardAnalyticsQuery(
+	organizationId: string,
+	days = 7,
+	options?: { enabled?: boolean },
+) {
 	return useQuery({
 		...orpc.dashboard.analytics.queryOptions({
 			input: { organizationId, days },
 		}),
-		enabled: !!organizationId,
+		enabled: !!organizationId && (options?.enabled ?? true),
 		select: (data) => data.analytics,
 	});
 }
@@ -397,6 +402,39 @@ export function useCreateToolMutation(
 	return useMutation({
 		mutationFn: async (input: ToolCreateInput) => {
 			const { tool } = await orpcClient.tools.create({
+				organizationId,
+				...input,
+			});
+			return tool;
+		},
+		onSuccess: async (data, variables, onMutateResult, context) => {
+			await queryClient.invalidateQueries({
+				queryKey: orpc.tools.list.key({
+					input: { organizationId },
+				}),
+			});
+			await options?.onSuccess?.(
+				data,
+				variables,
+				onMutateResult,
+				context,
+			);
+		},
+		onError: options?.onError,
+	});
+}
+
+export function useUpdateToolMutation(
+	organizationId: string,
+	options?: Pick<
+		UseMutationOptions<ToolDefinition, Error, ToolUpdateInput>,
+		"onSuccess" | "onError"
+	>,
+) {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async (input: ToolUpdateInput) => {
+			const { tool } = await orpcClient.tools.update({
 				organizationId,
 				...input,
 			});

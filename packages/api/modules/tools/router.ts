@@ -1,6 +1,7 @@
-import { create, list } from "./procedures";
+import { create, list, update } from "./procedures";
 
 export const toolsRouter = {
 	list,
 	create,
+	update,
 };

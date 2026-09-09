@@ -1,8 +1,21 @@
 "use client";
 
-import { Checkbox } from "@repo/ui/checkbox";
-import { Label } from "@repo/ui/label";
+import { Button } from "@repo/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@repo/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/popover";
 import { cn } from "@repo/ui/utils";
+import {
+	ChevronsUpDownIcon,
+	Trash2Icon,
+} from "lucide-react";
+import { useState } from "react";
 
 export type KnowledgeBaseSource = {
 	id: string;
@@ -20,104 +33,115 @@ export function KnowledgeBaseSelect({
 	sources,
 	onChange,
 }: KnowledgeBaseSelectProps) {
+	const [open, setOpen] = useState(false);
 	const sourceMap = new Map(
 		sources.map((source) => [source.id, source.label]),
 	);
-	const orphanedIds = selectedIds.filter((id) => !sourceMap.has(id));
+	const selectedSources = selectedIds.map((id) => ({
+		id,
+		label: sourceMap.get(id) ?? id,
+		orphaned: !sourceMap.has(id),
+	}));
+	const availableSources = sources.filter(
+		(source) => !selectedIds.includes(source.id),
+	);
 
-	function toggleSource(id: string, checked: boolean) {
-		if (checked) {
-			onChange([...new Set([...selectedIds, id])]);
+	function addSource(id: string) {
+		if (selectedIds.includes(id)) {
 			return;
 		}
+		onChange([...selectedIds, id]);
+	}
+
+	function removeSource(id: string) {
 		onChange(selectedIds.filter((selectedId) => selectedId !== id));
 	}
 
-	function removeOrphanedId(id: string) {
-		onChange(selectedIds.filter((selectedId) => selectedId !== id));
-	}
-
-	if (sources.length === 0) {
+	if (sources.length === 0 && selectedIds.length === 0) {
 		return (
-			<div className="space-y-3">
-				<p className="text-sm text-muted-foreground">
-					No knowledge sources available yet. Add sources in Knowledge
-					Base.
-				</p>
-				{orphanedIds.length > 0 ? (
-					<div className="flex flex-wrap gap-2">
-						{orphanedIds.map((id) => (
-							<span
-								key={id}
-								className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs"
-							>
-								{id}
-								<button
-									type="button"
-									className="text-muted-foreground hover:text-foreground"
-									onClick={() => removeOrphanedId(id)}
-									aria-label={`Remove ${id}`}
-								>
-									×
-								</button>
-							</span>
-						))}
-					</div>
-				) : null}
-			</div>
+			<p className="text-sm text-muted-foreground">
+				No knowledge sources available yet. Add sources in Knowledge
+				Base.
+			</p>
 		);
 	}
 
 	return (
 		<div className="space-y-3">
-			<div className="space-y-2">
-				{sources.map((source) => {
-					const checked = selectedIds.includes(source.id);
-					return (
-						<label
+			<Popover open={open} onOpenChange={setOpen}>
+				<PopoverTrigger asChild>
+					<Button
+						variant="outline"
+						role="combobox"
+						aria-expanded={open}
+						disabled={availableSources.length === 0}
+						className="w-full justify-between bg-background font-normal"
+					>
+						<span className="truncate text-muted-foreground">
+							{availableSources.length === 0
+								? selectedIds.length > 0
+									? "All knowledge bases selected"
+									: "No knowledge bases available"
+								: "Select knowledge bases"}
+						</span>
+						<ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent
+					className="w-(--radix-popover-trigger-width) p-0"
+					align="start"
+				>
+					<Command>
+						<CommandInput placeholder="Search knowledge bases..." />
+						<CommandList>
+							<CommandEmpty>No matches found.</CommandEmpty>
+							<CommandGroup>
+								{availableSources.map((source) => (
+									<CommandItem
+										key={source.id}
+										value={`${source.label} ${source.id}`}
+										onSelect={() => {
+											addSource(source.id);
+										}}
+									>
+										{source.label}
+									</CommandItem>
+								))}
+							</CommandGroup>
+						</CommandList>
+					</Command>
+				</PopoverContent>
+			</Popover>
+
+			{selectedSources.length > 0 ? (
+				<ul className="divide-y overflow-hidden rounded-lg border bg-background">
+					{selectedSources.map((source) => (
+						<li
 							key={source.id}
-							className={cn(
-								"flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-								checked
-									? "border-foreground/20 bg-background"
-									: "border-transparent bg-background/60",
-							)}
+							className="flex items-center gap-3 px-3 py-2.5"
 						>
-							<Checkbox
-								checked={checked}
-								onCheckedChange={(value) =>
-									toggleSource(source.id, value === true)
-								}
-							/>
-							<span className="text-sm">{source.label}</span>
-						</label>
-					);
-				})}
-			</div>
-			{orphanedIds.length > 0 ? (
-				<div className="space-y-1.5">
-					<Label className="text-xs text-muted-foreground">
-						Unavailable sources
-					</Label>
-					<div className="flex flex-wrap gap-2">
-						{orphanedIds.map((id) => (
 							<span
-								key={id}
-								className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs"
+								className={cn(
+									"min-w-0 flex-1 truncate text-sm",
+									source.orphaned && "text-muted-foreground",
+								)}
+								title={source.orphaned ? source.id : undefined}
 							>
-								{id}
-								<button
-									type="button"
-									className="text-muted-foreground hover:text-foreground"
-									onClick={() => removeOrphanedId(id)}
-									aria-label={`Remove ${id}`}
-								>
-									×
-								</button>
+								{source.label}
 							</span>
-						))}
-					</div>
-				</div>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								onClick={() => removeSource(source.id)}
+								aria-label={`Remove ${source.label}`}
+								className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+							>
+								<Trash2Icon className="size-4" />
+							</Button>
+						</li>
+					))}
+				</ul>
 			) : null}
 		</div>
 	);

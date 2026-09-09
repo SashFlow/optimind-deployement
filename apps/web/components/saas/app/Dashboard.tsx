@@ -1,16 +1,22 @@
 "use client";
 
 import { Button } from "@repo/ui/button";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@repo/ui/collapsible";
 import { useSession } from "@saas/auth/hooks/use-session";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import {
 	ActivityIcon,
 	CheckCircle2Icon,
+	ChevronDownIcon,
 	ClockIcon,
 	PhoneIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import { ActivityChartCard } from "@/components/saas/app/dashboard/ActivityChartCard";
 import { ChannelBreakdownCard } from "@/components/saas/app/dashboard/ChannelBreakdownCard";
@@ -47,13 +53,27 @@ function DashboardBody({
 	orgName: string;
 	organizationId: string;
 }) {
-	const analyticsQuery = useDashboardAnalyticsQuery(organizationId, 7);
+	const [advancedOpen, setAdvancedOpen] = useState(false);
+	const analyticsQuery = useDashboardAnalyticsQuery(organizationId, 7, {
+		enabled: advancedOpen,
+	});
 	const sparkline = stats.daily.map((d) => ({ value: d.count }));
 	const deltaPct = computeDeltaPct(stats.daily.map((d) => d.count));
 	const failurePct =
 		stats.failure_rate != null
 			? `${(stats.failure_rate * 100).toFixed(1)}%`
 			: "—";
+
+	useEffect(() => {
+		const syncFromHash = () => {
+			if (window.location.hash === "#analytics") {
+				setAdvancedOpen(true);
+			}
+		};
+		syncFromHash();
+		window.addEventListener("hashchange", syncFromHash);
+		return () => window.removeEventListener("hashchange", syncFromHash);
+	}, []);
 
 	return (
 		<section className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6">
@@ -67,13 +87,6 @@ function DashboardBody({
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-2">
-					<Button
-						variant="outline"
-						asChild
-						className="rounded-full border-border/60 bg-white/80 shadow-xs"
-					>
-						<Link href="#analytics">Full analytics</Link>
-					</Button>
 					<Button asChild className="rounded-full">
 						<Link href="/app/agents">Review sessions</Link>
 					</Button>
@@ -120,34 +133,50 @@ function DashboardBody({
 				<ChannelBreakdownCard byChannel={stats.by_channel} />
 			</div>
 
-			<div id="analytics" className="space-y-3 scroll-mt-6">
-				<div>
-					<h2 className="text-lg font-semibold tracking-tight">
-						Usage analytics
-					</h2>
-					<p className="text-sm text-muted-foreground">
-						LiveKit Cloud metrics (up to 7 days) and org telephony /
-						egress
-					</p>
-				</div>
-				{analyticsQuery.isLoading ? (
-					<LoadingState className="p-0" />
-				) : analyticsQuery.isError ? (
-					<p className="text-sm text-destructive" role="alert">
-						Unable to load analytics.
-					</p>
-				) : analyticsQuery.data ? (
-					<DashboardAnalyticsSections
-						analytics={analyticsQuery.data}
-					/>
+			<Collapsible
+				open={advancedOpen}
+				onOpenChange={setAdvancedOpen}
+				id="analytics"
+				className="scroll-mt-6"
+			>
+				{!advancedOpen ? (
+					<div className="flex justify-center">
+						<CollapsibleTrigger className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/80 px-4 py-2 text-sm font-medium shadow-xs outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring">
+							Advanced
+							<ChevronDownIcon className="size-4 text-muted-foreground" />
+						</CollapsibleTrigger>
+					</div>
 				) : null}
-			</div>
+				<CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
+					<div className="space-y-3">
+						<div>
+							<h2 className="text-lg font-semibold tracking-tight">
+								Usage analytics
+							</h2>
+							<p className="text-sm text-muted-foreground">
+								LiveKit Cloud metrics (up to 7 days) and org
+								telephony / egress
+							</p>
+						</div>
+						{analyticsQuery.isLoading ? (
+							<LoadingState className="p-0" />
+						) : analyticsQuery.isError ? (
+							<p className="text-sm text-destructive" role="alert">
+								Unable to load analytics.
+							</p>
+						) : analyticsQuery.data ? (
+							<DashboardAnalyticsSections
+								analytics={analyticsQuery.data}
+							/>
+						) : null}
+					</div>
+				</CollapsibleContent>
+			</Collapsible>
 		</section>
 	);
 }
 
 export function Dashboard() {
-	const router = useRouter();
 	const { session } = useSession();
 	const { activeOrganization } = useActiveOrganization();
 	const statsQuery = useDashboardStatsQuery(activeOrganization?.id, 30);

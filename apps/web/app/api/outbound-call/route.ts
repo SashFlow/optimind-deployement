@@ -1,3 +1,4 @@
+import { buildDispatchMetadata } from "@repo/api/modules/sessions/lib/dispatch-metadata";
 import { createAgentSession, getAgentById } from "@repo/database";
 import { createOutboundRoomWithDispatch } from "@repo/livekit";
 import { NextResponse } from "next/server";
@@ -17,6 +18,7 @@ type OutboundCallBody = {
 	organizationId?: string;
 	agentId?: string;
 	recordingEnabled?: boolean;
+	contactMetadata?: Record<string, unknown>;
 };
 
 function configRecordingEnabled(config: unknown): boolean {
@@ -92,7 +94,14 @@ export async function POST(req: Request) {
 			});
 			sessionId = session.id;
 
-			metadata = JSON.stringify({
+			const contactMetadata =
+				body.contactMetadata &&
+				typeof body.contactMetadata === "object" &&
+				!Array.isArray(body.contactMetadata)
+					? body.contactMetadata
+					: {};
+
+			const dispatchMetadata = await buildDispatchMetadata({
 				organization_id: body.organizationId,
 				agent_id: agent.id,
 				agent_version_id: version.id,
@@ -102,7 +111,12 @@ export async function POST(req: Request) {
 				phone_number: phoneNumber,
 				direction: "OUTBOUND",
 				channel: "PHONE",
+				contact_metadata: contactMetadata,
 				recording_enabled: recordingEnabled,
+			});
+
+			metadata = JSON.stringify({
+				...dispatchMetadata,
 				interactionMode: "audio",
 				scenarioSlug: slug,
 				scenarioType: "phone",

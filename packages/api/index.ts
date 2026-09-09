@@ -22,7 +22,11 @@ export const app = new Hono()
 	.use(
 		cors({
 			origin: getBaseUrl(),
-			allowHeaders: ["Content-Type", "Authorization"],
+			allowHeaders: [
+				"Content-Type",
+				"Authorization",
+				"X-Worker-Api-Key",
+			],
 			allowMethods: ["POST", "GET", "PATCH", "PUT", "DELETE", "OPTIONS"],
 			exposeHeaders: ["Content-Length"],
 			maxAge: 600,
@@ -93,10 +97,11 @@ export const app = new Hono()
 
 		const handler = isRpc ? rpcHandler : openApiHandler;
 
-		const prefix = isRpc ? "/api/rpc" : "/api";
-
+		// RPC paths are matched relative to `/api/rpc`.
+		// OpenAPI routes already include `/api` from `router.prefix("/api")`,
+		// so do not strip that prefix again or every REST route 404s.
 		const { matched, response } = await handler.handle(c.req.raw, {
-			prefix,
+			...(isRpc ? { prefix: "/api/rpc" } : {}),
 			context,
 		});
 

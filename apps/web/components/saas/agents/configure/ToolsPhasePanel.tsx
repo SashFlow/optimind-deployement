@@ -2,7 +2,6 @@
 
 import { Checkbox } from "@repo/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
-import { cn } from "@repo/ui/utils";
 import {
 	CodeIcon,
 	FunctionSquareIcon,
@@ -17,7 +16,10 @@ import type {
 	ToolsByPhaseConfig,
 } from "@/lib/agent-config";
 import { syncToolsFromPhases } from "@/lib/agent-config";
-import { useCreateToolMutation } from "@/services/api/hooks";
+import {
+	useCreateToolMutation,
+	useUpdateToolMutation,
+} from "@/services/api/hooks";
 import type { ToolCreateInput, ToolDefinition } from "@/services/api/types";
 
 type ToolPhase = keyof ToolsByPhaseConfig;
@@ -71,8 +73,14 @@ export function ToolsPhasePanel({
 	const [activePhase, setActivePhase] = React.useState<ToolPhase>("on_call");
 	const [apiDialogOpen, setApiDialogOpen] = React.useState(false);
 	const [pythonDialogOpen, setPythonDialogOpen] = React.useState(false);
+	const [editingTool, setEditingTool] = React.useState<ToolDefinition | null>(
+		null,
+	);
 
 	const createTool = useCreateToolMutation(organizationId);
+	const updateTool = useUpdateToolMutation(organizationId);
+	const isToolMutationPending =
+		createTool.isPending || updateTool.isPending;
 
 	function updatePhaseTools(
 		phase: ToolPhase,
@@ -100,17 +108,81 @@ export function ToolsPhasePanel({
 		});
 	}
 
-	async function handleCreateTool(input: ToolCreateInput) {
+	async function handleSubmitTool(input: ToolCreateInput) {
+		if (editingTool) {
+			return updateTool.mutateAsync({
+				id: editingTool.id,
+				...input,
+			});
+		}
 		const tool = await createTool.mutateAsync(input);
 		updatePhaseTools(activePhase, tool.id, true);
 		return tool;
 	}
 
-	function openCategoryDialog(
+	function openCreateDialog(
 		categoryId: (typeof TOOL_CATEGORIES)[number]["id"],
 	) {
-		if (categoryId === "api") setApiDialogOpen(true);
-		if (categoryId === "function") setPythonDialogOpen(true);
+		setEditingTool(null);
+		if (categoryId === "api") {
+			setApiDialogOpen(true);
+		}
+		if (categoryId === "function") {
+			setPythonDialogOpen(true);
+		}
+	}
+
+	function openEditDialog(tool: ToolDefinition) {
+		setEditingTool(tool);
+		if (tool.tool_type === "http") {
+			setApiDialogOpen(true);
+			return;
+		}
+		setPythonDialogOpen(true);
+	}
+
+	function handleApiDialogOpenChange(open: boolean) {
+		setApiDialogOpen(open);
+		if (!open) {
+			setEditingTool(null);
+		}
+	}
+
+	function handlePythonDialogOpenChange(open: boolean) {
+		setPythonDialogOpen(open);
+		if (!open) {
+			setEditingTool(null);
+		}
+	}
+
+	function renderOrgToolRow(tool: ToolDefinition, phase: ToolPhase) {
+		const checkboxId = `org-tool-${phase}-${tool.id}`;
+		return (
+			<div
+				key={tool.id}
+				className="flex items-center justify-between gap-2 text-sm"
+			>
+				<div className="flex min-w-0 flex-1 items-center gap-2">
+					<Checkbox
+						id={checkboxId}
+						checked={config.tools_by_phase[phase].includes(tool.id)}
+						onCheckedChange={(checked) =>
+							updatePhaseTools(phase, tool.id, checked === true)
+						}
+					/>
+					<label htmlFor={checkboxId} className="truncate">
+						{tool.name}
+					</label>
+				</div>
+				<button
+					type="button"
+					className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+					onClick={() => openEditDialog(tool)}
+				>
+					Edit
+				</button>
+			</div>
+		);
 	}
 
 	return (
@@ -175,7 +247,7 @@ export function ToolsPhasePanel({
 														key={toolId}
 														className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm"
 													>
-														<div>
+														<div className="min-w-0">
 															<p className="font-medium">
 																{tool?.name ??
 																	toolId}
@@ -188,19 +260,34 @@ export function ToolsPhasePanel({
 																</p>
 															) : null}
 														</div>
-														<button
-															type="button"
-															className="text-xs text-muted-foreground hover:text-foreground"
-															onClick={() =>
-																updatePhaseTools(
-																	phase.value,
-																	toolId,
-																	false,
-																)
-															}
-														>
-															Remove
-														</button>
+														<div className="flex shrink-0 items-center gap-3">
+															{tool ? (
+																<button
+																	type="button"
+																	className="text-xs text-muted-foreground hover:text-foreground"
+																	onClick={() =>
+																		openEditDialog(
+																			tool,
+																		)
+																	}
+																>
+																	Edit
+																</button>
+															) : null}
+															<button
+																type="button"
+																className="text-xs text-muted-foreground hover:text-foreground"
+																onClick={() =>
+																	updatePhaseTools(
+																		phase.value,
+																		toolId,
+																		false,
+																	)
+																}
+															>
+																Remove
+															</button>
+														</div>
 													</div>
 												);
 											})}
@@ -218,7 +305,7 @@ export function ToolsPhasePanel({
 												key={category.id}
 												type="button"
 												onClick={() =>
-													openCategoryDialog(
+													openCreateDialog(
 														category.id,
 													)
 												}
@@ -245,31 +332,41 @@ export function ToolsPhasePanel({
 										</p>
 										<div className="grid gap-2 sm:grid-cols-2">
 											{BUILTIN_TOOLS.map(
-												([key, label]) => (
-													<label
-														key={key}
-														className="flex items-center gap-2 text-sm"
-													>
-														<Checkbox
-															checked={
-																config
-																	.tools_config[
-																	key
-																]
-															}
-															onCheckedChange={(
-																checked,
-															) =>
-																updateBuiltinTool(
-																	key,
-																	checked ===
-																		true,
-																)
-															}
-														/>
-														{label}
-													</label>
-												),
+												([key, label]) => {
+													const checkboxId = `builtin-tool-${key}`;
+													return (
+														<div
+															key={key}
+															className="flex items-center gap-2 text-sm"
+														>
+															<Checkbox
+																id={checkboxId}
+																checked={
+																	config
+																		.tools_config[
+																		key
+																	]
+																}
+																onCheckedChange={(
+																	checked,
+																) =>
+																	updateBuiltinTool(
+																		key,
+																		checked ===
+																			true,
+																	)
+																}
+															/>
+															<label
+																htmlFor={
+																	checkboxId
+																}
+															>
+																{label}
+															</label>
+														</div>
+													);
+												},
 											)}
 										</div>
 									</div>
@@ -283,31 +380,12 @@ export function ToolsPhasePanel({
 													No organization tools yet.
 												</p>
 											) : (
-												orgTools.map((tool) => (
-													<label
-														key={tool.id}
-														className={cn(
-															"flex items-center gap-2 text-sm",
-														)}
-													>
-														<Checkbox
-															checked={config.tools_by_phase.on_call.includes(
-																tool.id,
-															)}
-															onCheckedChange={(
-																checked,
-															) =>
-																updatePhaseTools(
-																	"on_call",
-																	tool.id,
-																	checked ===
-																		true,
-																)
-															}
-														/>
-														{tool.name}
-													</label>
-												))
+												orgTools.map((tool) =>
+													renderOrgToolRow(
+														tool,
+														"on_call",
+													),
+												)
 											)}
 										</div>
 									</div>
@@ -323,29 +401,12 @@ export function ToolsPhasePanel({
 												No organization tools yet.
 											</p>
 										) : (
-											orgTools.map((tool) => (
-												<label
-													key={tool.id}
-													className="flex items-center gap-2 text-sm"
-												>
-													<Checkbox
-														checked={config.tools_by_phase[
-															phase.value
-														].includes(tool.id)}
-														onCheckedChange={(
-															checked,
-														) =>
-															updatePhaseTools(
-																phase.value,
-																tool.id,
-																checked ===
-																	true,
-															)
-														}
-													/>
-													{tool.name}
-												</label>
-											))
+											orgTools.map((tool) =>
+												renderOrgToolRow(
+													tool,
+													phase.value,
+												),
+											)
 										)}
 									</div>
 								</div>
@@ -357,15 +418,21 @@ export function ToolsPhasePanel({
 
 			<CreateApiToolDialog
 				open={apiDialogOpen}
-				onOpenChange={setApiDialogOpen}
-				onCreate={handleCreateTool}
-				isPending={createTool.isPending}
+				onOpenChange={handleApiDialogOpenChange}
+				tool={
+					editingTool?.tool_type === "http" ? editingTool : null
+				}
+				onSubmit={handleSubmitTool}
+				isPending={isToolMutationPending}
 			/>
 			<CreatePythonToolDialog
 				open={pythonDialogOpen}
-				onOpenChange={setPythonDialogOpen}
-				onCreate={handleCreateTool}
-				isPending={createTool.isPending}
+				onOpenChange={handlePythonDialogOpenChange}
+				tool={
+					editingTool?.tool_type === "python" ? editingTool : null
+				}
+				onSubmit={handleSubmitTool}
+				isPending={isToolMutationPending}
 			/>
 		</div>
 	);

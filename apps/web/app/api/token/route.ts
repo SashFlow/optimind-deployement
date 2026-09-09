@@ -1,4 +1,5 @@
-import { RoomAgentDispatch, RoomConfiguration } from "@livekit/protocol";
+import { RoomConfiguration } from "@livekit/protocol";
+import { buildDispatchMetadata } from "@repo/api/modules/sessions/lib/dispatch-metadata";
 import { createAgentSession, getAgentById } from "@repo/database";
 import {
 	createAgentDispatch,
@@ -106,7 +107,14 @@ export async function POST(req: Request) {
 			});
 			sessionId = session.id;
 
-			agentMetadata = JSON.stringify({
+			const contactMetadata =
+				body?.contactMetadata &&
+				typeof body.contactMetadata === "object" &&
+				!Array.isArray(body.contactMetadata)
+					? (body.contactMetadata as Record<string, unknown>)
+					: {};
+
+			const dispatchMetadata = await buildDispatchMetadata({
 				organization_id: organizationId,
 				agent_id: agent.id,
 				agent_version_id: version.id,
@@ -115,7 +123,12 @@ export async function POST(req: Request) {
 				source: "web",
 				direction: "WEB",
 				channel: "WEB",
+				contact_metadata: contactMetadata,
 				recording_enabled: recordingEnabled,
+			});
+
+			agentMetadata = JSON.stringify({
+				...dispatchMetadata,
 				interactionMode: resolveInteractionMode(scenarioType),
 				scenarioSlug: slug,
 				scenarioType,

@@ -168,7 +168,7 @@ export const create = protectedProcedure
 			);
 		}
 
-		const dispatchMetadata = buildDispatchMetadata({
+		const dispatchMetadata = await buildDispatchMetadata({
 			organization_id: input.organizationId,
 			agent_id: agent.id,
 			agent_version_id: version.id,

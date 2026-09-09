@@ -103,7 +103,7 @@ export type PromptSections = {
 	tools: string;
 	goal: string;
 	guardrails: string;
-	user_information: string;
+	script_steps: string;
 	pauses_and_filler_words: string;
 	self_corrections: string;
 	emotion: string;
@@ -196,7 +196,7 @@ export const defaultPromptSections: PromptSections = {
 	tools: "",
 	goal: "",
 	guardrails: "",
-	user_information: "",
+	script_steps: "",
 	pauses_and_filler_words: `After every standalone "um", insert <break time="300ms"/> immediately and follow up with "so."`,
 	self_corrections:
 		"When a better phrasing comes to mind mid-sentence, drop the first version and restart.",
@@ -226,7 +226,7 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 			enabled: true,
 			text: "",
 			trigger: "on_join",
-			interruptible: true,
+			interruptible: false,
 		},
 		pipeline_mode: "cascaded",
 		llm: null,
@@ -326,16 +326,33 @@ export function normalizeAgentConfig(
 ): AgentConfigDocument {
 	const defaults = createDefaultAgentConfig();
 	if (!config) return defaults;
-	const c = config as Partial<AgentConfigDocument>;
+	const c = config as Partial<AgentConfigDocument> & {
+		prompts?: Partial<PromptSections> & { user_information?: string };
+	};
 	const toolsByPhase = {
 		...defaults.tools_by_phase,
 		...(c.tools_by_phase ?? {}),
+	};
+	const rawPrompts = c.prompts ?? {};
+	const {
+		user_information: legacyScriptSteps,
+		...promptRest
+	} = rawPrompts as Partial<PromptSections> & {
+		user_information?: string;
+	};
+	const prompts: PromptSections = {
+		...defaults.prompts,
+		...promptRest,
+		script_steps:
+			promptRest.script_steps?.trim() ||
+			legacyScriptSteps?.trim() ||
+			defaults.prompts.script_steps,
 	};
 	return {
 		...defaults,
 		...c,
 		greeting: { ...defaults.greeting, ...(c.greeting ?? {}) },
-		prompts: { ...defaults.prompts, ...(c.prompts ?? {}) },
+		prompts,
 		background_audio: {
 			...defaults.background_audio,
 			...(c.background_audio ?? {}),

@@ -137,6 +137,10 @@ export type ToolCreateInput = {
 	parameters_schema: Record<string, unknown>;
 };
 
+export type ToolUpdateInput = ToolCreateInput & {
+	id: string;
+};
+
 export type KnowledgeSource = {
 	id: string;
 	name: string;

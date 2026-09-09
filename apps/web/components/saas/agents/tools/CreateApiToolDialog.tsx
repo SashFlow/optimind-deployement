@@ -24,19 +24,30 @@ import type { ToolCreateInput, ToolDefinition } from "@/services/api/types";
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 
+function stringifyJson(value: unknown, fallback = "{}") {
+	try {
+		return JSON.stringify(value ?? {}, null, 2);
+	} catch {
+		return fallback;
+	}
+}
+
 type CreateApiToolDialogProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onCreate: (input: ToolCreateInput) => Promise<ToolDefinition>;
+	tool?: ToolDefinition | null;
+	onSubmit: (input: ToolCreateInput) => Promise<ToolDefinition>;
 	isPending?: boolean;
 };
 
 export function CreateApiToolDialog({
 	open,
 	onOpenChange,
-	onCreate,
+	tool = null,
+	onSubmit,
 	isPending = false,
 }: CreateApiToolDialogProps) {
+	const isEditing = Boolean(tool);
 	const [name, setName] = React.useState("");
 	const [description, setDescription] = React.useState("");
 	const [method, setMethod] =
@@ -54,8 +65,36 @@ export function CreateApiToolDialog({
 		setParametersSchema("{}");
 	}
 
+	function populateFromTool(nextTool: ToolDefinition) {
+		const config = nextTool.config ?? {};
+		const nextMethod = String(config.method ?? "POST").toUpperCase();
+		setName(nextTool.name);
+		setDescription(nextTool.description ?? "");
+		setMethod(
+			(HTTP_METHODS.includes(nextMethod as (typeof HTTP_METHODS)[number])
+				? nextMethod
+				: "POST") as (typeof HTTP_METHODS)[number],
+		);
+		setUrl(typeof config.url === "string" ? config.url : "");
+		setHeaders(stringifyJson(config.headers ?? {}));
+		setParametersSchema(stringifyJson(nextTool.parameters_schema ?? {}));
+	}
+
+	React.useEffect(() => {
+		if (!open) {
+			return;
+		}
+		if (tool) {
+			populateFromTool(tool);
+			return;
+		}
+		resetForm();
+	}, [open, tool]);
+
 	function handleOpenChange(nextOpen: boolean) {
-		if (!nextOpen) resetForm();
+		if (!nextOpen) {
+			resetForm();
+		}
 		onOpenChange(nextOpen);
 	}
 
@@ -63,7 +102,9 @@ export function CreateApiToolDialog({
 		event.preventDefault();
 		const trimmedName = name.trim();
 		const trimmedUrl = url.trim();
-		if (!trimmedName || !trimmedUrl) return;
+		if (!trimmedName || !trimmedUrl) {
+			return;
+		}
 
 		let parsedHeaders: Record<string, string> = {};
 		let parsedParameters: Record<string, unknown> = {};
@@ -80,7 +121,7 @@ export function CreateApiToolDialog({
 			return;
 		}
 
-		await onCreate({
+		await onSubmit({
 			name: trimmedName,
 			description: description.trim(),
 			tool_type: "http",
@@ -95,10 +136,13 @@ export function CreateApiToolDialog({
 			<DialogContent className="max-w-lg">
 				<form onSubmit={(e) => void handleSubmit(e)}>
 					<DialogHeader>
-						<DialogTitle>Create API tool</DialogTitle>
+						<DialogTitle>
+							{isEditing ? "Edit API tool" : "Create API tool"}
+						</DialogTitle>
 						<DialogDescription>
-							Define an HTTP endpoint the agent can call during a
-							session.
+							{isEditing
+								? "Update the HTTP endpoint the agent can call during a session."
+								: "Define an HTTP endpoint the agent can call during a session."}
 						</DialogDescription>
 					</DialogHeader>
 					<div className="mt-4 space-y-4">
@@ -195,7 +239,13 @@ export function CreateApiToolDialog({
 							Cancel
 						</Button>
 						<Button type="submit" disabled={isPending}>
-							{isPending ? "Creating..." : "Create API tool"}
+							{isPending
+								? isEditing
+									? "Saving..."
+									: "Creating..."
+								: isEditing
+									? "Save changes"
+									: "Create API tool"}
 						</Button>
 					</DialogFooter>
 				</form>

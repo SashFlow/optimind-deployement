@@ -55,145 +55,90 @@ function model(
 
 export const CATALOG_MODELS: CatalogModel[] = [
 	// LLM — OpenAI
-	model("openai:chat-latest", "ChatGPT Latest", "openai", "llm"),
-	model("openai:gpt-4.1", "GPT-4.1", "openai", "llm"),
-	model("openai:gpt-4.1-mini", "GPT-4.1 Mini", "openai", "llm"),
-	model("openai:gpt-4.1-nano", "GPT-4.1 Nano", "openai", "llm"),
-	model("openai:gpt-4o", "GPT-4o", "openai", "llm"),
-	model("openai:gpt-4o-mini", "GPT-4o Mini", "openai", "llm"),
-	model("openai:gpt-5", "GPT-5", "openai", "llm"),
-	model("openai:gpt-5-mini", "GPT-5 Mini", "openai", "llm"),
-	model("openai:gpt-5-nano", "GPT-5 Nano", "openai", "llm"),
-	model("openai:gpt-5.1", "GPT-5.1", "openai", "llm"),
-	model("openai:gpt-5.2", "GPT-5.2", "openai", "llm"),
-	model("openai:gpt-5.4", "GPT-5.4", "openai", "llm"),
-	model("openai:gpt-5.4-mini", "GPT-5.4 Mini", "openai", "llm"),
-	model("openai:gpt-5.4-nano", "GPT-5.4 Nano", "openai", "llm"),
-	model("openai:gpt-5.5", "GPT-5.5", "openai", "llm"),
-	model("openai:gpt-5.6-luna", "GPT-5.6 Luna", "openai", "llm"),
-	model("openai:gpt-5.6-sol", "GPT-5.6 Sol", "openai", "llm"),
-	model("openai:gpt-5.6-terra", "GPT-5.6 Terra", "openai", "llm"),
+	model("chat-latest", "ChatGPT Latest", "openai", "llm"),
+	model("gpt-4.1", "GPT-4.1", "openai", "llm"),
+	model("gpt-4.1-mini", "GPT-4.1 Mini", "openai", "llm"),
+	model("gpt-4.1-nano", "GPT-4.1 Nano", "openai", "llm"),
+	model("gpt-4o", "GPT-4o", "openai", "llm"),
+	model("gpt-4o-mini", "GPT-4o Mini", "openai", "llm"),
+	model("gpt-5", "GPT-5", "openai", "llm"),
+	model("gpt-5-mini", "GPT-5 Mini", "openai", "llm"),
+	model("gpt-5-nano", "GPT-5 Nano", "openai", "llm"),
+	model("gpt-5.1", "GPT-5.1", "openai", "llm"),
+	model("gpt-5.2", "GPT-5.2", "openai", "llm"),
+	model("gpt-5.4", "GPT-5.4", "openai", "llm"),
+	model("gpt-5.4-mini", "GPT-5.4 Mini", "openai", "llm"),
+	model("gpt-5.4-nano", "GPT-5.4 Nano", "openai", "llm"),
+	model("gpt-5.5", "GPT-5.5", "openai", "llm"),
+	model("gpt-5.6-luna", "GPT-5.6 Luna", "openai", "llm"),
+	model("gpt-5.6-sol", "GPT-5.6 Sol", "openai", "llm"),
+	model("gpt-5.6-terra", "GPT-5.6 Terra", "openai", "llm"),
 
 	// LLM — Gemini
-	model(
-		"gemini:gemini-3-flash-preview",
-		"Gemini 3 Flash",
-		"gemini",
-		"llm",
-	),
-	model(
-		"gemini:gemini-3.1-flash-lite",
-		"Gemini 3.1 Flash Lite",
-		"gemini",
-		"llm",
-	),
-	model(
-		"gemini:gemini-3.1-pro-preview",
-		"Gemini 3.1 Pro",
-		"gemini",
-		"llm",
-	),
-	model("gemini:gemini-3.5-flash", "Gemini 3.5 Flash", "gemini", "llm"),
-	model(
-		"gemini:gemini-3.5-flash-lite",
-		"Gemini 3.5 Flash Lite",
-		"gemini",
-		"llm",
-	),
-	model("gemini:gemini-3.6-flash", "Gemini 3.6 Flash", "gemini", "llm"),
-	model("gemini:gemini-3.7-flash", "Gemini 3.7 Flash", "gemini", "llm"),
-	model("gemini:gemini-3.8-flash", "Gemini 3.8 Flash", "gemini", "llm"),
+	model("gemini-3-flash-preview", "Gemini 3 Flash", "gemini", "llm"),
+	model("gemini-3.1-flash-lite", "Gemini 3.1 Flash Lite", "gemini", "llm"),
+	model("gemini-3.1-pro-preview", "Gemini 3.1 Pro", "gemini", "llm"),
+	model("gemini-3.5-flash", "Gemini 3.5 Flash", "gemini", "llm"),
+	model("gemini-3.5-flash-lite", "Gemini 3.5 Flash Lite", "gemini", "llm"),
+	model("gemini-3.6-flash", "Gemini 3.6 Flash", "gemini", "llm"),
+	model("gemini-3.7-flash", "Gemini 3.7 Flash", "gemini", "llm"),
+	model("gemini-3.8-flash", "Gemini 3.8 Flash", "gemini", "llm"),
 
 	// Realtime
-	model("openai:gpt-realtime", "GPT Realtime", "openai", "realtime", {
+	model("gpt-realtime", "GPT Realtime", "openai", "realtime", {
 		supports_text_output: true,
 	}),
-	model("gemini:gemini-live", "Gemini Live", "gemini", "realtime", {
+	model("gemini-live", "Gemini Live", "gemini", "realtime", {
 		supports_text_output: false,
 	}),
 
 	// STT — OpenAI
-	model("openai:whisper-1", "Whisper", "openai", "stt"),
-	model("openai:gpt-4o-transcribe", "GPT-4o Transcribe", "openai", "stt"),
-	model(
-		"openai:gpt-4o-mini-transcribe",
-		"GPT-4o Mini Transcribe",
-		"openai",
-		"stt",
-	),
-	model(
-		"openai:gpt-realtime-whisper",
-		"GPT Realtime Whisper",
-		"openai",
-		"stt",
-	),
+	model("whisper-1", "Whisper", "openai", "stt"),
+	model("gpt-4o-transcribe", "GPT-4o Transcribe", "openai", "stt"),
+	model("gpt-4o-mini-transcribe", "GPT-4o Mini Transcribe", "openai", "stt"),
+	model("gpt-realtime-whisper", "GPT Realtime Whisper", "openai", "stt"),
 
 	// STT — Gemini
 	model(
-		"gemini:gemini-3.5-transcribe-live",
+		"gemini-3.5-transcribe-live",
 		"Gemini 3.5 Transcribe Live",
 		"gemini",
 		"stt",
 	),
-	model("gemini:gemini-3.5-flash", "Gemini 3.5 Flash STT", "gemini", "stt"),
-	model(
-		"gemini:gemini-3-flash-preview",
-		"Gemini 3 Flash STT",
-		"gemini",
-		"stt",
-	),
-	model(
-		"gemini:gemini-3-pro-preview",
-		"Gemini 3 Pro STT",
-		"gemini",
-		"stt",
-	),
-	model("gemini:gemini-2.5-flash", "Gemini 2.5 Flash STT", "gemini", "stt"),
+	model("gemini-3.5-flash", "Gemini 3.5 Flash STT", "gemini", "stt"),
+	model("gemini-3-flash-preview", "Gemini 3 Flash STT", "gemini", "stt"),
+	model("gemini-3-pro-preview", "Gemini 3 Pro STT", "gemini", "stt"),
+	model("gemini-2.5-flash", "Gemini 2.5 Flash STT", "gemini", "stt"),
 
 	// TTS — OpenAI
-	model("openai:gpt-4o-mini-tts", "GPT-4o Mini TTS", "openai", "tts"),
-	model("openai:tts-1", "TTS-1", "openai", "tts"),
-	model("openai:tts-1-hd", "TTS-1 HD", "openai", "tts"),
+	model("gpt-4o-mini-tts", "GPT-4o Mini TTS", "openai", "tts"),
+	model("tts-1", "TTS-1", "openai", "tts"),
+	model("tts-1-hd", "TTS-1 HD", "openai", "tts"),
 
 	// TTS — Gemini
 	model(
-		"gemini:gemini-3.1-flash-tts-preview",
+		"gemini-3.1-flash-tts-preview",
 		"Gemini 3.1 Flash TTS",
 		"gemini",
 		"tts",
 	),
 	model(
-		"gemini:gemini-2.5-flash-preview-tts",
+		"gemini-2.5-flash-preview-tts",
 		"Gemini 2.5 Flash TTS",
 		"gemini",
 		"tts",
 	),
-	model(
-		"gemini:gemini-2.5-pro-preview-tts",
-		"Gemini 2.5 Pro TTS",
-		"gemini",
-		"tts",
-	),
+	model("gemini-2.5-pro-preview-tts", "Gemini 2.5 Pro TTS", "gemini", "tts"),
 
 	// TTS — Sarvam
 	model("sarvam:bulbul:v3", "Bulbul v3", "sarvam", "tts"),
 	model("sarvam:bulbul:v2", "Bulbul v2", "sarvam", "tts"),
 
 	// TTS — Inworld
-	model("inworld:inworld-tts-1.5-max", "Inworld TTS 1.5 Max", "inworld", "tts"),
-	model(
-		"inworld:inworld-tts-1.5-mini",
-		"Inworld TTS 1.5 Mini",
-		"inworld",
-		"tts",
-	),
-	model("inworld:inworld-tts-2", "Inworld TTS 2", "inworld", "tts"),
-	model(
-		"inworld:inworld-tts-2-flash",
-		"Inworld TTS 2 Flash",
-		"inworld",
-		"tts",
-	),
+	model("inworld-tts-1.5-max", "Inworld TTS 1.5 Max", "inworld", "tts"),
+	model("inworld-tts-1.5-mini", "Inworld TTS 1.5 Mini", "inworld", "tts"),
+	model("inworld-tts-2", "Inworld TTS 2", "inworld", "tts"),
+	model("inworld-tts-2-flash", "Inworld TTS 2 Flash", "inworld", "tts"),
 ];
 
 const OPENAI_VOICES = [
@@ -305,6 +250,8 @@ const INWORLD_VOICES = [
 	{ id: "Diego", label: "Diego (Mexican male)" },
 	{ id: "Edward", label: "Edward (American male)" },
 	{ id: "Olivia", label: "Olivia (British female)" },
+	{ id: "Aarav", label: "Aarav (Indian male)" },
+	{ id: "Aanya", label: "Aanya (Indian female)" },
 ] as const;
 
 const OPENAI_REALTIME_VOICES = [
@@ -341,27 +288,28 @@ function voicesFor(
 }
 
 export const CATALOG_VOICES: CatalogVoice[] = [
-	...voicesFor("openai:gpt-4o-mini-tts", OPENAI_VOICES),
-	...voicesFor("openai:tts-1", OPENAI_TTS_1_VOICES),
-	...voicesFor("openai:tts-1-hd", OPENAI_TTS_1_VOICES),
-	...voicesFor("openai:gpt-realtime", OPENAI_REALTIME_VOICES),
-	...voicesFor("gemini:gemini-3.1-flash-tts-preview", GEMINI_VOICES),
-	...voicesFor("gemini:gemini-2.5-flash-preview-tts", GEMINI_VOICES),
-	...voicesFor("gemini:gemini-2.5-pro-preview-tts", GEMINI_VOICES),
-	...voicesFor("gemini:gemini-live", GEMINI_VOICES),
+	...voicesFor("gpt-4o-mini-tts", OPENAI_VOICES),
+	...voicesFor("tts-1", OPENAI_TTS_1_VOICES),
+	...voicesFor("tts-1-hd", OPENAI_TTS_1_VOICES),
+	...voicesFor("gpt-realtime", OPENAI_REALTIME_VOICES),
+	...voicesFor("gemini-3.1-flash-tts-preview", GEMINI_VOICES),
+	...voicesFor("gemini-2.5-flash-preview-tts", GEMINI_VOICES),
+	...voicesFor("gemini-2.5-pro-preview-tts", GEMINI_VOICES),
+	...voicesFor("gemini-live", GEMINI_VOICES),
 	...voicesFor("sarvam:bulbul:v3", SARVAM_V3_SPEAKERS),
 	...voicesFor("sarvam:bulbul:v2", SARVAM_V2_SPEAKERS),
-	...voicesFor("inworld:inworld-tts-1.5-max", INWORLD_VOICES),
-	...voicesFor("inworld:inworld-tts-1.5-mini", INWORLD_VOICES),
-	...voicesFor("inworld:inworld-tts-2", INWORLD_VOICES),
-	...voicesFor("inworld:inworld-tts-2-flash", INWORLD_VOICES),
+	...voicesFor("inworld-tts-1.5-max", INWORLD_VOICES),
+	...voicesFor("inworld-tts-1.5-mini", INWORLD_VOICES),
+	...voicesFor("inworld-tts-2", INWORLD_VOICES),
+	...voicesFor("inworld-tts-2-flash", INWORLD_VOICES),
 ];
 
 export const CATALOG_AUDIO_CLIPS: CatalogAudioClip[] = [
 	{
 		id: "office_ambience",
 		label: "Office ambience",
-		description: "Busy office chatter and background noise (LiveKit default).",
+		description:
+			"Busy office chatter and background noise (LiveKit default).",
 		builtin: true,
 	},
 	{
