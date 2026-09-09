@@ -1,11 +1,11 @@
 "use client";
 
-import { LoadingState } from "@repo/ui/spinner";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { useParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 import { AgentConfigureForm } from "@/components/saas/agents/AgentConfigureForm";
+import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
 import {
 	type AgentConfigDocument,
 	createDefaultAgentConfig,
@@ -22,7 +22,7 @@ import {
 export default function AgentConfigurePage() {
 	const params = useParams<{ agentId: string }>();
 	const agentId = params.agentId;
-	const { activeOrganization } = useActiveOrganization();
+	const { activeOrganization, loaded } = useActiveOrganization();
 	const activeOrganizationId = activeOrganization?.id ?? null;
 
 	const agentQuery = useAgentQuery(activeOrganizationId, agentId);
@@ -114,6 +114,10 @@ export default function AgentConfigurePage() {
 		await publishVersion.mutateAsync(draftVersion.id);
 	}
 
+	if (!loaded) {
+		return <PageSectionSkeleton variant="form" />;
+	}
+
 	if (!activeOrganizationId) {
 		return (
 			<p className="p-6 text-sm text-muted-foreground">
@@ -123,7 +127,7 @@ export default function AgentConfigurePage() {
 	}
 
 	if (!agentQuery.data || !draftVersion) {
-		return <LoadingState />;
+		return <PageSectionSkeleton variant="form" />;
 	}
 
 	return (

@@ -37,7 +37,6 @@ import { cn } from "@repo/ui/utils";
 import { MoreVerticalIcon, SearchIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import {
 	useCreatePhoneNumberMutation,
 	useDeletePhoneNumberMutation,
@@ -47,9 +46,8 @@ import {
 	useUpdatePhoneNumberMutation,
 } from "@/components/saas/numbers/lib/hooks";
 import type { Agent, PhoneNumber } from "@/components/saas/numbers/lib/types";
-import { Pagination } from "@/components/saas/shared/Pagination";
-
-const ITEMS_PER_PAGE = 10;
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
 type NumbersInventoryProps = {
 	organizationId: string | null;
@@ -100,7 +98,7 @@ export function NumbersInventory({
 		);
 	}, [numbersQuery.data, search]);
 
-	const pageCount = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
 	useEffect(() => {
 		setCurrentPage(1);
@@ -111,8 +109,8 @@ export function NumbersInventory({
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
-		const start = (currentPage - 1) * ITEMS_PER_PAGE;
-		return filtered.slice(start, start + ITEMS_PER_PAGE);
+		const start = (currentPage - 1) * PAGE_SIZE;
+		return filtered.slice(start, start + PAGE_SIZE);
 	}, [filtered, currentPage]);
 
 	async function handleAdd(event: React.FormEvent) {
@@ -182,7 +180,22 @@ export function NumbersInventory({
 			</div>
 
 			{numbersQuery.isPending ? (
-				<LoadingState />
+				<TableBodySkeleton
+					headers={[
+						"Number",
+						"Agent",
+						"Trunk",
+						"Status",
+						"Actions",
+					]}
+					columns={[
+						{ type: "lines", widths: ["w-36", "w-28"] },
+						{ type: "text", width: "w-28" },
+						{ type: "text", width: "w-24" },
+						{ type: "pill" },
+						{ type: "action" },
+					]}
+				/>
 			) : numbersQuery.isError ? (
 				<p className="p-6 text-sm text-destructive">
 					Unable to load phone numbers.
@@ -364,7 +377,7 @@ export function NumbersInventory({
 					<footer className="border-t px-5 py-3">
 						<Pagination
 							totalItems={filtered.length}
-							itemsPerPage={ITEMS_PER_PAGE}
+							itemsPerPage={PAGE_SIZE}
 							currentPage={currentPage}
 							onChangeCurrentPage={setCurrentPage}
 						/>

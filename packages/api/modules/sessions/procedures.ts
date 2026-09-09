@@ -1,10 +1,12 @@
 import { ORPCError } from "@orpc/client";
 import {
+	consumeAgentTrialToken,
 	createAgentSession,
 	createEgressJob,
 	createSessionEvent,
 	createToolCallRecord,
 	getAgentById,
+	getAgentTrialByToken,
 	getAgentSessionById,
 	linkCampaignSessionToAgentSession,
 	listAgentSessions,
@@ -14,13 +16,15 @@ import {
 import {
 	createOutboundRoomWithDispatch,
 	createParticipantToken,
+	deleteRoom,
 	getEgressS3Config,
 	getLiveKitConfig,
 	recordingFilepath,
 	startRoomCompositeEgress,
 } from "@repo/livekit";
+import { logger } from "@repo/logs";
 import { z } from "zod";
-import { protectedProcedure } from "../../orpc/procedures";
+import { protectedProcedure, publicProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
 import {
 	buildDispatchMetadata,
@@ -216,6 +220,134 @@ export const create = protectedProcedure
 		};
 	});
 
+export const getTrialLink = publicProcedure
+	.route({
+		method: "GET",
+		path: "/sessions/trial-links/{token}",
+		tags: ["Sessions"],
+		summary: "Get public trial link details",
+	})
+	.input(z.object({ token: z.string().min(1) }))
+	.handler(async ({ input }) => {
+		const trial = await getAgentTrialByToken(input.token);
+		if (!trial || !trial.enabled || !trial.token) {
+			throw new ORPCError("NOT_FOUND");
+		}
+
+		const now = Date.now();
+		const isExpired =
+			Boolean(trial.expiresAt) && trial.expiresAt!.getTime() < now;
+		const remaining = Math.max(0, trial.usageLimit - trial.usageCount);
+		const available = !isExpired && remaining > 0;
+
+		return {
+			trial: {
+				id: trial.id,
+				label: trial.label,
+				token: trial.token,
+				usageLimit: trial.usageLimit,
+				usageCount: trial.usageCount,
+				remaining,
+				expiresAt: trial.expiresAt,
+				available,
+			},
+			agent: {
+				id: trial.agent.id,
+				name: trial.agent.name,
+			},
+		};
+	});
+
+export const startTrialSession = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/trial-links/{token}/start",
+		tags: ["Sessions"],
+		summary: "Start a public trial session",
+	})
+	.input(
+		z.object({
+			token: z.string().min(1),
+			participantName: z.string().min(1).max(120).default("Guest"),
+			contactMetadata: z.record(z.string(), z.unknown()).optional(),
+		}),
+	)
+	.handler(async ({ input }) => {
+		const trial = await consumeAgentTrialToken(input.token);
+		if (!trial || !trial.token) {
+			throw new ORPCError("FORBIDDEN", {
+				message: "This trial link is not available anymore",
+			});
+		}
+
+		const trialWithAgent = await getAgentTrialByToken(trial.token);
+		if (!trialWithAgent) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		const agent = trialWithAgent.agent;
+		const version = agent.publishedVersion ?? agent.draftVersion;
+		if (!version) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Agent has no version to dispatch",
+			});
+		}
+
+		const configSnapshot =
+			(version.config as Record<string, unknown>) ?? {};
+		const recordingEnabled = configRecordingEnabled(configSnapshot);
+		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+		const roomName = `SESSION_${timestamp}_${Math.floor(Math.random() * 10_000)}`;
+
+		const session = await createAgentSession({
+			organizationId: agent.organizationId,
+			agentId: agent.id,
+			agentVersionId: version.id,
+			livekitRoomName: roomName,
+			channel: "WEB",
+			direction: "WEB",
+			configSnapshot,
+			recordingEnabled,
+			metadata: {
+				source: "trial_link",
+				trialId: trial.id,
+				trialLabel: trial.label,
+			},
+		});
+
+		const dispatchMetadata = await buildDispatchMetadata({
+			organization_id: agent.organizationId,
+			agent_id: agent.id,
+			agent_version_id: version.id,
+			session_id: session.id,
+			config: configSnapshot,
+			source: "web",
+			direction: "WEB",
+			channel: "WEB",
+			contact_metadata: input.contactMetadata ?? {},
+			recording_enabled: recordingEnabled,
+		});
+		const metadataJson = serializeDispatchMetadata(dispatchMetadata);
+		await createOutboundRoomWithDispatch({
+			roomName,
+			agentName: AGENT_NAME,
+			metadata: metadataJson,
+		});
+
+		const participantToken = await createParticipantToken({
+			identity: `trial-user-${Math.floor(Math.random() * 10_000)}`,
+			name: input.participantName,
+			roomName,
+		});
+
+		const cfg = getLiveKitConfig();
+		return {
+			sessionId: session.id,
+			roomName,
+			serverUrl: cfg.url,
+			participantToken,
+		};
+	});
+
 async function startEgressForSession(
 	session: NonNullable<Awaited<ReturnType<typeof getAgentSessionById>>>,
 	audioOnly?: boolean,
@@ -278,6 +410,74 @@ export const startSessionEgress = protectedProcedure
 		if (!session) throw new ORPCError("NOT_FOUND");
 		await requireOrgMembership(session.organizationId, context.user.id);
 		return startEgressForSession(session, input.audioOnly);
+	});
+
+export const end = protectedProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/{id}/end",
+		tags: ["Sessions"],
+		summary: "End an active agent session and delete its LiveKit room",
+	})
+	.input(z.object({ id: z.string() }))
+	.handler(async ({ input, context }) => {
+		const existing = await getAgentSessionById(input.id);
+		if (!existing) throw new ORPCError("NOT_FOUND");
+		await requireOrgMembership(existing.organizationId, context.user.id);
+
+		if (existing.status === "COMPLETED" || existing.status === "FAILED") {
+			throw new ORPCError("BAD_REQUEST", {
+				message: `Session is already ${existing.status.toLowerCase()}`,
+			});
+		}
+
+		async function ensureRoomDeleted(roomName: string) {
+			try {
+				await deleteRoom(roomName);
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : String(error);
+				const alreadyGone =
+					/not found|does not exist|404/i.test(message) ||
+					(error as { status?: number })?.status === 404;
+				if (!alreadyGone) {
+					logger.error(
+						"Failed to delete LiveKit room on session end",
+						error,
+					);
+					throw new ORPCError("INTERNAL_SERVER_ERROR", {
+						message: "Failed to end LiveKit room for session",
+					});
+				}
+			}
+		}
+
+		if (existing.status === "CANCELLED") {
+			await ensureRoomDeleted(existing.livekitRoomName);
+			return { session: existing };
+		}
+
+		// Mark cancelled first so room_finished webhook won't overwrite as COMPLETED.
+		const session = await updateAgentSessionLifecycle(existing.id, {
+			status: "CANCELLED",
+			endReason: "CANCELLED",
+		});
+		if (!session) throw new ORPCError("NOT_FOUND");
+
+		await createSessionEvent({
+			organizationId: session.organizationId,
+			sessionId: session.id,
+			eventType: "session.ended",
+			actor: "SYSTEM",
+			payload: {
+				reason: "CANCELLED",
+				endedByUserId: context.user.id,
+			},
+		});
+
+		await ensureRoomDeleted(session.livekitRoomName);
+
+		return { session };
 	});
 
 export const patchLifecycle = workerProcedure

@@ -35,7 +35,6 @@ import {
 import { MoreVerticalIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import {
 	useCreateDispatchRuleMutation,
 	useDeleteDispatchRuleMutation,
@@ -43,9 +42,8 @@ import {
 	useSipTrunksQuery,
 } from "@/components/saas/numbers/lib/hooks";
 import type { Agent, DispatchRule } from "@/components/saas/numbers/lib/types";
-import { Pagination } from "@/components/saas/shared/Pagination";
-
-const ITEMS_PER_PAGE = 10;
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
 type DispatchRulesPanelProps = {
 	organizationId: string | null;
@@ -75,15 +73,15 @@ export function DispatchRulesPanel({
 	);
 
 	const rules = rulesQuery.data ?? [];
-	const pageCount = Math.max(1, Math.ceil(rules.length / ITEMS_PER_PAGE));
+	const pageCount = Math.max(1, Math.ceil(rules.length / PAGE_SIZE));
 
 	useEffect(() => {
 		if (currentPage > pageCount) setCurrentPage(pageCount);
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
-		const start = (currentPage - 1) * ITEMS_PER_PAGE;
-		return rules.slice(start, start + ITEMS_PER_PAGE);
+		const start = (currentPage - 1) * PAGE_SIZE;
+		return rules.slice(start, start + PAGE_SIZE);
 	}, [rules, currentPage]);
 
 	const trunkNameById = useMemo(() => {
@@ -178,7 +176,22 @@ export function DispatchRulesPanel({
 			</div>
 
 			{rulesQuery.isPending ? (
-				<LoadingState />
+				<TableBodySkeleton
+					headers={[
+						"Name",
+						"Trunk",
+						"Agent",
+						"Prefix",
+						"Actions",
+					]}
+					columns={[
+						{ type: "text", width: "w-32" },
+						{ type: "text", width: "w-28" },
+						{ type: "text", width: "w-28" },
+						{ type: "text", width: "w-16" },
+						{ type: "action" },
+					]}
+				/>
 			) : rulesQuery.isError ? (
 				<p className="p-6 text-sm text-destructive">
 					Unable to load rules.
@@ -265,7 +278,7 @@ export function DispatchRulesPanel({
 					<footer className="border-t px-5 py-3">
 						<Pagination
 							totalItems={rules.length}
-							itemsPerPage={ITEMS_PER_PAGE}
+							itemsPerPage={PAGE_SIZE}
 							currentPage={currentPage}
 							onChangeCurrentPage={setCurrentPage}
 						/>

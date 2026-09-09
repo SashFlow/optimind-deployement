@@ -14,12 +14,22 @@ import {
 } from "@repo/ui/alert-dialog";
 import { Button, buttonVariants } from "@repo/ui/button";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@repo/ui/dialog";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@repo/ui/dropdown-menu";
 import { Input } from "@repo/ui/input";
+import { Label } from "@repo/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -27,29 +37,25 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/select";
+import { Textarea } from "@repo/ui/textarea";
 import { cn } from "@repo/ui/utils";
 import { MoreVerticalIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-
-export type ResourceFilter = {
-	label: string;
-	value: string;
-	count: number;
-};
+import { useClientInfiniteScroll } from "@/components/saas/shared/Pagination";
+import { ResourceCardsSkeleton } from "@/components/saas/shared/skeletons";
 
 export type ResourceItem = {
 	id: string;
 	title: string;
 	description: string;
 	status: string;
-	filterKey: string;
 	owner?: "me" | "team";
 	meta?: string;
 	icon?: React.ReactNode;
-	actionLabel?: string;
 	href?: string;
+	onEdit?: (name: string, description: string) => void | Promise<void>;
 	onDelete?: () => void | Promise<void>;
 };
 
@@ -61,13 +67,13 @@ export type ResourceEmptyState = {
 };
 
 type ResourcePageProps = {
-	filters: ResourceFilter[];
 	items: ResourceItem[];
 	searchPlaceholder: string;
 	sortOptions?: { label: string; value: string }[];
 	createAction?: React.ReactNode;
 	empty: ResourceEmptyState;
 	className?: string;
+	isLoading?: boolean;
 };
 
 const defaultSortOptions = [
@@ -103,10 +109,38 @@ function statusPillClass(status: string) {
 
 function ResourceCard({ item }: { item: ResourceItem }) {
 	const router = useRouter();
+	const [editOpen, setEditOpen] = React.useState(false);
+	const [editName, setEditName] = React.useState(item.title);
+	const [editDescription, setEditDescription] = React.useState(
+		item.description,
+	);
+	const [saving, setSaving] = React.useState(false);
 	const [confirmDelete, setConfirmDelete] = React.useState(false);
 	const [deleting, setDeleting] = React.useState(false);
 	const isInteractive = Boolean(item.href);
-	const hasActions = Boolean(item.href || item.actionLabel || item.onDelete);
+	const hasActions = Boolean(item.href || item.onEdit || item.onDelete);
+
+	function openEditDialog() {
+		setEditName(item.title);
+		setEditDescription(item.description);
+		setEditOpen(true);
+	}
+
+	async function handleEdit(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		if (!item.onEdit) return;
+
+		const trimmedName = editName.trim();
+		if (!trimmedName) return;
+
+		setSaving(true);
+		try {
+			await item.onEdit(trimmedName, editDescription.trim());
+			setEditOpen(false);
+		} finally {
+			setSaving(false);
+		}
+	}
 
 	async function handleDelete() {
 		if (!item.onDelete) return;
@@ -171,18 +205,25 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 										<Link href={item.href}>Open</Link>
 									</DropdownMenuItem>
 								) : null}
-								{item.actionLabel ? (
-									<DropdownMenuItem>
-										{item.actionLabel}
+								{item.onEdit ? (
+									<DropdownMenuItem onClick={openEditDialog}>
+										Edit
 									</DropdownMenuItem>
 								) : null}
 								{item.onDelete ? (
-									<DropdownMenuItem
-										className="text-destructive focus:text-destructive"
-										onClick={() => setConfirmDelete(true)}
-									>
-										Delete
-									</DropdownMenuItem>
+									<>
+										{item.href || item.onEdit ? (
+											<DropdownMenuSeparator />
+										) : null}
+										<DropdownMenuItem
+											className="text-destructive focus:text-destructive"
+											onClick={() =>
+												setConfirmDelete(true)
+											}
+										>
+											Delete
+										</DropdownMenuItem>
+									</>
 								) : null}
 							</DropdownMenuContent>
 						</DropdownMenu>
@@ -194,7 +235,7 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 						{item.title}
 					</h3>
 					<p className="line-clamp-2 text-sm text-muted-foreground">
-						{item.description}
+						{item.description || "No description"}
 					</p>
 				</div>
 
@@ -210,19 +251,86 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 				</div>
 			</div>
 
+			{item.onEdit ? (
+				<Dialog open={editOpen} onOpenChange={setEditOpen}>
+					<DialogContent
+						className="max-w-md"
+						onClick={(event) => event.stopPropagation()}
+					>
+						<DialogHeader>
+							<DialogTitle>Edit {item.title}</DialogTitle>
+							<DialogDescription>
+								Update the name and description for this
+								resource.
+							</DialogDescription>
+						</DialogHeader>
+						<form className="space-y-4" onSubmit={handleEdit}>
+							<div className="space-y-2">
+								<Label htmlFor={`edit-name-${item.id}`}>
+									Name
+								</Label>
+								<Input
+									id={`edit-name-${item.id}`}
+									value={editName}
+									onChange={(event) =>
+										setEditName(event.target.value)
+									}
+									placeholder="Name"
+									autoFocus
+									required
+									disabled={saving}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label
+									htmlFor={`edit-description-${item.id}`}
+								>
+									Description (optional)
+								</Label>
+								<Textarea
+									id={`edit-description-${item.id}`}
+									value={editDescription}
+									onChange={(event) =>
+										setEditDescription(event.target.value)
+									}
+									placeholder="Optional description"
+									rows={3}
+									disabled={saving}
+								/>
+							</div>
+							<DialogFooter>
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => setEditOpen(false)}
+									disabled={saving}
+								>
+									Cancel
+								</Button>
+								<Button type="submit" loading={saving}>
+									Save changes
+								</Button>
+							</DialogFooter>
+						</form>
+					</DialogContent>
+				</Dialog>
+			) : null}
+
 			{item.onDelete ? (
 				<AlertDialog
 					open={confirmDelete}
 					onOpenChange={setConfirmDelete}
 				>
-					<AlertDialogContent>
+					<AlertDialogContent
+						onClick={(event) => event.stopPropagation()}
+					>
 						<AlertDialogHeader>
 							<AlertDialogTitle>
 								Delete {item.title}?
 							</AlertDialogTitle>
 							<AlertDialogDescription>
 								This will remove this resource from your
-								workspace.
+								workspace. This action cannot be undone.
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
@@ -250,40 +358,25 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 }
 
 export function ResourcePage({
-	filters,
 	items,
 	searchPlaceholder,
 	sortOptions = defaultSortOptions,
 	createAction,
 	empty,
 	className,
+	isLoading = false,
 }: ResourcePageProps) {
-	const [activeFilter, setActiveFilter] = React.useState(
-		filters[0]?.value ?? "all",
-	);
 	const [search, setSearch] = React.useState("");
 	const [sort, setSort] = React.useState(sortOptions[0]?.value ?? "modified");
-
-	const filterItems = React.useMemo(
-		() =>
-			filters.map((filter) => ({
-				value: filter.value,
-				label: `${filter.label} (${filter.count})`,
-			})),
-		[filters],
-	);
 
 	const visibleItems = React.useMemo(() => {
 		const query = search.trim().toLowerCase();
 		const filtered = items.filter((item) => {
-			const matchesFilter =
-				activeFilter === "all" || item.filterKey === activeFilter;
-			const matchesSearch =
+			return (
 				!query ||
 				item.title.toLowerCase().includes(query) ||
-				item.description.toLowerCase().includes(query);
-
-			return matchesFilter && matchesSearch;
+				item.description.toLowerCase().includes(query)
+			);
 		});
 
 		return [...filtered].sort((a, b) => {
@@ -293,7 +386,10 @@ export function ResourcePage({
 
 			return a.id.localeCompare(b.id);
 		});
-	}, [activeFilter, items, search, sort]);
+	}, [items, search, sort]);
+
+	const { visibleItems: renderedItems, hasMore, sentinelRef } =
+		useClientInfiniteScroll(visibleItems);
 
 	const emptyTitle =
 		items.length > 0 && visibleItems.length === 0
@@ -301,7 +397,7 @@ export function ResourcePage({
 			: empty.title;
 	const emptyDescription =
 		items.length > 0 && visibleItems.length === 0
-			? "Try changing your search or filters."
+			? "Try changing your search."
 			: empty.description;
 
 	return (
@@ -323,26 +419,6 @@ export function ResourcePage({
 							className="bg-white pl-9 dark:bg-card"
 						/>
 					</div>
-					<Select
-						value={activeFilter}
-						onValueChange={(value) => {
-							if (value) setActiveFilter(value);
-						}}
-					>
-						<SelectTrigger className="w-full bg-white sm:w-40 dark:bg-card">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{filterItems.map((option) => (
-								<SelectItem
-									key={option.value}
-									value={option.value}
-								>
-									{option.label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
 					<Select
 						value={sort}
 						onValueChange={(value) => {
@@ -372,7 +448,9 @@ export function ResourcePage({
 				) : null}
 			</div>
 
-			{visibleItems.length === 0 ? (
+			{isLoading ? (
+				<ResourceCardsSkeleton />
+			) : visibleItems.length === 0 ? (
 				<div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-border/80 bg-card/50 px-6 py-12">
 					{empty.icon ? (
 						<div className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground [&>svg]:size-5">
@@ -390,10 +468,19 @@ export function ResourcePage({
 					{empty.action ? <div>{empty.action}</div> : null}
 				</div>
 			) : (
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-					{visibleItems.map((item) => (
-						<ResourceCard key={item.id} item={item} />
-					))}
+				<div className="space-y-4">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+						{renderedItems.map((item) => (
+							<ResourceCard key={item.id} item={item} />
+						))}
+					</div>
+					{hasMore ? (
+						<div
+							ref={sentinelRef}
+							className="h-1 w-full"
+							aria-hidden
+						/>
+					) : null}
 				</div>
 			)}
 		</section>

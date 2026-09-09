@@ -36,7 +36,6 @@ import { cn } from "@repo/ui/utils";
 import { MoreVerticalIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import {
 	useCreateSipTrunkMutation,
 	useDeleteSipTrunkMutation,
@@ -46,9 +45,8 @@ import type {
 	SipTrunk,
 	TrunkDirection,
 } from "@/components/saas/numbers/lib/types";
-import { Pagination } from "@/components/saas/shared/Pagination";
-
-const ITEMS_PER_PAGE = 10;
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
 type SipTrunksPanelProps = {
 	organizationId: string | null;
@@ -67,15 +65,15 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 	const [currentPage, setCurrentPage] = useState(1);
 
 	const trunks = trunksQuery.data ?? [];
-	const pageCount = Math.max(1, Math.ceil(trunks.length / ITEMS_PER_PAGE));
+	const pageCount = Math.max(1, Math.ceil(trunks.length / PAGE_SIZE));
 
 	useEffect(() => {
 		if (currentPage > pageCount) setCurrentPage(pageCount);
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
-		const start = (currentPage - 1) * ITEMS_PER_PAGE;
-		return trunks.slice(start, start + ITEMS_PER_PAGE);
+		const start = (currentPage - 1) * PAGE_SIZE;
+		return trunks.slice(start, start + PAGE_SIZE);
 	}, [trunks, currentPage]);
 
 	async function handleCreate(event: React.FormEvent) {
@@ -131,7 +129,22 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 			</div>
 
 			{trunksQuery.isPending ? (
-				<LoadingState />
+				<TableBodySkeleton
+					headers={[
+						"Name",
+						"Direction",
+						"Status",
+						"LiveKit",
+						"Actions",
+					]}
+					columns={[
+						{ type: "text", width: "w-32" },
+						{ type: "pill" },
+						{ type: "pill" },
+						{ type: "text", width: "w-24" },
+						{ type: "action" },
+					]}
+				/>
 			) : trunksQuery.isError ? (
 				<p className="p-6 text-sm text-destructive">
 					Unable to load trunks.
@@ -215,7 +228,7 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 					<footer className="border-t px-5 py-3">
 						<Pagination
 							totalItems={trunks.length}
-							itemsPerPage={ITEMS_PER_PAGE}
+							itemsPerPage={PAGE_SIZE}
 							currentPage={currentPage}
 							onChangeCurrentPage={setCurrentPage}
 						/>

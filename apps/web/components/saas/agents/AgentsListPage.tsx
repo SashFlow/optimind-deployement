@@ -22,13 +22,15 @@ export function AgentsListPage() {
 		enabled: !!organizationId,
 	});
 
+	const listQueryKey = orpc.agents.list.key({
+		input: { organizationId },
+	});
+
 	const createMutation = useMutation(
 		orpc.agents.create.mutationOptions({
 			onSuccess: async (data) => {
 				await queryClient.invalidateQueries({
-					queryKey: orpc.agents.list.key({
-						input: { organizationId },
-					}),
+					queryKey: listQueryKey,
 				});
 				toast.success("Agent created");
 				router.push(`/app/agents/${data.agent.id}/configure`);
@@ -39,26 +41,61 @@ export function AgentsListPage() {
 		}),
 	);
 
+	const updateMutation = useMutation(
+		orpc.agents.update.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: listQueryKey,
+				});
+				toast.success("Agent updated");
+			},
+			onError: (error) => {
+				toast.error(error.message || "Failed to update agent");
+			},
+		}),
+	);
+
+	const deleteMutation = useMutation(
+		orpc.agents.update.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: listQueryKey,
+				});
+				toast.success("Agent deleted");
+			},
+			onError: (error) => {
+				toast.error(error.message || "Failed to delete agent");
+			},
+		}),
+	);
+
 	const agents = agentsQuery.data?.agents ?? [];
-	const activeCount = agents.filter((a) => a.status === "ACTIVE").length;
-	const inactiveCount = agents.length - activeCount;
+	const isLoading = !organizationId || agentsQuery.isPending;
 
 	return (
 		<ResourcePage
-			filters={[
-				{ label: "All", value: "all", count: agents.length },
-				{ label: "Active", value: "active", count: activeCount },
-				{ label: "Inactive", value: "inactive", count: inactiveCount },
-			]}
+			isLoading={isLoading}
 			items={agents.map((agent) => ({
 				id: agent.id,
 				title: agent.name,
-				description: agent.description ?? "No description",
+				description: agent.description ?? "",
 				status: agent.status === "ACTIVE" ? "Active" : "Inactive",
-				filterKey: agent.status === "ACTIVE" ? "active" : "inactive",
 				meta: new Date(agent.updatedAt).toLocaleDateString(),
 				icon: <AudioWaveformIcon className="size-4" />,
 				href: `/app/agents/${agent.id}/configure`,
+				onEdit: async (name, description) => {
+					await updateMutation.mutateAsync({
+						id: agent.id,
+						name,
+						description: description || null,
+					});
+				},
+				onDelete: async () => {
+					await deleteMutation.mutateAsync({
+						id: agent.id,
+						status: "DELETED",
+					});
+				},
 			}))}
 			searchPlaceholder="Search agents"
 			createAction={

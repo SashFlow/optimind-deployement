@@ -113,8 +113,8 @@ export function AgentWorkspaceLayout({
 	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 px-4 py-6 md:px-6">
-			<div className="min-w-0">
+		<div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[1600px] flex-1 flex-col gap-4 overflow-hidden px-4 py-6 md:px-6">
+			<div className="min-w-0 shrink-0">
 				<Select value={active} onValueChange={navigateToTab}>
 					<SelectTrigger
 						aria-label="Agent section"
@@ -138,27 +138,15 @@ export function AgentWorkspaceLayout({
 				>
 					<TabsList className="h-auto w-fit gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground shadow-sm ring-1 ring-black/5">
 						{TABS.map((tab) => {
-							const isActive = tab.value === active;
 							return (
 								<TabsTrigger
 									key={tab.value}
 									value={tab.value}
-									data-active={isActive ? "true" : undefined}
 									className={cn(
 										"h-9 flex-none gap-2 rounded-full px-4 py-2 text-muted-foreground shadow-none transition-colors hover:text-foreground",
-										"data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none",
-										"data-[active=true]:bg-foreground data-[active=true]:text-background",
-										"data-[state=active]:hover:bg-foreground data-[state=active]:hover:text-background",
+										"data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none",
+										"data-[state=active]:hover:bg-primary data-[state=active]:hover:text-primary-foreground",
 									)}
-									style={
-										isActive
-											? {
-													backgroundColor:
-														"var(--foreground)",
-													color: "var(--background)",
-												}
-											: undefined
-									}
 								>
 									{tab.label}
 								</TabsTrigger>
@@ -167,7 +155,9 @@ export function AgentWorkspaceLayout({
 					</TabsList>
 				</Tabs>
 			</div>
-			<div className="min-h-0 flex-1">{children}</div>
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+				{children}
+			</div>
 		</div>
 	);
 }

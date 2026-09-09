@@ -8,6 +8,7 @@ import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
 
 export function AgentConfigurePage({ agentId }: { agentId: string }) {
 	const queryClient = useQueryClient();
@@ -78,7 +79,7 @@ export function AgentConfigurePage({ agentId }: { agentId: string }) {
 	);
 
 	if (agentQuery.isLoading) {
-		return <p className="text-muted-foreground text-sm">Loading agent…</p>;
+		return <PageSectionSkeleton variant="form" />;
 	}
 
 	if (!agent) {

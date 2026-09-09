@@ -21,13 +21,21 @@ import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftIcon, CopyIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import {
 	mapOrgToAdminOrganization,
 	type OrganizationMember,
 } from "@/components/saas/admin/lib/types";
+import {
+	PAGE_SIZE,
+	Pagination,
+	useClientPagination,
+} from "@/components/saas/shared/Pagination";
+import {
+	PageSectionSkeleton,
+	TableBodySkeleton,
+} from "@/components/saas/shared/skeletons";
 
 function formatRole(role: string) {
 	return role.charAt(0).toUpperCase() + role.slice(1);
@@ -58,10 +66,40 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	const members: OrganizationMember[] = useMemo(() => {
+		return (fullOrganizationQuery.data?.members ?? []).map((member) => {
+			const user = (
+				member as {
+					user?: { id?: string; name?: string; email?: string };
+					userId?: string;
+					role?: string;
+				}
+			).user;
+			const userId =
+				user?.id ??
+				(member as { userId?: string }).userId ??
+				(member as { id?: string }).id ??
+				"unknown";
+			return {
+				account_id: userId,
+				name: user?.name ?? null,
+				email: user?.email ?? null,
+				role: (member as { role?: string }).role ?? "member",
+			};
+		});
+	}, [fullOrganizationQuery.data?.members]);
+
+	const {
+		currentPage,
+		setCurrentPage,
+		pageItems,
+		totalItems,
+	} = useClientPagination(members);
+
 	if (organizationQuery.isPending) {
 		return (
 			<section className="space-y-6">
-				<LoadingState className="p-0" />
+				<PageSectionSkeleton variant="detail" className="px-0 py-0" />
 			</section>
 		);
 	}
@@ -92,30 +130,6 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 
 	const currentName = editedName ?? organization.name;
 	const isDirty = currentName.trim() !== organization.name.trim();
-
-	const members: OrganizationMember[] = (
-		fullOrganizationQuery.data?.members ?? []
-	).map((member) => {
-		const user = (
-			member as {
-				user?: { id?: string; name?: string; email?: string };
-				userId?: string;
-				role?: string;
-			}
-		).user;
-		const userId =
-			user?.id ??
-			(member as { userId?: string }).userId ??
-			(member as { id?: string }).id ??
-			"unknown";
-		return {
-			account_id: userId,
-			name: user?.name ?? null,
-			email: user?.email ?? null,
-			role: (member as { role?: string }).role ?? "member",
-		};
-	});
-
 	const save = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		if (!currentName.trim() || !isDirty) return;
@@ -207,7 +221,14 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 					) : null}
 				</div>
 				{fullOrganizationQuery.isPending ? (
-					<LoadingState />
+					<TableBodySkeleton
+						headers={["Member", "Role", "Account"]}
+						columns={[
+							{ type: "avatar" },
+							{ type: "text", width: "w-20" },
+							{ type: "text", width: "w-28" },
+						]}
+					/>
 				) : fullOrganizationQuery.isError ? (
 					<p className="p-6 text-sm text-destructive" role="alert">
 						Unable to load members.
@@ -224,74 +245,88 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 						</p>
 					</div>
 				) : (
-					<div className="overflow-x-auto scrollbar-none">
-						<Table>
-							<TableHeader>
-								<TableRow className="hover:bg-transparent">
-									<TableHead>Member</TableHead>
-									<TableHead>Role</TableHead>
-									<TableHead>Account</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{members.map((member) => {
-									const displayName =
-										member.name ??
-										member.email ??
-										"Unknown member";
-									return (
-										<TableRow key={member.account_id}>
-											<TableCell>
-												<div className="flex min-w-0 items-center gap-3">
-													<UserAvatar
-														name={displayName}
-														className="size-8"
-													/>
-													<div className="min-w-0">
-														<p className="truncate font-medium">
-															{displayName}
-														</p>
-														{member.name &&
-														member.email ? (
-															<p className="truncate text-xs text-muted-foreground">
-																{member.email}
+					<>
+						<div className="overflow-x-auto scrollbar-none">
+							<Table>
+								<TableHeader>
+									<TableRow className="hover:bg-transparent">
+										<TableHead>Member</TableHead>
+										<TableHead>Role</TableHead>
+										<TableHead>Account</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{pageItems.map((member) => {
+										const displayName =
+											member.name ??
+											member.email ??
+											"Unknown member";
+										return (
+											<TableRow key={member.account_id}>
+												<TableCell>
+													<div className="flex min-w-0 items-center gap-3">
+														<UserAvatar
+															name={displayName}
+															className="size-8"
+														/>
+														<div className="min-w-0">
+															<p className="truncate font-medium">
+																{displayName}
 															</p>
-														) : null}
+															{member.name &&
+															member.email ? (
+																<p className="truncate text-xs text-muted-foreground">
+																	{
+																		member.email
+																	}
+																</p>
+															) : null}
+														</div>
 													</div>
-												</div>
-											</TableCell>
-											<TableCell>
-												<span className="inline-flex rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
-													{formatRole(member.role)}
-												</span>
-											</TableCell>
-											<TableCell>
-												<button
-													type="button"
-													className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground"
-													onClick={() =>
-														void copyText(
-															member.account_id,
-															"Account ID copied",
-														)
-													}
-													title="Copy account ID"
-												>
-													<span>
-														{member.account_id.slice(
-															0,
-															8,
+												</TableCell>
+												<TableCell>
+													<span className="inline-flex rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+														{formatRole(
+															member.role,
 														)}
 													</span>
-													<CopyIcon className="size-3 opacity-60" />
-												</button>
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
-					</div>
+												</TableCell>
+												<TableCell>
+													<button
+														type="button"
+														className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground"
+														onClick={() =>
+															void copyText(
+																member.account_id,
+																"Account ID copied",
+															)
+														}
+														title="Copy account ID"
+													>
+														<span>
+															{member.account_id.slice(
+																0,
+																8,
+															)}
+														</span>
+														<CopyIcon className="size-3 opacity-60" />
+													</button>
+												</TableCell>
+											</TableRow>
+										);
+									})}
+								</TableBody>
+							</Table>
+						</div>
+						<footer className="border-t px-5 py-3">
+							<Pagination
+								totalItems={totalItems}
+								itemsPerPage={PAGE_SIZE}
+								currentPage={currentPage}
+								onChangeCurrentPage={setCurrentPage}
+							/>
+						</footer>
+					</>
 				)}
 			</div>
 		</section>

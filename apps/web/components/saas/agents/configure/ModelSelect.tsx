@@ -10,6 +10,7 @@ import {
 	SelectValue,
 } from "@repo/ui/select";
 import * as React from "react";
+import { ProviderIcon } from "@/components/saas/agents/configure/ProviderIcon";
 import { formatModelLabel } from "@/lib/models";
 import type { Provider, ProviderModel } from "@/services/api/types";
 
@@ -74,6 +75,17 @@ export function ModelSelect({
 		providerCredentials &&
 		!providerCredentials.has(selectedModel.provider_id);
 
+	function renderModelItem(model: ProviderModel) {
+		return (
+			<SelectItem key={model.id} value={model.id}>
+				<span className="flex items-center gap-2">
+					<ProviderIcon providerId={model.provider_id} />
+					<span>{formatModelLabel(model)}</span>
+				</span>
+			</SelectItem>
+		);
+	}
+
 	return (
 		<div className="space-y-2">
 			<Select
@@ -88,18 +100,10 @@ export function ModelSelect({
 						group.label ? (
 							<SelectGroup key={group.label}>
 								<SelectLabel>{group.label}</SelectLabel>
-								{group.models.map((model) => (
-									<SelectItem key={model.id} value={model.id}>
-										{formatModelLabel(model)}
-									</SelectItem>
-								))}
+								{group.models.map(renderModelItem)}
 							</SelectGroup>
 						) : (
-							group.models.map((model) => (
-								<SelectItem key={model.id} value={model.id}>
-									{formatModelLabel(model)}
-								</SelectItem>
-							))
+							group.models.map(renderModelItem)
 						),
 					)}
 				</SelectContent>

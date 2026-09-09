@@ -24,7 +24,7 @@ export function ConfigureRadioCard<T extends string>({
 						className={cn(
 							"flex w-full items-start justify-between gap-4 rounded-lg border p-3 text-left transition-colors",
 							selected
-								? "border-foreground bg-background"
+								? "border-primary bg-primary/5"
 								: "border-transparent bg-background/60 hover:bg-background",
 						)}
 					>
@@ -40,7 +40,7 @@ export function ConfigureRadioCard<T extends string>({
 							className={cn(
 								"mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border",
 								selected
-									? "border-foreground bg-foreground text-background"
+									? "border-primary bg-primary text-primary-foreground"
 									: "border-muted-foreground/40",
 							)}
 						>

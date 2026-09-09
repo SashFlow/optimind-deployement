@@ -1,10 +1,14 @@
 import {
 	attachKnowledgeBase,
+	createTrialLink,
+	deleteTrialLink,
 	create,
 	detachKnowledgeBase,
 	get,
+	listTrialLinks,
 	list,
 	publish,
+	updateTrialLink,
 	update,
 	updateConfig,
 } from "./procedures";
@@ -18,4 +22,8 @@ export const agentsRouter = {
 	publish,
 	attachKnowledgeBase,
 	detachKnowledgeBase,
+	listTrialLinks,
+	createTrialLink,
+	updateTrialLink,
+	deleteTrialLink,
 };

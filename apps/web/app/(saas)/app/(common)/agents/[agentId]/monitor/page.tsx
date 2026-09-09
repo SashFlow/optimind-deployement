@@ -1,7 +1,6 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import { AgentActiveSessions } from "@/components/saas/agents/AgentActiveSessions";
 import { AgentMonitorBreakdown } from "@/components/saas/agents/AgentMonitorBreakdown";
 import { AgentMonitorChart } from "@/components/saas/agents/AgentMonitorChart";
@@ -10,6 +9,7 @@ import {
 	useAgentSessionsQuery,
 	useAgentStatsQuery,
 } from "@/components/saas/agents/lib/hooks";
+import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
 
 export default function AgentMonitorPage() {
 	const params = useParams<{ agentId: string }>();
@@ -19,7 +19,7 @@ export default function AgentMonitorPage() {
 	});
 
 	if (statsQuery.isLoading || sessionsQuery.isLoading) {
-		return <LoadingState size="lg" />;
+		return <PageSectionSkeleton variant="monitor" />;
 	}
 
 	if (statsQuery.isError || !statsQuery.data) {

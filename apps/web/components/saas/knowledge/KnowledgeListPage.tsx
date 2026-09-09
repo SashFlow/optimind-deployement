@@ -22,13 +22,15 @@ export function KnowledgeListPage() {
 		enabled: !!organizationId,
 	});
 
+	const listQueryKey = orpc.knowledge.list.key({
+		input: { organizationId },
+	});
+
 	const createMutation = useMutation(
 		orpc.knowledge.create.mutationOptions({
 			onSuccess: async (data) => {
 				await queryClient.invalidateQueries({
-					queryKey: orpc.knowledge.list.key({
-						input: { organizationId },
-					}),
+					queryKey: listQueryKey,
 				});
 				toast.success("Knowledge base created");
 				router.push(`/app/knowledge-base/${data.knowledgeBase.id}`);
@@ -37,20 +39,57 @@ export function KnowledgeListPage() {
 		}),
 	);
 
+	const updateMutation = useMutation(
+		orpc.knowledge.update.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: listQueryKey,
+				});
+				toast.success("Knowledge base updated");
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
+	const deleteMutation = useMutation(
+		orpc.knowledge.update.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: listQueryKey,
+				});
+				toast.success("Knowledge base deleted");
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
 	const items = query.data?.knowledgeBases ?? [];
+	const isLoading = !organizationId || query.isPending;
 
 	return (
 		<ResourcePage
-			filters={[{ label: "All", value: "all", count: items.length }]}
+			isLoading={isLoading}
 			items={items.map((kb) => ({
 				id: kb.id,
 				title: kb.name,
-				description: kb.description ?? "No description",
+				description: kb.description ?? "",
 				status: "Active",
-				filterKey: "all",
 				meta: new Date(kb.updatedAt).toLocaleDateString(),
 				icon: <BookTextIcon className="size-4" />,
 				href: `/app/knowledge-base/${kb.id}`,
+				onEdit: async (name, description) => {
+					await updateMutation.mutateAsync({
+						id: kb.id,
+						name,
+						description: description || null,
+					});
+				},
+				onDelete: async () => {
+					await deleteMutation.mutateAsync({
+						id: kb.id,
+						status: "DELETED",
+					});
+				},
 			}))}
 			searchPlaceholder="Search knowledge bases"
 			createAction={

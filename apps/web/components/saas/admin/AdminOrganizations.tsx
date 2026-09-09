@@ -43,11 +43,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useSettingsPageAction } from "@/components/saas/admin/AdminSettingsActions";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import { mapOrgToAdminOrganization } from "@/components/saas/admin/lib/types";
-import { Pagination } from "@/components/saas/shared/Pagination";
-
-const ITEMS_PER_PAGE = 10;
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
 type TypeFilter = "all" | "trial" | "workspace";
 
@@ -100,7 +98,7 @@ export function AdminOrganizations() {
 		});
 	}, [organizationsQuery.data, search, typeFilter]);
 
-	const pageCount = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
 	useEffect(() => {
 		setCurrentPage(1);
@@ -111,8 +109,8 @@ export function AdminOrganizations() {
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
-		const start = (currentPage - 1) * ITEMS_PER_PAGE;
-		return filtered.slice(start, start + ITEMS_PER_PAGE);
+		const start = (currentPage - 1) * PAGE_SIZE;
+		return filtered.slice(start, start + PAGE_SIZE);
 	}, [filtered, currentPage]);
 
 	const handleCreateOpenChange = (open: boolean) => {
@@ -227,7 +225,15 @@ export function AdminOrganizations() {
 				</div>
 
 				{organizationsQuery.isPending ? (
-					<LoadingState />
+					<TableBodySkeleton
+						headers={["Name", "Type", "Created", "Actions"]}
+						columns={[
+							{ type: "lines", widths: ["w-40", "w-20"] },
+							{ type: "pill" },
+							{ type: "text", width: "w-24" },
+							{ type: "action" },
+						]}
+					/>
 				) : organizationsQuery.isError ? (
 					<p className="p-6 text-sm text-destructive" role="alert">
 						Unable to load organizations.
@@ -337,7 +343,7 @@ export function AdminOrganizations() {
 						<footer className="border-t px-5 py-3">
 							<Pagination
 								totalItems={filtered.length}
-								itemsPerPage={ITEMS_PER_PAGE}
+								itemsPerPage={PAGE_SIZE}
 								currentPage={currentPage}
 								onChangeCurrentPage={setCurrentPage}
 							/>

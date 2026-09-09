@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-
+import { Button } from "@repo/ui/button";
 import {
 	Select,
 	SelectContent,
@@ -12,6 +10,9 @@ import {
 } from "@repo/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { TooltipProvider } from "@repo/ui/tooltip";
+import { ArrowLeftIcon } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 
 const TABS = [
 	{
@@ -67,6 +68,9 @@ export function AgentNav({ agentId }: AgentNavProps) {
 	const router = useRouter();
 	const active = tabFromPathname(pathname, agentId);
 	const tabs = TABS;
+	const logsListHref = `/app/agents/${agentId}/logs`;
+	const isLogDetail =
+		pathname.startsWith(`${logsListHref}/`) && pathname !== logsListHref;
 
 	function navigateToTab(value: string | null) {
 		const next = tabs.find((tab) => tab.value === value);
@@ -108,7 +112,7 @@ export function AgentNav({ agentId }: AgentNavProps) {
 										key={tab.value}
 										value={tab.value}
 										asChild
-										className="flex-none px-3"
+										className="flex-none px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
 									>
 										<Link href={tab.href(agentId)}>
 											{tab.label}
@@ -118,6 +122,15 @@ export function AgentNav({ agentId }: AgentNavProps) {
 							</TabsList>
 						</Tabs>
 					</div>
+
+					{isLogDetail ? (
+						<Button variant="outline" size="sm" asChild>
+							<Link href={logsListHref}>
+								<ArrowLeftIcon className="size-4" />
+								Back to logs
+							</Link>
+						</Button>
+					) : null}
 				</div>
 			</TooltipProvider>
 		</div>

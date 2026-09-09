@@ -27,11 +27,9 @@ import { MoreVerticalIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useSettingsBulkActions } from "@/components/saas/admin/AdminSettingsActions";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import { useAdminBackgroundJobsQuery } from "@/components/saas/admin/lib/mock-hooks";
-import { Pagination } from "@/components/saas/shared/Pagination";
-
-const ITEMS_PER_PAGE = 10;
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
 type StatusFilter =
 	| "all"
@@ -98,7 +96,7 @@ export default function BackgroundJobsPage() {
 	});
 
 	const jobs = query.data ?? [];
-	const pageCount = Math.max(1, Math.ceil(jobs.length / ITEMS_PER_PAGE));
+	const pageCount = Math.max(1, Math.ceil(jobs.length / PAGE_SIZE));
 
 	useEffect(() => {
 		setCurrentPage(1);
@@ -109,8 +107,8 @@ export default function BackgroundJobsPage() {
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
-		const start = (currentPage - 1) * ITEMS_PER_PAGE;
-		return jobs.slice(start, start + ITEMS_PER_PAGE);
+		const start = (currentPage - 1) * PAGE_SIZE;
+		return jobs.slice(start, start + PAGE_SIZE);
 	}, [jobs, currentPage]);
 
 	async function cancelJob(_id: string) {
@@ -211,7 +209,24 @@ export default function BackgroundJobsPage() {
 				</div>
 
 				{query.isLoading ? (
-					<LoadingState />
+					<TableBodySkeleton
+						headers={[
+							"Created",
+							"Type",
+							"Status",
+							"Resource",
+							"Error",
+							"Actions",
+						]}
+						columns={[
+							{ type: "text", width: "w-32" },
+							{ type: "text", width: "w-28" },
+							{ type: "pill" },
+							{ type: "text", width: "w-28" },
+							{ type: "text", width: "w-36" },
+							{ type: "action" },
+						]}
+					/>
 				) : query.isError ? (
 					<p className="p-6 text-sm text-destructive">
 						Failed to load jobs.
@@ -331,7 +346,7 @@ export default function BackgroundJobsPage() {
 						<footer className="border-t px-5 py-3">
 							<Pagination
 								totalItems={jobs.length}
-								itemsPerPage={ITEMS_PER_PAGE}
+								itemsPerPage={PAGE_SIZE}
 								currentPage={currentPage}
 								onChangeCurrentPage={setCurrentPage}
 							/>

@@ -1,7 +1,7 @@
 "use client";
 
-import { Checkbox } from "@repo/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
+import { cn } from "@repo/ui/utils";
 import {
 	CodeIcon,
 	FunctionSquareIcon,
@@ -39,10 +39,10 @@ const BUILTIN_TOOLS = [
 	["end_call", "End Call"],
 	["reschedule", "ReScheduled"],
 	["transfer_call", "Transfer Call"],
-	["api_tools", "API Tools"],
-	["widget_tools", "Widget Tools"],
 	["knowledge_search", "Knowledge Search"],
 ] as const;
+
+type BuiltinToolKey = (typeof BUILTIN_TOOLS)[number][0];
 
 type ToolsPhasePanelProps = {
 	config: AgentConfigDocument;
@@ -55,13 +55,68 @@ function toggleToolInPhase(
 	toolsByPhase: ToolsByPhaseConfig,
 	phase: ToolPhase,
 	toolId: string,
-	checked: boolean,
+	enabled: boolean,
 ): ToolsByPhaseConfig {
 	const current = toolsByPhase[phase];
-	const next = checked
-		? [...current, toolId]
+	const next = enabled
+		? current.includes(toolId)
+			? current
+			: [...current, toolId]
 		: current.filter((id) => id !== toolId);
 	return { ...toolsByPhase, [phase]: next };
+}
+
+function ToolToggleRow({
+	label,
+	description,
+	enabled,
+	onToggle,
+	actions,
+}: {
+	label: string;
+	description?: string;
+	enabled: boolean;
+	onToggle: () => void;
+	actions?: React.ReactNode;
+}) {
+	return (
+		<div
+			className={cn(
+				"flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors",
+				enabled
+					? "border-primary bg-primary/5"
+					: "border-border/80 bg-background",
+			)}
+		>
+			<button
+				type="button"
+				onClick={onToggle}
+				className="min-w-0 flex-1 text-left"
+			>
+				<p className="text-sm font-medium">{label}</p>
+				{description ? (
+					<p className="text-xs text-muted-foreground capitalize">
+						{description}
+					</p>
+				) : null}
+			</button>
+			<div className="flex shrink-0 items-center gap-2">
+				{actions}
+				<button
+					type="button"
+					onClick={onToggle}
+					className={cn(
+						"rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+						enabled
+							? "bg-primary text-primary-foreground"
+							: "bg-muted text-muted-foreground hover:text-foreground",
+					)}
+				>
+					{enabled ? "Enabled" : "Disabled"}
+				</button>
+			</div>
+		</div>
+	);
 }
 
 export function ToolsPhasePanel({
@@ -84,13 +139,13 @@ export function ToolsPhasePanel({
 	function updatePhaseTools(
 		phase: ToolPhase,
 		toolId: string,
-		checked: boolean,
+		enabled: boolean,
 	) {
 		const tools_by_phase = toggleToolInPhase(
 			config.tools_by_phase,
 			phase,
 			toolId,
-			checked,
+			enabled,
 		);
 		onConfigChange({
 			tools_by_phase,
@@ -98,12 +153,9 @@ export function ToolsPhasePanel({
 		});
 	}
 
-	function updateBuiltinTool(
-		key: keyof AgentConfigDocument["tools_config"],
-		checked: boolean,
-	) {
+	function updateBuiltinTool(key: BuiltinToolKey, enabled: boolean) {
 		onConfigChange({
-			tools_config: { ...config.tools_config, [key]: checked },
+			tools_config: { ...config.tools_config, [key]: enabled },
 		});
 	}
 
@@ -154,42 +206,13 @@ export function ToolsPhasePanel({
 		}
 	}
 
-	function renderOrgToolRow(tool: ToolDefinition, phase: ToolPhase) {
-		const checkboxId = `org-tool-${phase}-${tool.id}`;
-		return (
-			<div
-				key={tool.id}
-				className="flex items-center justify-between gap-2 text-sm"
-			>
-				<div className="flex min-w-0 flex-1 items-center gap-2">
-					<Checkbox
-						id={checkboxId}
-						checked={config.tools_by_phase[phase].includes(tool.id)}
-						onCheckedChange={(checked) =>
-							updatePhaseTools(phase, tool.id, checked === true)
-						}
-					/>
-					<label htmlFor={checkboxId} className="truncate">
-						{tool.name}
-					</label>
-				</div>
-				<button
-					type="button"
-					className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
-					onClick={() => openEditDialog(tool)}
-				>
-					Edit
-				</button>
-			</div>
-		);
-	}
-
 	return (
 		<div className="rounded-xl border bg-card">
 			<div className="border-b px-4 py-4 md:px-5">
 				<h3 className="text-sm font-semibold">Agent tools</h3>
 				<p className="mt-0.5 text-xs text-muted-foreground">
-					Add API endpoints and Python functions for each call phase.
+					Enable tools for this agent and add API or Python functions
+					per call phase.
 				</p>
 			</div>
 
@@ -206,61 +229,91 @@ export function ToolsPhasePanel({
 							<TabsTrigger
 								key={phase.value}
 								value={phase.value}
-								className="rounded-none px-4"
+								className="rounded-none px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
 							>
 								{phase.label}
 							</TabsTrigger>
 						))}
 					</TabsList>
 
-					{PHASES.map((phase) => (
-						<TabsContent
-							key={phase.value}
-							value={phase.value}
-							className="mt-4"
-						>
-							<div className="grid gap-4 lg:grid-cols-[1fr_220px]">
-								<div className="min-h-[180px] rounded-lg border border-dashed bg-muted/20 p-4">
-									{config.tools_by_phase[phase.value]
-										.length === 0 ? (
-										<div className="flex h-full min-h-[148px] flex-col items-center justify-center text-center">
-											<div className="mb-3 flex size-10 items-center justify-center rounded-full bg-muted">
-												<WrenchIcon className="size-4 text-muted-foreground" />
+					{PHASES.map((phase) => {
+						const enabledCustomIds = new Set(
+							config.tools_by_phase[phase.value],
+						);
+						const hasBuiltinSection = phase.value === "on_call";
+						const hasAnyTools =
+							hasBuiltinSection || orgTools.length > 0;
+
+						return (
+							<TabsContent
+								key={phase.value}
+								value={phase.value}
+								className="mt-4"
+							>
+								<div className="grid gap-4 lg:grid-cols-[1fr_220px]">
+									<div className="min-h-[180px] rounded-lg border border-dashed bg-muted/20 p-4">
+										{!hasAnyTools ? (
+											<div className="flex h-full min-h-[148px] flex-col items-center justify-center text-center">
+												<div className="mb-3 flex size-10 items-center justify-center rounded-full bg-muted">
+													<WrenchIcon className="size-4 text-muted-foreground" />
+												</div>
+												<p className="text-sm text-muted-foreground">
+													No tools yet. Create an API
+													or Python tool from the
+													panel.
+												</p>
 											</div>
-											<p className="text-sm text-muted-foreground">
-												No tools added yet. Create an
-												API or Python tool from the
-												panel.
-											</p>
-										</div>
-									) : (
-										<div className="space-y-2">
-											{config.tools_by_phase[
-												phase.value
-											].map((toolId) => {
-												const tool = orgTools.find(
-													(t) => t.id === toolId,
-												);
-												return (
-													<div
-														key={toolId}
-														className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm"
-													>
-														<div className="min-w-0">
-															<p className="font-medium">
-																{tool?.name ??
-																	toolId}
-															</p>
-															{tool ? (
-																<p className="text-xs text-muted-foreground capitalize">
-																	{
-																		tool.tool_type
+										) : (
+											<div className="space-y-2">
+												{hasBuiltinSection
+													? BUILTIN_TOOLS.map(
+															([key, label]) => (
+																<ToolToggleRow
+																	key={key}
+																	label={
+																		label
 																	}
-																</p>
-															) : null}
-														</div>
-														<div className="flex shrink-0 items-center gap-3">
-															{tool ? (
+																	description="Built-in"
+																	enabled={
+																		config
+																			.tools_config[
+																			key
+																		]
+																	}
+																	onToggle={() =>
+																		updateBuiltinTool(
+																			key,
+																			!config
+																				.tools_config[
+																				key
+																			],
+																		)
+																	}
+																/>
+															),
+														)
+													: null}
+												{orgTools.map((tool) => {
+													const enabled =
+														enabledCustomIds.has(
+															tool.id,
+														);
+													return (
+														<ToolToggleRow
+															key={tool.id}
+															label={tool.name}
+															description={
+																tool.tool_type
+															}
+															enabled={enabled}
+															onToggle={() =>
+																updatePhaseTools(
+																	phase.value,
+																	tool.id,
+																	!enabled,
+																)
+															}
+															actions={
 																<button
 																	type="button"
 																	className="text-xs text-muted-foreground hover:text-foreground"
@@ -272,146 +325,45 @@ export function ToolsPhasePanel({
 																>
 																	Edit
 																</button>
-															) : null}
-															<button
-																type="button"
-																className="text-xs text-muted-foreground hover:text-foreground"
-																onClick={() =>
-																	updatePhaseTools(
-																		phase.value,
-																		toolId,
-																		false,
-																	)
-																}
-															>
-																Remove
-															</button>
-														</div>
-													</div>
-												);
-											})}
-										</div>
-									)}
-								</div>
-
-								<div className="rounded-lg border bg-background/60 p-3">
-									<p className="mb-2 text-sm font-medium">
-										Add tool
-									</p>
-									<div className="space-y-1">
-										{TOOL_CATEGORIES.map((category) => (
-											<button
-												key={category.id}
-												type="button"
-												onClick={() =>
-													openCreateDialog(
-														category.id,
-													)
-												}
-												className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-sm hover:bg-muted/50"
-											>
-												<div className="flex items-center gap-2">
-													<category.icon className="size-4 text-muted-foreground" />
-													<span>
-														{category.label}
-													</span>
-												</div>
-												<PlusIcon className="size-4 text-muted-foreground" />
-											</button>
-										))}
-									</div>
-								</div>
-							</div>
-
-							{phase.value === "on_call" ? (
-								<div className="mt-4 space-y-4 border-t pt-4">
-									<div>
-										<p className="mb-3 text-xs font-medium text-muted-foreground">
-											Built-in tools
-										</p>
-										<div className="grid gap-2 sm:grid-cols-2">
-											{BUILTIN_TOOLS.map(
-												([key, label]) => {
-													const checkboxId = `builtin-tool-${key}`;
-													return (
-														<div
-															key={key}
-															className="flex items-center gap-2 text-sm"
-														>
-															<Checkbox
-																id={checkboxId}
-																checked={
-																	config
-																		.tools_config[
-																		key
-																	]
-																}
-																onCheckedChange={(
-																	checked,
-																) =>
-																	updateBuiltinTool(
-																		key,
-																		checked ===
-																			true,
-																	)
-																}
-															/>
-															<label
-																htmlFor={
-																	checkboxId
-																}
-															>
-																{label}
-															</label>
-														</div>
+															}
+														/>
 													);
-												},
-											)}
-										</div>
-									</div>
-									<div>
-										<p className="mb-3 text-xs font-medium text-muted-foreground">
-											Organization tools
-										</p>
-										<div className="space-y-2">
-											{orgTools.length === 0 ? (
-												<p className="text-sm text-muted-foreground">
-													No organization tools yet.
-												</p>
-											) : (
-												orgTools.map((tool) =>
-													renderOrgToolRow(
-														tool,
-														"on_call",
-													),
-												)
-											)}
-										</div>
-									</div>
-								</div>
-							) : (
-								<div className="mt-4 border-t pt-4">
-									<p className="mb-3 text-xs font-medium text-muted-foreground">
-										Organization tools
-									</p>
-									<div className="space-y-2">
-										{orgTools.length === 0 ? (
-											<p className="text-sm text-muted-foreground">
-												No organization tools yet.
-											</p>
-										) : (
-											orgTools.map((tool) =>
-												renderOrgToolRow(
-													tool,
-													phase.value,
-												),
-											)
+												})}
+											</div>
 										)}
 									</div>
+
+									<div className="rounded-lg border bg-background/60 p-3">
+										<p className="mb-2 text-sm font-medium">
+											Add tool
+										</p>
+										<div className="space-y-1">
+											{TOOL_CATEGORIES.map((category) => (
+												<button
+													key={category.id}
+													type="button"
+													onClick={() =>
+														openCreateDialog(
+															category.id,
+														)
+													}
+													className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-sm hover:bg-muted/50"
+												>
+													<div className="flex items-center gap-2">
+														<category.icon className="size-4 text-muted-foreground" />
+														<span>
+															{category.label}
+														</span>
+													</div>
+													<PlusIcon className="size-4 text-muted-foreground" />
+												</button>
+											))}
+										</div>
+									</div>
 								</div>
-							)}
-						</TabsContent>
-					))}
+							</TabsContent>
+						);
+					})}
 				</Tabs>
 			</div>
 

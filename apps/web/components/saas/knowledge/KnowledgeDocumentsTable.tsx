@@ -37,16 +37,14 @@ import { cn } from "@repo/ui/utils";
 import { formatDistanceToNow } from "date-fns";
 import { MoreVerticalIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
-import { Pagination } from "@/components/saas/shared/Pagination";
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import type {
 	KnowledgeDocument,
 	KnowledgeDocumentStatus,
 } from "@/services/api/types";
 
 type StatusFilter = "all" | KnowledgeDocumentStatus;
-
-const ITEMS_PER_PAGE = 10;
 
 const STATUS_FILTER_ITEMS: { value: StatusFilter; label: string }[] = [
 	{ value: "all", label: "All statuses" },
@@ -128,8 +126,8 @@ export function KnowledgeDocumentsTable({
 	}, [search, statusFilter]);
 
 	const pageItems = useMemo(() => {
-		const start = (currentPage - 1) * ITEMS_PER_PAGE;
-		return filtered.slice(start, start + ITEMS_PER_PAGE);
+		const start = (currentPage - 1) * PAGE_SIZE;
+		return filtered.slice(start, start + PAGE_SIZE);
 	}, [filtered, currentPage]);
 
 	async function handleDelete() {
@@ -194,7 +192,28 @@ export function KnowledgeDocumentsTable({
 				</div>
 
 				{isLoading ? (
-					<LoadingState />
+					<TableBodySkeleton
+						headers={[
+							"Title",
+							"Source",
+							"Status",
+							"Updated",
+							"Actions",
+						]}
+						columns={[
+							{
+								type: "lines",
+								widths: ["w-40", "w-28"],
+							},
+							{
+								type: "lines",
+								widths: ["w-20", "w-32"],
+							},
+							{ type: "pill" },
+							{ type: "text", width: "w-24" },
+							{ type: "action" },
+						]}
+					/>
 				) : isError ? (
 					<p className="p-6 text-destructive text-sm">
 						Failed to load documents.
@@ -298,7 +317,7 @@ export function KnowledgeDocumentsTable({
 						<footer className="border-t px-5 py-3">
 							<Pagination
 								totalItems={filtered.length}
-								itemsPerPage={ITEMS_PER_PAGE}
+								itemsPerPage={PAGE_SIZE}
 								currentPage={currentPage}
 								onChangeCurrentPage={setCurrentPage}
 							/>

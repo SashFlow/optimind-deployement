@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@repo/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
@@ -26,10 +27,10 @@ const NUMBER_TABS: { value: NumbersTab; label: string }[] = [
 ];
 
 const pillTriggerClass =
-	"h-9 flex-none gap-2 rounded-full px-4 py-2 text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none data-[active=true]:bg-foreground data-[active=true]:text-background data-[state=active]:hover:bg-foreground data-[state=active]:hover:text-background";
+	"h-9 flex-none gap-2 rounded-full px-4 py-2 text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none data-[state=active]:hover:bg-primary data-[state=active]:hover:text-primary-foreground";
 
 export default function NumbersPage() {
-	const { activeOrganization } = useActiveOrganization();
+	const { activeOrganization, loaded } = useActiveOrganization();
 	const activeOrganizationId = activeOrganization?.id ?? null;
 	const [tab, setTab] = useState<NumbersTab>("numbers");
 
@@ -46,6 +47,28 @@ export default function NumbersPage() {
 	};
 
 	useSettingsPageAction(() => setTab("get"));
+
+	if (!loaded) {
+		return (
+			<section className="space-y-6">
+				<div
+					role="status"
+					aria-label="Loading"
+					className="overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5"
+				>
+					<div className="space-y-4 p-6">
+						<div className="flex gap-2">
+							<Skeleton className="h-9 w-24 rounded-full" />
+							<Skeleton className="h-9 w-28 rounded-full" />
+							<Skeleton className="h-9 w-20 rounded-full" />
+							<Skeleton className="h-9 w-24 rounded-full" />
+						</div>
+						<Skeleton className="h-48 w-full rounded-xl" />
+					</div>
+				</div>
+			</section>
+		);
+	}
 
 	return (
 		<section className="space-y-6">
@@ -77,19 +100,7 @@ export default function NumbersPage() {
 										<TabsTrigger
 											key={item.value}
 											value={item.value}
-											data-active={
-												isActive ? "true" : undefined
-											}
 											className={cn(pillTriggerClass)}
-											style={
-												isActive
-													? {
-															backgroundColor:
-																"var(--foreground)",
-															color: "var(--background)",
-														}
-													: undefined
-											}
 										>
 											{item.label}
 											{count > 0 ? (
@@ -97,7 +108,7 @@ export default function NumbersPage() {
 													className={cn(
 														"rounded-md px-1.5 py-0.5 text-[10px] tabular-nums",
 														isActive
-															? "bg-background/15 text-background"
+															? "bg-primary-foreground/20 text-primary-foreground"
 															: "bg-muted text-muted-foreground",
 													)}
 												>

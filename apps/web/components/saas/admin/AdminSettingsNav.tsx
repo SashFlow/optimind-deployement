@@ -104,27 +104,15 @@ export function AdminSettingsNav({ children }: PropsWithChildren) {
 					<TabsList className="h-auto w-fit gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground shadow-sm ring-1 ring-black/5">
 						{TABS.map((tab) => {
 							const Icon = tab.icon;
-							const isActive = tab.value === active;
 							return (
 								<TabsTrigger
 									key={tab.value}
 									value={tab.value}
-									data-active={isActive ? "true" : undefined}
 									className={cn(
 										"h-9 flex-none gap-2 rounded-full px-4 py-2 text-muted-foreground shadow-none transition-colors hover:text-foreground",
-										"data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none",
-										"data-[active=true]:bg-foreground data-[active=true]:text-background",
-										"data-[state=active]:hover:bg-foreground data-[state=active]:hover:text-background",
+										"data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none",
+										"data-[state=active]:hover:bg-primary data-[state=active]:hover:text-primary-foreground",
 									)}
-									style={
-										isActive
-											? {
-													backgroundColor:
-														"var(--foreground)",
-													color: "var(--background)",
-												}
-											: undefined
-									}
 								>
 									<Icon className="size-4" />
 									{tab.label}

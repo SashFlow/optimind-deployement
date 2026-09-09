@@ -45,7 +45,10 @@ const SECTIONS = [
 type SectionValue = (typeof SECTIONS)[number]["value"];
 
 const SECTION_SCROLL_CLASS =
-	"h-full overflow-y-auto py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
+	"min-h-0 flex-1 overflow-y-auto py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
+
+const SECTION_TAB_CLASS =
+	"mt-0 flex min-h-0 flex-1 flex-col overflow-hidden outline-none data-[state=inactive]:hidden";
 
 type AgentConfigureFormProps = {
 	config: AgentConfigDocument;
@@ -101,14 +104,14 @@ export function AgentConfigureForm({
 	const actionsBusy = isSaving || isPublishing;
 
 	return (
-		<div className="flex h-full min-h-0 flex-col overflow-hidden py-4 md:py-5">
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden py-4 md:py-5">
 			<Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0">
 				<Tabs
 					value={activeSection}
 					onValueChange={(value) =>
 						value && setActiveSection(value as SectionValue)
 					}
-					className="flex h-full min-h-0 flex-col gap-0 overflow-hidden"
+					className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden"
 				>
 					<div className="flex shrink-0 items-center gap-3 border-b px-4 pt-4 pb-3 md:px-6">
 						<div className="min-w-0 flex-1">
@@ -140,32 +143,15 @@ export function AgentConfigureForm({
 							<div className="scrollbar-none hidden min-w-0 overflow-x-auto sm:block">
 								<TabsList className="h-auto w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
 									{SECTIONS.map((section) => {
-										const isActive =
-											section.value === activeSection;
 										return (
 											<TabsTrigger
 												key={section.value}
 												value={section.value}
-												data-active={
-													isActive
-														? "true"
-														: undefined
-												}
 												className={cn(
 													"h-9 flex-none gap-2 rounded-full px-4 py-2 text-muted-foreground shadow-none transition-colors hover:text-foreground",
-													"data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none",
-													"data-[active=true]:bg-foreground data-[active=true]:text-background",
-													"data-[state=active]:hover:bg-foreground data-[state=active]:hover:text-background",
+													"data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none",
+													"data-[state=active]:hover:bg-primary data-[state=active]:hover:text-primary-foreground",
 												)}
-												style={
-													isActive
-														? {
-																backgroundColor:
-																	"var(--foreground)",
-																color: "var(--background)",
-															}
-														: undefined
-												}
 											>
 												{section.label}
 											</TabsTrigger>
@@ -195,13 +181,8 @@ export function AgentConfigureForm({
 						</div>
 					</div>
 
-					<CardContent className="min-h-0 flex-1 overflow-hidden px-4 py-0 md:px-6">
-						<TabsContent
-							value="general"
-							className={cn(
-								"mt-0 h-full overflow-hidden outline-none",
-							)}
-						>
+					<CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-0 md:px-6">
+						<TabsContent value="general" className={SECTION_TAB_CLASS}>
 							<div className={SECTION_SCROLL_CLASS}>
 								<GeneralSection
 									config={config}
@@ -217,10 +198,7 @@ export function AgentConfigureForm({
 							</div>
 						</TabsContent>
 
-						<TabsContent
-							value="voice"
-							className="mt-0 h-full overflow-hidden outline-none"
-						>
+						<TabsContent value="voice" className={SECTION_TAB_CLASS}>
 							<div className={SECTION_SCROLL_CLASS}>
 								<VoiceSection
 									config={config}
@@ -229,10 +207,7 @@ export function AgentConfigureForm({
 							</div>
 						</TabsContent>
 
-						<TabsContent
-							value="avatar"
-							className="mt-0 h-full overflow-hidden outline-none"
-						>
+						<TabsContent value="avatar" className={SECTION_TAB_CLASS}>
 							<div className={SECTION_SCROLL_CLASS}>
 								<AvatarSection
 									config={config}
@@ -242,10 +217,7 @@ export function AgentConfigureForm({
 							</div>
 						</TabsContent>
 
-						<TabsContent
-							value="prompts"
-							className="mt-0 h-full overflow-hidden outline-none"
-						>
+						<TabsContent value="prompts" className={SECTION_TAB_CLASS}>
 							<div className={SECTION_SCROLL_CLASS}>
 								<PromptsSection
 									config={config}
@@ -254,10 +226,7 @@ export function AgentConfigureForm({
 							</div>
 						</TabsContent>
 
-						<TabsContent
-							value="call"
-							className="mt-0 h-full overflow-hidden outline-none"
-						>
+						<TabsContent value="call" className={SECTION_TAB_CLASS}>
 							<div className={SECTION_SCROLL_CLASS}>
 								<CallSessionSection
 									config={config}
@@ -266,10 +235,7 @@ export function AgentConfigureForm({
 							</div>
 						</TabsContent>
 
-						<TabsContent
-							value="tools"
-							className="mt-0 h-full overflow-hidden outline-none"
-						>
+						<TabsContent value="tools" className={SECTION_TAB_CLASS}>
 							<div className={SECTION_SCROLL_CLASS}>
 								<ToolsSection
 									config={config}
@@ -282,7 +248,7 @@ export function AgentConfigureForm({
 
 						<TabsContent
 							value="advanced"
-							className="mt-0 h-full overflow-hidden outline-none"
+							className={SECTION_TAB_CLASS}
 						>
 							<div className={SECTION_SCROLL_CLASS}>
 								<AdvancedSection
@@ -295,10 +261,10 @@ export function AgentConfigureForm({
 
 						<TabsContent
 							value="preview"
-							className="mt-0 h-full overflow-hidden outline-none"
+							className={SECTION_TAB_CLASS}
 						>
-							<div className="h-full overflow-hidden py-4">
-								<div className="h-full overflow-hidden rounded-xl border bg-background">
+							<div className="flex min-h-0 flex-1 flex-col overflow-hidden py-4">
+								<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-background">
 									<AgentConfigurePreview
 										agent={agent}
 										savedVariables={savedVariables}
@@ -308,7 +274,7 @@ export function AgentConfigureForm({
 										draftVersionId={versionId}
 										avatarEnabled={avatarEnabled}
 										avatarPreviewUrl={avatarPreviewUrl}
-										className="h-full"
+										className="min-h-0 flex-1"
 									/>
 								</div>
 							</div>

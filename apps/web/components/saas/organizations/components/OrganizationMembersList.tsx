@@ -35,6 +35,10 @@ import { LogOutIcon, MoreVerticalIcon, TrashIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+	PAGE_SIZE,
+	Pagination,
+} from "@/components/saas/shared/Pagination";
 import { OrganizationRoleSelect } from "./OrganizationRoleSelect";
 
 export function OrganizationMembersList({
@@ -223,13 +227,17 @@ export function OrganizationMembersList({
 	const table = useReactTable({
 		data: organization?.members ?? [],
 		columns,
-		manualPagination: true,
 		onSortingChange: setSorting,
 		onColumnFiltersChange: setColumnFilters,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
+		initialState: {
+			pagination: {
+				pageSize: PAGE_SIZE,
+			},
+		},
 		state: {
 			sorting,
 			columnFilters,
@@ -268,6 +276,16 @@ export function OrganizationMembersList({
 					)}
 				</TableBody>
 			</Table>
+			<footer className="border-t px-5 py-3">
+				<Pagination
+					totalItems={table.getFilteredRowModel().rows.length}
+					itemsPerPage={PAGE_SIZE}
+					currentPage={table.getState().pagination.pageIndex + 1}
+					onChangeCurrentPage={(page) =>
+						table.setPageIndex(page - 1)
+					}
+				/>
+			</footer>
 		</div>
 	);
 }

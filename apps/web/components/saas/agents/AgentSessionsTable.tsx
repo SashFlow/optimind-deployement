@@ -21,9 +21,14 @@ import { cn } from "@repo/ui/utils";
 import { formatDistanceToNow } from "date-fns";
 import { SearchIcon } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
+import { useEffect, useMemo, useState } from "react";
+import {
+	PAGE_SIZE,
+	Pagination,
+	useClientPagination,
+} from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import { useEndSessionMutation } from "./lib/hooks";
 import type { AgentSessionRow } from "./lib/types";
 
 type StatusFilter =
@@ -33,6 +38,8 @@ type StatusFilter =
 	| "COMPLETED"
 	| "FAILED"
 	| "CANCELLED";
+
+const ENDABLE_STATUSES = new Set(["QUEUED", "ACTIVE"]);
 
 const STATUS_FILTER_ITEMS: { value: StatusFilter; label: string }[] = [
 	{ value: "all", label: "All statuses" },
@@ -75,6 +82,7 @@ export function AgentSessionsTable({
 }) {
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+	const endSession = useEndSessionMutation();
 
 	const filtered = useMemo(() => {
 		const query = search.trim().toLowerCase();
@@ -89,6 +97,13 @@ export function AgentSessionsTable({
 			);
 		});
 	}, [sessions, search, statusFilter]);
+
+	const { currentPage, setCurrentPage, pageItems, totalItems } =
+		useClientPagination(filtered);
+
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [search, statusFilter, setCurrentPage]);
 
 	return (
 		<section className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6">
@@ -130,7 +145,24 @@ export function AgentSessionsTable({
 				</div>
 
 				{isLoading ? (
-					<LoadingState />
+					<TableBodySkeleton
+						headers={[
+							"Session",
+							"Status",
+							"Channel",
+							"Started",
+							"Duration",
+							"Actions",
+						]}
+						columns={[
+							{ type: "text", width: "w-28" },
+							{ type: "pill" },
+							{ type: "text", width: "w-16" },
+							{ type: "text", width: "w-24" },
+							{ type: "text", width: "w-14" },
+							{ type: "action" },
+						]}
+					/>
 				) : isError ? (
 					<p className="p-6 text-sm text-destructive">
 						Failed to load sessions.
@@ -140,81 +172,111 @@ export function AgentSessionsTable({
 						No sessions found.
 					</p>
 				) : (
-					<div className="overflow-x-auto scrollbar-none">
-						<Table>
-							<TableHeader>
-								<TableRow className="hover:bg-transparent">
-									<TableHead>Session</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead>Channel</TableHead>
-									<TableHead>Started</TableHead>
-									<TableHead>Duration</TableHead>
-									<TableHead className="text-right">
-										Actions
-									</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{filtered.map((session) => (
-									<TableRow key={session.id}>
-										<TableCell>
-											<Link
-												href={`/app/agents/${agentId}/logs/${session.id}`}
-												className="font-mono text-xs font-medium underline-offset-2 hover:underline"
-											>
-												{session.id.slice(0, 10)}
-											</Link>
-											<p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-												{session.livekitRoomName}
-											</p>
-										</TableCell>
-										<TableCell>
-											<span
-												className={cn(
-													"inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
-													statusPillClass(
-														session.status,
-													),
-												)}
-											>
-												{session.status}
-											</span>
-										</TableCell>
-										<TableCell className="text-muted-foreground text-sm">
-											{session.channel}
-										</TableCell>
-										<TableCell className="text-muted-foreground text-sm">
-											{session.startedAt
-												? formatDistanceToNow(
-														new Date(
-															session.startedAt,
-														),
-														{ addSuffix: true },
-													)
-												: "—"}
-										</TableCell>
-										<TableCell className="text-muted-foreground text-sm">
-											{formatDuration(session.durationMs)}
-										</TableCell>
-										<TableCell className="text-right">
-											<Button
-												type="button"
-												size="sm"
-												variant="outline"
-												onClick={() =>
-													toast.message(
-														"End session is not available via ORPC yet",
-													)
-												}
-											>
-												End
-											</Button>
-										</TableCell>
+					<>
+						<div className="overflow-x-auto scrollbar-none">
+							<Table>
+								<TableHeader>
+									<TableRow className="hover:bg-transparent">
+										<TableHead>Session</TableHead>
+										<TableHead>Status</TableHead>
+										<TableHead>Channel</TableHead>
+										<TableHead>Started</TableHead>
+										<TableHead>Duration</TableHead>
+										<TableHead className="text-right">
+											Actions
+										</TableHead>
 									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					</div>
+								</TableHeader>
+								<TableBody>
+									{pageItems.map((session) => (
+										<TableRow key={session.id}>
+											<TableCell>
+												<Link
+													href={`/app/agents/${agentId}/logs/${session.id}`}
+													className="font-mono text-xs font-medium underline-offset-2 hover:underline"
+												>
+													{session.id.slice(0, 10)}
+												</Link>
+												<p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+													{session.livekitRoomName}
+												</p>
+											</TableCell>
+											<TableCell>
+												<span
+													className={cn(
+														"inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
+														statusPillClass(
+															session.status,
+														),
+													)}
+												>
+													{session.status}
+												</span>
+											</TableCell>
+											<TableCell className="text-muted-foreground text-sm">
+												{session.channel}
+											</TableCell>
+											<TableCell className="text-muted-foreground text-sm">
+												{session.startedAt
+													? formatDistanceToNow(
+															new Date(
+																session.startedAt,
+															),
+															{ addSuffix: true },
+														)
+													: "—"}
+											</TableCell>
+											<TableCell className="text-muted-foreground text-sm">
+												{formatDuration(
+													session.durationMs,
+												)}
+											</TableCell>
+											<TableCell className="text-right">
+												{ENDABLE_STATUSES.has(
+													session.status,
+												) ? (
+													<Button
+														type="button"
+														size="sm"
+														variant="outline"
+														disabled={
+															endSession.isPending &&
+															endSession.variables
+																?.id ===
+																session.id
+														}
+														onClick={() =>
+															endSession.mutate({
+																id: session.id,
+															})
+														}
+													>
+														{endSession.isPending &&
+														endSession.variables
+															?.id === session.id
+															? "Ending…"
+															: "End"}
+													</Button>
+												) : (
+													<span className="text-muted-foreground text-xs">
+														—
+													</span>
+												)}
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						</div>
+						<footer className="border-t px-5 py-3">
+							<Pagination
+								totalItems={totalItems}
+								itemsPerPage={PAGE_SIZE}
+								currentPage={currentPage}
+								onChangeCurrentPage={setCurrentPage}
+							/>
+						</footer>
+					</>
 				)}
 			</div>
 		</section>

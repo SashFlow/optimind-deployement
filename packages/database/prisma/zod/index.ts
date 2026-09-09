@@ -90,7 +90,7 @@ export type AgentVersionScalarFieldEnum = z.infer<typeof AgentVersionScalarField
 
 // File: AgentTrialScalarFieldEnum.schema.ts
 
-export const AgentTrialScalarFieldEnumSchema = z.enum(['id', 'agentId', 'createdAt', 'updatedAt', 'token', 'enabled', 'usageLimit', 'usageCount', 'expiresAt'])
+export const AgentTrialScalarFieldEnumSchema = z.enum(['id', 'agentId', 'createdAt', 'updatedAt', 'label', 'token', 'enabled', 'usageLimit', 'usageCount', 'expiresAt'])
 
 export type AgentTrialScalarFieldEnum = z.infer<typeof AgentTrialScalarFieldEnumSchema>;
 
@@ -681,6 +681,7 @@ export const AgentTrialSchema = z.object({
   agentId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
+  label: z.string(),
   token: z.string().nullish(),
   enabled: z.boolean(),
   usageLimit: z.number().int(),

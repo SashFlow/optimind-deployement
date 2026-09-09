@@ -53,15 +53,14 @@ import { CopyIcon, MoreVerticalIcon, SearchIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useSettingsPageAction } from "@/components/saas/admin/AdminSettingsActions";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import {
 	type Account,
 	mapUserToAccount,
 	type Role,
 } from "@/components/saas/admin/lib/types";
-import { Pagination } from "@/components/saas/shared/Pagination";
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
-const ITEMS_PER_PAGE = 10;
 const roles: Role[] = ["admin", "user"];
 
 type StatusFilter = "all" | "active" | "invited" | "inactive";
@@ -165,7 +164,7 @@ export function AdminUsers() {
 		});
 	}, [usersQuery.data, search, statusFilter]);
 
-	const pageCount = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
 	useEffect(() => {
 		setCurrentPage(1);
@@ -176,8 +175,8 @@ export function AdminUsers() {
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
-		const start = (currentPage - 1) * ITEMS_PER_PAGE;
-		return filtered.slice(start, start + ITEMS_PER_PAGE);
+		const start = (currentPage - 1) * PAGE_SIZE;
+		return filtered.slice(start, start + PAGE_SIZE);
 	}, [filtered, currentPage]);
 
 	const resetInviteForm = () => {
@@ -348,7 +347,26 @@ export function AdminUsers() {
 				</div>
 
 				{usersQuery.isPending ? (
-					<LoadingState />
+					<TableBodySkeleton
+						headers={[
+							"User",
+							"Email",
+							"Joined",
+							"Last active",
+							"Role",
+							"Status",
+							"Actions",
+						]}
+						columns={[
+							{ type: "avatar" },
+							{ type: "text", width: "w-40" },
+							{ type: "text", width: "w-24" },
+							{ type: "text", width: "w-24" },
+							{ type: "text", width: "w-16" },
+							{ type: "pill" },
+							{ type: "action" },
+						]}
+					/>
 				) : usersQuery.isError ? (
 					<p className="p-6 text-sm text-destructive" role="alert">
 						Unable to load users.
@@ -491,7 +509,7 @@ export function AdminUsers() {
 						<footer className="border-t px-5 py-3">
 							<Pagination
 								totalItems={filtered.length}
-								itemsPerPage={ITEMS_PER_PAGE}
+								itemsPerPage={PAGE_SIZE}
 								currentPage={currentPage}
 								onChangeCurrentPage={setCurrentPage}
 							/>

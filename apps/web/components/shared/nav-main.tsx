@@ -18,7 +18,7 @@ type NavItem = {
 };
 
 const navButtonClass =
-	"inline-flex items-center justify-center overflow-visible rounded-full p-0 text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-foreground data-[active=true]:text-background";
+	"inline-flex items-center justify-center overflow-visible rounded-full p-0 text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground";
 
 export function NavMain({
 	items,
@@ -81,7 +81,7 @@ export function NavMain({
 								asChild
 								isActive={isActive}
 								tooltip={item.title}
-								className="size-16! justify-center overflow-visible rounded-full p-0! text-muted-foreground hover:text-foreground data-[active=true]:bg-foreground data-[active=true]:text-background data-[active=true]:hover:bg-foreground data-[active=true]:hover:text-background group-data-[collapsible=icon]:size-16! group-data-[collapsible=icon]:p-0! [&_svg]:size-7! [&_svg]:stroke-[1.75]"
+								className="size-16! justify-center overflow-visible rounded-full p-0! text-muted-foreground hover:text-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary data-[active=true]:hover:text-primary-foreground group-data-[collapsible=icon]:size-16! group-data-[collapsible=icon]:p-0! [&_svg]:size-7! [&_svg]:stroke-[1.75]"
 							>
 								<Link href={item.url}>
 									{item.icon}

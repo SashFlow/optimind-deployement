@@ -118,6 +118,7 @@ The report handler:
 | `GET` | `/api/sessions` | List sessions |
 | `GET` | `/api/sessions/{id}` | Session + transcript + usage + egress |
 | `POST` | `/api/sessions/{id}/egress` | Start room-composite egress → S3 |
+| `POST` | `/api/sessions/{id}/end` | Cancel session + delete LiveKit room |
 
 ## Webhooks
 

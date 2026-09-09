@@ -27,13 +27,15 @@ export function CampaignsListPage() {
 		enabled: !!organizationId,
 	});
 
+	const listQueryKey = orpc.campaigns.list.key({
+		input: { organizationId },
+	});
+
 	const createMutation = useMutation(
 		orpc.campaigns.create.mutationOptions({
 			onSuccess: async () => {
 				await queryClient.invalidateQueries({
-					queryKey: orpc.campaigns.list.key({
-						input: { organizationId },
-					}),
+					queryKey: listQueryKey,
 				});
 				toast.success("Campaign created");
 			},
@@ -41,20 +43,57 @@ export function CampaignsListPage() {
 		}),
 	);
 
+	const updateMutation = useMutation(
+		orpc.campaigns.update.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: listQueryKey,
+				});
+				toast.success("Campaign updated");
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
+	const deleteMutation = useMutation(
+		orpc.campaigns.update.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: listQueryKey,
+				});
+				toast.success("Campaign deleted");
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
 	const campaigns = query.data?.campaigns ?? [];
 	const defaultAgentId = agentsQuery.data?.agents[0]?.id;
+	const isLoading = !organizationId || query.isPending;
 
 	return (
 		<ResourcePage
-			filters={[{ label: "All", value: "all", count: campaigns.length }]}
+			isLoading={isLoading}
 			items={campaigns.map((campaign) => ({
 				id: campaign.id,
 				title: campaign.name,
-				description: campaign.description ?? "No description",
+				description: campaign.description ?? "",
 				status: String(campaign.status ?? "Draft"),
-				filterKey: "all",
 				meta: new Date(campaign.updatedAt).toLocaleDateString(),
 				icon: <SendHorizonalIcon className="size-4" />,
+				onEdit: async (name, description) => {
+					await updateMutation.mutateAsync({
+						id: campaign.id,
+						name,
+						description: description || null,
+					});
+				},
+				onDelete: async () => {
+					await deleteMutation.mutateAsync({
+						id: campaign.id,
+						status: "ARCHIVED",
+					});
+				},
 			}))}
 			searchPlaceholder="Search campaigns"
 			createAction={

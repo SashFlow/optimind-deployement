@@ -9,7 +9,6 @@ import {
 	SelectValue,
 } from "@repo/ui/select";
 import * as React from "react";
-import { VoicePreviewButton } from "@/components/saas/agents/configure/VoicePreviewButton";
 import type { ProviderVoice } from "@/services/api/types";
 
 const CUSTOM_VALUE = "__custom__";
@@ -51,46 +50,42 @@ export function VoiceSelect({
 
 	const showCustomInput = customMode || valueIsCustom;
 	const selectValue = showCustomInput ? CUSTOM_VALUE : (value ?? "");
-	const selectedVoice = matched;
 
 	return (
 		<div className="space-y-2">
-			<div className="flex items-center gap-2">
-				<Select
-					value={selectValue}
-					onValueChange={(next) => {
-						if (!next) return;
-						if (next === CUSTOM_VALUE) {
-							setCustomMode(true);
-							onValueChange(customDraft);
-							return;
+			<Select
+				value={selectValue}
+				onValueChange={(next) => {
+					if (!next) return;
+					if (next === CUSTOM_VALUE) {
+						setCustomMode(true);
+						onValueChange(customDraft);
+						return;
+					}
+					setCustomMode(false);
+					setCustomDraft("");
+					onValueChange(next);
+				}}
+				disabled={disabled}
+			>
+				<SelectTrigger className="w-full bg-background">
+					<SelectValue
+						placeholder={
+							disabled ? disabledPlaceholder : placeholder
 						}
-						setCustomMode(false);
-						setCustomDraft("");
-						onValueChange(next);
-					}}
-					disabled={disabled}
-				>
-					<SelectTrigger className="w-full bg-background">
-						<SelectValue
-							placeholder={
-								disabled ? disabledPlaceholder : placeholder
-							}
-						/>
-					</SelectTrigger>
-					<SelectContent>
-						{voices.map((voice) => (
-							<SelectItem key={voice.id} value={voice.voice_id}>
-								{voice.label}
-							</SelectItem>
-						))}
-						<SelectItem value={CUSTOM_VALUE}>
-							Custom voice ID
+					/>
+				</SelectTrigger>
+				<SelectContent>
+					{voices.map((voice) => (
+						<SelectItem key={voice.id} value={voice.voice_id}>
+							{voice.label}
 						</SelectItem>
-					</SelectContent>
-				</Select>
-				<VoicePreviewButton previewUrl={selectedVoice?.preview_url} />
-			</div>
+					))}
+					<SelectItem value={CUSTOM_VALUE}>
+						Custom voice ID
+					</SelectItem>
+				</SelectContent>
+			</Select>
 			{showCustomInput ? (
 				<Input
 					className="bg-background"

@@ -1,12 +1,17 @@
 import { ORPCError } from "@orpc/client";
 import {
 	attachKnowledgeBaseToAgent,
+	createAgentTrial,
+	deleteAgentTrial,
 	createAgent,
 	detachKnowledgeBaseFromAgent,
 	getAgentById,
+	getAgentTrialById,
+	listAgentTrials,
 	listAgents,
 	publishAgentVersion,
 	syncAgentKnowledgeBases,
+	updateAgentTrial,
 	updateAgent,
 	updateAgentDraftConfig,
 } from "@repo/database";
@@ -183,5 +188,107 @@ export const detachKnowledgeBase = protectedProcedure
 		if (!existing) throw new ORPCError("NOT_FOUND");
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		await detachKnowledgeBaseFromAgent(input.id, input.knowledgeBaseId);
+		return { success: true };
+	});
+
+const trialLinkInputSchema = z.object({
+	label: z.string().min(1).max(80),
+	sessions: z.number().int().min(1).max(10_000),
+	expiresAt: z.string().datetime().nullable().optional(),
+});
+
+export const listTrialLinks = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/agents/{id}/trial-links",
+		tags: ["Agents"],
+		summary: "List trial links",
+	})
+	.input(z.object({ id: z.string() }))
+	.handler(async ({ input, context }) => {
+		const agent = await getAgentById(input.id);
+		if (!agent) throw new ORPCError("NOT_FOUND");
+		await requireOrgMembership(agent.organizationId, context.user.id);
+		const trials = await listAgentTrials(agent.id);
+		return { trials };
+	});
+
+export const createTrialLink = protectedProcedure
+	.route({
+		method: "POST",
+		path: "/agents/{id}/trial-links",
+		tags: ["Agents"],
+		summary: "Create trial link",
+	})
+	.input(z.object({ id: z.string() }).merge(trialLinkInputSchema))
+	.handler(async ({ input, context }) => {
+		const agent = await getAgentById(input.id);
+		if (!agent) throw new ORPCError("NOT_FOUND");
+		await requireOrgMembership(agent.organizationId, context.user.id);
+
+		const trial = await createAgentTrial({
+			agentId: agent.id,
+			label: input.label.trim(),
+			usageLimit: input.sessions,
+			expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+		});
+		return { trial };
+	});
+
+export const updateTrialLink = protectedProcedure
+	.route({
+		method: "PATCH",
+		path: "/agents/{id}/trial-links/{trialId}",
+		tags: ["Agents"],
+		summary: "Update trial link",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			trialId: z.string(),
+			label: z.string().min(1).max(80).optional(),
+			sessions: z.number().int().min(1).max(10_000).optional(),
+			expiresAt: z.string().datetime().nullable().optional(),
+			enabled: z.boolean().optional(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		const agent = await getAgentById(input.id);
+		if (!agent) throw new ORPCError("NOT_FOUND");
+		await requireOrgMembership(agent.organizationId, context.user.id);
+
+		const trial = await getAgentTrialById(input.trialId);
+		if (!trial || trial.agentId !== agent.id) throw new ORPCError("NOT_FOUND");
+
+		const updated = await updateAgentTrial(trial.id, {
+			label: input.label?.trim(),
+			usageLimit: input.sessions,
+			expiresAt:
+				input.expiresAt === undefined
+					? undefined
+					: input.expiresAt
+						? new Date(input.expiresAt)
+						: null,
+			enabled: input.enabled,
+		});
+		return { trial: updated };
+	});
+
+export const deleteTrialLink = protectedProcedure
+	.route({
+		method: "DELETE",
+		path: "/agents/{id}/trial-links/{trialId}",
+		tags: ["Agents"],
+		summary: "Delete trial link",
+	})
+	.input(z.object({ id: z.string(), trialId: z.string() }))
+	.handler(async ({ input, context }) => {
+		const agent = await getAgentById(input.id);
+		if (!agent) throw new ORPCError("NOT_FOUND");
+		await requireOrgMembership(agent.organizationId, context.user.id);
+
+		const trial = await getAgentTrialById(input.trialId);
+		if (!trial || trial.agentId !== agent.id) throw new ORPCError("NOT_FOUND");
+		await deleteAgentTrial(trial.id);
 		return { success: true };
 	});

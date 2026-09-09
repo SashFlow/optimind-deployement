@@ -15,7 +15,7 @@ import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import nProgress from "nprogress";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 import { ActiveOrganizationContext } from "../lib/active-organization-context";
 
 export function ActiveOrganizationProvider({
@@ -27,7 +27,8 @@ export function ActiveOrganizationProvider({
 	const queryClient = useQueryClient();
 	const { session, user } = useSession();
 	const params = useParams();
-	const { data: organizationList } = useOrganizationListQuery();
+	const { data: organizationList, isFetched: isOrganizationListFetched } =
+		useOrganizationListQuery();
 
 	const activeOrganizationSlugFromParams = params.organizationSlug as
 		| string
@@ -51,12 +52,10 @@ export function ActiveOrganizationProvider({
 		organizationList,
 	]);
 
-	const { data: activeOrganization } = useActiveOrganizationQuery(
-		resolvedSlug ?? "",
-		{
+	const { data: activeOrganization, isFetched: isActiveOrganizationFetched } =
+		useActiveOrganizationQuery(resolvedSlug ?? "", {
 			enabled: !!resolvedSlug,
-		},
-	);
+		});
 
 	const refetchActiveOrganization = async () => {
 		if (!resolvedSlug) return;
@@ -115,13 +114,10 @@ export function ActiveOrganizationProvider({
 		nProgress.done();
 	};
 
-	const [loaded, setLoaded] = useState(activeOrganization !== undefined);
-
-	useEffect(() => {
-		if (!loaded && activeOrganization !== undefined) {
-			setLoaded(true);
-		}
-	}, [activeOrganization, loaded]);
+	const loaded =
+		(Boolean(activeOrganizationSlugFromParams) ||
+			isOrganizationListFetched) &&
+		(!resolvedSlug || isActiveOrganizationFetched);
 
 	const activeOrganizationUserRole = activeOrganization?.members.find(
 		(member) => member.userId === session?.userId,

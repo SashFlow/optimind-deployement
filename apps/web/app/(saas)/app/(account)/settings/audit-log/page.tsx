@@ -19,11 +19,9 @@ import { useActiveOrganization } from "@saas/organizations/hooks/use-active-orga
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useSettingsPageAction } from "@/components/saas/admin/AdminSettingsActions";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import { useAuditLogsQuery } from "@/components/saas/admin/lib/mock-hooks";
-import { Pagination } from "@/components/saas/shared/Pagination";
-
-const ITEMS_PER_PAGE = 10;
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
 type ActionFilter =
 	| "all"
@@ -111,7 +109,7 @@ export default function AuditLogsPage() {
 	});
 
 	const rows = query.data ?? [];
-	const pageCount = Math.max(1, Math.ceil(rows.length / ITEMS_PER_PAGE));
+	const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
 
 	useEffect(() => {
 		setCurrentPage(1);
@@ -122,8 +120,8 @@ export default function AuditLogsPage() {
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
-		const start = (currentPage - 1) * ITEMS_PER_PAGE;
-		return rows.slice(start, start + ITEMS_PER_PAGE);
+		const start = (currentPage - 1) * PAGE_SIZE;
+		return rows.slice(start, start + PAGE_SIZE);
 	}, [rows, currentPage]);
 
 	const exportCsv = useCallback(() => {
@@ -220,7 +218,22 @@ export default function AuditLogsPage() {
 				</div>
 
 				{query.isLoading ? (
-					<LoadingState />
+					<TableBodySkeleton
+						headers={[
+							"When",
+							"Action",
+							"Resource",
+							"Actor",
+							"IP",
+						]}
+						columns={[
+							{ type: "text", width: "w-32" },
+							{ type: "text", width: "w-24" },
+							{ type: "lines", widths: ["w-20", "w-16"] },
+							{ type: "text", width: "w-16" },
+							{ type: "text", width: "w-20" },
+						]}
+					/>
 				) : query.isError ? (
 					<p className="p-6 text-sm text-destructive">
 						Failed to load audit logs.
@@ -283,7 +296,7 @@ export default function AuditLogsPage() {
 						<footer className="border-t px-5 py-3">
 							<Pagination
 								totalItems={rows.length}
-								itemsPerPage={ITEMS_PER_PAGE}
+								itemsPerPage={PAGE_SIZE}
 								currentPage={currentPage}
 								onChangeCurrentPage={setCurrentPage}
 							/>

@@ -2,7 +2,8 @@
 
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { type AgentSessionRow, computeAgentStats, mapSession } from "./types";
 
 export function useAgentSessionsQuery(
@@ -62,4 +63,29 @@ export function useSessionDetailQuery(sessionId: string | null | undefined) {
 		}),
 		enabled: !!sessionId,
 	});
+}
+
+export function useEndSessionMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation(
+		orpc.sessions.end.mutationOptions({
+			onSuccess: async (_data, variables) => {
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: orpc.sessions.list.key(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: orpc.sessions.get.key({
+							input: { id: variables.id },
+						}),
+					}),
+				]);
+				toast.success("Session ended");
+			},
+			onError: (error) => {
+				toast.error(error.message || "Failed to end session");
+			},
+		}),
+	);
 }

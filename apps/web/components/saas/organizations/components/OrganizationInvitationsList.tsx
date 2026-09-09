@@ -37,6 +37,10 @@ import {
 import { useFormatter, useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { toast } from "sonner";
+import {
+	PAGE_SIZE,
+	Pagination,
+} from "@/components/saas/shared/Pagination";
 import { OrganizationRoleSelect } from "./OrganizationRoleSelect";
 export function OrganizationInvitationsList({
 	organizationId,
@@ -194,6 +198,11 @@ export function OrganizationInvitationsList({
 		getPaginationRowModel: getPaginationRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
+		initialState: {
+			pagination: {
+				pageSize: PAGE_SIZE,
+			},
+		},
 	});
 
 	return (
@@ -230,6 +239,16 @@ export function OrganizationInvitationsList({
 					)}
 				</TableBody>
 			</Table>
+			<footer className="border-t px-5 py-3">
+				<Pagination
+					totalItems={table.getFilteredRowModel().rows.length}
+					itemsPerPage={PAGE_SIZE}
+					currentPage={table.getState().pagination.pageIndex + 1}
+					onChangeCurrentPage={(page) =>
+						table.setPageIndex(page - 1)
+					}
+				/>
+			</footer>
 		</div>
 	);
 }

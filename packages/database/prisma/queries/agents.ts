@@ -1,5 +1,6 @@
 import { createId } from "@paralleldrive/cuid2";
 import type {
+	AgentTrial,
 	AgentStatus,
 	AgentVersionStatus,
 	Prisma,
@@ -200,5 +201,98 @@ export async function syncAgentKnowledgeBases(
 				},
 			});
 		}
+	});
+}
+
+export async function listAgentTrials(agentId: string) {
+	return db.agentTrial.findMany({
+		where: { agentId },
+		orderBy: { createdAt: "desc" },
+	});
+}
+
+export async function createAgentTrial(data: {
+	agentId: string;
+	label: string;
+	usageLimit: number;
+	expiresAt?: Date | null;
+}) {
+	return db.agentTrial.create({
+		data: {
+			agentId: data.agentId,
+			label: data.label,
+			usageLimit: data.usageLimit,
+			expiresAt: data.expiresAt ?? null,
+			enabled: true,
+			token: createId(),
+		},
+	});
+}
+
+export async function updateAgentTrial(
+	id: string,
+	data: {
+		label?: string;
+		usageLimit?: number;
+		expiresAt?: Date | null;
+		enabled?: boolean;
+	},
+) {
+	return db.agentTrial.update({
+		where: { id },
+		data,
+	});
+}
+
+export async function deleteAgentTrial(id: string) {
+	return db.agentTrial.delete({
+		where: { id },
+	});
+}
+
+export async function getAgentTrialById(id: string) {
+	return db.agentTrial.findUnique({
+		where: { id },
+		include: {
+			agent: {
+				include: {
+					draftVersion: true,
+					publishedVersion: true,
+				},
+			},
+		},
+	});
+}
+
+export async function getAgentTrialByToken(token: string) {
+	return db.agentTrial.findUnique({
+		where: { token },
+		include: {
+			agent: {
+				include: {
+					draftVersion: true,
+					publishedVersion: true,
+				},
+			},
+		},
+	});
+}
+
+export async function consumeAgentTrialToken(
+	token: string,
+): Promise<AgentTrial | null> {
+	return db.$transaction(async (tx) => {
+		const trial = await tx.agentTrial.findUnique({
+			where: { token },
+		});
+		if (!trial) return null;
+		if (!trial.enabled) return null;
+		if (trial.expiresAt && trial.expiresAt.getTime() < Date.now()) return null;
+		if (trial.usageCount >= trial.usageLimit) return null;
+
+		return tx.agentTrial.update({
+			where: { id: trial.id },
+			data: { usageCount: { increment: 1 } },
+		});
 	});
 }

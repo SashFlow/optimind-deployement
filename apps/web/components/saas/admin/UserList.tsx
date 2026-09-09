@@ -36,10 +36,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useDebounceValue } from "usehooks-ts";
 import { useConfirmationAlert } from "@/components/saas/shared/ConfirmationAlertProvider";
-import { Pagination } from "@/components/saas/shared/Pagination";
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { EmailVerified } from "./EmailVerified";
-
-const ITEMS_PER_PAGE = 10;
 
 export function UserList() {
 	const t = useTranslations();
@@ -71,8 +69,8 @@ export function UserList() {
 	const { data, isLoading, refetch } = useQuery(
 		orpc.admin.users.list.queryOptions({
 			input: {
-				limit: ITEMS_PER_PAGE,
-				offset: (currentPage - 1) * ITEMS_PER_PAGE,
+				limit: PAGE_SIZE,
+				offset: (currentPage - 1) * PAGE_SIZE,
 				query: debouncedSearchTerm,
 			},
 		}),
@@ -329,7 +327,7 @@ export function UserList() {
 				<Table>
 					<TableBody>
 						{isLoading ? (
-							Array.from({ length: ITEMS_PER_PAGE }).map(
+							Array.from({ length: PAGE_SIZE }).map(
 								(_, index) => (
 									<TableRow key={`skeleton-${index}`}>
 										<TableCell className="py-2">
@@ -385,11 +383,11 @@ export function UserList() {
 				</Table>
 			</div>
 
-			{!!data?.total && data.total > ITEMS_PER_PAGE && (
+			{!!data?.total && (
 				<Pagination
 					className="mt-4"
 					totalItems={data.total}
-					itemsPerPage={ITEMS_PER_PAGE}
+					itemsPerPage={PAGE_SIZE}
 					currentPage={currentPage}
 					onChangeCurrentPage={setCurrentPage}
 				/>

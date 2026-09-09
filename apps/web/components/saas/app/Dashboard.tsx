@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import { ActivityChartCard } from "@/components/saas/app/dashboard/ActivityChartCard";
 import { ChannelBreakdownCard } from "@/components/saas/app/dashboard/ChannelBreakdownCard";
 import { DashboardAnalyticsSections } from "@/components/saas/app/dashboard/DashboardAnalyticsSections";
@@ -25,6 +24,10 @@ import {
 	computeDeltaPct,
 	StatCard,
 } from "@/components/saas/app/dashboard/StatCard";
+import {
+	ChartCardSkeleton,
+	PageSectionSkeleton,
+} from "@/components/saas/shared/skeletons";
 import {
 	useDashboardAnalyticsQuery,
 	useDashboardStatsQuery,
@@ -159,7 +162,13 @@ function DashboardBody({
 							</p>
 						</div>
 						{analyticsQuery.isLoading ? (
-							<LoadingState className="p-0" />
+							<div className="space-y-4">
+								<ChartCardSkeleton />
+								<div className="grid gap-4 lg:grid-cols-2">
+									<ChartCardSkeleton height="h-48" />
+									<ChartCardSkeleton height="h-48" />
+								</div>
+							</div>
 						) : analyticsQuery.isError ? (
 							<p
 								className="text-sm text-destructive"
@@ -181,31 +190,13 @@ function DashboardBody({
 
 export function Dashboard() {
 	const { session } = useSession();
-	const { activeOrganization } = useActiveOrganization();
+	const { activeOrganization, loaded } = useActiveOrganization();
 	const statsQuery = useDashboardStatsQuery(activeOrganization?.id, 30);
 
-	if (!session) {
+	if (!session || !loaded) {
 		return (
-			<section className="mx-auto max-w-5xl px-4 py-10">
-				<LoadingState className="p-0" size="lg" />
-			</section>
-		);
-	}
-
-	if (statsQuery.isLoading || !statsQuery.data) {
-		return (
-			<section className="mx-auto max-w-5xl px-4 py-10">
-				<LoadingState className="p-0" size="lg" />
-			</section>
-		);
-	}
-
-	if (statsQuery.isError) {
-		return (
-			<section className="mx-auto max-w-5xl px-4 py-10">
-				<p className="text-sm text-destructive" role="alert">
-					Unable to load dashboard stats.
-				</p>
+			<section className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6">
+				<PageSectionSkeleton variant="monitor" className="px-0 py-0" />
 			</section>
 		);
 	}
@@ -215,6 +206,24 @@ export function Dashboard() {
 			<section className="mx-auto max-w-5xl px-4 py-10">
 				<p className="text-muted-foreground">
 					Select an organization to continue.
+				</p>
+			</section>
+		);
+	}
+
+	if (statsQuery.isLoading || !statsQuery.data) {
+		return (
+			<section className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6">
+				<PageSectionSkeleton variant="monitor" className="px-0 py-0" />
+			</section>
+		);
+	}
+
+	if (statsQuery.isError) {
+		return (
+			<section className="mx-auto max-w-5xl px-4 py-10">
+				<p className="text-sm text-destructive" role="alert">
+					Unable to load dashboard stats.
 				</p>
 			</section>
 		);

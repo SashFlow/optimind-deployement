@@ -1,12 +1,12 @@
 "use client";
 
 import { Button } from "@repo/ui/button";
-import { LoadingState } from "@repo/ui/spinner";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AddDocumentDialog } from "@/components/saas/knowledge/AddDocumentDialog";
 import { KnowledgeDocumentsTable } from "@/components/saas/knowledge/KnowledgeDocumentsTable";
+import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
 import {
 	useCreateDocumentMutation,
 	useDeleteDocumentMutation,
@@ -33,7 +33,7 @@ export function KnowledgeDetailPage({ sourceId }: { sourceId: string }) {
 	const kb = query.data;
 
 	if (query.isLoading) {
-		return <LoadingState />;
+		return <PageSectionSkeleton variant="detail" />;
 	}
 
 	if (!kb) {

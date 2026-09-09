@@ -18,15 +18,20 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { LoadingState } from "@/components/saas/admin/lib/loading-state";
 import {
 	useBuyPlivoNumberMutation,
 	usePlivoSearchQuery,
 	useSipTrunksQuery,
 } from "@/components/saas/numbers/lib/hooks";
 import type { Agent } from "@/components/saas/numbers/lib/types";
+import {
+	PAGE_SIZE,
+	Pagination,
+	useClientPagination,
+} from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
 const COUNTRIES = [
 	{ iso: "US", label: "United States" },
@@ -66,6 +71,13 @@ export function PlivoBuyPanel({
 	const inboundTrunks = (trunksQuery.data ?? []).filter(
 		(trunk) => trunk.direction === "inbound",
 	);
+	const searchResults = searchQuery.data ?? [];
+	const { currentPage, setCurrentPage, pageItems, totalItems } =
+		useClientPagination(searchResults);
+
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [countryIso, pattern, searchEnabled, setCurrentPage]);
 
 	async function buyNumber(number: string) {
 		setBuyingNumber(number);
@@ -214,69 +226,96 @@ export function PlivoBuyPanel({
 					Search to see available numbers.
 				</p>
 			) : searchQuery.isPending ? (
-				<LoadingState />
+				<TableBodySkeleton
+					headers={[
+						"Number",
+						"Capabilities",
+						"Monthly",
+						"Setup",
+						"Action",
+					]}
+					columns={[
+						{ type: "text", width: "w-36" },
+						{ type: "text", width: "w-28" },
+						{ type: "text", width: "w-16" },
+						{ type: "text", width: "w-16" },
+						{ type: "action" },
+					]}
+				/>
 			) : searchQuery.isError ? (
 				<p className="p-6 text-sm text-destructive">Search failed.</p>
-			) : (searchQuery.data ?? []).length === 0 ? (
+			) : searchResults.length === 0 ? (
 				<p className="p-6 text-sm text-muted-foreground">
 					No numbers found.
 				</p>
 			) : (
-				<div className="overflow-x-auto scrollbar-none">
-					<Table>
-						<TableHeader>
-							<TableRow className="hover:bg-transparent">
-								<TableHead>Number</TableHead>
-								<TableHead>Capabilities</TableHead>
-								<TableHead>Monthly</TableHead>
-								<TableHead>Setup</TableHead>
-								<TableHead className="text-right">
-									Action
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{(searchQuery.data ?? []).map((item) => (
-								<TableRow key={item.number}>
-									<TableCell className="font-mono font-medium">
-										{item.number}
-									</TableCell>
-									<TableCell className="text-muted-foreground">
-										{[
-											item.voice_enabled ? "Voice" : null,
-											item.sms_enabled ? "SMS" : null,
-										]
-											.filter(Boolean)
-											.join(" · ") || "—"}
-									</TableCell>
-									<TableCell className="text-muted-foreground">
-										{item.monthly_rental_rate ?? "—"}
-									</TableCell>
-									<TableCell className="text-muted-foreground">
-										{item.setup_rate ?? "—"}
-									</TableCell>
-									<TableCell className="text-right">
-										<Button
-											size="sm"
-											disabled={
-												buyMutation.isPending ||
-												(trunkMode === "existing" &&
-													!sipTrunkId)
-											}
-											onClick={() =>
-												void buyNumber(item.number)
-											}
-										>
-											{buyingNumber === item.number
-												? "Buying…"
-												: "Buy"}
-										</Button>
-									</TableCell>
+				<>
+					<div className="overflow-x-auto scrollbar-none">
+						<Table>
+							<TableHeader>
+								<TableRow className="hover:bg-transparent">
+									<TableHead>Number</TableHead>
+									<TableHead>Capabilities</TableHead>
+									<TableHead>Monthly</TableHead>
+									<TableHead>Setup</TableHead>
+									<TableHead className="text-right">
+										Action
+									</TableHead>
 								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</div>
+							</TableHeader>
+							<TableBody>
+								{pageItems.map((item) => (
+									<TableRow key={item.number}>
+										<TableCell className="font-mono font-medium">
+											{item.number}
+										</TableCell>
+										<TableCell className="text-muted-foreground">
+											{[
+												item.voice_enabled
+													? "Voice"
+													: null,
+												item.sms_enabled ? "SMS" : null,
+											]
+												.filter(Boolean)
+												.join(" · ") || "—"}
+										</TableCell>
+										<TableCell className="text-muted-foreground">
+											{item.monthly_rental_rate ?? "—"}
+										</TableCell>
+										<TableCell className="text-muted-foreground">
+											{item.setup_rate ?? "—"}
+										</TableCell>
+										<TableCell className="text-right">
+											<Button
+												size="sm"
+												disabled={
+													buyMutation.isPending ||
+													(trunkMode === "existing" &&
+														!sipTrunkId)
+												}
+												onClick={() =>
+													void buyNumber(item.number)
+												}
+											>
+												{buyingNumber === item.number
+													? "Buying…"
+													: "Buy"}
+											</Button>
+										</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</div>
+					<footer className="border-t px-5 py-3">
+						<Pagination
+							totalItems={totalItems}
+							itemsPerPage={PAGE_SIZE}
+							currentPage={currentPage}
+							onChangeCurrentPage={setCurrentPage}
+						/>
+					</footer>
+				</>
 			)}
 		</div>
 	);
