@@ -47,7 +47,9 @@ export async function resolveOrgToolsByIds(
 	organizationId: string,
 	toolIds: string[],
 ): Promise<ToolDefinition[]> {
-	const uniqueIds = [...new Set(toolIds.map((id) => id.trim()).filter(Boolean))];
+	const uniqueIds = [
+		...new Set(toolIds.map((id) => id.trim()).filter(Boolean)),
+	];
 	if (uniqueIds.length === 0) return [];
 
 	const allTools = await listOrgTools(organizationId);
@@ -72,7 +74,9 @@ export function collectDispatchToolIds(
 		}
 	}
 	if (Array.isArray(config.tools)) {
-		return config.tools.filter((id): id is string => typeof id === "string");
+		return config.tools.filter(
+			(id): id is string => typeof id === "string",
+		);
 	}
 	return [];
 }

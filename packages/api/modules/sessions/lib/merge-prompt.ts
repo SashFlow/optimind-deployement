@@ -209,7 +209,9 @@ function greetingSection(greeting: Record<string, unknown>): string | null {
 			? "at session start"
 			: "after the user's first message";
 	const interruptible =
-		greeting.interruptible === false ? "not interruptible" : "interruptible";
+		greeting.interruptible === false
+			? "not interruptible"
+			: "interruptible";
 	return (
 		`Your opening greeting will be spoken automatically ${triggerNote} ` +
 		`(${interruptible}). Do not repeat it verbatim afterward; continue naturally ` +
@@ -218,9 +220,7 @@ function greetingSection(greeting: Record<string, unknown>): string | null {
 	);
 }
 
-function callEndingSection(
-	callEnding: Record<string, unknown>,
-): string | null {
+function callEndingSection(callEnding: Record<string, unknown>): string | null {
 	if (callEnding.enabled === false) return null;
 
 	const parts: string[] = [];
@@ -393,8 +393,7 @@ function prepareToolDefinitions(
 			id: asString(substituted.id),
 			name: asString(substituted.name),
 			description: asString(substituted.description),
-			tool_type:
-				substituted.tool_type === "python" ? "python" : "http",
+			tool_type: substituted.tool_type === "python" ? "python" : "http",
 			config: asRecord(substituted.config),
 			parameters_schema: asRecord(substituted.parameters_schema),
 		};

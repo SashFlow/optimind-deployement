@@ -27,79 +27,79 @@ const BEHAVIOR_PROMPT_FIELDS: {
 
 	placeholder: string;
 }[] = [
-		{
-			key: "tools",
+	{
+		key: "tools",
 
-			label: "Tools",
+		label: "Tools",
 
-			description:
-				"How the agent should use available tools during conversation.",
+		description:
+			"How the agent should use available tools during conversation.",
 
-			placeholder: "Describe when and how to invoke tools...",
-		},
+		placeholder: "Describe when and how to invoke tools...",
+	},
 
-		{
-			key: "personality",
+	{
+		key: "personality",
 
-			label: "Personality",
+		label: "Personality",
 
-			description: "Baseline tone and character the agent should maintain.",
+		description: "Baseline tone and character the agent should maintain.",
 
-			placeholder: "e.g. Steady, positive energy. Relaxed, not syrupy.",
-		},
+		placeholder: "e.g. Steady, positive energy. Relaxed, not syrupy.",
+	},
 
-		{
-			key: "emotion",
+	{
+		key: "emotion",
 
-			label: "Emotion",
+		label: "Emotion",
 
-			description: "Emotional range and when to express stronger feelings.",
+		description: "Emotional range and when to express stronger feelings.",
 
-			placeholder: "e.g. Default to calm. Use stronger emotions sparingly.",
-		},
+		placeholder: "e.g. Default to calm. Use stronger emotions sparingly.",
+	},
 
-		{
-			key: "phrase_variation",
+	{
+		key: "phrase_variation",
 
-			label: "Phrase variation",
+		label: "Phrase variation",
 
-			description: "Rules for varying wording across turns.",
+		description: "Rules for varying wording across turns.",
 
-			placeholder: "e.g. Don't open consecutive turns with the same word.",
-		},
+		placeholder: "e.g. Don't open consecutive turns with the same word.",
+	},
 
-		{
-			key: "pauses_and_filler_words",
+	{
+		key: "pauses_and_filler_words",
 
-			label: "Pauses and filler words",
+		label: "Pauses and filler words",
 
-			description:
-				"How the agent handles hesitations and natural speech rhythm.",
+		description:
+			"How the agent handles hesitations and natural speech rhythm.",
 
-			placeholder: "e.g. After 'um', insert a short pause then continue.",
-		},
+		placeholder: "e.g. After 'um', insert a short pause then continue.",
+	},
 
-		{
-			key: "self_corrections",
+	{
+		key: "self_corrections",
 
-			label: "Self-corrections",
+		label: "Self-corrections",
 
-			description: "When the agent should restart or revise mid-sentence.",
+		description: "When the agent should restart or revise mid-sentence.",
 
-			placeholder:
-				"e.g. Drop the first phrasing and restart with a better one.",
-		},
+		placeholder:
+			"e.g. Drop the first phrasing and restart with a better one.",
+	},
 
-		{
-			key: "non_verbal_sounds",
+	{
+		key: "non_verbal_sounds",
 
-			label: "Non-verbal sounds",
+		label: "Non-verbal sounds",
 
-			description: "Limits and usage for laughs, sighs, and similar cues.",
+		description: "Limits and usage for laughs, sighs, and similar cues.",
 
-			placeholder: "e.g. Use sparingly, no more than one per turn.",
-		},
-	];
+		placeholder: "e.g. Use sparingly, no more than one per turn.",
+	},
+];
 
 type PromptsSectionProps = {
 	config: AgentConfigDocument;

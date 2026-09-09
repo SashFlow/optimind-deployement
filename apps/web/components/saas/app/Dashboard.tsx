@@ -161,7 +161,10 @@ function DashboardBody({
 						{analyticsQuery.isLoading ? (
 							<LoadingState className="p-0" />
 						) : analyticsQuery.isError ? (
-							<p className="text-sm text-destructive" role="alert">
+							<p
+								className="text-sm text-destructive"
+								role="alert"
+							>
 								Unable to load analytics.
 							</p>
 						) : analyticsQuery.data ? (

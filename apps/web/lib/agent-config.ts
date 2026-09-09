@@ -334,12 +334,10 @@ export function normalizeAgentConfig(
 		...(c.tools_by_phase ?? {}),
 	};
 	const rawPrompts = c.prompts ?? {};
-	const {
-		user_information: legacyScriptSteps,
-		...promptRest
-	} = rawPrompts as Partial<PromptSections> & {
-		user_information?: string;
-	};
+	const { user_information: legacyScriptSteps, ...promptRest } =
+		rawPrompts as Partial<PromptSections> & {
+			user_information?: string;
+		};
 	const prompts: PromptSections = {
 		...defaults.prompts,
 		...promptRest,

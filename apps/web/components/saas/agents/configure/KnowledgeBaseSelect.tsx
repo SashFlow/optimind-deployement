@@ -11,10 +11,7 @@ import {
 } from "@repo/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/popover";
 import { cn } from "@repo/ui/utils";
-import {
-	ChevronsUpDownIcon,
-	Trash2Icon,
-} from "lucide-react";
+import { ChevronsUpDownIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 export type KnowledgeBaseSource = {

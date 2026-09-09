@@ -274,9 +274,7 @@ export function GeneralSection({
 										/>
 									</FieldBlock>
 
-									<FieldBlock
-										label="Voice"
-									>
+									<FieldBlock label="Voice">
 										<VoiceSelect
 											voices={voices}
 											value={config.tts?.voice_id}
@@ -296,9 +294,7 @@ export function GeneralSection({
 									</FieldBlock>
 								</div>
 							) : (
-								<FieldBlock
-									label="Voice"
-								>
+								<FieldBlock label="Voice">
 									<div className="sm:max-w-xs">
 										<VoiceSelect
 											voices={voices}
@@ -341,9 +337,7 @@ export function GeneralSection({
 								/>
 							</FieldBlock>
 
-							<FieldBlock
-								label="Voice"
-							>
+							<FieldBlock label="Voice">
 								<VoiceSelect
 									voices={voices}
 									value={config.tts?.voice_id}

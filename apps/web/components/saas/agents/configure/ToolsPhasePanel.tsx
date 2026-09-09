@@ -79,8 +79,7 @@ export function ToolsPhasePanel({
 
 	const createTool = useCreateToolMutation(organizationId);
 	const updateTool = useUpdateToolMutation(organizationId);
-	const isToolMutationPending =
-		createTool.isPending || updateTool.isPending;
+	const isToolMutationPending = createTool.isPending || updateTool.isPending;
 
 	function updatePhaseTools(
 		phase: ToolPhase,
@@ -419,18 +418,14 @@ export function ToolsPhasePanel({
 			<CreateApiToolDialog
 				open={apiDialogOpen}
 				onOpenChange={handleApiDialogOpenChange}
-				tool={
-					editingTool?.tool_type === "http" ? editingTool : null
-				}
+				tool={editingTool?.tool_type === "http" ? editingTool : null}
 				onSubmit={handleSubmitTool}
 				isPending={isToolMutationPending}
 			/>
 			<CreatePythonToolDialog
 				open={pythonDialogOpen}
 				onOpenChange={handlePythonDialogOpenChange}
-				tool={
-					editingTool?.tool_type === "python" ? editingTool : null
-				}
+				tool={editingTool?.tool_type === "python" ? editingTool : null}
 				onSubmit={handleSubmitTool}
 				isPending={isToolMutationPending}
 			/>
