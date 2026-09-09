@@ -220,6 +220,78 @@ export const create = protectedProcedure
 		};
 	});
 
+function trialUnavailableReason(trial: {
+	enabled: boolean;
+	expiresAt: Date | null;
+	usageLimit: number;
+	usageCount: number;
+	hasPublishedVersion: boolean;
+}): "disabled" | "expired" | "exhausted" | "unpublished" | null {
+	if (!trial.enabled) return "disabled";
+	if (trial.expiresAt && trial.expiresAt.getTime() < Date.now()) {
+		return "expired";
+	}
+	if (trial.usageCount >= trial.usageLimit) return "exhausted";
+	if (!trial.hasPublishedVersion) return "unpublished";
+	return null;
+}
+
+function normalizeTrialVariables(raw: unknown): Array<{
+	name: string;
+	variable_type: "link" | "text" | "number" | "file";
+	required: boolean;
+}> {
+	const allowed = new Set(["link", "text", "number", "file"]);
+	if (Array.isArray(raw)) {
+		return raw
+			.map((item) => {
+				const v = item as {
+					name?: string;
+					variable_type?: string;
+					required?: boolean;
+				};
+				const name = (v.name ?? "").trim();
+				const variable_type = allowed.has(v.variable_type ?? "")
+					? (v.variable_type as "link" | "text" | "number" | "file")
+					: "text";
+				return {
+					name,
+					variable_type,
+					required: Boolean(v.required),
+				};
+			})
+			.filter((item) => item.name.length > 0);
+	}
+	if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+		return Object.keys(raw as Record<string, unknown>).map((name) => ({
+			name,
+			variable_type: "text" as const,
+			required: false,
+		}));
+	}
+	return [];
+}
+
+function normalizeTrialPhoneNumber(raw: string): string | null {
+	const trimmed = raw.trim();
+	if (!trimmed) return null;
+	const digits = trimmed.replace(/[^\d+]/g, "");
+	if (digits.startsWith("+")) {
+		const rest = digits.slice(1).replace(/\D/g, "");
+		if (rest.length < 8 || rest.length > 15) return null;
+		return `+${rest}`;
+	}
+	const onlyDigits = digits.replace(/\D/g, "");
+	if (onlyDigits.length === 10) return `+91${onlyDigits}`;
+	if (onlyDigits.length === 12 && onlyDigits.startsWith("91")) {
+		return `+${onlyDigits}`;
+	}
+	if (onlyDigits.length >= 8 && onlyDigits.length <= 15) {
+		return `+${onlyDigits}`;
+	}
+	return null;
+}
+
 export const getTrialLink = publicProcedure
 	.route({
 		method: "GET",
@@ -230,30 +302,48 @@ export const getTrialLink = publicProcedure
 	.input(z.object({ token: z.string().min(1) }))
 	.handler(async ({ input }) => {
 		const trial = await getAgentTrialByToken(input.token);
-		if (!trial || !trial.enabled || !trial.token) {
-			throw new ORPCError("NOT_FOUND");
+		if (!trial?.token) {
+			throw new ORPCError("NOT_FOUND", {
+				message: "This shared link is invalid",
+			});
 		}
 
-		const now = Date.now();
-		const isExpired =
-			Boolean(trial.expiresAt) && trial.expiresAt!.getTime() < now;
 		const remaining = Math.max(0, trial.usageLimit - trial.usageCount);
-		const available = !isExpired && remaining > 0;
+		const hasPublishedVersion = Boolean(trial.agent.publishedVersion);
+		const unavailableReason = trialUnavailableReason({
+			enabled: trial.enabled,
+			expiresAt: trial.expiresAt,
+			usageLimit: trial.usageLimit,
+			usageCount: trial.usageCount,
+			hasPublishedVersion,
+		});
+		const config =
+			(trial.agent.publishedVersion?.config as Record<string, unknown> | null) ??
+			null;
+		const avatarConfig =
+			config && typeof config.avatar === "object" && config.avatar
+				? (config.avatar as { enabled?: boolean })
+				: null;
 
 		return {
 			trial: {
 				id: trial.id,
 				label: trial.label,
 				token: trial.token,
+				enabled: trial.enabled,
 				usageLimit: trial.usageLimit,
 				usageCount: trial.usageCount,
 				remaining,
 				expiresAt: trial.expiresAt,
-				available,
+				available: unavailableReason === null,
+				unavailableReason,
 			},
 			agent: {
 				id: trial.agent.id,
 				name: trial.agent.name,
+				avatarEnabled: Boolean(avatarConfig?.enabled),
+				hasPublishedVersion,
+				variables: normalizeTrialVariables(config?.variables),
 			},
 		};
 	});
@@ -270,47 +360,84 @@ export const startTrialSession = publicProcedure
 			token: z.string().min(1),
 			participantName: z.string().min(1).max(120).default("Guest"),
 			contactMetadata: z.record(z.string(), z.unknown()).optional(),
+			phoneNumber: z.string().min(1).max(32).optional(),
 		}),
 	)
 	.handler(async ({ input }) => {
+		const existing = await getAgentTrialByToken(input.token);
+		if (!existing?.token) {
+			throw new ORPCError("NOT_FOUND", {
+				message: "This shared link is invalid",
+			});
+		}
+
+		const precheckReason = trialUnavailableReason({
+			enabled: existing.enabled,
+			expiresAt: existing.expiresAt,
+			usageLimit: existing.usageLimit,
+			usageCount: existing.usageCount,
+			hasPublishedVersion: Boolean(existing.agent.publishedVersion),
+		});
+		if (precheckReason) {
+			const messages = {
+				disabled: "This shared link has been disabled",
+				expired: "This shared link has expired",
+				exhausted: "This shared link has no sessions left",
+				unpublished: "This agent is not published yet",
+			} as const;
+			throw new ORPCError("FORBIDDEN", {
+				message: messages[precheckReason],
+			});
+		}
+
+		const version = existing.agent.publishedVersion;
+		if (!version) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "This agent is not published yet",
+			});
+		}
+
+		const normalizedPhone = input.phoneNumber
+			? normalizeTrialPhoneNumber(input.phoneNumber)
+			: null;
+		if (input.phoneNumber && !normalizedPhone) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Enter a valid phone number",
+			});
+		}
+		const isPhone = Boolean(normalizedPhone);
+
 		const trial = await consumeAgentTrialToken(input.token);
 		if (!trial || !trial.token) {
 			throw new ORPCError("FORBIDDEN", {
-				message: "This trial link is not available anymore",
+				message: "This shared link is not available anymore",
 			});
 		}
 
-		const trialWithAgent = await getAgentTrialByToken(trial.token);
-		if (!trialWithAgent) {
-			throw new ORPCError("NOT_FOUND");
-		}
-		const agent = trialWithAgent.agent;
-		const version = agent.publishedVersion ?? agent.draftVersion;
-		if (!version) {
-			throw new ORPCError("BAD_REQUEST", {
-				message: "Agent has no version to dispatch",
-			});
-		}
-
+		const agent = existing.agent;
 		const configSnapshot =
 			(version.config as Record<string, unknown>) ?? {};
 		const recordingEnabled = configRecordingEnabled(configSnapshot);
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-		const roomName = `SESSION_${timestamp}_${Math.floor(Math.random() * 10_000)}`;
+		const roomName = isPhone
+			? `PHONE_SESSION_${Math.floor(Math.random() * 100_000)}`
+			: `SESSION_${timestamp}_${Math.floor(Math.random() * 10_000)}`;
 
 		const session = await createAgentSession({
 			organizationId: agent.organizationId,
 			agentId: agent.id,
 			agentVersionId: version.id,
 			livekitRoomName: roomName,
-			channel: "WEB",
-			direction: "WEB",
+			channel: isPhone ? "PHONE" : "WEB",
+			direction: isPhone ? "OUTBOUND" : "WEB",
+			toNumber: normalizedPhone ?? undefined,
 			configSnapshot,
 			recordingEnabled,
 			metadata: {
 				source: "trial_link",
 				trialId: trial.id,
 				trialLabel: trial.label,
+				channel: isPhone ? "PHONE" : "WEB",
 			},
 		});
 
@@ -320,21 +447,40 @@ export const startTrialSession = publicProcedure
 			agent_version_id: version.id,
 			session_id: session.id,
 			config: configSnapshot,
-			source: "web",
-			direction: "WEB",
-			channel: "WEB",
+			source: isPhone ? "phone" : "web",
+			phone_number: normalizedPhone ?? undefined,
+			direction: isPhone ? "OUTBOUND" : "WEB",
+			channel: isPhone ? "PHONE" : "WEB",
 			contact_metadata: input.contactMetadata ?? {},
 			recording_enabled: recordingEnabled,
 		});
-		const metadataJson = serializeDispatchMetadata(dispatchMetadata);
+		const metadataJson = isPhone
+			? JSON.stringify({
+					...dispatchMetadata,
+					interactionMode: "audio",
+					scenarioType: "phone",
+					persona: input.participantName,
+				})
+			: serializeDispatchMetadata(dispatchMetadata);
 		await createOutboundRoomWithDispatch({
 			roomName,
 			agentName: AGENT_NAME,
 			metadata: metadataJson,
 		});
 
+		if (isPhone) {
+			return {
+				sessionId: session.id,
+				roomName,
+				channel: "PHONE" as const,
+				serverUrl: null,
+				participantToken: null,
+				phoneNumber: normalizedPhone,
+			};
+		}
+
 		const participantToken = await createParticipantToken({
-			identity: `trial-user-${Math.floor(Math.random() * 10_000)}`,
+			identity: `user-${Math.floor(Math.random() * 10_000)}`,
 			name: input.participantName,
 			roomName,
 		});
@@ -343,8 +489,10 @@ export const startTrialSession = publicProcedure
 		return {
 			sessionId: session.id,
 			roomName,
+			channel: "WEB" as const,
 			serverUrl: cfg.url,
 			participantToken,
+			phoneNumber: null,
 		};
 	});
 

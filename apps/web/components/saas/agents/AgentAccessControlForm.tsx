@@ -18,6 +18,7 @@ import {
 } from "@repo/ui/dialog";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { Switch } from "@repo/ui/switch";
 import {
 	Table,
 	TableBody,
@@ -26,9 +27,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
-import { CopyIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CopyIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -43,6 +44,7 @@ type TrialLink = {
 	sessions: number;
 	expiresAt: string | null;
 	used: number;
+	enabled: boolean;
 };
 
 type TrialFormState = {
@@ -77,6 +79,19 @@ function absoluteShareUrl(path: string) {
 	}
 }
 
+function trialStatus(trial: TrialLink) {
+	const remaining = Math.max(0, trial.sessions - trial.used);
+	if (!trial.enabled) return { label: "Disabled", remaining };
+	if (trial.expiresAt) {
+		const expiresAt = new Date(`${trial.expiresAt}T00:00:00`);
+		if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() < Date.now()) {
+			return { label: "Expired", remaining };
+		}
+	}
+	if (remaining <= 0) return { label: "Exhausted", remaining };
+	return { label: "Active", remaining };
+}
+
 async function copyTrialUrl(path: string) {
 	try {
 		await navigator.clipboard.writeText(absoluteShareUrl(path));
@@ -106,6 +121,7 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 				? new Date(trial.expiresAt).toISOString().slice(0, 10)
 				: null,
 			used: trial.usageCount,
+			enabled: trial.enabled,
 		}),
 	);
 	const { currentPage, setCurrentPage, pageItems, totalItems, itemsPerPage } =
@@ -118,7 +134,8 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 				await queryClient.invalidateQueries({ queryKey: listKey });
 				toast.success("Trial link created");
 			},
-			onError: (error) => toast.error(error.message || "Failed to create link"),
+			onError: (error) =>
+				toast.error(error.message || "Failed to create link"),
 		}),
 	);
 
@@ -128,7 +145,8 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 				await queryClient.invalidateQueries({ queryKey: listKey });
 				toast.success("Trial link updated");
 			},
-			onError: (error) => toast.error(error.message || "Failed to update link"),
+			onError: (error) =>
+				toast.error(error.message || "Failed to update link"),
 		}),
 	);
 
@@ -138,7 +156,8 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 				await queryClient.invalidateQueries({ queryKey: listKey });
 				toast.success("Trial link removed");
 			},
-			onError: (error) => toast.error(error.message || "Failed to remove link"),
+			onError: (error) =>
+				toast.error(error.message || "Failed to remove link"),
 		}),
 	);
 
@@ -220,6 +239,14 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 		});
 	}
 
+	async function toggleTrialEnabled(trial: TrialLink, enabled: boolean) {
+		await updateMutation.mutateAsync({
+			id: agentId,
+			trialId: trial.id,
+			enabled,
+		});
+	}
+
 	return (
 		<div className="space-y-6">
 			<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
@@ -227,7 +254,8 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 					<div className="space-y-1.5">
 						<CardTitle>Trial links</CardTitle>
 						<CardDescription>
-							Shareable demo links.
+							Shareable demo links. Guests can fully test the
+							published agent on web or mobile.
 						</CardDescription>
 					</div>
 					<Button type="button" onClick={openCreateDialog}>
@@ -251,87 +279,118 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 										<TableRow>
 											<TableHead>Label</TableHead>
 											<TableHead>URL</TableHead>
-											<TableHead>Sessions</TableHead>
-											<TableHead>Used</TableHead>
+											<TableHead>Status</TableHead>
+											<TableHead>Remaining</TableHead>
 											<TableHead>Expiry</TableHead>
+											<TableHead>Enabled</TableHead>
 											<TableHead className="text-right">
 												Actions
 											</TableHead>
 										</TableRow>
 									</TableHeader>
 									<TableBody>
-										{pageItems.map((trial) => (
-											<TableRow key={trial.id}>
-												<TableCell className="font-medium">
-													{trial.label}
-												</TableCell>
-												<TableCell className="max-w-[14rem]">
-													<div className="flex min-w-0 items-center gap-1">
-														<span
-															className="truncate font-mono text-xs text-muted-foreground"
-															title={`/share/${trial.token}`}
-														>
-															{`/share/${trial.token}`}
+										{pageItems.map((trial) => {
+											const status = trialStatus(trial);
+											const sharePath = `/share/${trial.token}`;
+											const shareUrl =
+												absoluteShareUrl(sharePath);
+											return (
+												<TableRow key={trial.id}>
+													<TableCell className="font-medium">
+														{trial.label}
+													</TableCell>
+													<TableCell className="max-w-[16rem]">
+														<div className="flex min-w-0 items-center gap-1">
+															<span
+																className="truncate font-mono text-xs text-muted-foreground"
+																title={shareUrl}
+															>
+																{shareUrl}
+															</span>
+															<Button
+																type="button"
+																size="icon"
+																variant="ghost"
+																aria-label={`Copy ${trial.label} link`}
+																className="size-7 shrink-0 text-muted-foreground"
+																onClick={() =>
+																	void copyTrialUrl(
+																		sharePath,
+																	)
+																}
+															>
+																<CopyIcon className="size-3.5" />
+															</Button>
+														</div>
+													</TableCell>
+													<TableCell>
+														<span className="text-sm">
+															{status.label}
 														</span>
-														<Button
-															type="button"
-															size="icon"
-															variant="ghost"
-															aria-label={`Copy ${trial.label} link`}
-															className="size-7 shrink-0 text-muted-foreground"
-															onClick={() =>
-																void copyTrialUrl(
-																	`/share/${trial.token}`,
-																)
+													</TableCell>
+													<TableCell>
+														{status.remaining}/
+														{trial.sessions}
+													</TableCell>
+													<TableCell>
+														{formatExpiry(
+															trial.expiresAt,
+														)}
+													</TableCell>
+													<TableCell>
+														<Switch
+															checked={
+																trial.enabled
 															}
-														>
-															<CopyIcon className="size-3.5" />
-														</Button>
-													</div>
-												</TableCell>
-												<TableCell>
-													{trial.sessions}
-												</TableCell>
-												<TableCell>{trial.used}</TableCell>
-												<TableCell>
-													{formatExpiry(
-														trial.expiresAt,
-													)}
-												</TableCell>
-												<TableCell className="text-right">
-													<div className="flex justify-end gap-1">
-														<Button
-															type="button"
-															size="icon"
-															variant="ghost"
-															aria-label={`Edit ${trial.label}`}
-															className="text-muted-foreground"
-															onClick={() =>
-																openEditDialog(
+															aria-label={`Toggle ${trial.label}`}
+															disabled={
+																updateMutation.isPending
+															}
+															onCheckedChange={(
+																enabled,
+															) =>
+																void toggleTrialEnabled(
 																	trial,
+																	enabled,
 																)
 															}
-														>
-															<PencilIcon className="size-4" />
-														</Button>
-														<Button
-															type="button"
-															size="icon"
-															variant="ghost"
-															aria-label={`Remove ${trial.label}`}
-															className="text-muted-foreground hover:text-destructive"
-															onClick={() =>
-																void removeTrial(
-																	trial.id,
-																)
-															}
-														>
-															<Trash2Icon className="size-4" />
-														</Button>
-													</div>
-												</TableCell>
-											</TableRow>
-										))}
+														/>
+													</TableCell>
+													<TableCell className="text-right">
+														<div className="flex justify-end gap-1">
+															<Button
+																type="button"
+																size="icon"
+																variant="ghost"
+																aria-label={`Edit ${trial.label}`}
+																className="text-muted-foreground"
+																onClick={() =>
+																	openEditDialog(
+																		trial,
+																	)
+																}
+															>
+																<PencilIcon className="size-4" />
+															</Button>
+															<Button
+																type="button"
+																size="icon"
+																variant="ghost"
+																aria-label={`Remove ${trial.label}`}
+																className="text-muted-foreground hover:text-destructive"
+																onClick={() =>
+																	void removeTrial(
+																		trial.id,
+																	)
+																}
+															>
+																<Trash2Icon className="size-4" />
+															</Button>
+														</div>
+													</TableCell>
+												</TableRow>
+											);
+										})}
 									</TableBody>
 								</Table>
 							</div>

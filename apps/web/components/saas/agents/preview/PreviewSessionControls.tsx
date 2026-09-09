@@ -39,6 +39,7 @@ function isUserParticipant(identity: string) {
 	return (
 		identity.startsWith("user-") ||
 		identity.startsWith("user_") ||
+		identity.startsWith("trial-user-") ||
 		identity.startsWith("voice_assistant_user_")
 	);
 }
