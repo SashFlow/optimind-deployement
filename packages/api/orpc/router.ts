@@ -17,6 +17,7 @@ import { sessionsRouter } from "../modules/sessions/router";
 import { telephonyRouter } from "../modules/telephony/router";
 import { toolsRouter } from "../modules/tools/router";
 import { usersRouter } from "../modules/users/router";
+import { workflowsRouter } from "../modules/workflows/router";
 import { publicProcedure } from "./procedures";
 
 export const router = publicProcedure
@@ -32,6 +33,7 @@ export const router = publicProcedure
 		agents: agentsRouter,
 		audit: auditRouter,
 		campaigns: campaignsRouter,
+		workflows: workflowsRouter,
 		knowledge: knowledgeRouter,
 		telephony: telephonyRouter,
 		avatars: avatarsRouter,

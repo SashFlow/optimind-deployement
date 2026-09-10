@@ -155,6 +155,9 @@ model Organization {
     egressJobs          EgressJob[]
     avatarProfiles      AvatarProfile[]
     usageMetrics        UsageMetric[]
+    campaignWorkflows   CampaignWorkflow[]
+    workflowRuns        WorkflowRun[]
+    workflowApprovals   WorkflowApproval[]
 
     @@unique([slug])
     @@map("organization")
@@ -689,6 +692,8 @@ model Campaign {
     phoneNumbers   PhoneNumber[]
     dispatchRules  DispatchRule[]
     usageMetrics   UsageMetric[]
+    workflow       CampaignWorkflow?
+    workflowRuns   WorkflowRun[]
 
     @@index([organizationId, status])
     @@index([agentId])
@@ -828,6 +833,228 @@ model CampaignSession {
     @@index([livekitRoomName])
     @@index([parentSessionId])
     @@map("campaign_session")
+}
+
+// ------------------------------------------------------------
+// ----------------------------- Campaign Workflows -----------
+// ------------------------------------------------------------
+
+enum WorkflowRunStatus {
+    PENDING
+    RUNNING
+    WAITING
+    SUCCEEDED
+    FAILED
+    CANCELLED
+}
+
+enum WorkflowStepStatus {
+    PENDING
+    RUNNING
+    WAITING
+    SUCCEEDED
+    FAILED
+    SKIPPED
+    CANCELLED
+}
+
+enum WorkflowWaitKind {
+    AGENT_SESSION
+    HUMAN_APPROVAL
+    SCHEDULE
+    HTTP_CALLBACK
+}
+
+enum WorkflowWaitStatus {
+    PENDING
+    RESUMED
+    EXPIRED
+    CANCELLED
+}
+
+enum WorkflowApprovalChannel {
+    WEB
+    EMAIL
+}
+
+enum WorkflowApprovalDecision {
+    PENDING
+    APPROVED
+    REJECTED
+    EXPIRED
+}
+
+enum WorkflowTriggerType {
+    WEBHOOK
+    SCHEDULE
+    MANUAL
+    TEST
+}
+
+model CampaignWorkflow {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    campaignId     String       @unique
+    campaign       Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+    /// Env variables: [{ key, value, isSecret? }]
+    envVars Json @default("[]")
+
+    /// Draft graph (editable). Published snapshots live in versions.
+    draftNodes    Json @default("[]")
+    draftEdges    Json @default("[]")
+    draftViewport Json @default("{}")
+
+    webhookToken String @unique @default(cuid())
+
+    publishedVersionId String?
+    publishedVersion   CampaignWorkflowVersion? @relation("PublishedWorkflowVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
+
+    versions CampaignWorkflowVersion[] @relation("WorkflowVersions")
+    runs     WorkflowRun[]
+
+    @@index([organizationId])
+    @@map("campaign_workflow")
+}
+
+model CampaignWorkflowVersion {
+    id         String   @id @default(cuid())
+    createdAt  DateTime @default(now())
+    workflowId String
+    workflow   CampaignWorkflow @relation("WorkflowVersions", fields: [workflowId], references: [id], onDelete: Cascade)
+
+    version     Int
+    nodes       Json
+    edges       Json
+    viewport    Json     @default("{}")
+    publishedAt DateTime @default(now())
+    label       String?
+
+    publishedBy CampaignWorkflow[] @relation("PublishedWorkflowVersion")
+    runs        WorkflowRun[]
+
+    @@unique([workflowId, version])
+    @@index([workflowId])
+    @@map("campaign_workflow_version")
+}
+
+model WorkflowRun {
+    id             String            @id @default(cuid())
+    createdAt      DateTime          @default(now())
+    updatedAt      DateTime          @updatedAt
+    organizationId String
+    organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    campaignId     String
+    campaign       Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    workflowId     String
+    workflow       CampaignWorkflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+    workflowVersionId String
+    workflowVersion   CampaignWorkflowVersion @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict)
+
+    status         WorkflowRunStatus  @default(PENDING)
+    triggerType    WorkflowTriggerType
+    triggerPayload Json               @default("{}")
+    envSnapshot    Json               @default("{}")
+    /// Out-var stack: { env, trigger, nodes, loop? }
+    context        Json               @default("{}")
+    /// Current node cursor / frontier for the runner
+    cursor         Json               @default("{}")
+    error          String?            @db.Text
+    startedAt      DateTime?
+    finishedAt     DateTime?
+    claimedAt      DateTime?
+    claimToken     String?
+
+    steps      WorkflowStep[]
+    waits      WorkflowWait[]
+    approvals  WorkflowApproval[]
+
+    @@index([campaignId, status, createdAt])
+    @@index([workflowId, status])
+    @@index([organizationId, createdAt])
+    @@index([status, claimedAt])
+    @@map("workflow_run")
+}
+
+model WorkflowStep {
+    id        String             @id @default(cuid())
+    createdAt DateTime           @default(now())
+    updatedAt DateTime           @updatedAt
+    runId     String
+    run       WorkflowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+    nodeId   String
+    nodeType String
+    status   WorkflowStepStatus  @default(PENDING)
+    attempt  Int                 @default(1)
+    input    Json                @default("{}")
+    output   Json                @default("{}")
+    error    String?             @db.Text
+    startedAt  DateTime?
+    finishedAt DateTime?
+
+    waits     WorkflowWait[]
+    approvals WorkflowApproval[]
+
+    @@unique([runId, nodeId, attempt])
+    @@index([runId, status])
+    @@index([nodeId])
+    @@map("workflow_step")
+}
+
+model WorkflowWait {
+    id        String             @id @default(cuid())
+    createdAt DateTime           @default(now())
+    updatedAt DateTime           @updatedAt
+    runId     String
+    run       WorkflowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+    stepId    String
+    step      WorkflowStep       @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+    kind       WorkflowWaitKind
+    status     WorkflowWaitStatus @default(PENDING)
+    externalId String?
+    resumeAt   DateTime?
+    payload    Json               @default("{}")
+    resumePayload Json?
+
+    approvals WorkflowApproval[]
+
+    @@index([status, resumeAt])
+    @@index([kind, externalId])
+    @@index([runId])
+    @@map("workflow_wait")
+}
+
+model WorkflowApproval {
+    id             String                    @id @default(cuid())
+    createdAt      DateTime                  @default(now())
+    updatedAt      DateTime                  @updatedAt
+    organizationId String
+    organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    runId          String
+    run            WorkflowRun               @relation(fields: [runId], references: [id], onDelete: Cascade)
+    stepId         String
+    step           WorkflowStep              @relation(fields: [stepId], references: [id], onDelete: Cascade)
+    waitId         String
+    wait           WorkflowWait              @relation(fields: [waitId], references: [id], onDelete: Cascade)
+
+    token      String                   @unique @default(cuid())
+    channel    WorkflowApprovalChannel
+    decision   WorkflowApprovalDecision @default(PENDING)
+    message    String?                  @db.Text
+    decidedBy  String?
+    decidedAt  DateTime?
+    expiresAt  DateTime?
+    emailTo    String?
+
+    @@index([organizationId])
+    @@index([runId])
+    @@index([token])
+    @@map("workflow_approval")
 }
 
 // ------------------------------------------------------------

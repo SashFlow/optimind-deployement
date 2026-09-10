@@ -81,6 +81,7 @@ export function CampaignsListPage() {
 				status: String(campaign.status ?? "Draft"),
 				meta: new Date(campaign.updatedAt).toLocaleDateString(),
 				icon: <SendHorizonalIcon className="size-4" />,
+				href: `/app/campaigns/${campaign.id}/dashboard`,
 				onEdit: async (name, description) => {
 					await updateMutation.mutateAsync({
 						id: campaign.id,

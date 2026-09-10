@@ -148,6 +148,42 @@ export const CampaignSessionScalarFieldEnumSchema = z.enum(['id', 'createdAt', '
 
 export type CampaignSessionScalarFieldEnum = z.infer<typeof CampaignSessionScalarFieldEnumSchema>;
 
+// File: CampaignWorkflowScalarFieldEnum.schema.ts
+
+export const CampaignWorkflowScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'campaignId', 'envVars', 'draftNodes', 'draftEdges', 'draftViewport', 'webhookToken', 'publishedVersionId'])
+
+export type CampaignWorkflowScalarFieldEnum = z.infer<typeof CampaignWorkflowScalarFieldEnumSchema>;
+
+// File: CampaignWorkflowVersionScalarFieldEnum.schema.ts
+
+export const CampaignWorkflowVersionScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'workflowId', 'version', 'nodes', 'edges', 'viewport', 'publishedAt', 'label'])
+
+export type CampaignWorkflowVersionScalarFieldEnum = z.infer<typeof CampaignWorkflowVersionScalarFieldEnumSchema>;
+
+// File: WorkflowRunScalarFieldEnum.schema.ts
+
+export const WorkflowRunScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'campaignId', 'workflowId', 'workflowVersionId', 'status', 'triggerType', 'triggerPayload', 'envSnapshot', 'context', 'cursor', 'error', 'startedAt', 'finishedAt', 'claimedAt', 'claimToken'])
+
+export type WorkflowRunScalarFieldEnum = z.infer<typeof WorkflowRunScalarFieldEnumSchema>;
+
+// File: WorkflowStepScalarFieldEnum.schema.ts
+
+export const WorkflowStepScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'runId', 'nodeId', 'nodeType', 'status', 'attempt', 'input', 'output', 'error', 'startedAt', 'finishedAt'])
+
+export type WorkflowStepScalarFieldEnum = z.infer<typeof WorkflowStepScalarFieldEnumSchema>;
+
+// File: WorkflowWaitScalarFieldEnum.schema.ts
+
+export const WorkflowWaitScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'runId', 'stepId', 'kind', 'status', 'externalId', 'resumeAt', 'payload', 'resumePayload'])
+
+export type WorkflowWaitScalarFieldEnum = z.infer<typeof WorkflowWaitScalarFieldEnumSchema>;
+
+// File: WorkflowApprovalScalarFieldEnum.schema.ts
+
+export const WorkflowApprovalScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'runId', 'stepId', 'waitId', 'token', 'channel', 'decision', 'message', 'decidedBy', 'decidedAt', 'expiresAt', 'emailTo'])
+
+export type WorkflowApprovalScalarFieldEnum = z.infer<typeof WorkflowApprovalScalarFieldEnumSchema>;
+
 // File: KnowledgeBaseScalarFieldEnum.schema.ts
 
 export const KnowledgeBaseScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'name', 'description', 'embeddingModel', 'embeddingDim', 'status', 'metadata'])
@@ -387,6 +423,48 @@ export type CampaignSessionDirection = z.infer<typeof CampaignSessionDirectionSc
 export const CampaignSessionStatusSchema = z.enum(['QUEUED', 'STARTED', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'ABANDONED', 'PAUSED', 'RESCHEDULED'])
 
 export type CampaignSessionStatus = z.infer<typeof CampaignSessionStatusSchema>;
+
+// File: WorkflowRunStatus.schema.ts
+
+export const WorkflowRunStatusSchema = z.enum(['PENDING', 'RUNNING', 'WAITING', 'SUCCEEDED', 'FAILED', 'CANCELLED'])
+
+export type WorkflowRunStatus = z.infer<typeof WorkflowRunStatusSchema>;
+
+// File: WorkflowTriggerType.schema.ts
+
+export const WorkflowTriggerTypeSchema = z.enum(['WEBHOOK', 'SCHEDULE', 'MANUAL', 'TEST'])
+
+export type WorkflowTriggerType = z.infer<typeof WorkflowTriggerTypeSchema>;
+
+// File: WorkflowStepStatus.schema.ts
+
+export const WorkflowStepStatusSchema = z.enum(['PENDING', 'RUNNING', 'WAITING', 'SUCCEEDED', 'FAILED', 'SKIPPED', 'CANCELLED'])
+
+export type WorkflowStepStatus = z.infer<typeof WorkflowStepStatusSchema>;
+
+// File: WorkflowWaitKind.schema.ts
+
+export const WorkflowWaitKindSchema = z.enum(['AGENT_SESSION', 'HUMAN_APPROVAL', 'SCHEDULE', 'HTTP_CALLBACK'])
+
+export type WorkflowWaitKind = z.infer<typeof WorkflowWaitKindSchema>;
+
+// File: WorkflowWaitStatus.schema.ts
+
+export const WorkflowWaitStatusSchema = z.enum(['PENDING', 'RESUMED', 'EXPIRED', 'CANCELLED'])
+
+export type WorkflowWaitStatus = z.infer<typeof WorkflowWaitStatusSchema>;
+
+// File: WorkflowApprovalChannel.schema.ts
+
+export const WorkflowApprovalChannelSchema = z.enum(['WEB', 'EMAIL'])
+
+export type WorkflowApprovalChannel = z.infer<typeof WorkflowApprovalChannelSchema>;
+
+// File: WorkflowApprovalDecision.schema.ts
+
+export const WorkflowApprovalDecisionSchema = z.enum(['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'])
+
+export type WorkflowApprovalDecision = z.infer<typeof WorkflowApprovalDecisionSchema>;
 
 // File: KnowledgeBaseStatus.schema.ts
 
@@ -931,6 +1009,131 @@ export const CampaignSessionSchema = z.object({
 });
 
 export type CampaignSessionType = z.infer<typeof CampaignSessionSchema>;
+
+
+// File: CampaignWorkflow.schema.ts
+
+export const CampaignWorkflowSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  organizationId: z.string(),
+  campaignId: z.string(),
+  envVars: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("[]"),
+  draftNodes: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("[]"),
+  draftEdges: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("[]"),
+  draftViewport: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  webhookToken: z.string().default(() => generateCuid()),
+  publishedVersionId: z.string().nullish(),
+});
+
+export type CampaignWorkflowType = z.infer<typeof CampaignWorkflowSchema>;
+
+
+// File: CampaignWorkflowVersion.schema.ts
+
+export const CampaignWorkflowVersionSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  workflowId: z.string(),
+  version: z.number().int(),
+  nodes: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10"),
+  edges: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10"),
+  viewport: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  publishedAt: z.date(),
+  label: z.string().nullish(),
+});
+
+export type CampaignWorkflowVersionType = z.infer<typeof CampaignWorkflowVersionSchema>;
+
+
+// File: WorkflowRun.schema.ts
+
+export const WorkflowRunSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  organizationId: z.string(),
+  campaignId: z.string(),
+  workflowId: z.string(),
+  workflowVersionId: z.string(),
+  status: WorkflowRunStatusSchema.default("PENDING"),
+  triggerType: WorkflowTriggerTypeSchema,
+  triggerPayload: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  envSnapshot: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  context: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  cursor: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  error: z.string().nullish(),
+  startedAt: z.date().nullish(),
+  finishedAt: z.date().nullish(),
+  claimedAt: z.date().nullish(),
+  claimToken: z.string().nullish(),
+});
+
+export type WorkflowRunType = z.infer<typeof WorkflowRunSchema>;
+
+
+// File: WorkflowStep.schema.ts
+
+export const WorkflowStepSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  runId: z.string(),
+  nodeId: z.string(),
+  nodeType: z.string(),
+  status: WorkflowStepStatusSchema.default("PENDING"),
+  attempt: z.number().int().default(1),
+  input: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  output: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  error: z.string().nullish(),
+  startedAt: z.date().nullish(),
+  finishedAt: z.date().nullish(),
+});
+
+export type WorkflowStepType = z.infer<typeof WorkflowStepSchema>;
+
+
+// File: WorkflowWait.schema.ts
+
+export const WorkflowWaitSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  runId: z.string(),
+  stepId: z.string(),
+  kind: WorkflowWaitKindSchema,
+  status: WorkflowWaitStatusSchema.default("PENDING"),
+  externalId: z.string().nullish(),
+  resumeAt: z.date().nullish(),
+  payload: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  resumePayload: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+});
+
+export type WorkflowWaitType = z.infer<typeof WorkflowWaitSchema>;
+
+
+// File: WorkflowApproval.schema.ts
+
+export const WorkflowApprovalSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  organizationId: z.string(),
+  runId: z.string(),
+  stepId: z.string(),
+  waitId: z.string(),
+  token: z.string().default(() => generateCuid()),
+  channel: WorkflowApprovalChannelSchema,
+  decision: WorkflowApprovalDecisionSchema.default("PENDING"),
+  message: z.string().nullish(),
+  decidedBy: z.string().nullish(),
+  decidedAt: z.date().nullish(),
+  expiresAt: z.date().nullish(),
+  emailTo: z.string().nullish(),
+});
+
+export type WorkflowApprovalType = z.infer<typeof WorkflowApprovalSchema>;
 
 
 // File: KnowledgeBase.schema.ts
