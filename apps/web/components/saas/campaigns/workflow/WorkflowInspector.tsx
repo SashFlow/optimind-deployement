@@ -62,7 +62,9 @@ export function WorkflowInspector({
 							variant="ghost"
 							size="sm"
 							onClick={() =>
-								onEnvVarsChange(envVars.filter((_, j) => j !== i))
+								onEnvVarsChange(
+									envVars.filter((_, j) => j !== i),
+								)
 							}
 						>
 							×
@@ -90,14 +92,20 @@ export function WorkflowInspector({
 					{allNodes.map((n) => {
 						const hints = NODE_OUTPUT_HINTS[n.data.type] ?? [];
 						return (
-							<li key={n.id} className="rounded-md bg-muted/40 px-2 py-1">
+							<li
+								key={n.id}
+								className="rounded-md bg-muted/40 px-2 py-1"
+							>
 								<div className="font-medium">
 									{n.data.label ?? n.id}{" "}
-									<span className="text-muted-foreground">({n.id})</span>
+									<span className="text-muted-foreground">
+										({n.id})
+									</span>
 								</div>
 								<div className="text-muted-foreground">
-									{hints.map((h) => `nodes.${n.id}.${h}`).join(", ") ||
-										"custom outputs"}
+									{hints
+										.map((h) => `nodes.${n.id}.${h}`)
+										.join(", ") || "custom outputs"}
 								</div>
 							</li>
 						);
@@ -113,11 +121,16 @@ export function WorkflowInspector({
 						<Input
 							value={selected.data.label ?? ""}
 							onChange={(e) =>
-								onChange({ ...selected.data, label: e.target.value })
+								onChange({
+									...selected.data,
+									label: e.target.value,
+								})
 							}
 						/>
 					</div>
-					<div className="text-xs text-muted-foreground">{selected.data.type}</div>
+					<div className="text-xs text-muted-foreground">
+						{selected.data.type}
+					</div>
 					<NodeConfigFields
 						type={selected.data.type}
 						config={selected.data.config}
@@ -167,8 +180,11 @@ function NodeConfigFields({
 				<Input
 					value={String(
 						(Array.isArray(config.cases)
-							? (config.cases as Array<{ expression?: string }>)[0]
-									?.expression
+							? (
+									config.cases as Array<{
+										expression?: string;
+									}>
+								)[0]?.expression
 							: config.condition) ?? "",
 					)}
 					onChange={(e) =>
@@ -176,7 +192,7 @@ function NodeConfigFields({
 							{ handle: "true", expression: e.target.value },
 						])
 					}
-					placeholder='nodes.http_1.status == 200'
+					placeholder="nodes.http_1.status == 200"
 				/>
 			</div>
 		);
@@ -213,7 +229,9 @@ function NodeConfigFields({
 					<Input
 						type="number"
 						value={String(config.maxIterations ?? 100)}
-						onChange={(e) => set("maxIterations", Number(e.target.value))}
+						onChange={(e) =>
+							set("maxIterations", Number(e.target.value))
+						}
 					/>
 				</div>
 			</div>
@@ -233,11 +251,13 @@ function NodeConfigFields({
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							{["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
-								<SelectItem key={m} value={m}>
-									{m}
-								</SelectItem>
-							))}
+							{["GET", "POST", "PUT", "PATCH", "DELETE"].map(
+								(m) => (
+									<SelectItem key={m} value={m}>
+										{m}
+									</SelectItem>
+								),
+							)}
 						</SelectContent>
 					</Select>
 				</div>
@@ -462,14 +482,18 @@ function NodeConfigFields({
 							<Label>Account</Label>
 							<Input
 								value={String(config.accountName ?? "")}
-								onChange={(e) => set("accountName", e.target.value)}
+								onChange={(e) =>
+									set("accountName", e.target.value)
+								}
 							/>
 						</div>
 						<div className="space-y-1">
 							<Label>Container</Label>
 							<Input
 								value={String(config.container ?? "")}
-								onChange={(e) => set("container", e.target.value)}
+								onChange={(e) =>
+									set("container", e.target.value)
+								}
 							/>
 						</div>
 					</>

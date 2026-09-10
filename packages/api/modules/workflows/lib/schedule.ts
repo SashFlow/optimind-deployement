@@ -45,7 +45,8 @@ export function nextCronFire(cron: string, from = new Date()): Date | null {
 function matchCronNow(cron: string, at = new Date()): boolean {
 	const trimmed = cron.trim();
 	if (trimmed === "@hourly") return at.getMinutes() === 0;
-	if (trimmed === "@daily") return at.getHours() === 0 && at.getMinutes() === 0;
+	if (trimmed === "@daily")
+		return at.getHours() === 0 && at.getMinutes() === 0;
 	const parts = trimmed.split(/\s+/);
 	if (parts.length < 5) return false;
 	const [minPart, hourPart] = parts;
@@ -91,7 +92,9 @@ export async function tickScheduledWorkflows() {
 			wf.publishedVersion.nodes,
 			wf.publishedVersion.edges,
 		);
-		const scheduled = nodes.find((n) => getNodeType(n) === "start.scheduled");
+		const scheduled = nodes.find(
+			(n) => getNodeType(n) === "start.scheduled",
+		);
 		if (!scheduled) continue;
 		const cron = String(scheduled.data.config.cron ?? "0 * * * *");
 		if (!matchCronNow(cron, now)) continue;

@@ -11,13 +11,18 @@ export type StorageListItem = {
 };
 
 export type ObjectStorageProvider = {
-	read(ref: StorageObjectRef): Promise<{ content: string; contentType?: string | null }>;
+	read(
+		ref: StorageObjectRef,
+	): Promise<{ content: string; contentType?: string | null }>;
 	write(
 		ref: StorageObjectRef,
 		content: string,
 		contentType?: string,
 	): Promise<{ bytes: number }>;
-	list(prefix: string, opts?: { maxKeys?: number }): Promise<StorageListItem[]>;
+	list(
+		prefix: string,
+		opts?: { maxKeys?: number },
+	): Promise<StorageListItem[]>;
 	delete(ref: StorageObjectRef): Promise<void>;
 };
 

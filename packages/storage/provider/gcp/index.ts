@@ -21,7 +21,8 @@ export async function gcsRequest(params: {
 		url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(params.bucket)}/o?prefix=${encodeURIComponent(params.listPrefix ?? "")}`;
 	} else if (params.operation === "write") {
 		url = `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(params.bucket)}/o?uploadType=media&name=${encodeURIComponent(params.object ?? "")}`;
-		headers["Content-Type"] = params.contentType ?? "application/octet-stream";
+		headers["Content-Type"] =
+			params.contentType ?? "application/octet-stream";
 	} else if (params.operation === "delete") {
 		url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(params.bucket)}/o/${encodeURIComponent(params.object ?? "")}`;
 	} else {
@@ -39,5 +40,10 @@ export async function gcsRequest(params: {
 		body: params.body,
 	});
 	const text = await res.text();
-	return { ok: res.ok, status: res.status, text, contentType: res.headers.get("content-type") };
+	return {
+		ok: res.ok,
+		status: res.status,
+		text,
+		contentType: res.headers.get("content-type"),
+	};
 }

@@ -16,7 +16,9 @@ export async function getOrCreateCampaignWorkflow(campaignId: string) {
 		where: { campaignId },
 		include: {
 			publishedVersion: true,
-			campaign: { select: { id: true, organizationId: true, name: true } },
+			campaign: {
+				select: { id: true, organizationId: true, name: true },
+			},
 		},
 	});
 	if (existing) return existing;
@@ -38,7 +40,9 @@ export async function getOrCreateCampaignWorkflow(campaignId: string) {
 		},
 		include: {
 			publishedVersion: true,
-			campaign: { select: { id: true, organizationId: true, name: true } },
+			campaign: {
+				select: { id: true, organizationId: true, name: true },
+			},
 		},
 	});
 }
@@ -100,7 +104,10 @@ export async function saveWorkflowDraft(
 	});
 }
 
-export async function publishWorkflowVersion(workflowId: string, label?: string) {
+export async function publishWorkflowVersion(
+	workflowId: string,
+	label?: string,
+) {
 	return db.$transaction(async (tx) => {
 		const workflow = await tx.campaignWorkflow.findUniqueOrThrow({
 			where: { id: workflowId },
@@ -155,7 +162,8 @@ export async function createWorkflowRun(data: {
 			workflowId: data.workflowId,
 			workflowVersionId: data.workflowVersionId,
 			triggerType: data.triggerType,
-			triggerPayload: (data.triggerPayload ?? {}) as Prisma.InputJsonValue,
+			triggerPayload: (data.triggerPayload ??
+				{}) as Prisma.InputJsonValue,
 			envSnapshot: (data.envSnapshot ?? {}) as Prisma.InputJsonValue,
 			context: (data.context ?? {}) as Prisma.InputJsonValue,
 			cursor: (data.cursor ?? {}) as Prisma.InputJsonValue,
@@ -194,7 +202,9 @@ export async function listWorkflowRuns(params: {
 			skip: params.offset ?? 0,
 			include: {
 				_count: { select: { steps: true } },
-				workflowVersion: { select: { id: true, version: true, label: true } },
+				workflowVersion: {
+					select: { id: true, version: true, label: true },
+				},
 			},
 		}),
 		db.workflowRun.count({ where }),

@@ -138,7 +138,11 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 		};
 	}, [nodes]);
 
-	function addNode(type: string, label: string, defaultConfig: Record<string, unknown>) {
+	function addNode(
+		type: string,
+		label: string,
+		defaultConfig: Record<string, unknown>,
+	) {
 		const id = newId(type.replace(".", "_"));
 		setNodes((nds) => [
 			...nds,
@@ -210,7 +214,10 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 									addNode(
 										item.type,
 										item.label,
-										item.defaultConfig as Record<string, unknown>,
+										item.defaultConfig as Record<
+											string,
+											unknown
+										>,
 									)
 								}
 							>

@@ -114,16 +114,21 @@ export function CampaignWorkflowLogs({ campaignId }: { campaignId: string }) {
 							)}
 						>
 							<div className="flex items-center justify-between gap-2">
-								<span className="truncate font-mono text-xs">{r.id}</span>
+								<span className="truncate font-mono text-xs">
+									{r.id}
+								</span>
 								<Badge variant="secondary">{r.status}</Badge>
 							</div>
 							<div className="text-[11px] text-muted-foreground">
-								{r.triggerType} · {new Date(r.createdAt).toLocaleString()}
+								{r.triggerType} ·{" "}
+								{new Date(r.createdAt).toLocaleString()}
 							</div>
 						</button>
 					))}
 					{runs.length === 0 && (
-						<p className="p-3 text-sm text-muted-foreground">No runs</p>
+						<p className="p-3 text-sm text-muted-foreground">
+							No runs
+						</p>
 					)}
 				</div>
 			</div>
@@ -161,7 +166,9 @@ export function CampaignWorkflowLogs({ campaignId }: { campaignId: string }) {
 										size="sm"
 										variant="destructive"
 										onClick={() =>
-											cancelMutation.mutate({ id: run.id })
+											cancelMutation.mutate({
+												id: run.id,
+											})
 										}
 									>
 										Cancel
@@ -178,12 +185,16 @@ export function CampaignWorkflowLogs({ campaignId }: { campaignId: string }) {
 								>
 									<div className="flex items-center justify-between gap-2">
 										<div>
-											<span className="font-medium">{step.nodeType}</span>
+											<span className="font-medium">
+												{step.nodeType}
+											</span>
 											<span className="ml-2 font-mono text-xs text-muted-foreground">
 												{step.nodeId}
 											</span>
 										</div>
-										<Badge variant="outline">{step.status}</Badge>
+										<Badge variant="outline">
+											{step.status}
+										</Badge>
 									</div>
 									{step.error && (
 										<p className="mt-1 text-xs text-destructive">
@@ -191,13 +202,19 @@ export function CampaignWorkflowLogs({ campaignId }: { campaignId: string }) {
 										</p>
 									)}
 									{step.output &&
-										Object.keys(step.output as object).length > 0 && (
+										Object.keys(step.output as object)
+											.length > 0 && (
 											<pre className="mt-2 max-h-40 overflow-auto rounded bg-muted/50 p-2 text-[10px]">
-												{JSON.stringify(step.output, null, 2)}
+												{JSON.stringify(
+													step.output,
+													null,
+													2,
+												)}
 											</pre>
 										)}
 									{step.nodeType === "ai.agent" &&
-										(step.output as { sessionId?: string })?.sessionId &&
+										(step.output as { sessionId?: string })
+											?.sessionId &&
 										run.campaign?.agentId && (
 											<Link
 												className="mt-2 inline-block text-xs text-primary underline"

@@ -25,5 +25,10 @@ export async function azureBlobRequest(params: {
 		body: params.body,
 	});
 	const text = await res.text();
-	return { ok: res.ok, status: res.status, text, contentType: res.headers.get("content-type") };
+	return {
+		ok: res.ok,
+		status: res.status,
+		text,
+		contentType: res.headers.get("content-type"),
+	};
 }

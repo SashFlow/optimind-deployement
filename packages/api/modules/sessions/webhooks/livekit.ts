@@ -87,9 +87,12 @@ export async function livekitWebhookHandler(
 					);
 					await resumeAgentSessionWait(session.id);
 				} catch (err) {
-					logger.error("Failed to resume workflow after room_finished", {
-						err,
-					});
+					logger.error(
+						"Failed to resume workflow after room_finished",
+						{
+							err,
+						},
+					);
 				}
 			}
 		}

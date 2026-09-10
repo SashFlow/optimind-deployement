@@ -82,7 +82,11 @@ export type NodeHandlerResult =
 			kind: "wait";
 			output?: Record<string, unknown>;
 			wait: {
-				waitKind: "AGENT_SESSION" | "HUMAN_APPROVAL" | "SCHEDULE" | "HTTP_CALLBACK";
+				waitKind:
+					| "AGENT_SESSION"
+					| "HUMAN_APPROVAL"
+					| "SCHEDULE"
+					| "HTTP_CALLBACK";
 				externalId?: string;
 				resumeAt?: Date;
 				payload?: Record<string, unknown>;

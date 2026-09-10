@@ -21,7 +21,9 @@ export default function WorkflowApprovalPage() {
 		orpc.workflows.decideApproval.mutationOptions({
 			onSuccess: async () => {
 				await queryClient.invalidateQueries({
-					queryKey: orpc.workflows.getApproval.key({ input: { token } }),
+					queryKey: orpc.workflows.getApproval.key({
+						input: { token },
+					}),
 				});
 				toast.success("Decision recorded");
 			},
@@ -34,10 +36,14 @@ export default function WorkflowApprovalPage() {
 	return (
 		<div className="mx-auto flex max-w-lg flex-col gap-4 px-4 py-16">
 			<h1 className="text-2xl font-semibold">Workflow approval</h1>
-			{query.isPending && <p className="text-muted-foreground">Loading…</p>}
+			{query.isPending && (
+				<p className="text-muted-foreground">Loading…</p>
+			)}
 			{approval && (
 				<>
-					<p className="text-sm text-muted-foreground">{approval.message}</p>
+					<p className="text-sm text-muted-foreground">
+						{approval.message}
+					</p>
 					<p className="text-sm">
 						Status: <strong>{approval.decision}</strong>
 					</p>
@@ -45,7 +51,10 @@ export default function WorkflowApprovalPage() {
 						<div className="flex gap-2">
 							<Button
 								onClick={() =>
-									decide.mutate({ token, decision: "APPROVED" })
+									decide.mutate({
+										token,
+										decision: "APPROVED",
+									})
 								}
 							>
 								Approve
@@ -53,7 +62,10 @@ export default function WorkflowApprovalPage() {
 							<Button
 								variant="destructive"
 								onClick={() =>
-									decide.mutate({ token, decision: "REJECTED" })
+									decide.mutate({
+										token,
+										decision: "REJECTED",
+									})
 								}
 							>
 								Reject

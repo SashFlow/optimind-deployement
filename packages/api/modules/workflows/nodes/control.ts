@@ -1,9 +1,5 @@
 import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
-import {
-	evaluateCondition,
-	resolveValue,
-	successors,
-} from "../lib/template";
+import { evaluateCondition, resolveValue, successors } from "../lib/template";
 
 export async function handleIf(
 	args: NodeHandlerArgs,
@@ -50,10 +46,7 @@ export async function handleLoop(
 	} else {
 		const raw = resolveValue(cfg.items ?? cfg.itemsPath, args.context);
 		if (typeof cfg.itemsPath === "string" && !Array.isArray(raw)) {
-			const fromPath = resolveValue(
-				`{{${cfg.itemsPath}}}`,
-				args.context,
-			);
+			const fromPath = resolveValue(`{{${cfg.itemsPath}}}`, args.context);
 			items = Array.isArray(fromPath) ? fromPath : [];
 		} else {
 			items = Array.isArray(raw) ? raw : [];
@@ -67,7 +60,10 @@ export async function handleLoop(
 
 	const bodyEntryId = bodyTargets[0] ?? defaultNext[0];
 	const exitTargetId =
-		exitTargets[0] ?? (bodyTargets.length ? defaultNext.find((id) => id !== bodyEntryId) : defaultNext[0]);
+		exitTargets[0] ??
+		(bodyTargets.length
+			? defaultNext.find((id) => id !== bodyEntryId)
+			: defaultNext[0]);
 
 	if (!items.length || !bodyEntryId) {
 		return {
@@ -110,20 +106,24 @@ export async function handleCodeJs(
 	};
 
 	// Restricted Function sandbox (no require/process). Prefer isolated-vm in production.
-	const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (
+	const AsyncFunction = Object.getPrototypeOf(async () => {})
+		.constructor as new (
 		...args: string[]
 	) => (...fnArgs: unknown[]) => Promise<unknown>;
 
-	const fn = new AsyncFunction(
-		"context",
-		`"use strict";\n${code}\n`,
-	);
+	const fn = new AsyncFunction("context", `"use strict";\n${code}\n`);
 
-	const timeoutMs = Math.min(Number(args.node.data.config.timeoutMs ?? 5000), 15_000);
+	const timeoutMs = Math.min(
+		Number(args.node.data.config.timeoutMs ?? 5000),
+		15_000,
+	);
 	const result = await Promise.race([
 		fn(context),
 		new Promise((_, reject) =>
-			setTimeout(() => reject(new Error("Code node timed out")), timeoutMs),
+			setTimeout(
+				() => reject(new Error("Code node timed out")),
+				timeoutMs,
+			),
 		),
 	]);
 

@@ -46,31 +46,44 @@ export async function handleHttpRequest(
 	args: NodeHandlerArgs,
 ): Promise<NodeHandlerResult> {
 	const cfg = args.node.data.config;
-	const method = String(resolveValue(cfg.method ?? "GET", args.context)).toUpperCase();
+	const method = String(
+		resolveValue(cfg.method ?? "GET", args.context),
+	).toUpperCase();
 	const url = String(resolveTemplate(String(cfg.url ?? ""), args.context));
 	if (!url) throw new Error("HTTP node requires url");
 
 	const headersRaw = resolveValue(cfg.headers ?? {}, args.context);
 	const headers: Record<string, string> = {};
 	if (headersRaw && typeof headersRaw === "object") {
-		for (const [k, v] of Object.entries(headersRaw as Record<string, unknown>)) {
+		for (const [k, v] of Object.entries(
+			headersRaw as Record<string, unknown>,
+		)) {
 			headers[k] = String(v);
 		}
 	}
 
-	const bodyVal = cfg.body !== undefined ? resolveValue(cfg.body, args.context) : undefined;
+	const bodyVal =
+		cfg.body !== undefined
+			? resolveValue(cfg.body, args.context)
+			: undefined;
 	const timeoutMs = Number(cfg.timeoutMs ?? 30_000);
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), timeoutMs);
 
 	try {
-		const init: RequestInit = { method, headers, signal: controller.signal };
+		const init: RequestInit = {
+			method,
+			headers,
+			signal: controller.signal,
+		};
 		if (bodyVal !== undefined && method !== "GET" && method !== "HEAD") {
 			if (typeof bodyVal === "string") {
 				init.body = bodyVal;
 			} else {
 				headers["content-type"] =
-					headers["content-type"] ?? headers["Content-Type"] ?? "application/json";
+					headers["content-type"] ??
+					headers["Content-Type"] ??
+					"application/json";
 				init.body = JSON.stringify(bodyVal);
 				init.headers = headers;
 			}

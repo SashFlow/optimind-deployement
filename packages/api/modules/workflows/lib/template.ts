@@ -77,7 +77,8 @@ export function evaluateCondition(
 		const left = leftRaw.includes("{{")
 			? resolveValue(leftRaw, context)
 			: getPath(context, leftRaw.replace(/^\{\{|\}\}$/g, "").trim());
-		if (op === "exists") return left !== undefined && left !== null && left !== "";
+		if (op === "exists")
+			return left !== undefined && left !== null && left !== "";
 		let right: unknown = rightRaw;
 		if (
 			(rightRaw.startsWith('"') && rightRaw.endsWith('"')) ||
@@ -122,9 +123,7 @@ export function evaluateCondition(
 	return Boolean(truthy);
 }
 
-export function envVarsToRecord(
-	envVars: unknown,
-): Record<string, string> {
+export function envVarsToRecord(envVars: unknown): Record<string, string> {
 	if (!Array.isArray(envVars)) {
 		if (envVars && typeof envVars === "object") {
 			const out: Record<string, string> = {};
@@ -151,12 +150,19 @@ export function envVarsToRecord(
 	return out;
 }
 
-export function parseGraph(nodesJson: unknown, edgesJson: unknown): {
+export function parseGraph(
+	nodesJson: unknown,
+	edgesJson: unknown,
+): {
 	nodes: WorkflowGraphNode[];
 	edges: WorkflowGraphEdge[];
 } {
-	const nodes = (Array.isArray(nodesJson) ? nodesJson : []) as WorkflowGraphNode[];
-	const edges = (Array.isArray(edgesJson) ? edgesJson : []) as WorkflowGraphEdge[];
+	const nodes = (
+		Array.isArray(nodesJson) ? nodesJson : []
+	) as WorkflowGraphNode[];
+	const edges = (
+		Array.isArray(edgesJson) ? edgesJson : []
+	) as WorkflowGraphEdge[];
 	return { nodes, edges };
 }
 
@@ -165,7 +171,9 @@ export function getNodeType(node: WorkflowGraphNode): WorkflowNodeType {
 	return t;
 }
 
-export function findStartNodes(nodes: WorkflowGraphNode[]): WorkflowGraphNode[] {
+export function findStartNodes(
+	nodes: WorkflowGraphNode[],
+): WorkflowGraphNode[] {
 	return nodes.filter((n) => {
 		const t = getNodeType(n);
 		return t === "start.webhook" || t === "start.scheduled";

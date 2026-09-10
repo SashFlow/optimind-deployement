@@ -57,7 +57,9 @@ export async function handleKnowledgeRetrieve(
 		allChunks.push(...chunks);
 	}
 	allChunks.sort(
-		(a, b) => ((b as { score?: number }).score ?? 0) - ((a as { score?: number }).score ?? 0),
+		(a, b) =>
+			((b as { score?: number }).score ?? 0) -
+			((a as { score?: number }).score ?? 0),
 	);
 	const top = allChunks.slice(0, k);
 	return {
@@ -65,7 +67,9 @@ export async function handleKnowledgeRetrieve(
 		output: {
 			query,
 			chunks: top,
-			text: top.map((c) => (c as { content?: string }).content ?? "").join("\n\n"),
+			text: top
+				.map((c) => (c as { content?: string }).content ?? "")
+				.join("\n\n"),
 		},
 	};
 }
@@ -74,7 +78,9 @@ export async function handleLlm(
 	args: NodeHandlerArgs,
 ): Promise<NodeHandlerResult> {
 	const cfg = args.node.data.config;
-	const prompt = String(resolveTemplate(String(cfg.prompt ?? ""), args.context));
+	const prompt = String(
+		resolveTemplate(String(cfg.prompt ?? ""), args.context),
+	);
 	const system = cfg.system
 		? String(resolveTemplate(String(cfg.system), args.context))
 		: undefined;
@@ -119,8 +125,14 @@ export async function handleAgent(
 	const configSnapshot = version.config ?? {};
 	const modality = String(cfg.modality ?? "voice").toLowerCase(); // voice | avatar
 	const channel =
-		String(cfg.channel ?? (modality === "avatar" ? "WEB" : campaign.channel === "VOICE" ? "PHONE" : "WEB")) ===
-		"PHONE"
+		String(
+			cfg.channel ??
+				(modality === "avatar"
+					? "WEB"
+					: campaign.channel === "VOICE"
+						? "PHONE"
+						: "WEB"),
+		) === "PHONE"
 			? "PHONE"
 			: "WEB";
 	const direction = String(cfg.direction ?? "OUTBOUND") as
@@ -131,8 +143,10 @@ export async function handleAgent(
 	const phoneNumber = cfg.phoneNumber
 		? String(resolveTemplate(String(cfg.phoneNumber), args.context))
 		: undefined;
-	const contactMetadata = (resolveValue(cfg.contactMetadata ?? {}, args.context) ??
-		{}) as Record<string, unknown>;
+	const contactMetadata = (resolveValue(
+		cfg.contactMetadata ?? {},
+		args.context,
+	) ?? {}) as Record<string, unknown>;
 
 	const roomName = `wf-${args.run.id.slice(0, 8)}-${args.node.id.slice(0, 6)}-${Date.now()}`;
 	const recordingEnabled =
@@ -208,9 +222,15 @@ export async function handleHumanApproval(
 	args: NodeHandlerArgs,
 ): Promise<NodeHandlerResult> {
 	const cfg = args.node.data.config;
-	const channel = String(cfg.channel ?? "WEB").toUpperCase() === "EMAIL" ? "EMAIL" : "WEB";
+	const channel =
+		String(cfg.channel ?? "WEB").toUpperCase() === "EMAIL"
+			? "EMAIL"
+			: "WEB";
 	const message = String(
-		resolveTemplate(String(cfg.message ?? "Approval required"), args.context),
+		resolveTemplate(
+			String(cfg.message ?? "Approval required"),
+			args.context,
+		),
 	);
 	const emailTo = cfg.emailTo
 		? String(resolveTemplate(String(cfg.emailTo), args.context))

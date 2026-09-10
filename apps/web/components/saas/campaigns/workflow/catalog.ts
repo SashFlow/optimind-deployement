@@ -31,7 +31,11 @@ export const WORKFLOW_NODE_CATALOG = [
 				type: "control.loop",
 				label: "Loop",
 				description: "Iterate over items",
-				defaultConfig: { mode: "forEach", itemsPath: "", maxIterations: 100 },
+				defaultConfig: {
+					mode: "forEach",
+					itemsPath: "",
+					maxIterations: 100,
+				},
 			},
 			{
 				type: "http.request",
