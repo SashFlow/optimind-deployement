@@ -287,7 +287,8 @@ export async function consumeAgentTrialToken(
 		});
 		if (!trial) return null;
 		if (!trial.enabled) return null;
-		if (trial.expiresAt && trial.expiresAt.getTime() < Date.now()) return null;
+		if (trial.expiresAt && trial.expiresAt.getTime() < Date.now())
+			return null;
 		if (trial.usageCount >= trial.usageLimit) return null;
 
 		return tx.agentTrial.update({

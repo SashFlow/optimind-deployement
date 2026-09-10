@@ -357,8 +357,10 @@ export const getTrialLink = publicProcedure
 			hasPublishedVersion,
 		});
 		const config =
-			(trial.agent.publishedVersion?.config as Record<string, unknown> | null) ??
-			null;
+			(trial.agent.publishedVersion?.config as Record<
+				string,
+				unknown
+			> | null) ?? null;
 		const avatarConfig =
 			config && typeof config.avatar === "object" && config.avatar
 				? (config.avatar as { enabled?: boolean })

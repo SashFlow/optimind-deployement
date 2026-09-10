@@ -177,13 +177,7 @@ export function DispatchRulesPanel({
 
 			{rulesQuery.isPending ? (
 				<TableBodySkeleton
-					headers={[
-						"Name",
-						"Trunk",
-						"Agent",
-						"Prefix",
-						"Actions",
-					]}
+					headers={["Name", "Trunk", "Agent", "Prefix", "Actions"]}
 					columns={[
 						{ type: "text", width: "w-32" },
 						{ type: "text", width: "w-28" },

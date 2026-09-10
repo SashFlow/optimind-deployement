@@ -34,8 +34,7 @@ function readDestination(value: unknown): EgressDestination | null {
 	const dest = value as EgressDestination;
 	return {
 		bucket: typeof dest.bucket === "string" ? dest.bucket : undefined,
-		filepath:
-			typeof dest.filepath === "string" ? dest.filepath : undefined,
+		filepath: typeof dest.filepath === "string" ? dest.filepath : undefined,
 		endpoint:
 			typeof dest.endpoint === "string"
 				? dest.endpoint

@@ -343,9 +343,7 @@ export function CallSessionSection({
 								min={1}
 								step={1}
 								className="bg-background sm:max-w-xs"
-								value={
-									config.voicemail.retry_after_hours ?? ""
-								}
+								value={config.voicemail.retry_after_hours ?? ""}
 								onChange={(e) => {
 									const raw = e.target.value;
 									const parsed =

@@ -219,13 +219,7 @@ export default function AuditLogsPage() {
 
 				{query.isLoading ? (
 					<TableBodySkeleton
-						headers={[
-							"When",
-							"Action",
-							"Resource",
-							"Actor",
-							"IP",
-						]}
+						headers={["When", "Action", "Resource", "Actor", "IP"]}
 						columns={[
 							{ type: "text", width: "w-32" },
 							{ type: "text", width: "w-24" },

@@ -185,7 +185,10 @@ export function AgentConfigureForm({
 					</div>
 
 					<CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-0 md:px-6">
-						<TabsContent value="general" className={SECTION_TAB_CLASS}>
+						<TabsContent
+							value="general"
+							className={SECTION_TAB_CLASS}
+						>
 							<div className={SECTION_SCROLL_CLASS}>
 								<GeneralSection
 									config={config}
@@ -201,7 +204,10 @@ export function AgentConfigureForm({
 							</div>
 						</TabsContent>
 
-						<TabsContent value="voice" className={SECTION_TAB_CLASS}>
+						<TabsContent
+							value="voice"
+							className={SECTION_TAB_CLASS}
+						>
 							<div className={SECTION_SCROLL_CLASS}>
 								<VoiceSection
 									config={config}
@@ -210,7 +216,10 @@ export function AgentConfigureForm({
 							</div>
 						</TabsContent>
 
-						<TabsContent value="avatar" className={SECTION_TAB_CLASS}>
+						<TabsContent
+							value="avatar"
+							className={SECTION_TAB_CLASS}
+						>
 							<div className={SECTION_SCROLL_CLASS}>
 								<AvatarSection
 									config={config}
@@ -220,7 +229,10 @@ export function AgentConfigureForm({
 							</div>
 						</TabsContent>
 
-						<TabsContent value="prompts" className={SECTION_TAB_CLASS}>
+						<TabsContent
+							value="prompts"
+							className={SECTION_TAB_CLASS}
+						>
 							<div className={SECTION_SCROLL_CLASS}>
 								<PromptsSection
 									config={config}
@@ -238,7 +250,10 @@ export function AgentConfigureForm({
 							</div>
 						</TabsContent>
 
-						<TabsContent value="tools" className={SECTION_TAB_CLASS}>
+						<TabsContent
+							value="tools"
+							className={SECTION_TAB_CLASS}
+						>
 							<div className={SECTION_SCROLL_CLASS}>
 								<ToolsSection
 									config={config}

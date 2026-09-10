@@ -243,7 +243,8 @@ export function AgentConfigurePreview({
 				setAudioDevices(mics);
 				setVideoDevices(cams);
 				setAudioDeviceId((current) =>
-					current && mics.some((device) => device.deviceId === current)
+					current &&
+					mics.some((device) => device.deviceId === current)
 						? current
 						: (mics[0]?.deviceId ?? ""),
 				);
@@ -430,9 +431,7 @@ export function AgentConfigurePreview({
 						: true
 				}
 				video={
-					useCamera
-						? { deviceId: { exact: videoDeviceId } }
-						: false
+					useCamera ? { deviceId: { exact: videoDeviceId } } : false
 				}
 				className="flex min-h-0 flex-1 flex-col"
 			>

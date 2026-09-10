@@ -125,7 +125,9 @@ export function mergeSessionReports(
 	const prevHistory = asRecord(prev.chat_history);
 	const nextHistory = asRecord(next.chat_history);
 	const chatHistory =
-		nextHistory && Array.isArray(nextHistory.items) && nextHistory.items.length
+		nextHistory &&
+		Array.isArray(nextHistory.items) &&
+		nextHistory.items.length
 			? nextHistory
 			: prevHistory && Array.isArray(prevHistory.items)
 				? prevHistory
@@ -460,7 +462,10 @@ export async function persistSessionArtifacts(opts: {
 	for (const event of reportEvents) {
 		const row = asRecord(event);
 		if (!row) continue;
-		const eventType = str(row.type ?? row.event_type ?? row.eventType, "event");
+		const eventType = str(
+			row.type ?? row.event_type ?? row.eventType,
+			"event",
+		);
 		if (eventType === "metrics_collected") continue;
 		events.push(
 			await createSessionEvent({

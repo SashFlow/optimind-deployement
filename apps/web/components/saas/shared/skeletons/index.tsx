@@ -24,10 +24,7 @@ function CellSkeleton({ column }: { column: TableSkeletonColumn }) {
 		case "avatar":
 			return (
 				<div
-					className={cn(
-						"flex items-center gap-2",
-						column.className,
-					)}
+					className={cn("flex items-center gap-2", column.className)}
 				>
 					<Skeleton className="size-10 shrink-0 rounded-full" />
 					<div className="flex-1 space-y-2">

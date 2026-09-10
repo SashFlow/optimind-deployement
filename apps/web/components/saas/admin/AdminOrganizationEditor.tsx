@@ -89,12 +89,8 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 		});
 	}, [fullOrganizationQuery.data?.members]);
 
-	const {
-		currentPage,
-		setCurrentPage,
-		pageItems,
-		totalItems,
-	} = useClientPagination(members);
+	const { currentPage, setCurrentPage, pageItems, totalItems } =
+		useClientPagination(members);
 
 	if (organizationQuery.isPending) {
 		return (

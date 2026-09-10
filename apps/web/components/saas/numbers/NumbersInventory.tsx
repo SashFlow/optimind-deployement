@@ -181,13 +181,7 @@ export function NumbersInventory({
 
 			{numbersQuery.isPending ? (
 				<TableBodySkeleton
-					headers={[
-						"Number",
-						"Agent",
-						"Trunk",
-						"Status",
-						"Actions",
-					]}
+					headers={["Number", "Agent", "Trunk", "Status", "Actions"]}
 					columns={[
 						{ type: "lines", widths: ["w-36", "w-28"] },
 						{ type: "text", width: "w-28" },

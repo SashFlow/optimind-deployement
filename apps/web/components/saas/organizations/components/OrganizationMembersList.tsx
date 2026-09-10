@@ -35,10 +35,7 @@ import { LogOutIcon, MoreVerticalIcon, TrashIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-	PAGE_SIZE,
-	Pagination,
-} from "@/components/saas/shared/Pagination";
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { OrganizationRoleSelect } from "./OrganizationRoleSelect";
 
 export function OrganizationMembersList({
@@ -281,9 +278,7 @@ export function OrganizationMembersList({
 					totalItems={table.getFilteredRowModel().rows.length}
 					itemsPerPage={PAGE_SIZE}
 					currentPage={table.getState().pagination.pageIndex + 1}
-					onChangeCurrentPage={(page) =>
-						table.setPageIndex(page - 1)
-					}
+					onChangeCurrentPage={(page) => table.setPageIndex(page - 1)}
 				/>
 			</footer>
 		</div>

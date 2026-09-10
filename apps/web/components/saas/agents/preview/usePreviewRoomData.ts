@@ -157,7 +157,10 @@ function useAgentTextStreams(agentName: string, agentId: string) {
 	useEffect(() => {
 		const handlers = topics.map((topic) => {
 			const handler = async (
-				reader: { readAll: () => Promise<string>; info: { id: string; timestamp: number } },
+				reader: {
+					readAll: () => Promise<string>;
+					info: { id: string; timestamp: number };
+				},
 				participantInfo: { identity: string },
 			) => {
 				try {

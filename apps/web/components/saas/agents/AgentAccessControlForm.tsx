@@ -84,7 +84,10 @@ function trialStatus(trial: TrialLink) {
 	if (!trial.enabled) return { label: "Disabled", remaining };
 	if (trial.expiresAt) {
 		const expiresAt = new Date(`${trial.expiresAt}T00:00:00`);
-		if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() < Date.now()) {
+		if (
+			!Number.isNaN(expiresAt.getTime()) &&
+			expiresAt.getTime() < Date.now()
+		) {
 			return { label: "Expired", remaining };
 		}
 	}

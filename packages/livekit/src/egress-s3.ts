@@ -21,8 +21,7 @@ export function getEgressS3Config(
 	env: NodeJS.ProcessEnv = process.env,
 ): EgressS3Config | null {
 	const accessKey =
-		env.S3_RECORDINGS_ACCESS_KEY_ID?.trim() ||
-		env.S3_ACCESS_KEY_ID?.trim();
+		env.S3_RECORDINGS_ACCESS_KEY_ID?.trim() || env.S3_ACCESS_KEY_ID?.trim();
 	const secret =
 		env.S3_RECORDINGS_SECRET_ACCESS_KEY?.trim() ||
 		env.S3_SECRET_ACCESS_KEY?.trim();

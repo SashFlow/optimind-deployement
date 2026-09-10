@@ -282,9 +282,7 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 								/>
 							</div>
 							<div className="space-y-2">
-								<Label
-									htmlFor={`edit-description-${item.id}`}
-								>
+								<Label htmlFor={`edit-description-${item.id}`}>
 									Description (optional)
 								</Label>
 								<Textarea
@@ -388,8 +386,11 @@ export function ResourcePage({
 		});
 	}, [items, search, sort]);
 
-	const { visibleItems: renderedItems, hasMore, sentinelRef } =
-		useClientInfiniteScroll(visibleItems);
+	const {
+		visibleItems: renderedItems,
+		hasMore,
+		sentinelRef,
+	} = useClientInfiniteScroll(visibleItems);
 
 	const emptyTitle =
 		items.length > 0 && visibleItems.length === 0

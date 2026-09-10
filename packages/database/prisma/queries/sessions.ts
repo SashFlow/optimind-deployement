@@ -469,7 +469,9 @@ export async function saveAgentSessionReport(
 				chat_history:
 					nextItems && nextItems.length > 0
 						? nextHistory
-						: (prevHistory ?? next.chat_history ?? prev.chat_history),
+						: (prevHistory ??
+							next.chat_history ??
+							prev.chat_history),
 				events:
 					Array.isArray(next.events) && next.events.length > 0
 						? next.events

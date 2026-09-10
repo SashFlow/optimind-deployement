@@ -96,8 +96,7 @@ const Pagination = ({
 	onChangeCurrentPage,
 }: PaginationProps) => {
 	const numberOfPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-	const start =
-		totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+	const start = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
 	const end = Math.min(currentPage * itemsPerPage, totalItems);
 
 	return (

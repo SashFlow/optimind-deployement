@@ -240,7 +240,9 @@ function TranscriptWaveform({ animated }: { animated: boolean }) {
 					)}
 					style={{
 						height: `${height}px`,
-						animationDelay: animated ? `${index * 70}ms` : undefined,
+						animationDelay: animated
+							? `${index * 70}ms`
+							: undefined,
 						opacity: animated ? undefined : 0.7,
 					}}
 				/>
@@ -310,7 +312,9 @@ function TranscriptPanel({
 					<span
 						className={cn(
 							"size-2 rounded-full",
-							live ? "bg-primary animate-pulse" : "bg-muted-foreground/50",
+							live
+								? "bg-primary animate-pulse"
+								: "bg-muted-foreground/50",
 						)}
 					/>
 					<span className="font-medium text-foreground/90">
@@ -356,9 +360,7 @@ function EgressMediaPlayer({
 	contentType?: string | null;
 }) {
 	const useAudio =
-		audioOnly ||
-		contentType?.startsWith("audio/") ||
-		isAudioUrl(url);
+		audioOnly || contentType?.startsWith("audio/") || isAudioUrl(url);
 
 	if (useAudio) {
 		return (
@@ -383,9 +385,7 @@ function EgressMediaPlayer({
 
 function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 	if (jobs.length === 0) {
-		return (
-			<p className="text-sm text-muted-foreground">No egress jobs.</p>
-		);
+		return <p className="text-sm text-muted-foreground">No egress jobs.</p>;
 	}
 
 	return (
@@ -551,13 +551,8 @@ function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 		[events],
 	);
 
-	const {
-		currentPage,
-		setCurrentPage,
-		pageItems,
-		totalItems,
-		itemsPerPage,
-	} = useClientPagination(sortedEvents, PAGE_SIZE);
+	const { currentPage, setCurrentPage, pageItems, totalItems, itemsPerPage } =
+		useClientPagination(sortedEvents, PAGE_SIZE);
 
 	const [openItem, setOpenItem] = useState<string>("");
 
@@ -778,7 +773,9 @@ export function AgentSessionDetail({
 
 						<Card className="flex min-h-0 flex-col rounded-3xl">
 							<CardHeader>
-								<CardTitle className="text-sm">Egress</CardTitle>
+								<CardTitle className="text-sm">
+									Egress
+								</CardTitle>
 							</CardHeader>
 							<CardContent>
 								<EgressPanel jobs={egressJobs} />

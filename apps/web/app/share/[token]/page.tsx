@@ -177,9 +177,7 @@ export default function SharedTrialPage() {
 						roomName: data.roomName,
 						phoneNumber: data.phoneNumber ?? phoneNumber,
 					});
-					toast.success(
-						`Calling ${data.phoneNumber ?? phoneNumber}`,
-					);
+					toast.success(`Calling ${data.phoneNumber ?? phoneNumber}`);
 					void trialQuery.refetch();
 					return;
 				}
@@ -566,10 +564,12 @@ export default function SharedTrialPage() {
 												""
 											}
 											onChange={(value) =>
-												setVariableValues((current) => ({
-													...current,
-													[variable.name]: value,
-												}))
+												setVariableValues(
+													(current) => ({
+														...current,
+														[variable.name]: value,
+													}),
+												)
 											}
 										/>
 									</div>

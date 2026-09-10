@@ -205,11 +205,11 @@ function RpcCardList({ cards }: { cards: PreviewRpcCard[] }) {
 							className={cn(
 								"rounded-full px-2 py-0.5 text-[10px] font-medium uppercase",
 								card.status === "success" &&
-								"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+									"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
 								card.status === "warning" &&
-								"bg-amber-500/10 text-amber-700 dark:text-amber-400",
+									"bg-amber-500/10 text-amber-700 dark:text-amber-400",
 								(!card.status || card.status === "info") &&
-								"bg-muted text-muted-foreground",
+									"bg-muted text-muted-foreground",
 							)}
 						>
 							{card.method.replace(/^client\./, "")}
@@ -474,7 +474,7 @@ export function PreviewSessionControls({
 									showPortraitMain && PORTRAIT_STAGE_CLASS,
 									showLandscapeMain && LANDSCAPE_STAGE_CLASS,
 									showAudioOnlyMain &&
-									"aspect-auto h-auto w-full max-w-sm bg-transparent shadow-none",
+										"aspect-auto h-auto w-full max-w-sm bg-transparent shadow-none",
 								)}
 							>
 								{mainContent}
@@ -556,7 +556,7 @@ export function PreviewSessionControls({
 							className={cn(
 								"relative size-9 rounded-full",
 								chatOpen &&
-								"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+									"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 							)}
 							onClick={() => setChatOpen(true)}
 						>

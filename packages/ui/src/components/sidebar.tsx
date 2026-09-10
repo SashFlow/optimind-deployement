@@ -232,14 +232,11 @@ export function SidebarItem({
 				<TooltipTrigger asChild>
 					<Button
 						asChild
-						className={cn(
-							"flex w-full text-sm shadow-none",
-							{
-								"justify-start space-x-2.5": !collapsed,
-								"hover:bg-primary hover:text-primary-foreground":
-									active,
-							},
-						)}
+						className={cn("flex w-full text-sm shadow-none", {
+							"justify-start space-x-2.5": !collapsed,
+							"hover:bg-primary hover:text-primary-foreground":
+								active,
+						})}
 						size={"sm"}
 						variant={variant}
 					>

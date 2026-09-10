@@ -258,7 +258,8 @@ export const updateTrialLink = protectedProcedure
 		await requireOrgMembership(agent.organizationId, context.user.id);
 
 		const trial = await getAgentTrialById(input.trialId);
-		if (!trial || trial.agentId !== agent.id) throw new ORPCError("NOT_FOUND");
+		if (!trial || trial.agentId !== agent.id)
+			throw new ORPCError("NOT_FOUND");
 
 		const updated = await updateAgentTrial(trial.id, {
 			label: input.label?.trim(),
@@ -288,7 +289,8 @@ export const deleteTrialLink = protectedProcedure
 		await requireOrgMembership(agent.organizationId, context.user.id);
 
 		const trial = await getAgentTrialById(input.trialId);
-		if (!trial || trial.agentId !== agent.id) throw new ORPCError("NOT_FOUND");
+		if (!trial || trial.agentId !== agent.id)
+			throw new ORPCError("NOT_FOUND");
 		await deleteAgentTrial(trial.id);
 		return { success: true };
 	});
