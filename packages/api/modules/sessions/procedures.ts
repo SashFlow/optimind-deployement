@@ -30,7 +30,14 @@ import {
 	buildDispatchMetadata,
 	serializeDispatchMetadata,
 } from "./lib/dispatch-metadata";
-import { persistSessionArtifacts } from "./lib/normalize-report";
+import {
+	inferEgressContentType,
+	resolveEgressPlayableUrl,
+} from "./lib/egress-media-url";
+import {
+	isMetricsOnlyReport,
+	persistSessionArtifacts,
+} from "./lib/normalize-report";
 import { workerProcedure } from "./lib/worker-procedure";
 
 const AGENT_NAME = process.env.AGENT_NAME || "demo-agent";
@@ -80,7 +87,39 @@ export const get = protectedProcedure
 		const session = await getAgentSessionById(input.id);
 		if (!session) throw new ORPCError("NOT_FOUND");
 		await requireOrgMembership(session.organizationId, context.user.id);
-		return { session };
+
+		const egressJobs = await Promise.all(
+			session.egressJobs.map(async (job) => {
+				const meta =
+					job.metadata &&
+					typeof job.metadata === "object" &&
+					!Array.isArray(job.metadata)
+						? (job.metadata as Record<string, unknown>)
+						: {};
+				const audioOnly =
+					typeof meta.audioOnly === "boolean"
+						? meta.audioOnly
+						: session.channel === "SIP" ||
+							session.channel === "PHONE";
+				const enriched = {
+					...job,
+					metadata: { ...meta, audioOnly },
+				};
+				return {
+					...enriched,
+					audioOnly,
+					playableContentType: inferEgressContentType(enriched),
+					playableUrl: await resolveEgressPlayableUrl(enriched),
+				};
+			}),
+		);
+
+		return {
+			session: {
+				...session,
+				egressJobs,
+			},
+		};
 	});
 
 export const create = protectedProcedure
@@ -535,6 +574,7 @@ async function startEgressForSession(
 			: { filepath },
 		fileUrl: s3 ? `s3://${s3.bucket}/${filepath}` : undefined,
 		outputUrls: s3 ? [`s3://${s3.bucket}/${filepath}`] : [],
+		metadata: { audioOnly: resolvedAudioOnly },
 	});
 
 	return { job, remote };
@@ -751,7 +791,12 @@ export const postReport = workerProcedure
 		z.object({
 			id: z.string(),
 			report: z.record(z.string(), z.unknown()).default({}),
-			usage: z.record(z.string(), z.unknown()).optional(),
+			usage: z
+				.union([
+					z.record(z.string(), z.unknown()),
+					z.array(z.record(z.string(), z.unknown())),
+				])
+				.optional(),
 			metrics: z.array(z.record(z.string(), z.unknown())).optional(),
 			isFinal: z.boolean().optional(),
 		}),
@@ -760,32 +805,32 @@ export const postReport = workerProcedure
 		const existing = await getAgentSessionById(input.id);
 		if (!existing) throw new ORPCError("NOT_FOUND");
 
+		const usageNormalized = Array.isArray(input.usage)
+			? { model_usage: input.usage }
+			: input.usage;
+
 		const session = await saveAgentSessionReport(input.id, {
 			report: input.report,
-			usage: input.usage,
+			usage: usageNormalized,
+			mergeReport: true,
 		});
 		if (!session) throw new ORPCError("NOT_FOUND");
+
+		// Metrics-only stubs should not wipe transcript extraction; still
+		// append metric events via persistSessionArtifacts.
+		const reportForArtifacts = isMetricsOnlyReport(input.report)
+			? (session.livekitSessionReport ?? input.report)
+			: input.report;
 
 		const artifacts = await persistSessionArtifacts({
 			organizationId: session.organizationId,
 			sessionId: session.id,
 			agentId: session.agentId,
-			report: input.report,
-			usage: input.usage,
+			report: reportForArtifacts,
+			usage: usageNormalized,
+			metrics: input.metrics,
 			isFinal: input.isFinal ?? true,
 		});
-
-		if (input.metrics?.length) {
-			for (const metric of input.metrics) {
-				await createSessionEvent({
-					organizationId: session.organizationId,
-					sessionId: session.id,
-					eventType: `agent.metric.${String(metric.type ?? metric.name ?? "metric")}`,
-					actor: "WORKER",
-					payload: metric,
-				});
-			}
-		}
 
 		return {
 			session: await getAgentSessionById(session.id),

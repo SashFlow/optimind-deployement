@@ -80,21 +80,35 @@ X-Worker-Api-Key: ...
 
 ### 4. On session end
 
+Keep LiveKit **text input enabled** (`lk.chat`) so typed web chat enters `session.history` alongside spoken turns.
+
+On `AgentSession` `close`, snapshot `session.history.to_dict()` / usage / metrics locally. **Do not** POST a stub report like `{ "metrics_flush": true }` — that can overwrite a good `livekitSessionReport` and wipe transcript extraction.
+
+Inside `on_session_end`:
+
 ```python
-report = ctx.make_session_report()
-usage = report.get("usage")  # or session.usage
+report = ctx.make_session_report().to_dict()
+# ensure chat_history.items present (fallback to close snapshot of session.history)
+usage = report.get("usage")  # list OR { model_usage: [...] }
 ```
 
 ```http
 POST /api/internal/sessions/{session_id}/report
 X-Worker-Api-Key: ...
 {
-  "report": { ... },
-  "usage": { ... },
-  "metrics": [],
+  "report": {
+    "chat_history": { "items": [ /* message / function_call / ... */ ] },
+    "events": [ /* AgentEvent dumps */ ],
+    "usage": [ /* or omit; prefer top-level usage */ ],
+    "...": "other SessionReport fields"
+  },
+  "usage": { "model_usage": [ /* LLM/STT/TTS summaries */ ] },
+  "metrics": [ /* optional plugin metric dumps */ ],
   "isFinal": true
 }
 ```
+
+`usage` may be either an object (`{ model_usage: [...] }`) or a raw array of model usage rows.
 
 Then:
 
@@ -106,9 +120,12 @@ X-Worker-Api-Key: ...
 
 The report handler:
 
-- stores `livekitSessionReport`
-- extracts conversation history → `Transcript` + `TranscriptSegment`
-- upserts `SessionUsage` rows from `usage.model_usage`
+- merges into `livekitSessionReport` (never replaces a full report with a metrics-only stub)
+- extracts `chat_history.items` → `Transcript` + `TranscriptSegment` (spoken + typed chat)
+- upserts `SessionUsage` from `usage` / `usage.model_usage`
+- materializes `report.events` → `SessionEvent` (`agent.event.*`)
+- materializes function call items → `ToolCallRecord`
+- appends `metrics[]` → `SessionEvent` (`agent.metric.*`)
 
 ## Org-authenticated APIs
 
@@ -137,8 +154,16 @@ Handled events:
 | `WORKER_API_KEY` | Worker auth for `/internal/*` |
 | `AGENT_NAME` | LiveKit agent name for dispatch |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_BUCKET_RECORDINGS` / `S3_REGION` | Egress upload |
-| `S3_ENDPOINT_URL` | Optional (path-style) for MinIO/R2 |
+| `S3_ENDPOINT_URL` (or `S3_ENDPOINT`) | Optional path-style endpoint (Supabase/MinIO/R2) |
+| `S3_RECORDINGS_ACCESS_KEY_ID` / `S3_RECORDINGS_SECRET_ACCESS_KEY` / `S3_RECORDINGS_REGION` | Optional overrides when knowledge + recordings use different keys |
 | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | LiveKit |
+
+Recording object key (backend `recordingFilepath` ↔ worker `recording_filepath`):
+
+```
+{organizationId}/{sessionId}/{roomName}.mp4
+→ s3://{S3_BUCKET_RECORDINGS}/...
+```
 
 ## Reference worker
 

@@ -1,8 +1,10 @@
 "use client";
 
 import {
+	type AgentState,
 	BarVisualizer,
 	RoomAudioRenderer,
+	type TrackReference,
 	TrackToggle,
 	useConnectionState,
 	useLocalParticipant,
@@ -11,28 +13,35 @@ import {
 	useTracks,
 	useVoiceAssistant,
 	VideoTrack,
-	type AgentState,
-	type TrackReference,
 } from "@livekit/components-react";
 import { Button } from "@repo/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@repo/ui/dialog";
 import { cn } from "@repo/ui/utils";
 import { ConnectionState, RoomEvent, Track } from "livekit-client";
 import {
+	ArrowLeftRightIcon,
 	FileIcon,
+	MessageSquareIcon,
 	MicIcon,
 	MicOffIcon,
 	PhoneOffIcon,
 	VideoIcon,
 	VideoOffIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Agent } from "@/services/api/types";
 import {
-	usePreviewRoomData,
 	type PreviewFileItem,
 	type PreviewRpcCard,
 	type PreviewTextItem,
+	usePreviewRoomData,
 } from "./usePreviewRoomData";
 
 function isUserParticipant(identity: string) {
@@ -45,16 +54,14 @@ function isUserParticipant(identity: string) {
 }
 
 function useLocalTrackRef(source: Track.Source) {
+	const tracks = useTracks([source], { onlySubscribed: false });
 	const { localParticipant } = useLocalParticipant();
-	const publication = localParticipant.getTrackPublication(source);
+
 	return useMemo<TrackReference | undefined>(() => {
-		if (!publication) return undefined;
-		return {
-			source,
-			participant: localParticipant,
-			publication,
-		};
-	}, [localParticipant, publication, source]);
+		return tracks.find(
+			(track) => track.participant.identity === localParticipant.identity,
+		);
+	}, [localParticipant.identity, tracks]);
 }
 
 function AudioBars({
@@ -73,19 +80,15 @@ function AudioBars({
 			trackRef={trackRef}
 			state={state}
 			barCount={barCount}
-			options={{ minHeight: 12, maxHeight: 100 }}
+			options={{ minHeight: 25, maxHeight: 100 }}
 			className={cn(
-				"flex h-16 items-end justify-center gap-1",
+				"flex items-end justify-center gap-1",
+				"[&_.lk-audio-bar]:w-1.5 [&_.lk-audio-bar]:rounded-full [&_.lk-audio-bar]:bg-muted-foreground/45 [&_.lk-audio-bar]:transition-colors",
+				"[&_.lk-audio-bar.lk-highlighted]:bg-primary",
+				"[&_.lk-audio-bar[data-lk-highlighted=true]]:bg-primary",
 				className,
 			)}
-		>
-			<span
-				className={cn(
-					"min-h-1 w-1.5 rounded-full bg-muted-foreground/30 transition-colors",
-					"data-[lk-highlighted=true]:bg-primary",
-				)}
-			/>
-		</BarVisualizer>
+		/>
 	);
 }
 
@@ -98,14 +101,14 @@ function MessageList({
 }) {
 	if (messages.length === 0) {
 		return (
-			<p className="text-xs text-muted-foreground">
+			<p className="text-sm text-muted-foreground">
 				Transcriptions and agent text will appear here.
 			</p>
 		);
 	}
 
 	return (
-		<div className="space-y-2">
+		<div className="space-y-3">
 			{messages.map((message) => {
 				const isLocal = message.from === localIdentity;
 				return (
@@ -113,9 +116,7 @@ function MessageList({
 						key={message.id}
 						className={cn(
 							"rounded-lg px-3 py-2 text-sm",
-							isLocal
-								? "ml-6 bg-primary/10"
-								: "mr-6 bg-muted",
+							isLocal ? "ml-6 bg-primary/10" : "mr-6 bg-muted",
 						)}
 					>
 						<div className="mb-0.5 flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -204,11 +205,11 @@ function RpcCardList({ cards }: { cards: PreviewRpcCard[] }) {
 							className={cn(
 								"rounded-full px-2 py-0.5 text-[10px] font-medium uppercase",
 								card.status === "success" &&
-									"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+								"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
 								card.status === "warning" &&
-									"bg-amber-500/10 text-amber-700 dark:text-amber-400",
+								"bg-amber-500/10 text-amber-700 dark:text-amber-400",
 								(!card.status || card.status === "info") &&
-									"bg-muted text-muted-foreground",
+								"bg-muted text-muted-foreground",
 							)}
 						>
 							{card.method.replace(/^client\./, "")}
@@ -236,6 +237,50 @@ function RpcCardList({ cards }: { cards: PreviewRpcCard[] }) {
 		</div>
 	);
 }
+
+function MainStage({
+	children,
+	className,
+}: {
+	children: ReactNode;
+	className?: string;
+}) {
+	return (
+		<div
+			className={cn(
+				"relative overflow-hidden rounded-xl bg-black shadow-sm",
+				className,
+			)}
+		>
+			{children}
+		</div>
+	);
+}
+
+function PipStage({
+	children,
+	className,
+}: {
+	children: ReactNode;
+	className?: string;
+}) {
+	return (
+		<div
+			className={cn(
+				"relative h-20 w-28 overflow-hidden rounded-lg border bg-background shadow-md sm:h-24 sm:w-36",
+				className,
+			)}
+		>
+			{children}
+		</div>
+	);
+}
+
+const VIDEO_FILL_CLASS = "size-full object-cover";
+const PORTRAIT_STAGE_CLASS =
+	"aspect-[3/4] h-full max-h-560px w-auto max-w-full";
+const LANDSCAPE_STAGE_CLASS =
+	"aspect-video h-full max-h-420px w-auto max-w-3xl";
 
 export function PreviewSessionControls({
 	agent,
@@ -267,16 +312,32 @@ export function PreviewSessionControls({
 		(p) => p.identity !== localIdentity && !isUserParticipant(p.identity),
 	);
 	const [agentWaitTimedOut, setAgentWaitTimedOut] = useState(false);
+	const [chatOpen, setChatOpen] = useState(false);
+	const [avatarOnMain, setAvatarOnMain] = useState(true);
 	const shouldWaitForAgent = isConnected && !hasAgent;
 	const hasAvatarVideo = Boolean(videoTrack);
 	const showAvatarFallback =
 		avatarEnabled && !hasAvatarVideo && Boolean(avatarPreviewUrl);
+	const showAvatarWaiting =
+		avatarEnabled && !hasAvatarVideo && !avatarPreviewUrl;
 	const hasLocalCamera =
 		Boolean(cameraTrackRef) &&
 		isCameraEnabled &&
 		!cameraTrackRef?.publication.isMuted;
 	const hasScreenShare =
 		Boolean(screenShareTrack) && !screenShareTrack?.publication.isMuted;
+	const localVideoTrack = hasLocalCamera
+		? cameraTrackRef
+		: hasScreenShare
+			? screenShareTrack
+			: undefined;
+	const hasLocalVideo = Boolean(localVideoTrack);
+	const hasAvatarStage =
+		hasAvatarVideo || showAvatarFallback || showAvatarWaiting;
+	const canSwapVideos =
+		(hasAvatarVideo || showAvatarFallback) && hasLocalVideo;
+	const hasChatContent =
+		messages.length > 0 || files.length > 0 || rpcCards.length > 0;
 
 	if (!shouldWaitForAgent && agentWaitTimedOut) {
 		setAgentWaitTimedOut(false);
@@ -306,6 +367,12 @@ export function PreviewSessionControls({
 		};
 	}, [room]);
 
+	useEffect(() => {
+		if (!canSwapVideos && !avatarOnMain) {
+			setAvatarOnMain(true);
+		}
+	}, [avatarOnMain, canSwapVideos]);
+
 	const statusLabel = (() => {
 		if (!isConnected) return "Connecting…";
 		if (hasAgent) {
@@ -320,66 +387,110 @@ export function PreviewSessionControls({
 		return "Waiting for agent…";
 	})();
 
+	const avatarVideo = hasAvatarVideo ? (
+		<VideoTrack trackRef={videoTrack} className={VIDEO_FILL_CLASS} />
+	) : showAvatarFallback ? (
+		<>
+			{/* Dynamic avatar URL from config; next/image domains vary. */}
+			{/* eslint-disable-next-line @next/next/no-img-element */}
+			<img
+				src={avatarPreviewUrl ?? undefined}
+				alt="Avatar preview"
+				className={cn(VIDEO_FILL_CLASS, "opacity-90")}
+			/>
+		</>
+	) : showAvatarWaiting ? (
+		<div className="flex size-full flex-col items-center justify-center gap-3 bg-black px-4 text-center">
+			<p className="text-sm text-white/90">Waiting for avatar video…</p>
+			<p className="text-xs text-white/60">{statusLabel}</p>
+		</div>
+	) : null;
+
+	const avatarMainStage = avatarVideo ? (
+		<>
+			{avatarVideo}
+			{showAvatarFallback || (hasAvatarVideo && !hasAgent) ? (
+				<div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/55 to-transparent p-3">
+					<p className="text-xs text-white/90">{statusLabel}</p>
+				</div>
+			) : null}
+		</>
+	) : null;
+
+	const localStage = localVideoTrack ? (
+		<VideoTrack trackRef={localVideoTrack} className={VIDEO_FILL_CLASS} />
+	) : null;
+
+	const showPortraitMain = hasAvatarStage && (avatarOnMain || !canSwapVideos);
+	const showLandscapeMain =
+		(canSwapVideos && !avatarOnMain) ||
+		(Boolean(localStage) && !hasAvatarStage);
+	const showAudioOnlyMain = !hasAvatarStage && !localStage;
+
+	const mainContent = (() => {
+		if (canSwapVideos) {
+			return avatarOnMain ? avatarMainStage : localStage;
+		}
+		if (avatarMainStage) return avatarMainStage;
+		if (localStage) return localStage;
+		return (
+			<div className="flex size-full min-h-48 flex-col items-center justify-center gap-4 px-4">
+				<div className="flex size-28 items-center justify-center rounded-full border bg-background shadow-sm sm:size-36">
+					<AudioBars
+						trackRef={audioTrack}
+						state={hasAgent ? state : "connecting"}
+						barCount={16}
+						className="h-16 w-20 sm:h-20 sm:w-28"
+					/>
+				</div>
+				<p className="text-center text-sm text-muted-foreground">
+					{statusLabel}
+				</p>
+			</div>
+		);
+	})();
+
+	const pipContent = canSwapVideos
+		? avatarOnMain
+			? localStage
+			: avatarVideo
+		: hasLocalVideo && hasAvatarStage
+			? localStage
+			: null;
+
 	return (
-		<div className="flex min-h-0 flex-1 flex-col">
-			<div className="grid min-h-0 flex-1 gap-3 p-3 md:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.9fr)] md:p-4">
-				<div className="relative flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
-					<div className="flex min-h-0 flex-1 items-center justify-center p-4">
-						{hasAvatarVideo ? (
-							<div className="relative aspect-[3/4] h-full max-h-[min(560px,70dvh)] w-auto max-w-full overflow-hidden rounded-xl bg-black shadow-sm">
-								<VideoTrack
-									trackRef={videoTrack}
-									className="size-full object-cover"
-								/>
-							</div>
-						) : showAvatarFallback ? (
-							<div className="relative aspect-[3/4] h-full max-h-[min(420px,60dvh)] w-auto max-w-full overflow-hidden rounded-xl border bg-muted shadow-sm">
-								{/* Dynamic avatar URL from config; next/image domains vary. */}
-								{/* eslint-disable-next-line @next/next/no-img-element */}
-								<img
-									src={avatarPreviewUrl ?? undefined}
-									alt="Avatar preview"
-									className="size-full object-cover opacity-80"
-								/>
-								<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-3">
-									<p className="text-xs text-white/90">
-										{statusLabel}
-									</p>
-								</div>
-							</div>
-						) : (
-							<div className="flex w-full max-w-md flex-col items-center gap-4">
-								<div className="flex size-40 items-center justify-center rounded-full border bg-background shadow-sm sm:size-52">
-									<AudioBars
-										trackRef={audioTrack}
-										state={hasAgent ? state : "connecting"}
-										barCount={16}
-										className="h-24 w-28 sm:h-28 sm:w-36"
-									/>
-								</div>
-								<p className="text-center text-sm text-muted-foreground">
-									{statusLabel}
-								</p>
-							</div>
-						)}
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+			<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4 md:p-5">
+				<div className="relative flex h-full max-h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-xl border bg-card shadow-sm lg:max-w-4xl xl:max-w-5xl">
+					<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 p-3 sm:p-4">
+						<div
+							className={cn(
+								"relative flex h-full max-h-full w-full items-center justify-center",
+								showAudioOnlyMain && "min-h-48",
+							)}
+						>
+							<MainStage
+								className={cn(
+									showPortraitMain && PORTRAIT_STAGE_CLASS,
+									showLandscapeMain && LANDSCAPE_STAGE_CLASS,
+									showAudioOnlyMain &&
+									"aspect-auto h-auto w-full max-w-sm bg-transparent shadow-none",
+								)}
+							>
+								{mainContent}
+							</MainStage>
+						</div>
 					</div>
 
-					{(hasLocalCamera || hasScreenShare) && (
+					{pipContent ? (
 						<div className="pointer-events-none absolute right-3 bottom-20 z-10 sm:right-4 sm:bottom-24">
-							<div className="pointer-events-auto overflow-hidden rounded-lg border bg-background shadow-md">
-								<VideoTrack
-									trackRef={
-										hasLocalCamera
-											? cameraTrackRef
-											: screenShareTrack
-									}
-									className="aspect-square size-24 object-cover sm:size-28"
-								/>
+							<div className="pointer-events-auto">
+								<PipStage>{pipContent}</PipStage>
 							</div>
 						</div>
-					)}
+					) : null}
 
-					<div className="flex items-center justify-center gap-2 border-t bg-background/80 px-3 py-3 backdrop-blur">
+					<div className="flex shrink-0 items-center justify-center gap-2 border-t bg-background/90 px-3 py-2.5 backdrop-blur">
 						<div className="flex items-center gap-2 rounded-full border bg-card px-2 py-1.5">
 							<TrackToggle
 								source={Track.Source.Microphone}
@@ -421,6 +532,40 @@ export function PreviewSessionControls({
 							)}
 						</TrackToggle>
 
+						{canSwapVideos ? (
+							<Button
+								type="button"
+								variant="outline"
+								size="icon"
+								aria-label="Swap avatar and camera video"
+								className="size-9 rounded-full"
+								onClick={() =>
+									setAvatarOnMain((value) => !value)
+								}
+							>
+								<ArrowLeftRightIcon className="size-4" />
+							</Button>
+						) : null}
+
+						<Button
+							type="button"
+							variant="outline"
+							size="icon"
+							aria-label="Show conversation"
+							aria-pressed={chatOpen}
+							className={cn(
+								"relative size-9 rounded-full",
+								chatOpen &&
+								"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+							)}
+							onClick={() => setChatOpen(true)}
+						>
+							<MessageSquareIcon className="size-4" />
+							{hasChatContent && !chatOpen ? (
+								<span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary" />
+							) : null}
+						</Button>
+
 						<Button
 							type="button"
 							variant="outline"
@@ -436,37 +581,46 @@ export function PreviewSessionControls({
 						</Button>
 					</div>
 				</div>
-
-				<div className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-xl border bg-card p-3">
-					<div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-						<section className="space-y-2">
-							<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-								Conversation
-							</h3>
-							<MessageList
-								messages={messages}
-								localIdentity={localIdentity}
-							/>
-						</section>
-						{files.length > 0 ? (
-							<section className="space-y-2">
-								<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-									Files
-								</h3>
-								<FileList files={files} />
-							</section>
-						) : null}
-						{rpcCards.length > 0 ? (
-							<section className="space-y-2">
-								<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-									RPC
-								</h3>
-								<RpcCardList cards={rpcCards} />
-							</section>
-						) : null}
-					</div>
-				</div>
 			</div>
+
+			<Dialog open={chatOpen} onOpenChange={setChatOpen}>
+				<DialogContent className="flex! max-h-[min(85dvh,40rem)] w-[calc(100%-2rem)] max-w-lg flex-col gap-0 overflow-hidden p-0">
+					<DialogHeader className="shrink-0 border-b px-6 py-4 pr-12 text-left">
+						<DialogTitle>Conversation</DialogTitle>
+						<DialogDescription>
+							Live transcript, files, and agent messages for this
+							preview.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="min-h-0 flex-1 overflow-y-auto">
+						<div className="space-y-4 px-6 py-4">
+							<section className="space-y-2">
+								<MessageList
+									messages={messages}
+									localIdentity={localIdentity}
+								/>
+							</section>
+							{files.length > 0 ? (
+								<section className="space-y-2">
+									<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+										Files
+									</h3>
+									<FileList files={files} />
+								</section>
+							) : null}
+							{rpcCards.length > 0 ? (
+								<section className="space-y-2">
+									<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+										RPC
+									</h3>
+									<RpcCardList cards={rpcCards} />
+								</section>
+							) : null}
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+
 			<RoomAudioRenderer />
 		</div>
 	);

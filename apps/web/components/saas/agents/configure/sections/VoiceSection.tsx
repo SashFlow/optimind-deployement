@@ -222,45 +222,6 @@ export function VoiceSection({ config, onConfigChange }: VoiceSectionProps) {
 				</ConfigureSectionToggle>
 			</div>
 
-			<div className="px-4 py-4 md:px-5">
-				<ConfigureSectionToggle
-					title="Noise cancel"
-					description="Filters background noise from the caller's audio."
-					checked={config.noise_filtering.enabled}
-					onCheckedChange={(enabled) =>
-						onConfigChange({
-							noise_filtering: {
-								...config.noise_filtering,
-								enabled,
-							},
-						})
-					}
-				>
-					<div className="space-y-1.5">
-						<Label className="text-xs">
-							Noise suppression level
-						</Label>
-						<Input
-							type="number"
-							min={0}
-							max={100}
-							className="bg-background sm:max-w-xs"
-							value={config.noise_filtering.suppression_level}
-							onChange={(e) =>
-								onConfigChange({
-									noise_filtering: {
-										...config.noise_filtering,
-										suppression_level: Number(
-											e.target.value,
-										),
-									},
-								})
-							}
-						/>
-					</div>
-				</ConfigureSectionToggle>
-			</div>
-
 			<div className="space-y-4 px-4 py-4 md:px-5">
 				<SectionHeader
 					title="Voice activity detection"

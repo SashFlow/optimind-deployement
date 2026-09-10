@@ -11,6 +11,7 @@ import {
 	SelectValue,
 } from "@repo/ui/select";
 import { Switch } from "@repo/ui/switch";
+import { Textarea } from "@repo/ui/textarea";
 import { BellOffIcon, ClockIcon, TriangleAlertIcon } from "lucide-react";
 import * as React from "react";
 import { ConfigureRadioCard } from "@/components/saas/agents/configure/ConfigureRadioCard";
@@ -59,24 +60,29 @@ function ToggleField({
 	description,
 	checked,
 	onCheckedChange,
+	children,
 }: {
 	label: string;
 	description?: string;
 	checked: boolean;
 	onCheckedChange: (checked: boolean) => void;
+	children?: React.ReactNode;
 }) {
 	return (
-		<label className="flex items-start justify-between gap-4 border-b py-3 last:border-b-0">
-			<div className="min-w-0 flex-1">
-				<p className="text-sm font-medium">{label}</p>
-				{description ? (
-					<p className="mt-0.5 text-xs text-muted-foreground">
-						{description}
-					</p>
-				) : null}
-			</div>
-			<Switch checked={checked} onCheckedChange={onCheckedChange} />
-		</label>
+		<div className="space-y-3 border-b py-3 last:border-b-0">
+			<label className="flex items-start justify-between gap-4">
+				<div className="min-w-0 flex-1">
+					<p className="text-sm font-medium">{label}</p>
+					{description ? (
+						<p className="mt-0.5 text-xs text-muted-foreground">
+							{description}
+						</p>
+					) : null}
+				</div>
+				<Switch checked={checked} onCheckedChange={onCheckedChange} />
+			</label>
+			{checked && children ? children : null}
+		</div>
 	);
 }
 
@@ -280,7 +286,7 @@ export function CallSessionSection({
 					/>
 					<ToggleField
 						label="Leave voicemail message"
-						description="Assistant will end the call."
+						description="When enabled, provide the message the assistant should leave."
 						checked={config.voicemail.leave_message_enabled}
 						onCheckedChange={(leave_message_enabled) =>
 							onConfigChange({
@@ -290,7 +296,31 @@ export function CallSessionSection({
 								},
 							})
 						}
-					/>
+					>
+						<div className="space-y-1.5">
+							<Label className="text-xs">Voicemail message</Label>
+							<Textarea
+								className="min-h-20 bg-background text-sm"
+								value={config.voicemail.message}
+								onChange={(e) =>
+									onConfigChange({
+										voicemail: {
+											...config.voicemail,
+											message: e.target.value,
+										},
+									})
+								}
+								placeholder="Message to leave on voicemail"
+								rows={3}
+								required
+							/>
+							{!config.voicemail.message.trim() ? (
+								<p className="text-xs text-destructive">
+									A message is required when this is enabled.
+								</p>
+							) : null}
+						</div>
+					</ToggleField>
 					<ToggleField
 						label="Retry call"
 						description="Retries call if voicemail is detected."
@@ -303,7 +333,49 @@ export function CallSessionSection({
 								},
 							})
 						}
-					/>
+					>
+						<div className="space-y-1.5">
+							<Label className="text-xs">
+								Retry after (hours)
+							</Label>
+							<Input
+								type="number"
+								min={1}
+								step={1}
+								className="bg-background sm:max-w-xs"
+								value={
+									config.voicemail.retry_after_hours ?? ""
+								}
+								onChange={(e) => {
+									const raw = e.target.value;
+									const parsed =
+										raw === "" ? null : Number(raw);
+									onConfigChange({
+										voicemail: {
+											...config.voicemail,
+											retry_after_hours:
+												parsed != null &&
+												Number.isFinite(parsed)
+													? parsed
+													: null,
+										},
+									});
+								}}
+								placeholder="e.g. 24"
+								required
+							/>
+							{config.voicemail.retry_after_hours == null ||
+							!Number.isFinite(
+								config.voicemail.retry_after_hours,
+							) ||
+							config.voicemail.retry_after_hours <= 0 ? (
+								<p className="text-xs text-destructive">
+									retry_after_hours is required when this is
+									enabled.
+								</p>
+							) : null}
+						</div>
+					</ToggleField>
 				</div>
 			</div>
 

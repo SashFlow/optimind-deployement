@@ -104,7 +104,7 @@ export function AgentConfigureForm({
 	const actionsBusy = isSaving || isPublishing;
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col overflow-hidden py-4 md:py-5">
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0">
 				<Tabs
 					value={activeSection}
@@ -113,7 +113,7 @@ export function AgentConfigureForm({
 					}
 					className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden"
 				>
-					<div className="flex shrink-0 items-center gap-3 border-b px-4 pt-4 pb-3 md:px-6">
+					<div className="flex shrink-0 items-center gap-3 border-b px-4 pt-3 pb-3 md:px-6">
 						<div className="min-w-0 flex-1">
 							<Select
 								value={activeSection}
@@ -143,14 +143,17 @@ export function AgentConfigureForm({
 							<div className="scrollbar-none hidden min-w-0 overflow-x-auto sm:block">
 								<TabsList className="h-auto w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
 									{SECTIONS.map((section) => {
+										const isActive =
+											activeSection === section.value;
 										return (
 											<TabsTrigger
 												key={section.value}
 												value={section.value}
 												className={cn(
-													"h-9 flex-none gap-2 rounded-full px-4 py-2 text-muted-foreground shadow-none transition-colors hover:text-foreground",
-													"data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none",
-													"data-[state=active]:hover:bg-primary data-[state=active]:hover:text-primary-foreground",
+													"h-9 flex-none gap-2 rounded-full px-4 py-2 shadow-none transition-colors",
+													isActive
+														? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+														: "text-muted-foreground hover:text-foreground",
 												)}
 											>
 												{section.label}
@@ -263,8 +266,8 @@ export function AgentConfigureForm({
 							value="preview"
 							className={SECTION_TAB_CLASS}
 						>
-							<div className="flex min-h-0 flex-1 flex-col overflow-hidden py-4">
-								<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-background">
+							<div className="flex min-h-0 flex-1 flex-col overflow-hidden py-3 md:py-4">
+								<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-muted/20">
 									<AgentConfigurePreview
 										agent={agent}
 										savedVariables={savedVariables}

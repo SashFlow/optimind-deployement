@@ -88,9 +88,37 @@ export const agentConfigSchema = z
 			.object({
 				detection_enabled: z.boolean(),
 				leave_message_enabled: z.boolean(),
+				message: z.string().optional(),
 				retry_call_enabled: z.boolean(),
+				retry_after_hours: z.number().nullable().optional(),
 			})
 			.passthrough()
+			.superRefine((value, ctx) => {
+				if (
+					value.leave_message_enabled &&
+					!(value.message ?? "").trim()
+				) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message:
+							"Voicemail message is required when leave message is enabled",
+						path: ["message"],
+					});
+				}
+				if (
+					value.retry_call_enabled &&
+					(value.retry_after_hours == null ||
+						!Number.isFinite(value.retry_after_hours) ||
+						value.retry_after_hours <= 0)
+				) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message:
+							"retry_after_hours is required when retry call is enabled",
+						path: ["retry_after_hours"],
+					});
+				}
+			})
 			.optional(),
 		interruption_sensitivity: z
 			.object({

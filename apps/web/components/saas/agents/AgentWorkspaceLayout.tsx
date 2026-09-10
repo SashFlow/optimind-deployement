@@ -113,7 +113,7 @@ export function AgentWorkspaceLayout({
 	}
 
 	return (
-		<div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[1600px] flex-1 flex-col gap-4 overflow-hidden px-4 py-6 md:px-6">
+		<div className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col gap-3 overflow-hidden px-4 py-4 md:gap-4 md:px-6 md:py-5">
 			<div className="min-w-0 shrink-0">
 				<Select value={active} onValueChange={navigateToTab}>
 					<SelectTrigger
@@ -138,14 +138,16 @@ export function AgentWorkspaceLayout({
 				>
 					<TabsList className="h-auto w-fit gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground shadow-sm ring-1 ring-black/5">
 						{TABS.map((tab) => {
+							const isActive = active === tab.value;
 							return (
 								<TabsTrigger
 									key={tab.value}
 									value={tab.value}
 									className={cn(
-										"h-9 flex-none gap-2 rounded-full px-4 py-2 text-muted-foreground shadow-none transition-colors hover:text-foreground",
-										"data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none",
-										"data-[state=active]:hover:bg-primary data-[state=active]:hover:text-primary-foreground",
+										"h-9 flex-none gap-2 rounded-full px-4 py-2 shadow-none transition-colors",
+										isActive
+											? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+											: "text-muted-foreground hover:text-foreground",
 									)}
 								>
 									{tab.label}

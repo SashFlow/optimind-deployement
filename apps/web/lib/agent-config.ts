@@ -70,7 +70,9 @@ export type BackgroundAudioConfig = {
 export type VoicemailConfig = {
 	detection_enabled: boolean;
 	leave_message_enabled: boolean;
+	message: string;
 	retry_call_enabled: boolean;
+	retry_after_hours: number | null;
 };
 
 export type InterruptionSensitivityConfig = {
@@ -239,7 +241,9 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 		voicemail: {
 			detection_enabled: false,
 			leave_message_enabled: false,
+			message: "",
 			retry_call_enabled: false,
+			retry_after_hours: null,
 		},
 		interruption_sensitivity: { mode: "default" },
 		noise_filtering: { enabled: false, suppression_level: 80 },
@@ -296,6 +300,23 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 		metadata: {},
 		recording_enabled: false,
 	};
+}
+
+export function getVoicemailConfigError(
+	voicemail: VoicemailConfig,
+): string | null {
+	if (voicemail.leave_message_enabled && !voicemail.message.trim()) {
+		return "Provide a voicemail message when Leave voicemail message is enabled.";
+	}
+	if (
+		voicemail.retry_call_enabled &&
+		(voicemail.retry_after_hours == null ||
+			!Number.isFinite(voicemail.retry_after_hours) ||
+			voicemail.retry_after_hours <= 0)
+	) {
+		return "Provide retry_after_hours when Retry call is enabled.";
+	}
+	return null;
 }
 
 export function normalizeVariables(raw: unknown): AgentVariableDefinition[] {

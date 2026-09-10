@@ -397,6 +397,7 @@ export async function saveAgentSessionReport(
 		report: unknown;
 		usage?: unknown;
 		metadataPatch?: unknown;
+		mergeReport?: boolean;
 	},
 ) {
 	const existing = await db.agentSession.findUnique({ where: { id } });
@@ -408,10 +409,80 @@ export async function saveAgentSessionReport(
 		...(data.usage ? { session_usage: data.usage } : {}),
 	});
 
+	let reportToStore = data.report;
+	if (data.mergeReport !== false) {
+		const existingReport = existing.livekitSessionReport;
+		const incoming = data.report;
+		const incomingRecord =
+			incoming && typeof incoming === "object" && !Array.isArray(incoming)
+				? (incoming as Record<string, unknown>)
+				: {};
+		const isStub =
+			incomingRecord.metrics_flush === true ||
+			Object.keys(incomingRecord).length === 0 ||
+			Object.keys(incomingRecord).every(
+				(k) => k === "metrics_flush" || k === "metrics",
+			);
+
+		if (
+			isStub &&
+			existingReport &&
+			typeof existingReport === "object" &&
+			!Array.isArray(existingReport)
+		) {
+			const prev = existingReport as Record<string, unknown>;
+			const mergedMetrics = [
+				...(Array.isArray(prev.metrics) ? prev.metrics : []),
+				...(Array.isArray(incomingRecord.metrics)
+					? incomingRecord.metrics
+					: []),
+			];
+			reportToStore = {
+				...prev,
+				...(mergedMetrics.length ? { metrics: mergedMetrics } : {}),
+			};
+		} else if (
+			existingReport &&
+			typeof existingReport === "object" &&
+			!Array.isArray(existingReport)
+		) {
+			const prev = existingReport as Record<string, unknown>;
+			const next = incomingRecord;
+			const prevHistory =
+				prev.chat_history &&
+				typeof prev.chat_history === "object" &&
+				!Array.isArray(prev.chat_history)
+					? (prev.chat_history as Record<string, unknown>)
+					: null;
+			const nextHistory =
+				next.chat_history &&
+				typeof next.chat_history === "object" &&
+				!Array.isArray(next.chat_history)
+					? (next.chat_history as Record<string, unknown>)
+					: null;
+			const nextItems = Array.isArray(nextHistory?.items)
+				? nextHistory.items
+				: null;
+			reportToStore = {
+				...prev,
+				...next,
+				chat_history:
+					nextItems && nextItems.length > 0
+						? nextHistory
+						: (prevHistory ?? next.chat_history ?? prev.chat_history),
+				events:
+					Array.isArray(next.events) && next.events.length > 0
+						? next.events
+						: (prev.events ?? next.events),
+				usage: next.usage ?? prev.usage,
+			};
+		}
+	}
+
 	return db.agentSession.update({
 		where: { id },
 		data: {
-			livekitSessionReport: toJson(data.report),
+			livekitSessionReport: toJson(reportToStore),
 			metadata,
 		},
 		include: sessionDetailInclude,

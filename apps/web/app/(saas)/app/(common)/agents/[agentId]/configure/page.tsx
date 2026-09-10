@@ -9,6 +9,7 @@ import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
 import {
 	type AgentConfigDocument,
 	createDefaultAgentConfig,
+	getVoicemailConfigError,
 	normalizeAgentConfig,
 } from "@/lib/agent-config";
 import { getAvatarPreviewUrl } from "@/lib/stock-avatars";
@@ -98,6 +99,11 @@ export default function AgentConfigurePage() {
 
 	async function handleSave() {
 		if (!draftVersion || !agentQuery.data) {
+			return;
+		}
+		const voicemailError = getVoicemailConfigError(config.voicemail);
+		if (voicemailError) {
+			toast.error(voicemailError);
 			return;
 		}
 		await updateVersion.mutateAsync({ config });

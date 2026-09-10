@@ -503,6 +503,7 @@ export const startEgress = protectedProcedure
 				: { filepath },
 			fileUrl: s3 ? `s3://${s3.bucket}/${filepath}` : undefined,
 			outputUrls: s3 ? [`s3://${s3.bucket}/${filepath}`] : [],
+			metadata: { audioOnly: Boolean(input.audioOnly) },
 		});
 		return { job, remote };
 	});

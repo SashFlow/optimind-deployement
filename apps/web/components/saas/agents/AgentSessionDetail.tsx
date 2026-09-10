@@ -7,9 +7,11 @@ import {
 	AccordionTrigger,
 } from "@repo/ui/accordion";
 import { Badge } from "@repo/ui/badge";
+import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
+import { DownloadIcon, ExternalLinkIcon, FileAudioIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
 	PAGE_SIZE,
@@ -56,30 +58,96 @@ function isAudioUrl(url: string) {
 	return /\.(mp3|wav|m4a|aac|ogg|flac)(\?|#|$)/i.test(url);
 }
 
-function pickPlayableUrl(job: {
+function isAudioRecording(job: {
+	audioOnly?: boolean | null;
+	playableContentType?: string | null;
 	fileUrl?: string | null;
 	outputUrls?: string[] | null;
+	playableUrl?: string | null;
 }) {
+	if (job.audioOnly === true) return true;
+	if (job.playableContentType?.startsWith("audio/")) return true;
 	const candidates = [
+		job.playableUrl,
 		job.fileUrl,
 		...(job.outputUrls ?? []),
 	].filter((url): url is string => Boolean(url));
+	return candidates.some(isAudioUrl);
+}
+
+function isS3Url(url: string) {
+	return /^s3:\/\//i.test(url);
+}
+
+function pickPlayableUrl(job: {
+	playableUrl?: string | null;
+	fileUrl?: string | null;
+	outputUrls?: string[] | null;
+}) {
+	if (job.playableUrl && isHttpUrl(job.playableUrl)) return job.playableUrl;
+	const candidates = [job.fileUrl, ...(job.outputUrls ?? [])].filter(
+		(url): url is string => Boolean(url),
+	);
 	return candidates.find(isHttpUrl) ?? null;
 }
 
-function roleLabel(role: string | undefined) {
-	switch (role?.toUpperCase()) {
-		case "USER":
-		case "CALLER":
-			return "User";
-		case "AGENT":
-		case "ASSISTANT":
-			return "Agent";
-		case "SYSTEM":
-			return "System";
-		default:
-			return role ?? "Speaker";
+function formatBytes(bytes: number | null | undefined) {
+	if (bytes == null || bytes < 0) return null;
+	if (bytes < 1024) return `${bytes} B`;
+	const units = ["KB", "MB", "GB", "TB"];
+	let value = bytes / 1024;
+	let unitIndex = 0;
+	while (value >= 1024 && unitIndex < units.length - 1) {
+		value /= 1024;
+		unitIndex += 1;
 	}
+	return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function filenameFromUrl(url: string) {
+	try {
+		const withoutQuery = url.split("?")[0]?.split("#")[0] ?? url;
+		const parts = withoutQuery.split("/");
+		return parts[parts.length - 1] || "recording";
+	} catch {
+		return "recording";
+	}
+}
+
+function filenameFromJob(job: {
+	fileUrl?: string | null;
+	outputUrls?: string[] | null;
+	destination?: { filepath?: string } | null;
+	livekitEgressId?: string | null;
+	id: string;
+}) {
+	const filepath = job.destination?.filepath;
+	if (filepath) {
+		const parts = filepath.split("/");
+		return parts[parts.length - 1] || filepath;
+	}
+	const candidate = job.fileUrl ?? job.outputUrls?.[0];
+	if (candidate) return filenameFromUrl(candidate);
+	return `${job.livekitEgressId ?? job.id}.mp4`;
+}
+
+function transcriptStatusLabel(status: string | undefined) {
+	switch (status?.toUpperCase()) {
+		case "ACTIVE":
+		case "QUEUED":
+			return "Listening";
+		case "FAILED":
+			return "Failed";
+		case "CANCELLED":
+			return "Cancelled";
+		default:
+			return "Completed";
+	}
+}
+
+function isLiveTranscriptStatus(status: string | undefined) {
+	const value = status?.toUpperCase();
+	return value === "ACTIVE" || value === "QUEUED";
 }
 
 function formatPayloadPreview(payload: unknown) {
@@ -139,81 +207,163 @@ type EgressJobRow = {
 	type?: string;
 	fileUrl?: string | null;
 	outputUrls?: string[] | null;
+	playableUrl?: string | null;
+	playableContentType?: string | null;
+	audioOnly?: boolean | null;
 	livekitEgressId?: string | null;
 	durationMs?: number | null;
+	sizeBytes?: number | null;
 	errorMessage?: string | null;
+	destination?: {
+		bucket?: string;
+		filepath?: string;
+		endpoint?: string | null;
+		region?: string;
+	} | null;
+	metadata?: { audioOnly?: boolean } | null;
 };
+
+const WAVEFORM_BAR_HEIGHTS = [10, 18, 14, 24, 16, 28, 12, 22, 15, 26, 18, 11];
+
+function TranscriptWaveform({ animated }: { animated: boolean }) {
+	return (
+		<div
+			aria-hidden
+			className="flex h-10 items-end justify-center gap-1 px-2"
+		>
+			{WAVEFORM_BAR_HEIGHTS.map((height, index) => (
+				<span
+					key={`${height}-${index}`}
+					className={cn(
+						"w-1.5 rounded-full bg-primary",
+						animated && "origin-bottom animate-pulse",
+					)}
+					style={{
+						height: `${height}px`,
+						animationDelay: animated ? `${index * 70}ms` : undefined,
+						opacity: animated ? undefined : 0.7,
+					}}
+				/>
+			))}
+		</div>
+	);
+}
+
+function TranscriptBubble({
+	text,
+	isUser,
+	offset,
+}: {
+	text: string;
+	isUser: boolean;
+	offset?: string | null;
+}) {
+	return (
+		<div
+			className={cn(
+				"flex w-full",
+				isUser ? "justify-end" : "justify-start",
+			)}
+		>
+			<div
+				className={cn(
+					"max-w-[85%] space-y-1 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+					isUser
+						? "bg-primary text-primary-foreground"
+						: "border border-border/70 bg-muted/80 text-foreground",
+				)}
+			>
+				<p className="whitespace-pre-wrap text-pretty">{text}</p>
+				{offset ? (
+					<p
+						className={cn(
+							"text-[10px] tabular-nums",
+							isUser
+								? "text-primary-foreground/70"
+								: "text-muted-foreground",
+						)}
+					>
+						{offset}
+					</p>
+				) : null}
+			</div>
+		</div>
+	);
+}
 
 function TranscriptPanel({
 	segments,
 	fullText,
+	sessionStatus,
 }: {
 	segments: TranscriptSegmentRow[];
 	fullText: string | null;
+	sessionStatus?: string;
 }) {
-	if (segments.length > 0) {
-		return (
-			<div className="max-h-[28rem] space-y-3 overflow-y-auto pr-1">
-				{segments.map((segment) => {
-					const role = segment.role?.toUpperCase() ?? "";
-					const isUser = role === "USER" || role === "CALLER";
-					const offset = formatOffsetMs(segment.startMs);
-
-					return (
-						<div
-							key={segment.id}
-							className={cn(
-								"rounded-2xl px-3 py-2.5 text-sm",
-								isUser
-									? "ml-4 bg-primary/10"
-									: "mr-4 bg-muted/60",
-							)}
-						>
-							<div className="mb-1 flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-								<span>
-									{roleLabel(segment.role)}
-									{segment.speakerIdentity
-										? ` · ${segment.speakerIdentity}`
-										: null}
-								</span>
-								{offset ? (
-									<span className="normal-case tracking-normal tabular-nums">
-										{offset}
-									</span>
-								) : null}
-							</div>
-							<p className="whitespace-pre-wrap text-pretty leading-relaxed">
-								{segment.text?.trim() || "—"}
-							</p>
-						</div>
-					);
-				})}
-			</div>
-		);
-	}
-
-	if (fullText?.trim()) {
-		return (
-			<pre className="max-h-[28rem] overflow-y-auto whitespace-pre-wrap rounded-xl border bg-muted/30 p-4 text-sm leading-relaxed">
-				{fullText}
-			</pre>
-		);
-	}
+	const live = isLiveTranscriptStatus(sessionStatus);
+	const statusLabel = transcriptStatusLabel(sessionStatus);
 
 	return (
-		<p className="text-sm text-muted-foreground">No transcript available.</p>
+		<div className="flex max-h-[28rem] flex-col overflow-hidden rounded-2xl border bg-background/80">
+			<div className="space-y-2 border-b px-4 pb-3 pt-3">
+				<div className="flex items-center gap-2 text-sm text-muted-foreground">
+					<span
+						className={cn(
+							"size-2 rounded-full",
+							live ? "bg-primary animate-pulse" : "bg-muted-foreground/50",
+						)}
+					/>
+					<span className="font-medium text-foreground/90">
+						{statusLabel}
+					</span>
+				</div>
+				<TranscriptWaveform animated={live} />
+			</div>
+
+			<div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-4">
+				{segments.length > 0 ? (
+					segments.map((segment) => {
+						const role = segment.role?.toUpperCase() ?? "";
+						const isUser = role === "USER" || role === "CALLER";
+						return (
+							<TranscriptBubble
+								key={segment.id}
+								text={segment.text?.trim() || "—"}
+								isUser={isUser}
+								offset={formatOffsetMs(segment.startMs)}
+							/>
+						);
+					})
+				) : fullText?.trim() ? (
+					<TranscriptBubble text={fullText.trim()} isUser={false} />
+				) : (
+					<p className="px-1 text-sm text-muted-foreground">
+						No transcript available.
+					</p>
+				)}
+			</div>
+		</div>
 	);
 }
 
-function EgressMediaPlayer({ url }: { url: string }) {
-	if (isAudioUrl(url)) {
+function EgressMediaPlayer({
+	url,
+	audioOnly,
+	contentType,
+}: {
+	url: string;
+	audioOnly?: boolean;
+	contentType?: string | null;
+}) {
+	const useAudio =
+		audioOnly ||
+		contentType?.startsWith("audio/") ||
+		isAudioUrl(url);
+
+	if (useAudio) {
 		return (
-			<audio
-				controls
-				preload="metadata"
-				src={url}
-				className="w-full"
-			>
+			<audio controls preload="metadata" className="w-full">
+				<source src={url} type={contentType ?? "audio/mp4"} />
 				<track kind="captions" />
 			</audio>
 		);
@@ -223,9 +373,9 @@ function EgressMediaPlayer({ url }: { url: string }) {
 		<video
 			controls
 			preload="metadata"
-			src={url}
 			className="aspect-video w-full rounded-xl bg-black object-contain"
 		>
+			<source src={url} type={contentType ?? "video/mp4"} />
 			<track kind="captions" />
 		</video>
 	);
@@ -242,7 +392,18 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 		<div className="max-h-[28rem] space-y-4 overflow-y-auto pr-1">
 			{jobs.map((job) => {
 				const playableUrl = pickPlayableUrl(job);
-				const status = job.status ?? "unknown";
+				const status = (job.status ?? "unknown").toUpperCase();
+				const filename = filenameFromJob(job);
+				const sizeLabel = formatBytes(job.sizeBytes);
+				const storedPath =
+					job.destination?.filepath ||
+					(job.fileUrl && isS3Url(job.fileUrl) ? job.fileUrl : null);
+				const audioOnly = isAudioRecording(job);
+				const isComplete = status === "COMPLETE";
+				const inProgress =
+					status === "ACTIVE" ||
+					status === "ENDING" ||
+					status === "STARTING";
 
 				return (
 					<div
@@ -264,7 +425,7 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 							</div>
 							<Badge
 								variant={
-									status === "COMPLETE"
+									isComplete
 										? "default"
 										: status === "FAILED" ||
 												status === "ABORTED"
@@ -277,21 +438,93 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 							</Badge>
 						</div>
 
-						{playableUrl ? (
-							<EgressMediaPlayer url={playableUrl} />
-						) : job.fileUrl ? (
-							<a
-								href={job.fileUrl}
-								target="_blank"
-								rel="noreferrer"
-								className="block truncate text-xs underline-offset-2 hover:underline"
-							>
-								{job.fileUrl}
-							</a>
+						{isComplete && playableUrl ? (
+							<EgressMediaPlayer
+								url={playableUrl}
+								audioOnly={audioOnly}
+								contentType={job.playableContentType}
+							/>
+						) : inProgress ? (
+							<p className="text-sm text-muted-foreground">
+								Recording in progress…
+							</p>
+						) : job.errorMessage ? (
+							<p className="text-sm text-muted-foreground">
+								{job.errorMessage}
+							</p>
+						) : storedPath ? (
+							<div className="space-y-1">
+								<p className="text-sm text-muted-foreground">
+									Recording stored; playback unavailable.
+								</p>
+								<p className="truncate font-mono text-xs text-muted-foreground/80">
+									{storedPath}
+								</p>
+							</div>
 						) : (
 							<p className="text-sm text-muted-foreground">
-								{job.errorMessage ?? "No recording available."}
+								No recording available.
 							</p>
+						)}
+
+						{(playableUrl || storedPath) && (
+							<div className="space-y-2 border-t pt-3">
+								<p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+									Output files
+								</p>
+								<div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-3 py-2.5">
+									<FileAudioIcon className="size-4 shrink-0 text-muted-foreground" />
+									<div className="min-w-0 flex-1">
+										<p className="truncate text-sm font-medium">
+											{filename}
+										</p>
+										<p className="text-xs text-muted-foreground">
+											{[
+												sizeLabel,
+												formatDuration(job.durationMs),
+											]
+												.filter(
+													(part) =>
+														part && part !== "—",
+												)
+												.join(" · ") || "Recording"}
+										</p>
+									</div>
+									{playableUrl ? (
+										<div className="flex shrink-0 items-center gap-1">
+											<Button
+												asChild
+												variant="ghost"
+												size="icon"
+												className="size-8"
+											>
+												<a
+													href={playableUrl}
+													download={filename}
+													aria-label={`Download ${filename}`}
+												>
+													<DownloadIcon className="size-4" />
+												</a>
+											</Button>
+											<Button
+												asChild
+												variant="ghost"
+												size="icon"
+												className="size-8"
+											>
+												<a
+													href={playableUrl}
+													target="_blank"
+													rel="noreferrer"
+													aria-label={`Open ${filename}`}
+												>
+													<ExternalLinkIcon className="size-4" />
+												</a>
+											</Button>
+										</div>
+									) : null}
+								</div>
+							</div>
 						)}
 					</div>
 				);
@@ -538,6 +771,7 @@ export function AgentSessionDetail({
 								<TranscriptPanel
 									segments={transcriptSegments}
 									fullText={transcriptText}
+									sessionStatus={session.status}
 								/>
 							</CardContent>
 						</Card>

@@ -11,7 +11,6 @@ import {
 import { Switch } from "@repo/ui/switch";
 import { cn } from "@repo/ui/utils";
 import type { ReactNode } from "react";
-import { CallEndingFields } from "@/components/saas/agents/configure/CallEndingFields";
 import { ConfigureMarkdownEditor } from "@/components/saas/agents/configure/ConfigureMarkdownEditor";
 import { ConfigureRadioCard } from "@/components/saas/agents/configure/ConfigureRadioCard";
 import {
@@ -435,21 +434,6 @@ export function GeneralSection({
 							environmentVariables={config.environment_variables}
 						/>
 					</div>
-				</div>
-
-				<div className="space-y-4 px-4 py-4 md:px-5">
-					<div>
-						<h3 className="text-sm font-semibold">Call ending</h3>
-						<p className="mt-0.5 text-xs text-muted-foreground">
-							Farewell behavior when a call ends.
-						</p>
-					</div>
-					<CallEndingFields
-						callEnding={config.call_ending}
-						onChange={(call_ending) => update({ call_ending })}
-						variables={config.variables}
-						environmentVariables={config.environment_variables}
-					/>
 				</div>
 			</div>
 		</div>

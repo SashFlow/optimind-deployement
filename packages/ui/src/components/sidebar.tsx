@@ -224,7 +224,7 @@ export function SidebarItem({
 	const currentPath = usePathname() ?? "";
 
 	const active = isRouteActive(path, currentPath, end ?? false);
-	const variant = active ? "secondary" : "ghost";
+	const variant = active ? "default" : "ghost";
 
 	return (
 		<TooltipProvider delayDuration={0}>
@@ -233,10 +233,11 @@ export function SidebarItem({
 					<Button
 						asChild
 						className={cn(
-							"active:bg-secondary/60 flex w-full text-sm shadow-none",
+							"flex w-full text-sm shadow-none",
 							{
 								"justify-start space-x-2.5": !collapsed,
-								"hover:bg-initial": active,
+								"hover:bg-primary hover:text-primary-foreground":
+									active,
 							},
 						)}
 						size={"sm"}
