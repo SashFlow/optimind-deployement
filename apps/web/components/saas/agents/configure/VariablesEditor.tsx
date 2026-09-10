@@ -141,7 +141,7 @@ export function VariablesEditor({
 									))}
 								</SelectContent>
 							</Select>
-							<label className="flex items-center justify-center gap-2 text-xs sm:justify-start">
+							<div className="flex items-center justify-center gap-2 text-xs sm:justify-start">
 								<Switch
 									checked={!variable.required}
 									onCheckedChange={(optional) =>
@@ -154,7 +154,7 @@ export function VariablesEditor({
 								<span className="text-muted-foreground sm:hidden">
 									Optional
 								</span>
-							</label>
+							</div>
 							<div className="flex items-center justify-end">
 								<Button
 									type="button"

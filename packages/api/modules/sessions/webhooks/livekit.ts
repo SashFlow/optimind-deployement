@@ -5,38 +5,8 @@ import {
 	updateEgressJob,
 } from "@repo/database";
 import { createWebhookReceiver, getLiveKitConfig } from "@repo/livekit";
-import { EgressStatus } from "@livekit/protocol";
 import { logger } from "@repo/logs";
-
-type EgressJobStatus =
-	| "STARTING"
-	| "ACTIVE"
-	| "ENDING"
-	| "COMPLETE"
-	| "FAILED"
-	| "ABORTED";
-
-function mapEgressStatus(
-	status: EgressStatus | number | undefined,
-): EgressJobStatus {
-	switch (status) {
-		case EgressStatus.EGRESS_STARTING:
-			return "STARTING";
-		case EgressStatus.EGRESS_ACTIVE:
-			return "ACTIVE";
-		case EgressStatus.EGRESS_ENDING:
-			return "ENDING";
-		case EgressStatus.EGRESS_COMPLETE:
-			return "COMPLETE";
-		case EgressStatus.EGRESS_FAILED:
-		case EgressStatus.EGRESS_LIMIT_REACHED:
-			return "FAILED";
-		case EgressStatus.EGRESS_ABORTED:
-			return "ABORTED";
-		default:
-			return "ACTIVE";
-	}
-}
+import { mapLivekitEgressStatus } from "../lib/reconcile-egress";
 
 function extractFileUrl(egressInfo: {
 	file?: { location?: string };
@@ -82,7 +52,7 @@ export async function livekitWebhookHandler(
 						: job.outputUrls;
 
 					await updateEgressJob(job.id, {
-						status: mapEgressStatus(info.status),
+						status: mapLivekitEgressStatus(info.status),
 						fileUrl: fileUrl ?? undefined,
 						outputUrls,
 						errorMessage: info.error || undefined,

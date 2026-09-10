@@ -64,6 +64,9 @@ InputOTPSlot.displayName = "InputOTPSlot";
 const InputOTPSeparator: React.FC<React.ComponentPropsWithoutRef<"div">> = ({
 	...props
 }) => (
+	// biome-ignore lint/a11y/useFocusableInteractive: decorative OTP separator
+	// biome-ignore lint/a11y/useSemanticElements: shadcn OTP separator pattern
+	// biome-ignore lint/a11y/useAriaPropsForRole: visual separator only
 	<div role="separator" {...props}>
 		<DashIcon />
 	</div>

@@ -38,6 +38,10 @@ import {
 	isMetricsOnlyReport,
 	persistSessionArtifacts,
 } from "./lib/normalize-report";
+import {
+	finalizeSessionEgressJobs,
+	reconcileOpenEgressJobs,
+} from "./lib/reconcile-egress";
 import { workerProcedure } from "./lib/worker-procedure";
 
 const AGENT_NAME = process.env.AGENT_NAME || "demo-agent";
@@ -84,9 +88,12 @@ export const get = protectedProcedure
 	})
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
-		const session = await getAgentSessionById(input.id);
+		let session = await getAgentSessionById(input.id);
 		if (!session) throw new ORPCError("NOT_FOUND");
 		await requireOrgMembership(session.organizationId, context.user.id);
+
+		await reconcileOpenEgressJobs(session.egressJobs);
+		session = (await getAgentSessionById(input.id)) ?? session;
 
 		const egressJobs = await Promise.all(
 			session.egressJobs.map(async (job) => {
@@ -643,9 +650,12 @@ export const end = protectedProcedure
 		}
 
 		if (existing.status === "CANCELLED") {
+			await finalizeSessionEgressJobs(existing.egressJobs);
 			await ensureRoomDeleted(existing.livekitRoomName);
 			return { session: existing };
 		}
+
+		await finalizeSessionEgressJobs(existing.egressJobs);
 
 		// Mark cancelled first so room_finished webhook won't overwrite as COMPLETED.
 		const session = await updateAgentSessionLifecycle(existing.id, {
@@ -708,7 +718,18 @@ export const patchLifecycle = workerProcedure
 		const { id, ...data } = input;
 		const session = await updateAgentSessionLifecycle(id, data);
 		if (!session) throw new ORPCError("NOT_FOUND");
-		return { session };
+
+		if (
+			data.status === "COMPLETED" ||
+			data.status === "FAILED" ||
+			data.status === "CANCELLED"
+		) {
+			await finalizeSessionEgressJobs(session.egressJobs);
+		}
+
+		return {
+			session: (await getAgentSessionById(session.id)) ?? session,
+		};
 	});
 
 export const postEvent = workerProcedure

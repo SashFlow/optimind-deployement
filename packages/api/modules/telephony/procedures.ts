@@ -43,6 +43,7 @@ import {
 } from "@repo/plivo";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
+import { recordAudit } from "../shared/audit";
 import { requireOrgMembership } from "../shared/require-org-membership";
 
 export const listNumbers = protectedProcedure
@@ -118,6 +119,26 @@ export const assignNumber = protectedProcedure
 			friendlyName:
 				input.friendlyName ?? existing.friendlyName ?? undefined,
 		});
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: existing.organizationId,
+			actionType: "UPDATE",
+			resourceType: "phone_number",
+			resourceId: phoneNumber.id,
+			before: {
+				campaignId: existing.campaignId,
+				agentId: existing.agentId,
+				sipTrunkId: existing.sipTrunkId,
+				friendlyName: existing.friendlyName,
+			},
+			after: {
+				campaignId: phoneNumber.campaignId,
+				agentId: phoneNumber.agentId,
+				sipTrunkId: phoneNumber.sipTrunkId,
+				friendlyName: phoneNumber.friendlyName,
+			},
+		});
 		return { phoneNumber };
 	});
 
@@ -171,6 +192,20 @@ export const provisionInboundSip = protectedProcedure
 			plivoTrunkId: plivoTrunk.trunk_id,
 			plivoUriId: uri.uri_uuid,
 			numbers: input.numbers,
+		});
+
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: input.organizationId,
+			actionType: "CREATE",
+			resourceType: "sip_trunk",
+			resourceId: sipTrunk.id,
+			after: {
+				name: sipTrunk.name,
+				direction: sipTrunk.direction,
+				numbers: sipTrunk.numbers,
+			},
 		});
 
 		return { sipTrunk, livekitTrunk, plivoTrunk };
@@ -234,6 +269,20 @@ export const provisionOutboundSip = protectedProcedure
 			numbers: input.numbers,
 		});
 
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: input.organizationId,
+			actionType: "CREATE",
+			resourceType: "sip_trunk",
+			resourceId: sipTrunk.id,
+			after: {
+				name: sipTrunk.name,
+				direction: sipTrunk.direction,
+				numbers: sipTrunk.numbers,
+			},
+		});
+
 		return { sipTrunk, livekitTrunk, plivoTrunk };
 	});
 
@@ -294,6 +343,21 @@ export const createDispatch = protectedProcedure
 			ruleConfig: { agentName: input.agentName },
 		});
 
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: input.organizationId,
+			actionType: "CREATE",
+			resourceType: "sip_dispatch_rule",
+			resourceId: rule.id,
+			after: {
+				name: rule.name,
+				sipTrunkId: rule.sipTrunkId,
+				agentId: rule.agentId,
+				campaignId: rule.campaignId,
+			},
+		});
+
 		return { rule, remote };
 	});
 
@@ -328,6 +392,18 @@ export const deleteRule = protectedProcedure
 		await updateDispatchRule(input.id, {
 			livekitDispatchRuleId: null,
 			metadata: { deleted: true },
+		});
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: rule.organizationId,
+			actionType: "DELETE",
+			resourceType: "sip_dispatch_rule",
+			resourceId: rule.id,
+			before: {
+				name: rule.name,
+				livekitDispatchRuleId: rule.livekitDispatchRuleId,
+			},
 		});
 		return { success: true };
 	});
@@ -556,6 +632,19 @@ export const deleteTrunk = protectedProcedure
 		await updateSipTrunk(input.id, {
 			livekitTrunkId: null,
 			metadata: { deleted: true },
+		});
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: trunk.organizationId,
+			actionType: "DELETE",
+			resourceType: "sip_trunk",
+			resourceId: trunk.id,
+			before: {
+				name: trunk.name,
+				direction: trunk.direction,
+				livekitTrunkId: trunk.livekitTrunkId,
+			},
 		});
 		return { success: true };
 	});

@@ -375,7 +375,7 @@ export function GeneralSection({
 					</div>
 					<div className="space-y-4">
 						<div className="space-y-2 flex items-center justify-between">
-							<label className="flex items-center gap-2 text-sm w-full">
+							<div className="flex items-center gap-2 text-sm w-full">
 								<Switch
 									checked={config.greeting.enabled}
 									onCheckedChange={(enabled) =>
@@ -386,9 +386,10 @@ export function GeneralSection({
 											},
 										})
 									}
+									aria-label="Enabled"
 								/>
-								Enabled
-							</label>
+								<span>Enabled</span>
+							</div>
 							<div className="space-y-2 w-full flex justify-end">
 								<Select
 									value={config.greeting.trigger}

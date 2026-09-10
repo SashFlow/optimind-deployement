@@ -2,8 +2,16 @@
 	"extends": "@repo/tsconfig/base.json",
 	"compilerOptions": {
 		"jsx": "preserve",
+		"baseUrl": ".",
 		"tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
 		"paths": {
+			"@/components/ui/*": ["./src/shadcn/*"],
+			"@/components/assistant-ui/*": ["./src/components/assistant-ui/*"],
+			"@/components/icons/*": ["./src/components/icons/*"],
+			"@/lib/utils": ["./src/utils/index.ts"],
+			"@/lib/*": ["./src/lib/*"],
+			"@/hooks/*": ["./src/hooks/*"],
+			"~/components/assistant-ui/*": ["./src/components/assistant-ui/*"],
 			"~/components/*": ["./src/shadcn/*"],
 			"~/utils": ["./src/utils"],
 			"~/utils/*": ["./src/utils/*"],

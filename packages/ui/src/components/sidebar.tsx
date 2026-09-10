@@ -86,11 +86,14 @@ export function Sidebar(props: {
 
 	return (
 		<SidebarContext.Provider value={ctx}>
+			{/* biome-ignore lint/a11y/useSemanticElements: hover expand wrapper for sidebar */}
 			<div
+				role="group"
 				className={containerClassName}
 				onMouseEnter={onMouseEnter}
 				onMouseLeave={onMouseLeave}
 			>
+				{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: collapse state for assistive tech */}
 				<div aria-expanded={!collapsed} className={className}>
 					{typeof props.children === "function"
 						? props.children(ctx)
@@ -162,6 +165,7 @@ export function SidebarGroup({
 		if (collapsible) {
 			return (
 				<button
+					type="button"
 					aria-expanded={!isGroupCollapsed}
 					aria-controls={id}
 					onClick={() => setIsGroupCollapsed(!isGroupCollapsed)}
@@ -360,10 +364,14 @@ export function SidebarNavigation({
 										</SidebarItem>
 									);
 								}
+
+								return null;
 							})}
 						</SidebarGroup>
 					);
 				}
+
+				return null;
 			})}
 		</>
 	);

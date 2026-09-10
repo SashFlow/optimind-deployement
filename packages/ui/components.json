@@ -12,13 +12,14 @@
 	},
 	"iconLibrary": "radix",
 	"aliases": {
-		"components": "~/components",
-		"utils": "~/utils",
-		"ui": "~/ui",
-		"lib": "~/lib",
-		"hooks": "~/hooks"
+		"components": "src/components",
+		"utils": "src/utils",
+		"ui": "src/shadcn",
+		"lib": "src/lib",
+		"hooks": "src/hooks"
 	},
 	"registries": {
-		"@aceternity": "https://ui.aceternity.com/registry/{name}.json"
+		"@aceternity": "https://ui.aceternity.com/registry/{name}.json",
+		"@assistant-ui": "https://r.assistant-ui.com/{name}.json"
 	}
 }

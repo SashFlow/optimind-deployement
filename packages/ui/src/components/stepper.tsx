@@ -49,6 +49,7 @@ export function Stepper(props: {
 
 			return (
 				<Fragment key={index}>
+					{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: step highlight marker */}
 					<div aria-selected={selected} className={className}>
 						<span className={labelClassName}>
 							{number}

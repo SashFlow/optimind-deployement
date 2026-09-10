@@ -621,19 +621,19 @@ export type Purchase = z.infer<typeof PurchaseSchema>;
 
 export const AuditLogSchema = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
   organizationId: z.string(),
-  actorType: AuditActorTypeSchema,
+  actorType: AuditActorTypeSchema.default("USER"),
   actionType: AuditActionTypeSchema,
   resourceType: z.string(),
   resourceId: z.string(),
-  requestId: z.string(),
-  ipAddress: z.string(),
-  userAgent: z.string(),
-  before: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10"),
-  after: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10"),
+  requestId: z.string().nullish(),
+  ipAddress: z.string().nullish(),
+  userAgent: z.string().nullish(),
+  before: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  after: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
 });
 
 export type AuditLogType = z.infer<typeof AuditLogSchema>;

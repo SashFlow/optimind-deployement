@@ -27,7 +27,9 @@ export function VoicePreviewButton({
 
 	return (
 		<>
-			<audio ref={audioRef} src={previewUrl} preload="none" />
+			<audio ref={audioRef} src={previewUrl} preload="none">
+				<track kind="captions" />
+			</audio>
 			<Button
 				type="button"
 				variant="outline"

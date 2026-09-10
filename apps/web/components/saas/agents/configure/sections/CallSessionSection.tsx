@@ -70,7 +70,7 @@ function ToggleField({
 }) {
 	return (
 		<div className="space-y-3 border-b py-3 last:border-b-0">
-			<label className="flex items-start justify-between gap-4">
+			<div className="flex items-start justify-between gap-4">
 				<div className="min-w-0 flex-1">
 					<p className="text-sm font-medium">{label}</p>
 					{description ? (
@@ -79,8 +79,12 @@ function ToggleField({
 						</p>
 					) : null}
 				</div>
-				<Switch checked={checked} onCheckedChange={onCheckedChange} />
-			</label>
+				<Switch
+					checked={checked}
+					onCheckedChange={onCheckedChange}
+					aria-label={label}
+				/>
+			</div>
 			{checked && children ? children : null}
 		</div>
 	);

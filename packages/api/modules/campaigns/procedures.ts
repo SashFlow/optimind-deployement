@@ -21,6 +21,7 @@ import {
 } from "@repo/database";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
+import { recordAudit } from "../shared/audit";
 import { requireOrgMembership } from "../shared/require-org-membership";
 
 async function requireCampaign(id: string, userId: string) {
@@ -87,6 +88,21 @@ export const create = protectedProcedure
 			priority: input.priority,
 			contextSchema: input.contextSchema as object | undefined,
 		});
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: campaign.organizationId,
+			actionType: "CREATE",
+			resourceType: "campaign",
+			resourceId: campaign.id,
+			after: {
+				name: campaign.name,
+				mode: campaign.mode,
+				channel: campaign.channel,
+				agentId: campaign.agentId,
+				status: campaign.status,
+			},
+		});
 		return { campaign };
 	});
 
@@ -132,9 +148,28 @@ export const update = protectedProcedure
 		}),
 	)
 	.handler(async ({ input, context }) => {
-		await requireCampaign(input.id, context.user.id);
+		const existing = await requireCampaign(input.id, context.user.id);
 		const { id, ...data } = input;
-		return { campaign: await updateCampaign(id, data) };
+		const campaign = await updateCampaign(id, data);
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: existing.organizationId,
+			actionType: data.status === "ARCHIVED" ? "DELETE" : "UPDATE",
+			resourceType: "campaign",
+			resourceId: campaign.id,
+			before: {
+				name: existing.name,
+				status: existing.status,
+				priority: existing.priority,
+			},
+			after: {
+				name: campaign.name,
+				status: campaign.status,
+				priority: campaign.priority,
+			},
+		});
+		return { campaign };
 	});
 
 export const listContacts = protectedProcedure
@@ -210,6 +245,20 @@ export const createContact = protectedProcedure
 			context: input.context as object | undefined,
 			consentGiven: input.consentGiven,
 			consentSource: input.consentSource,
+		});
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: campaign.organizationId,
+			actionType: "CREATE",
+			resourceType: "campaign_contacts",
+			resourceId: contact.id,
+			after: {
+				campaignId: campaign.id,
+				displayName: contact.displayName,
+				phoneE164: contact.phoneE164,
+				email: contact.email,
+			},
 		});
 		return { contact };
 	});

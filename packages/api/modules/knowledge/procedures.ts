@@ -14,6 +14,7 @@ import {
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
+import { recordAudit } from "../shared/audit";
 import { requireOrgMembership } from "../shared/require-org-membership";
 import {
 	titleFromFileName,
@@ -84,6 +85,18 @@ export const create = protectedProcedure
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
 		const knowledgeBase = await createKnowledgeBase(input);
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: knowledgeBase.organizationId,
+			actionType: "CREATE",
+			resourceType: "knowledge_source",
+			resourceId: knowledgeBase.id,
+			after: {
+				name: knowledgeBase.name,
+				status: knowledgeBase.status,
+			},
+		});
 		return { knowledgeBase };
 	});
 
@@ -103,9 +116,28 @@ export const update = protectedProcedure
 		}),
 	)
 	.handler(async ({ input, context }) => {
-		await requireKb(input.id, context.user.id);
+		const existing = await requireKb(input.id, context.user.id);
 		const { id, ...data } = input;
-		return { knowledgeBase: await updateKnowledgeBase(id, data) };
+		const knowledgeBase = await updateKnowledgeBase(id, data);
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: existing.organizationId,
+			actionType: data.status === "DELETED" ? "DELETE" : "UPDATE",
+			resourceType: "knowledge_source",
+			resourceId: knowledgeBase.id,
+			before: {
+				name: existing.name,
+				description: existing.description,
+				status: existing.status,
+			},
+			after: {
+				name: knowledgeBase.name,
+				description: knowledgeBase.description,
+				status: knowledgeBase.status,
+			},
+		});
+		return { knowledgeBase };
 	});
 
 export const createUploadUrl = protectedProcedure
@@ -321,7 +353,22 @@ export const removeDocument = protectedProcedure
 	})
 	.input(z.object({ documentId: z.string() }))
 	.handler(async ({ input, context }) => {
-		await requireDocument(input.documentId, context.user.id);
+		const existing = await requireDocument(
+			input.documentId,
+			context.user.id,
+		);
 		const document = await deleteDocument(input.documentId);
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: existing.knowledgeBase.organizationId,
+			actionType: "DELETE",
+			resourceType: "knowledge_source",
+			resourceId: existing.knowledgeBaseId,
+			before: {
+				documentId: existing.id,
+				title: existing.title,
+			},
+		});
 		return { document };
 	});

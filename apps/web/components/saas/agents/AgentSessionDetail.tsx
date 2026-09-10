@@ -1,24 +1,39 @@
 "use client";
 
-import {
-	Accordion,
-	AccordionContent,
-	AccordionItem,
-	AccordionTrigger,
-} from "@repo/ui/accordion";
-import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@repo/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
-import { DownloadIcon, ExternalLinkIcon, FileAudioIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+	ChevronDownIcon,
+	ClockIcon,
+	DownloadIcon,
+	ExternalLinkIcon,
+	FileAudioIcon,
+	FileVideoIcon,
+	HashIcon,
+	LoaderCircleIcon,
+	MessageSquareTextIcon,
+	RadioIcon,
+	VideoIcon,
+} from "lucide-react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
 	PAGE_SIZE,
 	Pagination,
 	useClientPagination,
 } from "@/components/saas/shared/Pagination";
 import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
+import { AssistantTranscriptThread } from "./transcript/AssistantTranscriptThread";
+import { sessionSegmentsToThreadMessages } from "./transcript/mapTranscriptMessages";
 import { useSessionDetailQuery } from "./lib/hooks";
 
 function formatDateTime(value: string | Date | null | undefined) {
@@ -40,14 +55,6 @@ function formatDuration(ms: number | null | undefined) {
 	if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
 	if (minutes > 0) return `${minutes}m ${seconds}s`;
 	return `${seconds}s`;
-}
-
-function formatOffsetMs(ms: number | null | undefined) {
-	if (ms == null || ms < 0) return null;
-	const totalSeconds = Math.floor(ms / 1000);
-	const minutes = Math.floor(totalSeconds / 60);
-	const seconds = totalSeconds % 60;
-	return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 function isHttpUrl(url: string) {
@@ -223,19 +230,16 @@ type EgressJobRow = {
 	metadata?: { audioOnly?: boolean } | null;
 };
 
-const WAVEFORM_BAR_HEIGHTS = [10, 18, 14, 24, 16, 28, 12, 22, 15, 26, 18, 11];
+const WAVEFORM_BAR_HEIGHTS = [8, 14, 11, 20, 13, 22, 10, 18, 12, 21, 15, 9];
 
 function TranscriptWaveform({ animated }: { animated: boolean }) {
 	return (
-		<div
-			aria-hidden
-			className="flex h-10 items-end justify-center gap-1 px-2"
-		>
+		<div aria-hidden className="flex h-7 items-end justify-end gap-0.5">
 			{WAVEFORM_BAR_HEIGHTS.map((height, index) => (
 				<span
 					key={`${height}-${index}`}
 					className={cn(
-						"w-1.5 rounded-full bg-primary",
+						"w-1 rounded-full bg-primary/80",
 						animated && "origin-bottom animate-pulse",
 					)}
 					style={{
@@ -243,52 +247,10 @@ function TranscriptWaveform({ animated }: { animated: boolean }) {
 						animationDelay: animated
 							? `${index * 70}ms`
 							: undefined,
-						opacity: animated ? undefined : 0.7,
+						opacity: animated ? undefined : 0.45,
 					}}
 				/>
 			))}
-		</div>
-	);
-}
-
-function TranscriptBubble({
-	text,
-	isUser,
-	offset,
-}: {
-	text: string;
-	isUser: boolean;
-	offset?: string | null;
-}) {
-	return (
-		<div
-			className={cn(
-				"flex w-full",
-				isUser ? "justify-end" : "justify-start",
-			)}
-		>
-			<div
-				className={cn(
-					"max-w-[85%] space-y-1 rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
-					isUser
-						? "bg-primary text-primary-foreground"
-						: "border border-border/70 bg-muted/80 text-foreground",
-				)}
-			>
-				<p className="whitespace-pre-wrap text-pretty">{text}</p>
-				{offset ? (
-					<p
-						className={cn(
-							"text-[10px] tabular-nums",
-							isUser
-								? "text-primary-foreground/70"
-								: "text-muted-foreground",
-						)}
-					>
-						{offset}
-					</p>
-				) : null}
-			</div>
 		</div>
 	);
 }
@@ -304,48 +266,55 @@ function TranscriptPanel({
 }) {
 	const live = isLiveTranscriptStatus(sessionStatus);
 	const statusLabel = transcriptStatusLabel(sessionStatus);
+	const count = segments.length;
+	const messages = useMemo(
+		() => sessionSegmentsToThreadMessages(segments, fullText),
+		[segments, fullText],
+	);
 
 	return (
-		<div className="flex max-h-[28rem] flex-col overflow-hidden rounded-2xl border bg-background/80">
-			<div className="space-y-2 border-b px-4 pb-3 pt-3">
-				<div className="flex items-center gap-2 text-sm text-muted-foreground">
+		<div className="flex max-h-[32rem] min-h-[22rem] flex-col overflow-hidden rounded-2xl border border-border/70 bg-background">
+			<div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
+				<div className="flex items-center gap-2.5">
 					<span
 						className={cn(
-							"size-2 rounded-full",
+							"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
 							live
-								? "bg-primary animate-pulse"
-								: "bg-muted-foreground/50",
+								? "bg-primary/10 text-primary"
+								: "bg-muted text-muted-foreground",
 						)}
-					/>
-					<span className="font-medium text-foreground/90">
+					>
+						<span
+							className={cn(
+								"size-1.5 rounded-full",
+								live
+									? "bg-primary animate-pulse"
+									: "bg-muted-foreground/60",
+							)}
+						/>
 						{statusLabel}
 					</span>
+					{count > 0 ? (
+						<span className="text-xs text-muted-foreground">
+							{count} {count === 1 ? "turn" : "turns"}
+						</span>
+					) : null}
 				</div>
 				<TranscriptWaveform animated={live} />
 			</div>
 
-			<div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-4">
-				{segments.length > 0 ? (
-					segments.map((segment) => {
-						const role = segment.role?.toUpperCase() ?? "";
-						const isUser = role === "USER" || role === "CALLER";
-						return (
-							<TranscriptBubble
-								key={segment.id}
-								text={segment.text?.trim() || "—"}
-								isUser={isUser}
-								offset={formatOffsetMs(segment.startMs)}
-							/>
-						);
-					})
-				) : fullText?.trim() ? (
-					<TranscriptBubble text={fullText.trim()} isUser={false} />
-				) : (
-					<p className="px-1 text-sm text-muted-foreground">
-						No transcript available.
-					</p>
-				)}
-			</div>
+			<AssistantTranscriptThread
+				messages={messages}
+				className="min-h-0 flex-1"
+				emptyFallback={
+					<div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-2 px-4 text-center">
+						<MessageSquareTextIcon className="size-8 text-muted-foreground/40" />
+						<p className="text-sm text-muted-foreground">
+							No transcript available yet.
+						</p>
+					</div>
+				}
+			/>
 		</div>
 	);
 }
@@ -364,7 +333,11 @@ function EgressMediaPlayer({
 
 	if (useAudio) {
 		return (
-			<audio controls preload="metadata" className="w-full">
+			<audio
+				controls
+				preload="metadata"
+				className="w-full rounded-xl border border-border/60 bg-muted/30 px-2 py-1.5"
+			>
 				<source src={url} type={contentType ?? "audio/mp4"} />
 				<track kind="captions" />
 			</audio>
@@ -375,7 +348,7 @@ function EgressMediaPlayer({
 		<video
 			controls
 			preload="metadata"
-			className="aspect-video w-full rounded-xl bg-black object-contain"
+			className="aspect-video w-full rounded-xl bg-black object-contain ring-1 ring-black/10"
 		>
 			<source src={url} type={contentType ?? "video/mp4"} />
 			<track kind="captions" />
@@ -383,13 +356,65 @@ function EgressMediaPlayer({
 	);
 }
 
+function EgressStatusBadge({
+	status,
+	ready,
+}: {
+	status: string;
+	ready?: boolean;
+}) {
+	const isComplete = status === "COMPLETE" || Boolean(ready);
+	const isFailed = status === "FAILED" || status === "ABORTED";
+	const inProgress =
+		!ready &&
+		(status === "ACTIVE" || status === "ENDING" || status === "STARTING");
+
+	return (
+		<span
+			className={cn(
+				"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize",
+				isComplete &&
+					"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+				isFailed && "bg-destructive/10 text-destructive",
+				inProgress && "bg-primary/10 text-primary",
+				!isComplete &&
+					!isFailed &&
+					!inProgress &&
+					"bg-muted text-muted-foreground",
+			)}
+		>
+			{inProgress ? (
+				<span className="relative flex size-1.5">
+					<span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60" />
+					<span className="relative inline-flex size-1.5 rounded-full bg-primary" />
+				</span>
+			) : (
+				<span
+					className={cn(
+						"size-1.5 rounded-full",
+						isComplete && "bg-emerald-500",
+						isFailed && "bg-destructive",
+						!isComplete && !isFailed && "bg-muted-foreground/60",
+					)}
+				/>
+			)}
+			{ready && status !== "COMPLETE" ? "ready" : status.toLowerCase()}
+		</span>
+	);
+}
+
 function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 	if (jobs.length === 0) {
-		return <p className="text-sm text-muted-foreground">No egress jobs.</p>;
+		return (
+			<div className="flex min-h-[22rem] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 text-center">
+				<VideoIcon className="size-8 text-muted-foreground/40" />
+				<p className="text-sm text-muted-foreground">No egress jobs.</p>
+			</div>
+		);
 	}
 
 	return (
-		<div className="max-h-[28rem] space-y-4 overflow-y-auto pr-1">
+		<div className="no-scrollbar max-h-[32rem] min-h-[22rem] space-y-3 overflow-y-auto pr-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 			{jobs.map((job) => {
 				const playableUrl = pickPlayableUrl(job);
 				const status = (job.status ?? "unknown").toUpperCase();
@@ -399,133 +424,146 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 					job.destination?.filepath ||
 					(job.fileUrl && isS3Url(job.fileUrl) ? job.fileUrl : null);
 				const audioOnly = isAudioRecording(job);
-				const isComplete = status === "COMPLETE";
 				const inProgress =
 					status === "ACTIVE" ||
 					status === "ENDING" ||
 					status === "STARTING";
+				const durationLabel = formatDuration(job.durationMs);
+				const FileIcon = audioOnly ? FileAudioIcon : FileVideoIcon;
 
 				return (
 					<div
 						key={job.id}
-						className="space-y-3 rounded-2xl border bg-background p-3"
+						className="overflow-hidden rounded-2xl border border-border/70 bg-linear-to-b from-background to-muted/20 shadow-sm"
 					>
-						<div className="flex flex-wrap items-start justify-between gap-2">
-							<div className="min-w-0 space-y-1">
-								<p className="truncate font-mono text-xs text-muted-foreground">
-									{job.livekitEgressId ?? job.id}
-								</p>
-								<p className="text-sm font-medium">
-									{job.type ?? "Recording"}
-									<span className="font-normal text-muted-foreground">
-										{" "}
-										· {formatDuration(job.durationMs)}
-									</span>
-								</p>
-							</div>
-							<Badge
-								variant={
-									isComplete
-										? "default"
-										: status === "FAILED" ||
-												status === "ABORTED"
-											? "destructive"
-											: "secondary"
-								}
-								className="capitalize"
-							>
-								{status.toLowerCase()}
-							</Badge>
-						</div>
-
-						{isComplete && playableUrl ? (
-							<EgressMediaPlayer
-								url={playableUrl}
-								audioOnly={audioOnly}
-								contentType={job.playableContentType}
-							/>
-						) : inProgress ? (
-							<p className="text-sm text-muted-foreground">
-								Recording in progress…
-							</p>
-						) : job.errorMessage ? (
-							<p className="text-sm text-muted-foreground">
-								{job.errorMessage}
-							</p>
-						) : storedPath ? (
-							<div className="space-y-1">
-								<p className="text-sm text-muted-foreground">
-									Recording stored; playback unavailable.
-								</p>
-								<p className="truncate font-mono text-xs text-muted-foreground/80">
-									{storedPath}
-								</p>
-							</div>
-						) : (
-							<p className="text-sm text-muted-foreground">
-								No recording available.
-							</p>
-						)}
-
-						{(playableUrl || storedPath) && (
-							<div className="space-y-2 border-t pt-3">
-								<p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-									Output files
-								</p>
-								<div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-3 py-2.5">
-									<FileAudioIcon className="size-4 shrink-0 text-muted-foreground" />
-									<div className="min-w-0 flex-1">
-										<p className="truncate text-sm font-medium">
-											{filename}
-										</p>
-										<p className="text-xs text-muted-foreground">
-											{[
-												sizeLabel,
-												formatDuration(job.durationMs),
-											]
-												.filter(
-													(part) =>
-														part && part !== "—",
-												)
-												.join(" · ") || "Recording"}
-										</p>
-									</div>
-									{playableUrl ? (
-										<div className="flex shrink-0 items-center gap-1">
-											<Button
-												asChild
-												variant="ghost"
-												size="icon"
-												className="size-8"
-											>
-												<a
-													href={playableUrl}
-													download={filename}
-													aria-label={`Download ${filename}`}
-												>
-													<DownloadIcon className="size-4" />
-												</a>
-											</Button>
-											<Button
-												asChild
-												variant="ghost"
-												size="icon"
-												className="size-8"
-											>
-												<a
-													href={playableUrl}
-													target="_blank"
-													rel="noreferrer"
-													aria-label={`Open ${filename}`}
-												>
-													<ExternalLinkIcon className="size-4" />
-												</a>
-											</Button>
-										</div>
+						<div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/50 px-4 py-3">
+							<div className="min-w-0 space-y-1.5">
+								<div className="flex flex-wrap items-center gap-2">
+									<p className="text-sm font-semibold tracking-tight">
+										{(job.type ?? "Recording").replace(
+											/_/g,
+											" ",
+										)}
+									</p>
+									{durationLabel !== "—" ? (
+										<span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+											<ClockIcon className="size-3" />
+											{durationLabel}
+										</span>
 									) : null}
 								</div>
 							</div>
-						)}
+							<EgressStatusBadge
+								status={status}
+								ready={Boolean(playableUrl)}
+							/>
+						</div>
+
+						<div className="space-y-3 p-4">
+							{playableUrl ? (
+								<EgressMediaPlayer
+									url={playableUrl}
+									audioOnly={audioOnly}
+									contentType={job.playableContentType}
+								/>
+							) : inProgress ? (
+								<div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/5 px-3.5 py-3">
+									<span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+										<LoaderCircleIcon className="size-4 animate-spin" />
+									</span>
+									<div className="min-w-0">
+										<p className="text-sm font-medium text-foreground">
+											Recording in progress
+										</p>
+										<p className="text-xs text-muted-foreground">
+											Output will appear here when the
+											egress finishes.
+										</p>
+									</div>
+								</div>
+							) : job.errorMessage ? (
+								<div className="rounded-xl border border-destructive/20 bg-destructive/5 px-3.5 py-3 text-sm text-destructive">
+									{job.errorMessage}
+								</div>
+							) : storedPath ? (
+								<div className="space-y-1 rounded-xl border border-border/60 bg-muted/30 px-3.5 py-3">
+									<p className="text-sm text-muted-foreground">
+										Recording stored; playback unavailable.
+									</p>
+									<p className="truncate font-mono text-xs text-muted-foreground/80">
+										{storedPath}
+									</p>
+								</div>
+							) : (
+								<p className="text-sm text-muted-foreground">
+									No recording available.
+								</p>
+							)}
+
+							{(playableUrl || storedPath) && (
+								<div className="space-y-2">
+									<p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+										Output files
+									</p>
+									<div className="flex items-center gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5 shadow-sm">
+										<span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+											<FileIcon className="size-4" />
+										</span>
+										<div className="min-w-0 flex-1">
+											<p className="truncate text-sm font-medium">
+												{filename}
+											</p>
+											<p className="text-xs text-muted-foreground">
+												{[
+													sizeLabel,
+													durationLabel !== "—"
+														? durationLabel
+														: null,
+													inProgress
+														? "Recording"
+														: null,
+												]
+													.filter(Boolean)
+													.join(" · ") || "Recording"}
+											</p>
+										</div>
+										{playableUrl ? (
+											<div className="flex shrink-0 items-center gap-0.5">
+												<Button
+													asChild
+													variant="ghost"
+													size="icon"
+													className="size-8 rounded-lg"
+												>
+													<a
+														href={playableUrl}
+														download={filename}
+														aria-label={`Download ${filename}`}
+													>
+														<DownloadIcon className="size-4" />
+													</a>
+												</Button>
+												<Button
+													asChild
+													variant="ghost"
+													size="icon"
+													className="size-8 rounded-lg"
+												>
+													<a
+														href={playableUrl}
+														target="_blank"
+														rel="noreferrer"
+														aria-label={`Open ${filename}`}
+													>
+														<ExternalLinkIcon className="size-4" />
+													</a>
+												</Button>
+											</div>
+										) : null}
+									</div>
+								</div>
+							)}
+						</div>
 					</div>
 				);
 			})}
@@ -566,64 +604,84 @@ function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 
 	return (
 		<div className="overflow-hidden rounded-xl border bg-white">
-			<div className="hidden grid-cols-[48px_minmax(0,1.2fr)_minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.4fr)_24px] gap-3 border-b bg-white px-4 py-3 text-xs font-medium text-muted-foreground md:grid">
-				<span>#</span>
-				<span>Type</span>
-				<span>Actor</span>
-				<span>Occurred</span>
-				<span>Details</span>
-				<span />
+			<div className="overflow-x-auto scrollbar-none">
+				<Table>
+					<TableHeader>
+						<TableRow className="hover:bg-transparent">
+							<TableHead className="w-12">#</TableHead>
+							<TableHead>Type</TableHead>
+							<TableHead>Actor</TableHead>
+							<TableHead>Occurred</TableHead>
+							<TableHead>Details</TableHead>
+							<TableHead className="w-10" />
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{pageItems.map((event) => {
+							const type =
+								event.eventType ?? event.type ?? "event";
+							const actor = event.actor?.toLowerCase() ?? "—";
+							const occurred = formatDateTime(
+								event.occurredAt ?? event.createdAt,
+							);
+							const preview = formatPayloadPreview(event.payload);
+							const isOpen = openItem === event.id;
+
+							return (
+								<Fragment key={event.id}>
+									<TableRow
+										className="cursor-pointer"
+										data-state={
+											isOpen ? "selected" : undefined
+										}
+										onClick={() =>
+											setOpenItem(isOpen ? "" : event.id)
+										}
+									>
+										<TableCell className="tabular-nums text-muted-foreground">
+											{event.sequence ?? "—"}
+										</TableCell>
+										<TableCell className="max-w-[220px] truncate font-medium">
+											{type}
+										</TableCell>
+										<TableCell className="capitalize text-muted-foreground">
+											{actor}
+										</TableCell>
+										<TableCell className="whitespace-nowrap text-muted-foreground">
+											{occurred}
+										</TableCell>
+										<TableCell className="max-w-[320px] truncate font-mono text-xs text-muted-foreground">
+											{preview}
+										</TableCell>
+										<TableCell className="text-right">
+											<ChevronDownIcon
+												className={cn(
+													"ml-auto size-4 text-muted-foreground transition-transform",
+													isOpen && "rotate-180",
+												)}
+											/>
+										</TableCell>
+									</TableRow>
+									{isOpen ? (
+										<TableRow className="hover:bg-transparent">
+											<TableCell
+												colSpan={6}
+												className="bg-muted/20 py-3"
+											>
+												<pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground">
+													{formatPayloadJson(
+														event.payload,
+													)}
+												</pre>
+											</TableCell>
+										</TableRow>
+									) : null}
+								</Fragment>
+							);
+						})}
+					</TableBody>
+				</Table>
 			</div>
-
-			<Accordion
-				type="single"
-				collapsible
-				value={openItem}
-				onValueChange={setOpenItem}
-				className="bg-white"
-			>
-				{pageItems.map((event) => {
-					const type = event.eventType ?? event.type ?? "event";
-					const actor = event.actor?.toLowerCase() ?? "—";
-					const occurred = formatDateTime(
-						event.occurredAt ?? event.createdAt,
-					);
-					const preview = formatPayloadPreview(event.payload);
-
-					return (
-						<AccordionItem
-							key={event.id}
-							value={event.id}
-							className="border-b border-border/70 px-4 last:border-b-0"
-						>
-							<AccordionTrigger className="py-3 hover:no-underline">
-								<div className="grid w-full grid-cols-1 gap-1 text-left md:grid-cols-[48px_minmax(0,1.2fr)_minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.4fr)] md:items-center md:gap-3">
-									<span className="text-xs tabular-nums text-muted-foreground md:text-sm">
-										{event.sequence ?? "—"}
-									</span>
-									<span className="truncate text-sm font-medium">
-										{type}
-									</span>
-									<span className="capitalize text-sm text-muted-foreground">
-										{actor}
-									</span>
-									<span className="whitespace-nowrap text-xs text-muted-foreground">
-										{occurred}
-									</span>
-									<span className="truncate font-mono text-xs text-muted-foreground">
-										{preview}
-									</span>
-								</div>
-							</AccordionTrigger>
-							<AccordionContent className="pb-4">
-								<pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground">
-									{formatPayloadJson(event.payload)}
-								</pre>
-							</AccordionContent>
-						</AccordionItem>
-					);
-				})}
-			</Accordion>
 
 			{totalItems > itemsPerPage ? (
 				<div className="border-t bg-white px-2 py-2">
@@ -703,66 +761,79 @@ export function AgentSessionDetail({
 				</TabsList>
 
 				<TabsContent value="overview" className="mt-4 space-y-4">
-					<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-						<Card className="rounded-3xl">
-							<CardHeader>
-								<CardTitle className="text-sm">
-									Channel
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								{session.channel ?? "WEB"}
-							</CardContent>
-						</Card>
-						<Card className="rounded-3xl">
-							<CardHeader>
-								<CardTitle className="text-sm">
-									Started
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								{formatDateTime(session.startedAt)}
-							</CardContent>
-						</Card>
-						<Card className="rounded-3xl">
-							<CardHeader>
-								<CardTitle className="text-sm">Ended</CardTitle>
-							</CardHeader>
-							<CardContent>
-								{formatDateTime(session.endedAt)}
-							</CardContent>
-						</Card>
-						<Card className="rounded-3xl">
-							<CardHeader>
-								<CardTitle className="text-sm">
-									Duration
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								{formatDuration(session.durationMs)}
-							</CardContent>
-						</Card>
+					<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+						{[
+							{
+								label: "Channel",
+								value: session.channel ?? "WEB",
+								icon: RadioIcon,
+							},
+							{
+								label: "Started",
+								value: formatDateTime(session.startedAt),
+								icon: ClockIcon,
+							},
+							{
+								label: "Ended",
+								value: formatDateTime(session.endedAt),
+								icon: ClockIcon,
+							},
+							{
+								label: "Duration",
+								value: formatDuration(session.durationMs),
+								icon: ClockIcon,
+							},
+						].map((item) => (
+							<Card
+								key={item.label}
+								className="rounded-3xl border shadow-sm ring-1 ring-black/5"
+							>
+								<CardContent className="flex items-start gap-3 p-4">
+									<span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+										<item.icon className="size-4" />
+									</span>
+									<div className="min-w-0 space-y-0.5">
+										<p className="text-xs font-medium text-muted-foreground">
+											{item.label}
+										</p>
+										<p className="truncate text-sm font-semibold tracking-tight">
+											{item.value}
+										</p>
+									</div>
+								</CardContent>
+							</Card>
+						))}
 					</div>
 
-					<Card className="rounded-3xl">
-						<CardHeader>
-							<CardTitle className="text-sm">Room</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<p className="font-mono text-xs">
-								{session.livekitRoomName}
-							</p>
+					<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
+						<CardContent className="flex items-start gap-3 p-4">
+							<span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+								<HashIcon className="size-4" />
+							</span>
+							<div className="min-w-0 space-y-0.5">
+								<p className="text-xs font-medium text-muted-foreground">
+									Room
+								</p>
+								<p className="truncate font-mono text-xs">
+									{session.livekitRoomName}
+								</p>
+							</div>
 						</CardContent>
 					</Card>
 
 					<div className="grid gap-4 lg:grid-cols-2">
-						<Card className="flex min-h-0 flex-col rounded-3xl">
-							<CardHeader>
-								<CardTitle className="text-sm">
-									Transcript
-								</CardTitle>
+						<Card className="flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
+							<CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 pb-3">
+								<div className="flex items-center gap-2">
+									<span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+										<MessageSquareTextIcon className="size-4" />
+									</span>
+									<CardTitle className="text-sm font-semibold">
+										Transcript
+									</CardTitle>
+								</div>
 							</CardHeader>
-							<CardContent>
+							<CardContent className="p-4">
 								<TranscriptPanel
 									segments={transcriptSegments}
 									fullText={transcriptText}
@@ -771,20 +842,33 @@ export function AgentSessionDetail({
 							</CardContent>
 						</Card>
 
-						<Card className="flex min-h-0 flex-col rounded-3xl">
-							<CardHeader>
-								<CardTitle className="text-sm">
-									Egress
-								</CardTitle>
+						<Card className="flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
+							<CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 pb-3">
+								<div className="flex items-center gap-2">
+									<span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+										<VideoIcon className="size-4" />
+									</span>
+									<CardTitle className="text-sm font-semibold">
+										Egress
+									</CardTitle>
+								</div>
+								{egressJobs.length > 0 ? (
+									<span className="text-xs text-muted-foreground">
+										{egressJobs.length}{" "}
+										{egressJobs.length === 1
+											? "job"
+											: "jobs"}
+									</span>
+								) : null}
 							</CardHeader>
-							<CardContent>
+							<CardContent className="p-4">
 								<EgressPanel jobs={egressJobs} />
 							</CardContent>
 						</Card>
 					</div>
 
 					{session.errorMessage ? (
-						<Card className="rounded-3xl border-destructive/40">
+						<Card className="rounded-3xl border-destructive/40 shadow-sm ring-1 ring-destructive/10">
 							<CardHeader>
 								<CardTitle className="text-sm text-destructive">
 									Error

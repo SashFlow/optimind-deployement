@@ -18,7 +18,7 @@ export function ConfigureSectionToggle({
 }) {
 	return (
 		<div className="space-y-4">
-			<label className="flex items-start justify-between gap-4">
+			<div className="flex items-start justify-between gap-4">
 				<div className="min-w-0 flex-1">
 					<h3 className="text-sm font-semibold">{title}</h3>
 					{description ? (
@@ -31,8 +31,9 @@ export function ConfigureSectionToggle({
 					checked={checked}
 					onCheckedChange={onCheckedChange}
 					className="mt-0.5 shrink-0"
+					aria-label={title}
 				/>
-			</label>
+			</div>
 			{checked ? children : null}
 		</div>
 	);

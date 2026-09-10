@@ -135,6 +135,8 @@ export function TemplateTokenMenu({
 	const menu = (
 		<div
 			ref={menuRef}
+			role="dialog"
+			aria-label="Insert variable"
 			style={
 				resolvedPosition
 					? {

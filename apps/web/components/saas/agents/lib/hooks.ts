@@ -62,6 +62,22 @@ export function useSessionDetailQuery(sessionId: string | null | undefined) {
 			input: { id: sessionId ?? "" },
 		}),
 		enabled: !!sessionId,
+		refetchInterval: (query) => {
+			const status = query.state.data?.session?.status?.toUpperCase();
+			const egressJobs = query.state.data?.session?.egressJobs ?? [];
+			const egressOpen = egressJobs.some((job: { status?: string }) => {
+				const value = job.status?.toUpperCase();
+				return (
+					value === "ACTIVE" ||
+					value === "ENDING" ||
+					value === "STARTING"
+				);
+			});
+			if (status === "ACTIVE" || status === "QUEUED" || egressOpen) {
+				return 5_000;
+			}
+			return false;
+		},
 	});
 }
 

@@ -17,6 +17,7 @@ import {
 } from "@repo/database";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
+import { recordAudit } from "../shared/audit";
 import { requireOrgMembership } from "../shared/require-org-membership";
 import { agentConfigSchema } from "./lib/agent-config";
 
@@ -72,6 +73,19 @@ export const create = protectedProcedure
 			description: input.description,
 			config: (input.config ?? {}) as object,
 		});
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: agent.organizationId,
+			actionType: "CREATE",
+			resourceType: "agent",
+			resourceId: agent.id,
+			after: {
+				name: agent.name,
+				description: agent.description,
+				status: agent.status,
+			},
+		});
 		return { agent };
 	});
 
@@ -97,6 +111,26 @@ export const update = protectedProcedure
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const { id, ...data } = input;
 		const agent = await updateAgent(id, data);
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: existing.organizationId,
+			actionType: data.status === "DELETED" ? "DELETE" : "UPDATE",
+			resourceType: "agent",
+			resourceId: agent.id,
+			before: {
+				name: existing.name,
+				description: existing.description,
+				status: existing.status,
+				embedEnabled: existing.embedEnabled,
+			},
+			after: {
+				name: agent.name,
+				description: agent.description,
+				status: agent.status,
+				embedEnabled: agent.embedEnabled,
+			},
+		});
 		return { agent };
 	});
 
@@ -127,6 +161,23 @@ export const updateConfig = protectedProcedure
 				input.config.knowledge_base_ids,
 			);
 		}
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: existing.organizationId,
+			actionType: "UPDATE",
+			resourceType: "agent_version",
+			resourceId: version.id,
+			before: {
+				agentId: existing.id,
+				draftVersionId: existing.draftVersionId,
+			},
+			after: {
+				agentId: existing.id,
+				versionId: version.id,
+				configKeys: Object.keys(input.config ?? {}),
+			},
+		});
 		return { version };
 	});
 
@@ -143,6 +194,22 @@ export const publish = protectedProcedure
 		if (!existing) throw new ORPCError("NOT_FOUND");
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const agent = await publishAgentVersion(input.id);
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: existing.organizationId,
+			actionType: "PUBLISH",
+			resourceType: "agent",
+			resourceId: agent.id,
+			before: {
+				draftVersionId: existing.draftVersionId,
+				publishedVersionId: existing.publishedVersionId,
+			},
+			after: {
+				draftVersionId: agent.draftVersionId,
+				publishedVersionId: agent.publishedVersionId,
+			},
+		});
 		return { agent };
 	});
 
@@ -167,6 +234,15 @@ export const attachKnowledgeBase = protectedProcedure
 			input.id,
 			input.knowledgeBaseId,
 		);
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: existing.organizationId,
+			actionType: "UPDATE",
+			resourceType: "agent",
+			resourceId: existing.id,
+			after: { knowledgeBaseId: input.knowledgeBaseId, attached: true },
+		});
 		return { link };
 	});
 
@@ -188,6 +264,15 @@ export const detachKnowledgeBase = protectedProcedure
 		if (!existing) throw new ORPCError("NOT_FOUND");
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		await detachKnowledgeBaseFromAgent(input.id, input.knowledgeBaseId);
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: existing.organizationId,
+			actionType: "UPDATE",
+			resourceType: "agent",
+			resourceId: existing.id,
+			after: { knowledgeBaseId: input.knowledgeBaseId, attached: false },
+		});
 		return { success: true };
 	});
 
@@ -232,6 +317,20 @@ export const createTrialLink = protectedProcedure
 			usageLimit: input.sessions,
 			expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
 		});
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: agent.organizationId,
+			actionType: "CREATE",
+			resourceType: "agent_access",
+			resourceId: trial.id,
+			after: {
+				agentId: agent.id,
+				label: trial.label,
+				usageLimit: trial.usageLimit,
+				expiresAt: trial.expiresAt,
+			},
+		});
 		return { trial };
 	});
 
@@ -272,6 +371,26 @@ export const updateTrialLink = protectedProcedure
 						: null,
 			enabled: input.enabled,
 		});
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: agent.organizationId,
+			actionType: "UPDATE",
+			resourceType: "agent_access",
+			resourceId: updated.id,
+			before: {
+				label: trial.label,
+				usageLimit: trial.usageLimit,
+				expiresAt: trial.expiresAt,
+				enabled: trial.enabled,
+			},
+			after: {
+				label: updated.label,
+				usageLimit: updated.usageLimit,
+				expiresAt: updated.expiresAt,
+				enabled: updated.enabled,
+			},
+		});
 		return { trial: updated };
 	});
 
@@ -292,5 +411,17 @@ export const deleteTrialLink = protectedProcedure
 		if (!trial || trial.agentId !== agent.id)
 			throw new ORPCError("NOT_FOUND");
 		await deleteAgentTrial(trial.id);
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: agent.organizationId,
+			actionType: "DELETE",
+			resourceType: "agent_access",
+			resourceId: trial.id,
+			before: {
+				agentId: agent.id,
+				label: trial.label,
+			},
+		});
 		return { success: true };
 	});

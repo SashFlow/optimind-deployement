@@ -29,15 +29,16 @@ export function FirstMessageFields({
 }: FirstMessageFieldsProps) {
 	return (
 		<div className="space-y-4">
-			<label className="flex items-center gap-2 text-sm">
+			<div className="flex items-center gap-2 text-sm">
 				<Switch
 					checked={greeting.enabled}
 					onCheckedChange={(enabled) =>
 						onChange({ ...greeting, enabled })
 					}
+					aria-label="Enabled"
 				/>
-				Enabled
-			</label>
+				<span>Enabled</span>
+			</div>
 			<Textarea
 				value={greeting.text}
 				onChange={(e) =>

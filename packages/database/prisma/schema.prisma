@@ -232,21 +232,26 @@ enum AuditActorType {
 
 model AuditLog {
     id             String          @id @default(cuid())
-    userId         String
-    user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId         String?
+    user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
     createdAt      DateTime        @default(now())
     updatedAt      DateTime        @updatedAt
     organizationId String
     organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    actorType      AuditActorType
+    actorType      AuditActorType  @default(USER)
     actionType     AuditActionType
     resourceType   String
     resourceId     String
-    requestId      String
-    ipAddress      String
-    userAgent      String
-    before         Json
-    after          Json
+    requestId      String?
+    ipAddress      String?
+    userAgent      String?
+    before         Json            @default("{}")
+    after          Json            @default("{}")
+
+    @@index([organizationId, createdAt])
+    @@index([resourceType, resourceId])
+    @@index([actionType, createdAt])
+    @@map("audit_log")
 }
 
 // ------------------------------------------------------------

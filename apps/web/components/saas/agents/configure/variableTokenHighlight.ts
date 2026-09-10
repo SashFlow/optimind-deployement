@@ -12,14 +12,15 @@ function buildDecorations(view: EditorView, secretNames: Set<string>) {
 	for (const { from, to } of view.visibleRanges) {
 		const text = view.state.doc.sliceString(from, to);
 		const regex = new RegExp(TOKEN_REGEX.source, "g");
-		let match: RegExpExecArray | null;
+		let match = regex.exec(text);
 
-		while ((match = regex.exec(text)) !== null) {
+		while (match !== null) {
 			const start = from + match.index;
 			const end = start + match[0].length;
 			const name = match[1]?.trim() ?? "";
 			const mark = secretNames.has(name) ? secretMark : variableMark;
 			builder.add(start, end, mark);
+			match = regex.exec(text);
 		}
 	}
 

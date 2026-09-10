@@ -17,6 +17,14 @@ function toJson(value: unknown): Prisma.InputJsonValue {
 	return (value ?? {}) as Prisma.InputJsonValue;
 }
 
+function clampInt4(value: number | undefined): number | undefined {
+	if (value === undefined || !Number.isFinite(value)) return undefined;
+	const floored = Math.floor(value);
+	if (floored < 0) return 0;
+	if (floored > 2_147_483_647) return 2_147_483_647;
+	return floored;
+}
+
 const sessionDetailInclude = {
 	agent: true,
 	agentVersion: true,
@@ -180,24 +188,43 @@ export async function createSessionEvent(data: {
 	payload?: unknown;
 	occurredAt?: Date;
 }) {
-	const last = await db.sessionEvent.findFirst({
-		where: { sessionId: data.sessionId },
-		orderBy: { sequence: "desc" },
-		select: { sequence: true },
-	});
-	const sequence = (last?.sequence ?? 0) + 1;
+	const payload = toJson(data.payload);
+	const actor = data.actor ?? "AGENT";
+	const occurredAt = data.occurredAt ?? new Date();
 
-	return db.sessionEvent.create({
-		data: {
-			organizationId: data.organizationId,
-			sessionId: data.sessionId,
-			sequence,
-			eventType: data.eventType,
-			actor: data.actor ?? "AGENT",
-			payload: toJson(data.payload),
-			occurredAt: data.occurredAt ?? new Date(),
-		},
-	});
+	// Concurrent worker events can race on (sessionId, sequence); retry on conflict.
+	for (let attempt = 0; attempt < 5; attempt++) {
+		try {
+			return await db.$transaction(async (tx) => {
+				const last = await tx.sessionEvent.findFirst({
+					where: { sessionId: data.sessionId },
+					orderBy: { sequence: "desc" },
+					select: { sequence: true },
+				});
+				const sequence = (last?.sequence ?? 0) + 1;
+
+				return tx.sessionEvent.create({
+					data: {
+						organizationId: data.organizationId,
+						sessionId: data.sessionId,
+						sequence,
+						eventType: data.eventType,
+						actor,
+						payload,
+						occurredAt,
+					},
+				});
+			});
+		} catch (error) {
+			const code =
+				error && typeof error === "object" && "code" in error
+					? String((error as { code?: unknown }).code)
+					: "";
+			if (code !== "P2002" || attempt === 4) throw error;
+		}
+	}
+
+	throw new Error("Failed to create session event after retries");
 }
 
 export async function createToolCallRecord(data: {
@@ -289,8 +316,8 @@ export async function upsertTranscriptFromHistory(data: {
 					role: s.role,
 					speakerIdentity: s.speakerIdentity,
 					text: s.text,
-					startMs: s.startMs,
-					endMs: s.endMs,
+					startMs: clampInt4(s.startMs),
+					endMs: clampInt4(s.endMs),
 					confidence: s.confidence,
 					isFinal: s.isFinal ?? true,
 					interrupted: s.interrupted ?? false,

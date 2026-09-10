@@ -1,0 +1,719 @@
+﻿node.exe : packages\ui\src\components\assistant-ui\elements\attachment.aui.tsx:165:9 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+At C:\nvm4w\nodejs\pnpm.ps1:16 char:5
++     & "$basedir/node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.cjs"  ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (packages\ui\src...ÔöüÔöüÔöüÔöüÔöü:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+  ├ù The elements with this role can be changed to the following elements:
+    <button>
+  
+    163 Ôöé 										"after:ring-destructive/60 dark:after:ring-destructive/60",
+    164 Ôöé 								)}
+  > 165 Ôöé 								role="button"
+        Ôöé 								^^^^^^^^^^^^^
+    166 Ôöé 								tabIndex={0}
+    167 Ôöé 								onKeyDown={(e) => {
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\components\assistant-ui\elements\command-palette.tsx:133:7 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <fieldset>
+  
+    131 Ôöé 					<div
+    132 Ôöé 						key={group}
+  > 133 Ôöé 						role="group"
+        Ôöé 						^^^^^^^^^^^^
+    134 Ôöé 						aria-label={group}
+    135 Ôöé 						className="flex flex-col"
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\components\assistant-ui\elements\composer.tsx:593:5 lint/a11y/noSvgWithoutTitle 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Alternative text title element cannot be empty
+  
+    591 Ôöé 				)}
+    592 Ôöé 			>
+  > 593 Ôöé 				<svg
+        Ôöé 				^^^^
+  > 594 Ôöé 					viewBox="0 0 16 16"
+  > 595 Ôöé 					className="size-4 -rotate-90"
+  > 596 Ôöé 					aria-hidden
+  > 597 Ôöé 				>
+        Ôöé 				^
+    598 Ôöé 					<circle
+    599 Ôöé 						cx="8"
+  
+  i For accessibility purposes, SVGs should have an alternative text, provided via title element. If the svg element 
+has role="img", you should add the aria-label or aria-labelledby attribute.
+  
+
+packages\ui\src\components\assistant-ui\elements\context-breakdown.tsx:61:8 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <meter>
+  
+    59 Ôöé 						<span
+    60 Ôöé 							key={segment.label}
+  > 61 Ôöé 							role="meter"
+       Ôöé 							^^^^^^^^^^^^
+    62 Ôöé 							aria-label={`${segment.label} context usage`}
+    63 Ôöé 							aria-valuemin={0}
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\components\assistant-ui\elements\cost-meter.tsx:62:8 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <meter>
+  
+    60 Ôöé 						<span
+    61 Ôöé 							key={line.model}
+  > 62 Ôöé 							role="meter"
+       Ôöé 							^^^^^^^^^^^^
+    63 Ôöé 							aria-label={`${line.model} cost share`}
+    64 Ôöé 							aria-valuemin={0}
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\components\assistant-ui\elements\flow-graph.tsx:68:5 lint/a11y/noSvgWithoutTitle 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Alternative text title element cannot be empty
+  
+    66 Ôöé 				style={{ width, height, minWidth: width }}
+    67 Ôöé 			>
+  > 68 Ôöé 				<svg
+       Ôöé 				^^^^
+  > 69 Ôöé 					aria-hidden
+  > 70 Ôöé 					className="absolute inset-0 overflow-visible"
+  > 71 Ôöé 					width={width}
+  > 72 Ôöé 					height={height}
+  > 73 Ôöé 				>
+       Ôöé 				^
+    74 Ôöé 					{edges.map((edge) => {
+    75 Ôöé 						const from = nodes.find(
+  
+  i For accessibility purposes, SVGs should have an alternative text, provided via title element. If the svg element 
+has role="img", you should add the aria-label or aria-labelledby attribute.
+  
+
+packages\ui\src\components\assistant-ui\elements\follow-up-suggestions.aui.tsx:19:16 
+lint/suspicious/noAssignInExpressions ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The assignment should not be in an expression.
+  
+    17 Ôöé 		const fromStart = Math.abs(el.scrollLeft);
+    18 Ôöé 		// getComputedStyle forces a style recalc per scroll event; direction is stable, read it once.
+  > 19 Ôöé 		const rtl = (rtlRef.current ??=
+       Ôöé 		             ^^^^^^^^^^^^^^^^^^
+  > 20 Ôöé 			getComputedStyle(el).direction === "rtl");
+       Ôöé 			^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    21 Ôöé 		const [left, right] = rtl
+    22 Ôöé 			? [maxScroll - fromStart, fromStart]
+  
+  i The use of assignments in expressions is confusing.
+    Expressions are often considered as side-effect free.
+  
+
+packages\ui\src\components\assistant-ui\elements\image.tsx:313:5 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <button>
+  
+    311 Ôöé 				onClick={handleOpen}
+    312 Ôöé 				onKeyDown={(e) => e.key === "Enter" && handleOpen()}
+  > 313 Ôöé 				role="button"
+        Ôöé 				^^^^^^^^^^^^^
+    314 Ôöé 				tabIndex={0}
+    315 Ôöé 				className="aui-image-zoom-trigger cursor-zoom-in"
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\components\assistant-ui\elements\image.tsx:322:6 lint/a11y/useKeyWithClickEvents 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Enforce to have the onClick mouse event with the onKeyUp, the onKeyDown, or the onKeyPress keyboard event.
+  
+    320 Ôöé 			{isOpen &&
+    321 Ôöé 				createPortal(
+  > 322 Ôöé 					<div
+        Ôöé 					^^^^
+  > 323 Ôöé 						ref={overlayRef}
+         ...
+  > 329 Ôöé 						aria-label="Zoomed image"
+  > 330 Ôöé 					>
+        Ôöé 					^
+    331 Ôöé 						<img
+    332 Ôöé 							data-slot="image-zoom-content"
+  
+  i Actions triggered using mouse events should have corresponding keyboard events to account for keyboard-only 
+navigation.
+  
+
+packages\ui\src\components\assistant-ui\elements\image.tsx:331:7 lint/a11y/useKeyWithClickEvents 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Enforce to have the onClick mouse event with the onKeyUp, the onKeyDown, or the onKeyPress keyboard event.
+  
+    329 Ôöé 						aria-label="Zoomed image"
+    330 Ôöé 					>
+  > 331 Ôöé 						<img
+        Ôöé 						^^^^
+  > 332 Ôöé 							data-slot="image-zoom-content"
+         ...
+  > 339 Ôöé 							}}
+  > 340 Ôöé 						/>
+        Ôöé 						^^
+    341 Ôöé 						<button
+    342 Ôöé 							ref={closeRef}
+  
+  i Actions triggered using mouse events should have corresponding keyboard events to account for keyboard-only 
+navigation.
+  
+
+packages\ui\src\components\assistant-ui\elements\map-answer.tsx:44:5 lint/a11y/noSvgWithoutTitle 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Alternative text title element cannot be empty
+  
+    42 Ôöé 		>
+    43 Ôöé 			<div className={cn(field, "relative h-40")}>
+  > 44 Ôöé 				<svg
+       Ôöé 				^^^^
+  > 45 Ôöé 					viewBox="0 0 100 100"
+  > 46 Ôöé 					preserveAspectRatio="none"
+  > 47 Ôöé 					aria-hidden
+  > 48 Ôöé 					className="absolute inset-0 size-full"
+  > 49 Ôöé 				>
+       Ôöé 				^
+    50 Ôöé 					{[18, 42, 66, 88].map((y) => (
+    51 Ôöé 						<line
+  
+  i For accessibility purposes, SVGs should have an alternative text, provided via title element. If the svg element 
+has role="img", you should add the aria-label or aria-labelledby attribute.
+  
+
+packages\ui\src\components\assistant-ui\elements\mermaid-diagram.tsx:284:4 lint/a11y/useAriaPropsSupportedByRole 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The ARIA attribute 'aria-label' is not supported by this element.
+  
+    282 Ôöé 	if (!result) {
+    283 Ôöé 		return (
+  > 284 Ôöé 			<div
+        Ôöé 			^^^^
+  > 285 Ôöé 				data-slot="mermaid-skeleton"
+         ...
+  > 290 Ôöé 				)}
+  > 291 Ôöé 			>
+        Ôöé 			^
+    292 Ôöé 				<div className="bg-muted-foreground/20 h-8 w-20 rounded-md" />
+    293 Ôöé 				<div className="bg-muted-foreground/20 h-px w-10" />
+  
+  i Ensure that ARIA attributes are valid for the role of the element.
+  
+
+packages\ui\src\components\assistant-ui\elements\mermaid-diagram.tsx:113:5 lint/style/noParameterAssign 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Assigning a function parameter is confusing.
+  
+    111 Ôöé 			if (cx === undefined || cy === undefined) {
+    112 Ôöé 				const viewport = viewportRef.current;
+  > 113 Ôöé 				cx = (viewport?.clientWidth ?? 0) / 2;
+        Ôöé 				^^
+    114 Ôöé 				cy = (viewport?.clientHeight ?? 0) / 2;
+    115 Ôöé 			}
+  
+  i The parameter is declared here:
+  
+    102 Ôöé 	}, [isOpen]);
+    103 Ôöé 
+  > 104 Ôöé 	const zoomBy = useCallback((factor: number, cx?: number, cy?: number) => {
+        Ôöé 	                                            ^^
+    105 Ôöé 		setTransform((t) => {
+    106 Ôöé 			const scale = Math.min(
+  
+  i Developers usually expect function parameters to be readonly. To align with this expectation, use a local variable 
+instead.
+  
+
+packages\ui\src\components\assistant-ui\elements\mermaid-diagram.tsx:114:5 lint/style/noParameterAssign 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Assigning a function parameter is confusing.
+  
+    112 Ôöé 				const viewport = viewportRef.current;
+    113 Ôöé 				cx = (viewport?.clientWidth ?? 0) / 2;
+  > 114 Ôöé 				cy = (viewport?.clientHeight ?? 0) / 2;
+        Ôöé 				^^
+    115 Ôöé 			}
+    116 Ôöé 			return {
+  
+  i The parameter is declared here:
+  
+    102 Ôöé 	}, [isOpen]);
+    103 Ôöé 
+  > 104 Ôöé 	const zoomBy = useCallback((factor: number, cx?: number, cy?: number) => {
+        Ôöé 	                                                         ^^
+    105 Ôöé 		setTransform((t) => {
+    106 Ôöé 			const scale = Math.min(
+  
+  i Developers usually expect function parameters to be readonly. To align with this expectation, use a local variable 
+instead.
+  
+
+packages\ui\src\components\assistant-ui\elements\model-selector.tsx:630:3 lint/a11y/noStaticElementInteractions 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Static Elements should not be interactive.
+  
+    629 Ôöé 	return (
+  > 630 Ôöé 		<div
+        Ôöé 		^^^^
+  > 631 Ôöé 			data-slot="model-selector-effort"
+         ...
+  > 653 Ôöé 			{...props}
+  > 654 Ôöé 		>
+        Ôöé 		^
+    655 Ôöé 			<span className="text-muted-foreground text-xs">{label}</span>
+    656 Ôöé 			<RadioGroupPrimitive.Root
+  
+  i To add interactivity such as a mouse or key event listener to a static element, give the element an appropriate 
+role value.
+  
+
+packages\ui\src\components\assistant-ui\elements\number-ticker.tsx:41:4 lint/a11y/useAriaPropsSupportedByRole 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The ARIA attribute 'aria-label' is not supported by this element.
+  
+    39 Ôöé 			{...props}
+    40 Ôöé 		>
+  > 41 Ôöé 			<span
+       Ôöé 			^^^^^
+  > 42 Ôöé 				className="flex text-3xl font-medium tracking-tight tabular-nums"
+  > 43 Ôöé 				aria-label={formatted}
+  > 44 Ôöé 			>
+       Ôöé 			^
+    45 Ôöé 				{formatted.split("").map((char, i) =>
+    46 Ôöé 					/\d/.test(char) ? (
+  
+  i Ensure that ARIA attributes are valid for the role of the element.
+  
+
+packages\ui\src\components\assistant-ui\elements\quota-banner.tsx:68:5 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <meter>
+  
+    67 Ôöé 			<span
+  > 68 Ôöé 				role="meter"
+       Ôöé 				^^^^^^^^^^^^
+    69 Ôöé 				aria-label={`${unit} used`}
+    70 Ôöé 				aria-valuemin={0}
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\components\assistant-ui\elements\retrieval-chunks.tsx:98:8 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <meter>
+  
+     96 Ôöé 						</p>
+     97 Ôöé 						<span
+   > 98 Ôöé 							role="meter"
+        Ôöé 							^^^^^^^^^^^^
+     99 Ôöé 							aria-label={`${chunk.source} relevance score`}
+    100 Ôöé 							aria-valuemin={0}
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\components\assistant-ui\elements\score-breakdown.tsx:94:8 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <meter>
+  
+    92 Ôöé 						</div>
+    93 Ôöé 						<span
+  > 94 Ôöé 							role="meter"
+       Ôöé 							^^^^^^^^^^^^
+    95 Ôöé 							aria-label={`${criterion.label} score`}
+    96 Ôöé 							aria-valuemin={0}
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\components\assistant-ui\elements\thread.aui.tsx:487:10 lint/a11y/useAriaPropsSupportedByRole 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The ARIA attribute 'aria-label' is not supported by this element.
+  
+    485 Ôöé 							case "indicator":
+    486 Ôöé 								return (
+  > 487 Ôöé 									<span
+        Ôöé 									^^^^^
+  > 488 Ôöé 										data-slot="aui_assistant-message-indicator"
+  > 489 Ôöé 										className="animate-pulse font-sans"
+  > 490 Ôöé 										aria-label="Assistant is working"
+  > 491 Ôöé 									>
+        Ôöé 									^
+    492 Ôöé 										{"ÔùÅ"}
+    493 Ôöé 									</span>
+  
+  i Ensure that ARIA attributes are valid for the role of the element.
+  
+
+packages\ui\src\components\assistant-ui\elements\voice.tsx:256:2 lint/correctness/useHookAtTopLevel 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù This hook is being called conditionally, but all hooks must be called in the exact same order in every component 
+render.
+  
+    254 Ôöé 	gl.linkProgram(program);
+    255 Ôöé 	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+  > 256 Ôöé 	gl.useProgram(program);
+        Ôöé 	^^^^^^^^^^^^^
+    257 Ôöé 
+    258 Ôöé 	const buf = gl.createBuffer();
+  
+  i Hooks should not be called after an early return.
+  
+    253 Ôöé 	gl.attachShader(program, fs);
+    254 Ôöé 	gl.linkProgram(program);
+  > 255 Ôöé 	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+        Ôöé 	                                                      ^^^^^^^^^^^^
+    256 Ôöé 	gl.useProgram(program);
+    257 Ôöé 
+  
+  i For React to preserve state between calls, hooks needs to be called unconditionally and always in the same order.
+  
+  i See https://react.dev/reference/rules/rules-of-hooks
+  
+
+packages\ui\src\components\image-upload-input.tsx:135:3 lint/a11y/noLabelWithoutControl 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù A form label must be associated with an input.
+  
+    134 Ôöé 	return (
+  > 135 Ôöé 		<label
+        Ôöé 		^^^^^^
+  > 136 Ôöé 			id={"image-upload-input"}
+         ...
+  > 203 Ôöé 			</div>
+  > 204 Ôöé 		</label>
+        Ôöé 		^^^^^^^^
+    205 Ôöé 	);
+    206 Ôöé };
+  
+  i Consider adding a `for` or `htmlFor` attribute to the label element or moving the input element to inside the 
+label element.
+  
+
+packages\ui\src\components\image-uploader.tsx:72:4 lint/a11y/noLabelWithoutControl 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù A form label must be associated with an input.
+  
+    70 Ôöé 	return (
+    71 Ôöé 		<div className={"flex items-center space-x-4"}>
+  > 72 Ôöé 			<label
+       Ôöé 			^^^^^^
+  > 73 Ôöé 				className={"animate-in fade-in zoom-in-50 relative h-20 w-20"}
+        ...
+  > 83 Ôöé 				<Input />
+  > 84 Ôöé 			</label>
+       Ôöé 			^^^^^^^^
+    85 Ôöé 
+    86 Ôöé 			<div>
+  
+  i Consider adding a `for` or `htmlFor` attribute to the label element or moving the input element to inside the 
+label element.
+  
+
+packages\ui\src\components\image-uploader.tsx:102:4 lint/a11y/noLabelWithoutControl 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù A form label must be associated with an input.
+  
+    100 Ôöé 	return (
+    101 Ôöé 		<div className={"flex items-center space-x-4"}>
+  > 102 Ôöé 			<label
+        Ôöé 			^^^^^^
+  > 103 Ôöé 				className={
+         ...
+  > 109 Ôöé 				{props.children}
+  > 110 Ôöé 			</label>
+        Ôöé 			^^^^^^^^
+    111 Ôöé 
+    112 Ôöé 			{props.descriptionSection}
+  
+  i Consider adding a `for` or `htmlFor` attribute to the label element or moving the input element to inside the 
+label element.
+  
+
+packages\ui\src\components\sidebar.tsx:89:4 lint/a11y/noStaticElementInteractions 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Static Elements should not be interactive.
+  
+    87 Ôöé 	return (
+    88 Ôöé 		<SidebarContext.Provider value={ctx}>
+  > 89 Ôöé 			<div
+       Ôöé 			^^^^
+  > 90 Ôöé 				className={containerClassName}
+  > 91 Ôöé 				onMouseEnter={onMouseEnter}
+  > 92 Ôöé 				onMouseLeave={onMouseLeave}
+  > 93 Ôöé 			>
+       Ôöé 			^
+    94 Ôöé 				<div aria-expanded={!collapsed} className={className}>
+    95 Ôöé 					{typeof props.children === "function"
+  
+  i To add interactivity such as a mouse or key event listener to a static element, give the element an appropriate 
+role value.
+  
+
+packages\ui\src\components\sidebar.tsx:94:5 lint/a11y/useAriaPropsSupportedByRole 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The ARIA attribute 'aria-expanded' is not supported by this element.
+  
+    92 Ôöé 				onMouseLeave={onMouseLeave}
+    93 Ôöé 			>
+  > 94 Ôöé 				<div aria-expanded={!collapsed} className={className}>
+       Ôöé 				^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    95 Ôöé 					{typeof props.children === "function"
+    96 Ôöé 						? props.children(ctx)
+  
+  i Ensure that ARIA attributes are valid for the role of the element.
+  
+
+packages\ui\src\components\sidebar.tsx:320:19 lint/suspicious/useIterableCallbackReturn 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù This callback passed to map() iterable method should always return a value.
+  
+    318 Ôöé 	return (
+    319 Ôöé 		<>
+  > 320 Ôöé 			{config.routes.map((item, index) => {
+        Ôöé 			               ^^^
+    321 Ôöé 				if ("divider" in item) {
+    322 Ôöé 					return <SidebarDivider key={index} />;
+  
+  i Add missing return statements so that this callback returns a value on all execution paths.
+  
+
+packages\ui\src\components\sidebar.tsx:338:23 lint/suspicious/useIterableCallbackReturn 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù This callback passed to map() iterable method should always return a value.
+  
+    336 Ôöé 							collapsed={item.collapsed}
+    337 Ôöé 						>
+  > 338 Ôöé 							{item.children.map((child) => {
+        Ôöé 							               ^^^
+    339 Ôöé 								if (
+    340 Ôöé 									"collapsible" in child &&
+  
+  i Add missing return statements so that this callback returns a value on all execution paths.
+  
+
+packages\ui\src\components\sidebar.tsx:164:5 lint/a11y/useButtonType 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Provide an explicit type prop for the button element.
+  
+    162 Ôöé 		if (collapsible) {
+    163 Ôöé 			return (
+  > 164 Ôöé 				<button
+Checked 243 files in 350ms. No fixes applied.
+Found 37 errors.
+        Ôöé 				^^^^^^^
+  > 165 Ôöé 					aria-expanded={!isGroupCollapsed}
+  > 166 Ôöé 					aria-controls={id}
+  > 167 Ôöé 					onClick={() => setIsGroupCollapsed(!isGroupCollapsed)}
+  > 168 Ôöé 					className={className}
+  > 169 Ôöé 				>
+        Ôöé 				^
+    170 Ôöé 					<Title>{label}</Title>
+    171 Ôöé 
+  
+  i The default type of a button is submit, which causes the submission of a form when placed inside a `form` element. 
+This is likely not the behaviour that you want inside a React application.
+  
+  i Allowed button types are: submit, button or reset
+  
+
+packages\ui\src\components\stepper.tsx:52:6 lint/a11y/useAriaPropsSupportedByRole 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The ARIA attribute 'aria-selected' is not supported by this element.
+  
+    50 Ôöé 			return (
+    51 Ôöé 				<Fragment key={index}>
+  > 52 Ôöé 					<div aria-selected={selected} className={className}>
+       Ôöé 					^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    53 Ôöé 						<span className={labelClassName}>
+    54 Ôöé 							{number}
+  
+  i Ensure that ARIA attributes are valid for the role of the element.
+  
+
+packages\ui\src\shadcn\breadcrumb.tsx:62:2 lint/a11y/useFocusableInteractive 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The HTML element with the interactive role "link" is not focusable.
+  
+    60 Ôöé 	...props
+    61 Ôöé }) => (
+  > 62 Ôöé 	<span
+       Ôöé 	^^^^^
+  > 63 Ôöé 		role="link"
+        ...
+  > 67 Ôöé 		{...props}
+  > 68 Ôöé 	/>
+       Ôöé 	^^
+    69 Ôöé );
+    70 Ôöé BreadcrumbPage.displayName = "BreadcrumbPage";
+  
+  i A non-interactive HTML element that is not focusable may not be reachable for users that rely on keyboard 
+navigation, even with an added role like "link".
+  
+  i Add a tabIndex attribute to make this element focusable.
+  
+
+packages\ui\src\shadcn\breadcrumb.tsx:63:3 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <a>
+    <link>
+  
+    61 Ôöé }) => (
+    62 Ôöé 	<span
+  > 63 Ôöé 		role="link"
+       Ôöé 		^^^^^^^^^^^
+    64 Ôöé 		aria-disabled="true"
+    65 Ôöé 		aria-current="page"
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\shadcn\button-group.tsx:31:4 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <fieldset>
+  
+    29 Ôöé 	return (
+    30 Ôöé 		<div
+  > 31 Ôöé 			role="group"
+       Ôöé 			^^^^^^^^^^^^
+    32 Ôöé 			data-slot="button-group"
+    33 Ôöé 			data-orientation={orientation}
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\shadcn\dot-matrix.tsx:241:4 lint/a11y/noSvgWithoutTitle 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Alternative text title element cannot be empty
+  
+    239 Ôöé 				{DOT_MATRIX_CSS}
+    240 Ôöé 			</style>
+  > 241 Ôöé 			<svg
+        Ôöé 			^^^^
+  > 242 Ôöé 				aria-hidden
+  > 243 Ôöé 				viewBox="0 0 20 20"
+  > 244 Ôöé 				fill="currentColor"
+  > 245 Ôöé 				className="size-full"
+  > 246 Ôöé 			>
+        Ôöé 			^
+    247 Ôöé 				{DOT_INDEXES.map((i) => {
+    248 Ôöé 					const row = Math.floor(i / GRID);
+  
+  i For accessibility purposes, SVGs should have an alternative text, provided via title element. If the svg element 
+has role="img", you should add the aria-label or aria-labelledby attribute.
+  
+
+packages\ui\src\shadcn\input-otp.tsx:67:2 lint/a11y/useFocusableInteractive 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The HTML element with the interactive role "separator" is not focusable.
+  
+    65 Ôöé 	...props
+    66 Ôöé }) => (
+  > 67 Ôöé 	<div role="separator" {...props}>
+       Ôöé 	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    68 Ôöé 		<DashIcon />
+    69 Ôöé 	</div>
+  
+  i A non-interactive HTML element that is not focusable may not be reachable for users that rely on keyboard 
+navigation, even with an added role like "separator".
+  
+  i Add a tabIndex attribute to make this element focusable.
+  
+
+packages\ui\src\shadcn\input-otp.tsx:67:7 lint/a11y/useSemanticElements 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The elements with this role can be changed to the following elements:
+    <hr>
+  
+    65 Ôöé 	...props
+    66 Ôöé }) => (
+  > 67 Ôöé 	<div role="separator" {...props}>
+       Ôöé 	     ^^^^^^^^^^^^^^^^
+    68 Ôöé 		<DashIcon />
+    69 Ôöé 	</div>
+  
+  i For examples and more information, see WAI-ARIA Roles
+  
+
+packages\ui\src\shadcn\input-otp.tsx:67:7 lint/a11y/useAriaPropsForRole 
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù The element with the separator ARIA role does not have the required ARIA attributes.
+  
+    65 Ôöé 	...props
+    66 Ôöé }) => (
+  > 67 Ôöé 	<div role="separator" {...props}>
+       Ôöé 	     ^^^^^^^^^^^^^^^^
+    68 Ôöé 		<DashIcon />
+    69 Ôöé 	</div>
+  
+  i Missing ARIA prop(s):
+  
+  - aria-valuenow
+  
+
+lint ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+ÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔö
+üÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöüÔöü
+
+  ├ù Some errors were emitted while running checks.
+  
+

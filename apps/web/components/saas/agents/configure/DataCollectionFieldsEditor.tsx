@@ -147,7 +147,7 @@ export function DataCollectionFieldsEditor({
 									))}
 								</SelectContent>
 							</Select>
-							<label className="flex items-center justify-center gap-2 text-xs sm:justify-start">
+							<div className="flex items-center justify-center gap-2 text-xs sm:justify-start">
 								<Switch
 									checked={field.required}
 									onCheckedChange={(required) =>
@@ -155,7 +155,7 @@ export function DataCollectionFieldsEditor({
 									}
 									aria-label="Required"
 								/>
-							</label>
+							</div>
 							<div className="flex items-center justify-end">
 								<Button
 									type="button"

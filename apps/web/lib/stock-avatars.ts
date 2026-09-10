@@ -8,12 +8,12 @@ export const STOCK_AVATARS: StockAvatar[] = [
 	{
 		id: "5f46f99e-c4be-4f22-bde2-b364975a0851",
 		displayName: "Sanjay",
-		previewUrl: "/images/avatar/5f46f99e-c4be-4f22-bde2-b364975a0851.png",
+		previewUrl: "/images/avatar/edd4543c-e490-4ff8-b93d-325efe10693b.png",
 	},
 	{
 		id: "d3e94c42-b348-4bec-8225-e47a682128a0",
 		displayName: "Samira",
-		previewUrl: "/images/avatar/d3e94c42-b348-4bec-8225-e47a682128a0.png",
+		previewUrl: "/images/avatar/62867a5f-338d-4a56-bd57-18936f08c85c.png",
 	},
 ];
 

@@ -27,7 +27,7 @@ export function AppShell({ children }: PropsWithChildren) {
 					<div className="flex min-h-0 flex-1 overflow-hidden">
 						<AppSidebar />
 						<SidebarInset className="bg-transparent!">
-							<div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2 pb-24 lg:pb-2">
+							<div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-hidden p-2 pb-24 lg:pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 								{children}
 							</div>
 						</SidebarInset>

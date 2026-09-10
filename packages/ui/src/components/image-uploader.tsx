@@ -69,9 +69,7 @@ export function ImageUploader(
 
 	return (
 		<div className={"flex items-center space-x-4"}>
-			<label
-				className={"animate-in fade-in zoom-in-50 relative h-20 w-20"}
-			>
+			<div className={"animate-in fade-in zoom-in-50 relative h-20 w-20"}>
 				{/* eslint-disable-next-line @next/next/no-img-element */}
 				<img
 					decoding="async"
@@ -81,7 +79,7 @@ export function ImageUploader(
 				/>
 
 				<Input />
-			</label>
+			</div>
 
 			<div>
 				<Button onClick={onClear} size={"sm"} variant={"ghost"}>
@@ -99,7 +97,7 @@ function FallbackImage(
 ) {
 	return (
 		<div className={"flex items-center space-x-4"}>
-			<label
+			<div
 				className={
 					"border-border animate-in fade-in zoom-in-50 hover:border-primary relative flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-full border"
 				}
@@ -107,7 +105,7 @@ function FallbackImage(
 				<ImageIcon className={"text-primary h-8"} />
 
 				{props.children}
-			</label>
+			</div>
 
 			{props.descriptionSection}
 		</div>

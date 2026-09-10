@@ -16,10 +16,11 @@ import {
 	TableRow,
 } from "@repo/ui/table";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useSettingsPageAction } from "@/components/saas/admin/AdminSettingsActions";
-import { useAuditLogsQuery } from "@/components/saas/admin/lib/mock-hooks";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
@@ -102,13 +103,20 @@ export default function AuditLogsPage() {
 	const [action, setAction] = useState<ActionFilter>("all");
 	const [resourceType, setResourceType] = useState<ResourceTypeFilter>("all");
 	const [currentPage, setCurrentPage] = useState(1);
-	const query = useAuditLogsQuery(activeOrganizationId, {
-		action: action === "all" ? undefined : action,
-		resource_type: resourceType === "all" ? undefined : resourceType,
-		limit: 100,
+
+	const query = useQuery({
+		...orpc.audit.list.queryOptions({
+			input: {
+				organizationId: activeOrganizationId ?? "",
+				action: action === "all" ? undefined : action,
+				resourceType: resourceType === "all" ? undefined : resourceType,
+				limit: 100,
+			},
+		}),
+		enabled: Boolean(activeOrganizationId),
 	});
 
-	const rows = query.data ?? [];
+	const rows = query.data?.logs ?? [];
 	const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
 
 	useEffect(() => {
@@ -217,7 +225,11 @@ export default function AuditLogsPage() {
 					</div>
 				</div>
 
-				{query.isLoading ? (
+				{!activeOrganizationId ? (
+					<p className="p-6 text-sm text-muted-foreground">
+						Select an organization to view audit events.
+					</p>
+				) : query.isLoading ? (
 					<TableBodySkeleton
 						headers={["When", "Action", "Resource", "Actor", "IP"]}
 						columns={[

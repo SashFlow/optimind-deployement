@@ -178,7 +178,8 @@ export function InteractiveHeroBackground() {
 			return;
 		}
 
-		gl.useProgram(program);
+		const setProgram = gl.useProgram.bind(gl);
+		setProgram(program);
 
 		const buffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);

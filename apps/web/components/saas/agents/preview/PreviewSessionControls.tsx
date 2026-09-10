@@ -37,6 +37,8 @@ import {
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Agent } from "@/services/api/types";
+import { AssistantTranscriptThread } from "../transcript/AssistantTranscriptThread";
+import { previewItemsToThreadMessages } from "../transcript/mapTranscriptMessages";
 import {
 	type PreviewFileItem,
 	type PreviewRpcCard,
@@ -99,45 +101,21 @@ function MessageList({
 	messages: PreviewTextItem[];
 	localIdentity: string;
 }) {
-	if (messages.length === 0) {
-		return (
-			<p className="text-sm text-muted-foreground">
-				Transcriptions and agent text will appear here.
-			</p>
-		);
-	}
+	const threadMessages = useMemo(
+		() => previewItemsToThreadMessages(messages, localIdentity),
+		[messages, localIdentity],
+	);
 
 	return (
-		<div className="space-y-3">
-			{messages.map((message) => {
-				const isLocal = message.from === localIdentity;
-				return (
-					<div
-						key={message.id}
-						className={cn(
-							"rounded-lg px-3 py-2 text-sm",
-							isLocal ? "ml-6 bg-primary/10" : "mr-6 bg-muted",
-						)}
-					>
-						<div className="mb-0.5 flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-							<span>
-								{isLocal
-									? "You"
-									: message.topic === "lk.transcription"
-										? "Transcript"
-										: "Agent"}
-							</span>
-							<span className="normal-case tracking-normal">
-								{message.topic}
-							</span>
-						</div>
-						<p className="whitespace-pre-wrap text-pretty">
-							{message.text}
-						</p>
-					</div>
-				);
-			})}
-		</div>
+		<AssistantTranscriptThread
+			messages={threadMessages}
+			className="min-h-[12rem]"
+			emptyFallback={
+				<p className="text-sm text-muted-foreground">
+					Transcriptions and agent text will appear here.
+				</p>
+			}
+		/>
 	);
 }
 
@@ -277,10 +255,8 @@ function PipStage({
 }
 
 const VIDEO_FILL_CLASS = "size-full object-cover";
-const PORTRAIT_STAGE_CLASS =
-	"aspect-[3/4] h-full max-h-560px w-auto max-w-full";
-const LANDSCAPE_STAGE_CLASS =
-	"aspect-video h-full max-h-420px w-auto max-w-3xl";
+const PORTRAIT_STAGE_CLASS = "aspect-video w-full max-h-[700px] max-w-5xl";
+const LANDSCAPE_STAGE_CLASS = "aspect-video w-full max-h-[420px] max-w-3xl";
 
 export function PreviewSessionControls({
 	agent,
@@ -298,7 +274,6 @@ export function PreviewSessionControls({
 	const participants = useParticipants();
 	const { state, audioTrack, videoTrack } = useVoiceAssistant();
 	const { isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
-	const micTrackRef = useLocalTrackRef(Track.Source.Microphone);
 	const cameraTrackRef = useLocalTrackRef(Track.Source.Camera);
 	const [screenShareTrack] = useTracks([Track.Source.ScreenShare]);
 	const { messages, files, rpcCards } = usePreviewRoomData(
@@ -491,29 +466,22 @@ export function PreviewSessionControls({
 					) : null}
 
 					<div className="flex shrink-0 items-center justify-center gap-2 border-t bg-background/90 px-3 py-2.5 backdrop-blur">
-						<div className="flex items-center gap-2 rounded-full border bg-card px-2 py-1.5">
-							<TrackToggle
-								source={Track.Source.Microphone}
-								showIcon={false}
-								className={cn(
-									"inline-flex size-9 items-center justify-center rounded-full border transition-colors",
-									isMicrophoneEnabled
-										? "border-transparent bg-primary text-primary-foreground"
-										: "bg-muted text-muted-foreground",
-								)}
-							>
-								{isMicrophoneEnabled ? (
-									<MicIcon className="size-4" />
-								) : (
-									<MicOffIcon className="size-4" />
-								)}
-							</TrackToggle>
-							<AudioBars
-								trackRef={micTrackRef}
-								barCount={7}
-								className="h-8 w-16"
-							/>
-						</div>
+						<TrackToggle
+							source={Track.Source.Microphone}
+							showIcon={false}
+							className={cn(
+								"inline-flex size-9 items-center justify-center rounded-full border transition-colors",
+								isMicrophoneEnabled
+									? "border-transparent bg-primary text-primary-foreground"
+									: "bg-muted text-muted-foreground",
+							)}
+						>
+							{isMicrophoneEnabled ? (
+								<MicIcon className="size-4" />
+							) : (
+								<MicOffIcon className="size-4" />
+							)}
+						</TrackToggle>
 
 						<TrackToggle
 							source={Track.Source.Camera}

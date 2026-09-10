@@ -59,6 +59,8 @@ const BreadcrumbPage: React.FC<React.ComponentPropsWithoutRef<"span">> = ({
 	className,
 	...props
 }) => (
+	// biome-ignore lint/a11y/useFocusableInteractive: shadcn current page is non-navigable
+	// biome-ignore lint/a11y/useSemanticElements: shadcn breadcrumb current page pattern
 	<span
 		role="link"
 		aria-disabled="true"

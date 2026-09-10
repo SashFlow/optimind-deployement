@@ -63,13 +63,21 @@ function flattenContent(value: unknown): string {
 	return flattenContent(row.text ?? row.content ?? row.transcript);
 }
 
-function createdAtToStartMs(value: unknown): number | undefined {
+function toAbsoluteMs(value: unknown): number | undefined {
 	if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
-	// LiveKit uses epoch seconds (float). Values > 1e12 are already ms.
+	// Epoch ms (~1.7e12), epoch seconds (~1.7e9), or relative seconds.
 	if (value > 1e12) return Math.floor(value);
 	if (value > 1e9) return Math.floor(value * 1000);
-	// Relative seconds within a short session — store as ms offset.
 	return Math.floor(value * 1000);
+}
+
+/** Clamp to signed INT4 range used by Postgres `Int`. */
+function toInt4Ms(value: number | undefined): number | undefined {
+	if (value === undefined || !Number.isFinite(value)) return undefined;
+	const floored = Math.floor(value);
+	if (floored < 0) return 0;
+	if (floored > 2_147_483_647) return 2_147_483_647;
+	return floored;
 }
 
 function extractHistoryItems(report: unknown): unknown[] {
@@ -149,7 +157,12 @@ export function transcriptSegmentsFromReport(
 	report: unknown,
 ): TranscriptSegmentInput[] {
 	const items = extractHistoryItems(report);
-	const segments: TranscriptSegmentInput[] = [];
+	const prepared: Array<{
+		row: Record<string, unknown>;
+		role: TranscriptRole;
+		text: string;
+		absoluteMs?: number;
+	}> = [];
 
 	for (const item of items) {
 		const row = asRecord(item);
@@ -183,16 +196,42 @@ export function transcriptSegmentsFromReport(
 		// Skip empty system prompts that only carry instructions noise.
 		if (role === "SYSTEM" && !text) continue;
 
-		segments.push({
-			sequence: segments.length,
+		prepared.push({
+			row,
 			role,
 			text,
-			speakerIdentity: str(row.speaker_identity || row.id) || undefined,
-			startMs: createdAtToStartMs(row.created_at ?? row.createdAt),
+			absoluteMs: toAbsoluteMs(row.created_at ?? row.createdAt),
+		});
+	}
+
+	// startMs/endMs are INT4 offsets within the session — never absolute epoch ms.
+	const originMs = prepared.reduce<number | undefined>((min, item) => {
+		if (item.absoluteMs === undefined) return min;
+		if (min === undefined) return item.absoluteMs;
+		return Math.min(min, item.absoluteMs);
+	}, undefined);
+
+	const segments: TranscriptSegmentInput[] = [];
+	for (const item of prepared) {
+		let startMs: number | undefined;
+		if (item.absoluteMs !== undefined && originMs !== undefined) {
+			startMs = toInt4Ms(item.absoluteMs - originMs);
+		} else if (item.absoluteMs !== undefined && item.absoluteMs < 1e9) {
+			// Already a relative ms value from a short-session timestamp.
+			startMs = toInt4Ms(item.absoluteMs);
+		}
+
+		segments.push({
+			sequence: segments.length,
+			role: item.role,
+			text: item.text,
+			speakerIdentity:
+				str(item.row.speaker_identity || item.row.id) || undefined,
+			startMs,
 			isFinal: true,
-			interrupted: Boolean(row.interrupted),
-			livekitMessageId: str(row.id) || undefined,
-			metrics: asJson(row.metrics),
+			interrupted: Boolean(item.row.interrupted),
+			livekitMessageId: str(item.row.id) || undefined,
+			metrics: asJson(item.row.metrics),
 		});
 	}
 
