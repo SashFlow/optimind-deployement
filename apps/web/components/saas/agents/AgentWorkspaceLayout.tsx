@@ -1,5 +1,7 @@
 "use client";
 
+import { useAppHeader } from "@components/shared/app-header-provider";
+import { TabViewTransition } from "@components/shared/view-transition";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -17,33 +19,32 @@ import {
 } from "@repo/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
-import { useAppHeader } from "@components/shared/app-header-provider";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type PropsWithChildren } from "react";
+import { type PropsWithChildren, useEffect } from "react";
 
 const TABS = [
 	{
 		value: "configure",
 		label: "Configure",
-		href: (id: string) => `/app/agents/${id}/configure`,
+		href: (id: string) => `/app/agents/${id}`,
 	},
 	{
 		value: "monitor",
 		label: "Monitor",
-		href: (id: string) => `/app/agents/${id}/monitor`,
+		href: (id: string) => `/app/agents/${id}`,
 	},
 	{
 		value: "logs",
 		label: "Logs",
-		href: (id: string) => `/app/agents/${id}/logs`,
+		href: (id: string) => `/app/agents/${id}`,
 	},
 	{
 		value: "access-control",
 		label: "Access Control",
-		href: (id: string) => `/app/agents/${id}/access-control`,
+		href: (id: string) => `/app/agents/${id}`,
 	},
 ] as const;
 
@@ -158,7 +159,12 @@ export function AgentWorkspaceLayout({
 				</Tabs>
 			</div>
 			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				{children}
+				<TabViewTransition
+					activeValue={active}
+					orderedValues={TABS.map((tab) => tab.value)}
+				>
+					{children}
+				</TabViewTransition>
 			</div>
 		</div>
 	);

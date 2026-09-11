@@ -35,25 +35,21 @@ import {
 	TableRow,
 } from "@repo/ui/table";
 import { cn } from "@repo/ui/utils";
-import { useCreateOrganizationMutation } from "@saas/organizations/lib/api";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreVerticalIcon, SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useSettingsPageAction } from "@/components/saas/admin/AdminSettingsActions";
-import { mapOrgToAdminOrganization } from "@/components/saas/admin/lib/types";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
-
-type TypeFilter = "all" | "trial" | "workspace";
-
-const TYPE_FILTER_ITEMS = [
-	{ value: "all", label: "All types" },
-	{ value: "trial", label: "Trial" },
-	{ value: "workspace", label: "Workspace" },
-] as const;
+import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
+import { useCreateOrganizationMutation } from "@/services/organization";
+import {
+	mapOrgToAdminOrganization,
+	TYPE_FILTER_ITEMS,
+	type TypeFilter,
+} from "@/types/admin";
 
 export function AdminOrganizations() {
 	const router = useRouter();

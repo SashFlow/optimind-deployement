@@ -35,15 +35,15 @@ import {
 import { MoreVerticalIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import {
 	useCreateDispatchRuleMutation,
 	useDeleteDispatchRuleMutation,
 	useDispatchRulesQuery,
 	useSipTrunksQuery,
-} from "@/components/saas/numbers/lib/hooks";
-import type { Agent, DispatchRule } from "@/components/saas/numbers/lib/types";
-import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
-import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+} from "@/hooks/numbers";
+import type { Agent, DispatchRule } from "@/types/numbers";
 
 type DispatchRulesPanelProps = {
 	organizationId: string | null;
@@ -76,7 +76,9 @@ export function DispatchRulesPanel({
 	const pageCount = Math.max(1, Math.ceil(rules.length / PAGE_SIZE));
 
 	useEffect(() => {
-		if (currentPage > pageCount) setCurrentPage(pageCount);
+		if (currentPage > pageCount) {
+			setCurrentPage(pageCount);
+		}
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
@@ -131,7 +133,9 @@ export function DispatchRulesPanel({
 	}
 
 	async function handleDelete() {
-		if (!deleteTarget) return;
+		if (!deleteTarget) {
+			return;
+		}
 		try {
 			await deleteMutation.mutateAsync(deleteTarget.id);
 			toast.success("Rule deleted");
@@ -361,7 +365,9 @@ export function DispatchRulesPanel({
 			<Dialog
 				open={deleteTarget !== null}
 				onOpenChange={(open) => {
-					if (!open) setDeleteTarget(null);
+					if (!open) {
+						setDeleteTarget(null);
+					}
 				}}
 			>
 				<DialogContent>

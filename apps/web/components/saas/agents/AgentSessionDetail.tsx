@@ -10,7 +10,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
 import {
 	ChevronDownIcon,
@@ -31,10 +30,9 @@ import {
 	Pagination,
 	useClientPagination,
 } from "@/components/saas/shared/Pagination";
-import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
+import type { SessionDetail } from "./lib/hooks";
 import { AssistantTranscriptThread } from "./transcript/AssistantTranscriptThread";
 import { sessionSegmentsToThreadMessages } from "./transcript/mapTranscriptMessages";
-import { useSessionDetailQuery } from "./lib/hooks";
 
 function formatDateTime(value: string | Date | null | undefined) {
 	if (!value) return "—";
@@ -187,7 +185,7 @@ function formatPayloadJson(payload: unknown): string {
 	}
 }
 
-type SessionEventRow = {
+export type SessionEventRow = {
 	id: string;
 	sequence?: number;
 	eventType?: string;
@@ -198,7 +196,7 @@ type SessionEventRow = {
 	payload?: unknown;
 };
 
-type TranscriptSegmentRow = {
+export type TranscriptSegmentRow = {
 	id: string;
 	sequence?: number;
 	role?: string;
@@ -208,7 +206,7 @@ type TranscriptSegmentRow = {
 	endMs?: number | null;
 };
 
-type EgressJobRow = {
+export type EgressJobRow = {
 	id: string;
 	status?: string;
 	type?: string;
@@ -571,7 +569,7 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 	);
 }
 
-function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
+export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 	const sortedEvents = useMemo(
 		() =>
 			[...events].sort((a, b) => {
@@ -697,194 +695,130 @@ function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 	);
 }
 
-export function AgentSessionDetail({
-	sessionId,
-}: {
-	agentId: string;
-	sessionId: string;
-	organizationId?: string;
-}) {
-	const sessionQuery = useSessionDetailQuery(sessionId);
-
-	if (sessionQuery.isLoading) {
-		return <PageSectionSkeleton variant="detail" />;
-	}
-
-	if (sessionQuery.isError || !sessionQuery.data?.session) {
-		return (
-			<p className="p-6 text-sm text-destructive">
-				Failed to load session.
-			</p>
-		);
-	}
-
-	const session = sessionQuery.data.session as {
-		id: string;
-		status: string;
-		channel?: string;
-		livekitRoomName: string;
-		startedAt?: string | Date | null;
-		endedAt?: string | Date | null;
-		durationMs?: number | null;
-		errorMessage?: string | null;
-		events?: SessionEventRow[];
-		transcript?: {
-			text?: string | null;
-			fullText?: string | null;
-			segments?: TranscriptSegmentRow[];
-		} | null;
-		egressJobs?: EgressJobRow[];
-	};
-
-	const events = session.events ?? [];
+export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 	const egressJobs = session.egressJobs ?? [];
 	const transcriptSegments = session.transcript?.segments ?? [];
 	const transcriptText =
 		session.transcript?.fullText ?? session.transcript?.text ?? null;
 
-	const tabTriggerClass = cn(
-		"h-9 flex-none gap-2 rounded-full px-4 py-2 text-muted-foreground shadow-none transition-colors hover:text-foreground",
-		"data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none",
-		"data-[state=active]:hover:bg-primary data-[state=active]:hover:text-primary-foreground",
-	);
-
 	return (
-		<section className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 overflow-hidden px-4 py-6 md:px-6">
-			<Tabs defaultValue="overview" className="min-h-0 flex-1">
-				<TabsList className="h-auto w-fit gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground shadow-sm ring-1 ring-black/5">
-					<TabsTrigger value="overview" className={tabTriggerClass}>
-						Overview
-					</TabsTrigger>
-					<TabsTrigger value="events" className={tabTriggerClass}>
-						Events
-					</TabsTrigger>
-				</TabsList>
-
-				<TabsContent value="overview" className="mt-4 space-y-4">
-					<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-						{[
-							{
-								label: "Channel",
-								value: session.channel ?? "WEB",
-								icon: RadioIcon,
-							},
-							{
-								label: "Started",
-								value: formatDateTime(session.startedAt),
-								icon: ClockIcon,
-							},
-							{
-								label: "Ended",
-								value: formatDateTime(session.endedAt),
-								icon: ClockIcon,
-							},
-							{
-								label: "Duration",
-								value: formatDuration(session.durationMs),
-								icon: ClockIcon,
-							},
-						].map((item) => (
-							<Card
-								key={item.label}
-								className="rounded-3xl border shadow-sm ring-1 ring-black/5"
-							>
-								<CardContent className="flex items-start gap-3 p-4">
-									<span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-										<item.icon className="size-4" />
-									</span>
-									<div className="min-w-0 space-y-0.5">
-										<p className="text-xs font-medium text-muted-foreground">
-											{item.label}
-										</p>
-										<p className="truncate text-sm font-semibold tracking-tight">
-											{item.value}
-										</p>
-									</div>
-								</CardContent>
-							</Card>
-						))}
-					</div>
-
-					<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
+		<div className="mt-4 space-y-4">
+			<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+				{[
+					{
+						label: "Channel",
+						value: session.channel ?? "WEB",
+						icon: RadioIcon,
+					},
+					{
+						label: "Started",
+						value: formatDateTime(session.startedAt),
+						icon: ClockIcon,
+					},
+					{
+						label: "Ended",
+						value: formatDateTime(session.endedAt),
+						icon: ClockIcon,
+					},
+					{
+						label: "Duration",
+						value: formatDuration(session.durationMs),
+						icon: ClockIcon,
+					},
+				].map((item) => (
+					<Card
+						key={item.label}
+						className="rounded-3xl border shadow-sm ring-1 ring-black/5"
+					>
 						<CardContent className="flex items-start gap-3 p-4">
 							<span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-								<HashIcon className="size-4" />
+								<item.icon className="size-4" />
 							</span>
 							<div className="min-w-0 space-y-0.5">
 								<p className="text-xs font-medium text-muted-foreground">
-									Room
+									{item.label}
 								</p>
-								<p className="truncate font-mono text-xs">
-									{session.livekitRoomName}
+								<p className="truncate text-sm font-semibold tracking-tight">
+									{item.value}
 								</p>
 							</div>
 						</CardContent>
 					</Card>
+				))}
+			</div>
 
-					<div className="grid gap-4 lg:grid-cols-2">
-						<Card className="flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
-							<CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 pb-3">
-								<div className="flex items-center gap-2">
-									<span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-										<MessageSquareTextIcon className="size-4" />
-									</span>
-									<CardTitle className="text-sm font-semibold">
-										Transcript
-									</CardTitle>
-								</div>
-							</CardHeader>
-							<CardContent className="p-4">
-								<TranscriptPanel
-									segments={transcriptSegments}
-									fullText={transcriptText}
-									sessionStatus={session.status}
-								/>
-							</CardContent>
-						</Card>
-
-						<Card className="flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
-							<CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 pb-3">
-								<div className="flex items-center gap-2">
-									<span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-										<VideoIcon className="size-4" />
-									</span>
-									<CardTitle className="text-sm font-semibold">
-										Egress
-									</CardTitle>
-								</div>
-								{egressJobs.length > 0 ? (
-									<span className="text-xs text-muted-foreground">
-										{egressJobs.length}{" "}
-										{egressJobs.length === 1
-											? "job"
-											: "jobs"}
-									</span>
-								) : null}
-							</CardHeader>
-							<CardContent className="p-4">
-								<EgressPanel jobs={egressJobs} />
-							</CardContent>
-						</Card>
+			<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
+				<CardContent className="flex items-start gap-3 p-4">
+					<span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+						<HashIcon className="size-4" />
+					</span>
+					<div className="min-w-0 space-y-0.5">
+						<p className="text-xs font-medium text-muted-foreground">
+							Room
+						</p>
+						<p className="truncate font-mono text-xs">
+							{session.livekitRoomName}
+						</p>
 					</div>
+				</CardContent>
+			</Card>
 
-					{session.errorMessage ? (
-						<Card className="rounded-3xl border-destructive/40 shadow-sm ring-1 ring-destructive/10">
-							<CardHeader>
-								<CardTitle className="text-sm text-destructive">
-									Error
-								</CardTitle>
-							</CardHeader>
-							<CardContent className="text-sm">
-								{session.errorMessage}
-							</CardContent>
-						</Card>
-					) : null}
-				</TabsContent>
+			<div className="grid gap-4 lg:grid-cols-2">
+				<Card className="flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
+					<CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 pb-3">
+						<div className="flex items-center gap-2">
+							<span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+								<MessageSquareTextIcon className="size-4" />
+							</span>
+							<CardTitle className="text-sm font-semibold">
+								Transcript
+							</CardTitle>
+						</div>
+					</CardHeader>
+					<CardContent className="p-4">
+						<TranscriptPanel
+							segments={transcriptSegments}
+							fullText={transcriptText}
+							sessionStatus={session.status}
+						/>
+					</CardContent>
+				</Card>
 
-				<TabsContent value="events" className="mt-4">
-					<SessionEventsPanel events={events} />
-				</TabsContent>
-			</Tabs>
-		</section>
+				<Card className="flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
+					<CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 pb-3">
+						<div className="flex items-center gap-2">
+							<span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+								<VideoIcon className="size-4" />
+							</span>
+							<CardTitle className="text-sm font-semibold">
+								Egress
+							</CardTitle>
+						</div>
+						{egressJobs.length > 0 ? (
+							<span className="text-xs text-muted-foreground">
+								{egressJobs.length}{" "}
+								{egressJobs.length === 1 ? "job" : "jobs"}
+							</span>
+						) : null}
+					</CardHeader>
+					<CardContent className="p-4">
+						<EgressPanel jobs={egressJobs} />
+					</CardContent>
+				</Card>
+			</div>
+
+			{session.errorMessage ? (
+				<Card className="rounded-3xl border-destructive/40 shadow-sm ring-1 ring-destructive/10">
+					<CardHeader>
+						<CardTitle className="text-sm text-destructive">
+							Error
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="text-sm">
+						{session.errorMessage}
+					</CardContent>
+				</Card>
+			) : null}
+		</div>
 	);
 }

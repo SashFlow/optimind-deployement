@@ -1,11 +1,11 @@
 import { AppShell } from "@components/shared/app-shell";
 import { config } from "@repo/config";
 import { createPurchasesHelper } from "@repo/payments/lib/helper";
-import { getOrganizationList, getSession } from "@saas/auth/lib/server";
 import { orpcClient } from "@shared/lib/orpc-client";
 import { attemptAsync } from "es-toolkit";
 import { redirect } from "next/navigation";
 import type { PropsWithChildren } from "react";
+import { getOrganizationList, getSession } from "@/services/session";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

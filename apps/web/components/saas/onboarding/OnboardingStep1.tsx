@@ -12,7 +12,6 @@ import {
 	FormLabel,
 } from "@repo/ui/form";
 import { Input } from "@repo/ui/input";
-import { useSession } from "@saas/auth/hooks/use-session";
 import { ArrowRightIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
@@ -20,6 +19,7 @@ import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { UserAvatarUpload } from "@/components/saas/settings/UserAvatarUpload";
+import { useSession } from "@/context/SessionProvider";
 
 const formSchema = z.object({
 	name: z.string(),

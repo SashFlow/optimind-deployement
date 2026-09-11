@@ -24,7 +24,7 @@ export function WorkflowCanvasToolbar({
 	addNodeOpen,
 }: Props) {
 	return (
-		<div className="absolute left-3 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-0.5 rounded-xl border border-border/80 bg-white p-1.5 shadow-md">
+		<div className="absolute left-1/2 top-3 z-20 flex -translate-x-1/2 flex-row gap-0.5 rounded-xl border border-border/80 bg-white p-1.5 shadow-md">
 			<ToolbarButton
 				label="Add node"
 				active={addNodeOpen}
@@ -32,7 +32,7 @@ export function WorkflowCanvasToolbar({
 			>
 				<Plus className="size-4" />
 			</ToolbarButton>
-			<div className="mx-auto my-1 h-px w-6 bg-border" />
+			<div className="mx-1 my-auto h-6 w-px bg-border" />
 			<ToolbarButton
 				label="Pointer mode"
 				active={mode === "pointer"}
@@ -47,7 +47,7 @@ export function WorkflowCanvasToolbar({
 			>
 				<Hand className="size-4" />
 			</ToolbarButton>
-			<div className="mx-auto my-1 h-px w-6 bg-border" />
+			<div className="mx-1 my-auto h-6 w-px bg-border" />
 			<ToolbarButton label="Organize nodes" onClick={onOrganize}>
 				<LayoutGrid className="size-4" />
 			</ToolbarButton>

@@ -2,6 +2,7 @@ export * from "./agents";
 export * from "./audit";
 export * from "./avatars";
 export * from "./campaigns";
+export * from "./jobs";
 export * from "./knowledge";
 export * from "./metrics";
 export * from "./organizations";

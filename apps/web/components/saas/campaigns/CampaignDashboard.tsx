@@ -10,11 +10,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/select";
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 
 export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 	const queryClient = useQueryClient();

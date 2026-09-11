@@ -12,8 +12,6 @@ import { FormItem } from "@repo/ui/form";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { PasswordInput } from "@repo/ui/password-input";
-import { useSession } from "@saas/auth/hooks/use-session";
-import { useUserAccountsQuery } from "@saas/auth/lib/api";
 import { useMutation } from "@tanstack/react-query";
 import {
 	ArrowRightIcon,
@@ -27,6 +25,8 @@ import { useEffect, useMemo, useState } from "react";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
 import { SettingsItem } from "@/components/saas/shared/SettingsItem";
+import { useSession } from "@/context/SessionProvider";
+import { useUserAccountsQuery } from "@/services/auth";
 
 export function TwoFactorBlock() {
 	const t = useTranslations();

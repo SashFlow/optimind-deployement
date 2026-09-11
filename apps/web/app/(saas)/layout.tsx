@@ -1,9 +1,5 @@
 import { config } from "@repo/config";
-import { SessionProvider } from "@saas/auth/components/SessionProvider";
-import { sessionQueryKey } from "@saas/auth/lib/api";
-import { getOrganizationList, getSession } from "@saas/auth/lib/server";
-import { ActiveOrganizationProvider } from "@saas/organizations/components/ActiveOrganizationProvider";
-import { organizationListQueryKey } from "@saas/organizations/lib/api";
+import { ActiveOrganizationProvider } from "@saas/organizations/ActiveOrganizationProvider";
 import { Document } from "@shared/components/Document";
 import { orpcClient } from "@shared/lib/orpc-client";
 import { orpc } from "@shared/lib/orpc-query-utils";
@@ -14,6 +10,10 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import type { PropsWithChildren } from "react";
 import { ConfirmationAlertProvider } from "@/components/saas/shared/ConfirmationAlertProvider";
+import { SessionProvider } from "@/context/SessionProvider";
+import { sessionQueryKey } from "@/services/auth";
+import { organizationListQueryKey } from "@/services/organization";
+import { getOrganizationList, getSession } from "@/services/session";
 
 export default async function SaaSLayout({ children }: PropsWithChildren) {
 	const locale = await getLocale();

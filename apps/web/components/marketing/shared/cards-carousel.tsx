@@ -28,7 +28,7 @@ export const CarouselContext = createContext<{
 	onCardClose: (index: number) => void;
 	currentIndex: number;
 }>({
-	onCardClose: () => {},
+	onCardClose: () => { },
 	currentIndex: 0,
 });
 
@@ -120,7 +120,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
 										ease: "easeOut",
 									},
 								}}
-								key={"card" + index}
+								key={`card${index}`}
 								className="rounded-3xl last:pr-[5%] md:last:pr-[33%]"
 							>
 								{item}

@@ -1,4 +1,4 @@
-import { LoginForm } from "@saas/auth/components/LoginForm";
+import { LoginForm } from "@saas/auth/LoginForm";
 import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";

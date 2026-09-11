@@ -79,7 +79,7 @@ export function AgentActiveSessions({
 										<TableRow key={session.id}>
 											<TableCell>
 												<Link
-													href={`/app/agents/${agentId}/logs/${session.id}`}
+													href={`/app/agents/${agentId}/session/${session.id}`}
 													className="font-mono text-xs underline-offset-2 hover:underline"
 												>
 													{session.id.slice(0, 8)}

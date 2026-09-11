@@ -4,12 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@repo/auth/client";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
-import { useSession } from "@saas/auth/hooks/use-session";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { SettingsItem } from "@/components/saas/shared/SettingsItem";
+import { useSession } from "@/context/SessionProvider";
 
 const formSchema = z.object({
 	email: z.string().email(),

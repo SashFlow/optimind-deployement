@@ -32,7 +32,10 @@ export async function GET(
 	});
 	await tickWorkflowRunner(3);
 	return NextResponse.redirect(
-		new URL(`/app/workflows/approvals/${token}`, url.origin),
+		new URL(
+			`/app/campaigns/${approval.run.campaignId}/approvals/${token}`,
+			url.origin,
+		),
 	);
 }
 

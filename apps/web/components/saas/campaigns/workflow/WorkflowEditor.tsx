@@ -2,6 +2,13 @@
 
 import { Button } from "@repo/ui/button";
 import {
+	Drawer,
+	DrawerContent,
+	DrawerDescription,
+	DrawerHeader,
+	DrawerTitle,
+} from "@repo/ui/drawer";
+import {
 	Background,
 	BackgroundVariant,
 	MiniMap,
@@ -273,135 +280,141 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- bind once for Alt+R shortcut
 	}, []);
 
-	const webhookToken = defQuery.data?.workflow.webhookToken;
-	const publishedVersion = defQuery.data?.workflow.publishedVersion;
 	const isHand = mode === "hand";
 
 	return (
-		<div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-			<div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-[#F9FAFB]">
-				<div className="absolute right-3 top-3 z-20 flex flex-wrap gap-2">
-					<Button
-						size="sm"
-						variant="outline"
-						className="bg-white shadow-sm"
-						onClick={() => persist()}
-						disabled={saveMutation.isPending}
-					>
-						Save draft
-					</Button>
-					<Button
-						size="sm"
-						variant="outline"
-						className="bg-white shadow-sm"
-						onClick={() => persist({ test: true })}
-						disabled={testMutation.isPending}
-					>
-						Test Run
-					</Button>
-					<Button
-						size="sm"
-						className="bg-blue-600 shadow-sm hover:bg-blue-700"
-						onClick={() => persist({ publish: true })}
-						disabled={publishMutation.isPending}
-					>
-						Publish
-					</Button>
-				</div>
-
-				<WorkflowCanvasToolbar
-					mode={mode}
-					onModeChange={setMode}
-					addNodeOpen={addPanelOpen}
-					onAddNode={() => {
-						const rect = document
-							.querySelector(".workflow-canvas-root")
-							?.getBoundingClientRect();
-						openAddPanel({
-							x: (rect?.left ?? 0) + 64,
-							y:
-								(rect?.top ?? 0) +
-								(rect?.height ?? 400) / 2 -
-								120,
-						});
-					}}
-					onOrganize={organize}
-					onExport={exportWorkflow}
-				/>
-
-				{webhookToken && (
-					<div className="absolute bottom-3 left-14 z-10 max-w-[60%] truncate rounded-md bg-white/95 px-2 py-1 text-[10px] text-muted-foreground shadow-sm ring-1 ring-border">
-						Webhook: /api/workflows/hooks/{webhookToken}
-						{publishedVersion
-							? ` · published v${publishedVersion.version}`
-							: " · not published"}
-					</div>
-				)}
-
-				<div className="workflow-canvas-root h-full w-full">
-					<ReactFlow
-						nodes={nodes}
-						edges={edges}
-						onNodesChange={onNodesChange}
-						onEdgesChange={onEdgesChange}
-						onConnect={onConnect}
-						nodeTypes={nodeTypes}
-						fitView
-						onViewportChange={setViewport}
-						defaultViewport={viewport}
-						deleteKeyCode={["Backspace", "Delete"]}
-						panOnDrag={isHand ? true : [1, 2]}
-						selectionOnDrag={!isHand}
-						nodesDraggable={!isHand}
-						elementsSelectable={!isHand}
-						panOnScroll
-						onPaneContextMenu={(e) => {
-							e.preventDefault();
-							setContextMenu({ x: e.clientX, y: e.clientY });
-							setAddPanelOpen(false);
-						}}
-						onPaneClick={() => {
-							setContextMenu(null);
-						}}
-						proOptions={{ hideAttribution: true }}
-						defaultEdgeOptions={{
-							style: { stroke: "#93C5FD", strokeWidth: 2 },
-						}}
-					>
-						<Background
-							variant={BackgroundVariant.Dots}
-							gap={20}
-							size={1}
-							color="#E5E7EB"
-						/>
-						<MiniMap
-							pannable
-							zoomable
-							className="!bottom-3 !right-3 !m-0 overflow-hidden rounded-lg border border-border bg-white/90 shadow-sm"
-						/>
-					</ReactFlow>
-				</div>
+		<div className="relative min-h-0 flex-1 overflow-hidden bg-[#F9FAFB]">
+			<div className="absolute right-3 top-3 z-20 flex flex-wrap gap-2">
+				<Button
+					size="sm"
+					variant="outline"
+					className="bg-white shadow-sm"
+					onClick={() => persist()}
+					disabled={saveMutation.isPending}
+				>
+					Save draft
+				</Button>
+				<Button
+					size="sm"
+					variant="outline"
+					className="bg-white shadow-sm"
+					onClick={() => persist({ test: true })}
+					disabled={testMutation.isPending}
+				>
+					Test Run
+				</Button>
+				<Button
+					size="sm"
+					className="bg-blue-600 shadow-sm hover:bg-blue-700"
+					onClick={() => persist({ publish: true })}
+					disabled={publishMutation.isPending}
+				>
+					Publish
+				</Button>
 			</div>
 
-			<aside className="w-80 shrink-0 overflow-hidden border-l border-border bg-white">
-				<WorkflowInspector
-					selected={selected}
-					envVars={envVars}
-					onEnvVarsChange={setEnvVars}
-					allNodes={nodes.map((n) => ({
-						id: n.id,
-						data: n.data as WorkflowNodeData,
-					}))}
-					onChange={(data) => {
-						if (!selected) return;
+			<WorkflowCanvasToolbar
+				mode={mode}
+				onModeChange={setMode}
+				addNodeOpen={addPanelOpen}
+				onAddNode={() => {
+					const rect = document
+						.querySelector(".workflow-canvas-root")
+						?.getBoundingClientRect();
+					openAddPanel({
+						x: (rect?.left ?? 0) + 64,
+						y: (rect?.top ?? 0) + (rect?.height ?? 400) / 2 - 120,
+					});
+				}}
+				onOrganize={organize}
+				onExport={exportWorkflow}
+			/>
+
+			<div className="workflow-canvas-root h-full w-full">
+				<ReactFlow
+					nodes={nodes}
+					edges={edges}
+					onNodesChange={onNodesChange}
+					onEdgesChange={onEdgesChange}
+					onConnect={onConnect}
+					nodeTypes={nodeTypes}
+					fitView
+					onViewportChange={setViewport}
+					defaultViewport={viewport}
+					deleteKeyCode={["Backspace", "Delete"]}
+					panOnDrag={isHand ? true : [1, 2]}
+					selectionOnDrag={!isHand}
+					nodesDraggable={!isHand}
+					elementsSelectable={!isHand}
+					panOnScroll
+					onPaneContextMenu={(e) => {
+						e.preventDefault();
+						setContextMenu({ x: e.clientX, y: e.clientY });
+						setAddPanelOpen(false);
+					}}
+					onPaneClick={() => {
+						setContextMenu(null);
+					}}
+					proOptions={{ hideAttribution: true }}
+					defaultEdgeOptions={{
+						style: { stroke: "#93C5FD", strokeWidth: 2 },
+					}}
+				>
+					<Background
+						variant={BackgroundVariant.Dots}
+						gap={20}
+						size={1}
+						color="#E5E7EB"
+					/>
+					<MiniMap
+						pannable
+						zoomable
+						className="!bottom-3 !right-3 !m-0 overflow-hidden rounded-lg border border-border bg-white/90 shadow-sm"
+					/>
+				</ReactFlow>
+			</div>
+
+			<Drawer
+				open={!!selected}
+				onOpenChange={(open) => {
+					if (!open) {
 						setNodes((nds) =>
 							nds.map((n) =>
-								n.id === selected.id ? { ...n, data } : n,
+								n.selected ? { ...n, selected: false } : n,
 							),
 						);
-					}}
-				/>
-			</aside>
+					}
+				}}
+				swipeDirection="right"
+				shouldScaleBackground={false}
+			>
+				<DrawerContent className="w-80 sm:max-w-sm">
+					<DrawerHeader>
+						<DrawerTitle>
+							{selected?.data.label ?? "Node config"}
+						</DrawerTitle>
+						{selected?.data.type ? (
+							<DrawerDescription>
+								{selected.data.type}
+							</DrawerDescription>
+						) : null}
+					</DrawerHeader>
+					{selected ? (
+						<WorkflowInspector
+							selected={selected}
+							onChange={(data) => {
+								setNodes((nds) =>
+									nds.map((n) =>
+										n.id === selected.id
+											? { ...n, data }
+											: n,
+									),
+								);
+							}}
+						/>
+					) : null}
+				</DrawerContent>
+			</Drawer>
 
 			<WorkflowAddNodePanel
 				open={addPanelOpen}

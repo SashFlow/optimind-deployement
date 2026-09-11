@@ -21,17 +21,17 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-	useBuyPlivoNumberMutation,
-	usePlivoSearchQuery,
-	useSipTrunksQuery,
-} from "@/components/saas/numbers/lib/hooks";
-import type { Agent } from "@/components/saas/numbers/lib/types";
-import {
 	PAGE_SIZE,
 	Pagination,
 	useClientPagination,
 } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import {
+	useBuyPlivoNumberMutation,
+	usePlivoSearchQuery,
+	useSipTrunksQuery,
+} from "@/hooks/numbers";
+import type { Agent } from "@/types/numbers";
 
 const COUNTRIES = [
 	{ iso: "US", label: "United States" },

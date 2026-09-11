@@ -2,11 +2,11 @@
 
 import { ResourceCreateDialog } from "@saas/app/ResourceCreateDialog";
 import { ResourcePage } from "@saas/app/ResourcePage";
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SendHorizonalIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 
 export function CampaignsListPage() {
 	const queryClient = useQueryClient();
@@ -81,7 +81,7 @@ export function CampaignsListPage() {
 				status: String(campaign.status ?? "Draft"),
 				meta: new Date(campaign.updatedAt).toLocaleDateString(),
 				icon: <SendHorizonalIcon className="size-4" />,
-				href: `/app/campaigns/${campaign.id}/dashboard`,
+				href: `/app/campaigns/${campaign.id}`,
 				onEdit: async (name, description) => {
 					await updateMutation.mutateAsync({
 						id: campaign.id,

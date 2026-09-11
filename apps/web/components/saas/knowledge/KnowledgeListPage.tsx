@@ -2,12 +2,12 @@
 
 import { ResourceCreateDialog } from "@saas/app/ResourceCreateDialog";
 import { ResourcePage } from "@saas/app/ResourcePage";
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookTextIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 
 export function KnowledgeListPage() {
 	const router = useRouter();

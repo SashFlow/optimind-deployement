@@ -11,9 +11,9 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/dropdown-menu";
 import { cn } from "@repo/ui/utils";
-import { useSession } from "@saas/auth/hooks/use-session";
 import { BadgeCheckIcon, LogOutIcon, ShieldIcon } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "@/context/SessionProvider";
 
 function getInitials(name: string, email: string) {
 	const fromName = name
@@ -36,9 +36,13 @@ function formatRole(role?: string | null) {
 export function AppUserMenu({
 	className,
 	showMeta = true,
+	align = "end",
+	side = "bottom",
 }: {
 	className?: string;
 	showMeta?: boolean;
+	align?: "start" | "center" | "end";
+	side?: "top" | "right" | "bottom" | "left";
 }) {
 	const { user } = useSession();
 	const name = user?.name ?? "Account";
@@ -64,11 +68,14 @@ export function AppUserMenu({
 		<DropdownMenu>
 			<DropdownMenuTrigger
 				className={cn(
-					"inline-flex h-16 items-center gap-2 rounded-full border border-border/60 bg-white px-1.5 text-left shadow-xs outline-none backdrop-blur-sm transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring",
+					showMeta
+						? "inline-flex h-16 items-center gap-2 rounded-full border border-border/60 bg-white px-1.5 text-left shadow-xs outline-none backdrop-blur-sm transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring"
+						: "inline-flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/40 bg-white shadow-sm outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring",
 					className,
 				)}
+				aria-label={showMeta ? undefined : `Account: ${name}`}
 			>
-				<Avatar className="size-14!">
+				<Avatar className={showMeta ? "size-14!" : "size-full"}>
 					<AvatarImage src={user?.image ?? undefined} alt={name} />
 					<AvatarFallback className="text-xs">
 						{initials}
@@ -85,7 +92,7 @@ export function AppUserMenu({
 					</div>
 				) : null}
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" sideOffset={8}>
+			<DropdownMenuContent align={align} side={side} sideOffset={8}>
 				<DropdownMenuItem asChild className="h-12 cursor-pointer">
 					<Link href="/app/dashboard">
 						<BadgeCheckIcon className="mr-3 size-5" />
@@ -94,7 +101,7 @@ export function AppUserMenu({
 				</DropdownMenuItem>
 				{isAdmin ? (
 					<DropdownMenuItem asChild className="h-12 cursor-pointer">
-						<Link href="/app/settings/users">
+						<Link href="/app/settings/member">
 							<ShieldIcon className="mr-3 size-5" />
 							Admin
 						</Link>

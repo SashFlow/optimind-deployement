@@ -1,190 +1,159 @@
 "use client";
 
-import { Button } from "@repo/ui/button";
-import { Input } from "@repo/ui/input";
-import { Label } from "@repo/ui/label";
-import { Textarea } from "@repo/ui/textarea";
-import { orpc } from "@shared/lib/orpc-query-utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import * as React from "react";
 import { toast } from "sonner";
+import { AgentConfigureForm } from "@/components/saas/agents/AgentConfigureForm";
 import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
+import {
+	type AgentConfigDocument,
+	createDefaultAgentConfig,
+	getVoicemailConfigError,
+	normalizeAgentConfig,
+} from "@/lib/agent-config";
+import { getAvatarPreviewUrl } from "@/lib/stock-avatars";
+import {
+	useAgentQuery,
+	useAgentVersionsQuery,
+	usePublishAgentVersionMutation,
+	useUpdateAgentVersionMutation,
+} from "@/services/api/hooks";
 
-export function AgentConfigurePage({ agentId }: { agentId: string }) {
-	const queryClient = useQueryClient();
-	const agentQuery = useQuery(
-		orpc.agents.get.queryOptions({
-			input: { id: agentId },
-		}),
+export default function AgentConfigurePage() {
+	const params = useParams<{ agentId: string }>();
+	const agentId = params.agentId;
+	const { activeOrganization, loaded } = useActiveOrganization();
+	const activeOrganizationId = activeOrganization?.id ?? null;
+
+	const agentQuery = useAgentQuery(activeOrganizationId, agentId);
+	const versionsQuery = useAgentVersionsQuery(activeOrganizationId, agentId);
+
+	const draftVersion = React.useMemo(() => {
+		const versions = versionsQuery.data ?? [];
+		return (
+			versions.find((v) => v.is_draft) ??
+			versions.find(
+				(v) => v.id === agentQuery.data?.published_version_id,
+			) ??
+			versions[0]
+		);
+	}, [agentQuery.data?.published_version_id, versionsQuery.data]);
+
+	const [loadedVersionId, setLoadedVersionId] = React.useState<string | null>(
+		null,
+	);
+	const [config, setConfig] = React.useState<AgentConfigDocument>(
+		createDefaultAgentConfig(),
+	);
+	const [savedConfig, setSavedConfig] = React.useState<AgentConfigDocument>(
+		createDefaultAgentConfig(),
 	);
 
-	const agent = agentQuery.data?.agent;
-	const draftConfig = (
-		agent as
-			| { draftVersion?: { config?: Record<string, unknown> } }
-			| undefined
-	)?.draftVersion?.config;
+	if (draftVersion && draftVersion.id !== loadedVersionId) {
+		const normalized = normalizeAgentConfig(draftVersion.config);
+		setLoadedVersionId(draftVersion.id);
+		setConfig(normalized);
+		setSavedConfig(normalized);
+	}
 
-	const [name, setName] = useState("");
-	const [description, setDescription] = useState("");
-	const [systemPrompt, setSystemPrompt] = useState("");
+	const isDirty = React.useMemo(
+		() => JSON.stringify(config) !== JSON.stringify(savedConfig),
+		[config, savedConfig],
+	);
+	const hasUnsavedVariables = React.useMemo(
+		() =>
+			JSON.stringify(config.variables) !==
+			JSON.stringify(savedConfig.variables),
+		[config.variables, savedConfig.variables],
+	);
+	const avatarEnabled = savedConfig.avatar?.enabled ?? false;
+	const avatarPreviewUrl = getAvatarPreviewUrl(
+		savedConfig.avatar?.external_avatar_id,
+	);
 
-	useEffect(() => {
-		if (!agent) return;
-		setName(agent.name);
-		setDescription(agent.description ?? "");
-		const prompt =
-			typeof draftConfig?.systemPrompt === "string"
-				? draftConfig.systemPrompt
-				: typeof draftConfig?.prompt === "string"
-					? draftConfig.prompt
-					: "";
-		setSystemPrompt(prompt);
-	}, [agent, draftConfig]);
-
-	const updateMutation = useMutation(
-		orpc.agents.update.mutationOptions({
-			onSuccess: async () => {
-				await queryClient.invalidateQueries({
-					queryKey: orpc.agents.get.key({ input: { id: agentId } }),
-				});
-				toast.success("Agent updated");
+	const updateVersion = useUpdateAgentVersionMutation(
+		activeOrganizationId,
+		agentId,
+		draftVersion?.id ?? "",
+		{
+			onSuccess: () => {
+				versionsQuery.refetch();
+				toast.success("Draft saved");
 			},
 			onError: (error) => toast.error(error.message),
-		}),
+		},
 	);
-
-	const configMutation = useMutation(
-		orpc.agents.updateConfig.mutationOptions({
-			onSuccess: async () => {
-				await queryClient.invalidateQueries({
-					queryKey: orpc.agents.get.key({ input: { id: agentId } }),
-				});
-				toast.success("Draft config saved");
-			},
-			onError: (error) => toast.error(error.message),
-		}),
-	);
-
-	const publishMutation = useMutation(
-		orpc.agents.publish.mutationOptions({
-			onSuccess: async () => {
-				await queryClient.invalidateQueries({
-					queryKey: orpc.agents.get.key({ input: { id: agentId } }),
-				});
+	const publishVersion = usePublishAgentVersionMutation(
+		activeOrganizationId,
+		agentId,
+		{
+			onSuccess: () => {
+				agentQuery.refetch();
+				versionsQuery.refetch();
 				toast.success("Agent published");
 			},
 			onError: (error) => toast.error(error.message),
-		}),
+		},
 	);
 
-	if (agentQuery.isLoading) {
+	async function handleSave() {
+		if (!draftVersion || !agentQuery.data) {
+			return;
+		}
+		const voicemailError = getVoicemailConfigError(config.voicemail);
+		if (voicemailError) {
+			toast.error(voicemailError);
+			return;
+		}
+		await updateVersion.mutateAsync({ config });
+		setSavedConfig(config);
+	}
+
+	async function handlePublish() {
+		if (!draftVersion) {
+			return;
+		}
+		if (isDirty) {
+			await handleSave();
+		}
+		await publishVersion.mutateAsync(draftVersion.id);
+	}
+
+	if (!loaded) {
 		return <PageSectionSkeleton variant="form" />;
 	}
 
-	if (!agent) {
-		return <p className="text-destructive text-sm">Agent not found.</p>;
+	if (!activeOrganizationId) {
+		return (
+			<p className="p-6 text-sm text-muted-foreground">
+				Select an organization.
+			</p>
+		);
+	}
+
+	if (!agentQuery.data || !draftVersion) {
+		return <PageSectionSkeleton variant="form" />;
 	}
 
 	return (
-		<div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-			<section className="space-y-6 overflow-hidden rounded-3xl border bg-card p-6 shadow-sm ring-1 ring-black/5">
-				<div>
-					<h2 className="font-semibold text-xl tracking-tight">
-						Configure
-					</h2>
-					<p className="text-muted-foreground text-sm">
-						Update identity and draft prompt for this agent.
-					</p>
-				</div>
-
-				<div className="space-y-2">
-					<Label htmlFor="agent-name">Name</Label>
-					<Input
-						id="agent-name"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-					/>
-				</div>
-				<div className="space-y-2">
-					<Label htmlFor="agent-description">Description</Label>
-					<Textarea
-						id="agent-description"
-						value={description}
-						onChange={(e) => setDescription(e.target.value)}
-						rows={3}
-					/>
-				</div>
-				<div className="space-y-2">
-					<Label htmlFor="agent-prompt">System prompt</Label>
-					<Textarea
-						id="agent-prompt"
-						value={systemPrompt}
-						onChange={(e) => setSystemPrompt(e.target.value)}
-						rows={12}
-						className="font-mono text-sm"
-					/>
-				</div>
-
-				<div className="flex flex-wrap gap-2">
-					<Button
-						className="rounded-full"
-						loading={updateMutation.isPending}
-						onClick={() =>
-							updateMutation.mutate({
-								id: agentId,
-								name,
-								description: description || null,
-							})
-						}
-					>
-						Save details
-					</Button>
-					<Button
-						variant="outline"
-						className="rounded-full"
-						loading={configMutation.isPending}
-						onClick={() =>
-							configMutation.mutate({
-								id: agentId,
-								config: {
-									knowledgeBaseIds: Array.isArray(
-										draftConfig?.knowledgeBaseIds,
-									)
-										? (draftConfig.knowledgeBaseIds as string[])
-										: [],
-									...(draftConfig ?? {}),
-									systemPrompt,
-								},
-							})
-						}
-					>
-						Save draft config
-					</Button>
-					<Button
-						variant="secondary"
-						className="rounded-full"
-						loading={publishMutation.isPending}
-						onClick={() => publishMutation.mutate({ id: agentId })}
-					>
-						Publish
-					</Button>
-				</div>
-			</section>
-
-			<aside className="overflow-hidden rounded-3xl border bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
-				<h3 className="font-semibold text-sm">Preview</h3>
-				<p className="mt-2 text-muted-foreground text-sm">
-					Live trial preview will attach here. For now, review the
-					prompt and publish when ready.
-				</p>
-				<div className="mt-4 rounded-2xl bg-muted/50 p-4 text-sm">
-					<p className="font-medium">{name || "Untitled agent"}</p>
-					<p className="mt-2 whitespace-pre-wrap text-muted-foreground">
-						{systemPrompt || "No system prompt set."}
-					</p>
-				</div>
-			</aside>
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+			<AgentConfigureForm
+				config={config}
+				onConfigChange={setConfig}
+				organizationId={activeOrganizationId}
+				versionId={draftVersion.id}
+				agent={agentQuery.data}
+				savedVariables={savedConfig.variables}
+				hasUnsavedVariables={hasUnsavedVariables}
+				avatarEnabled={avatarEnabled}
+				avatarPreviewUrl={avatarPreviewUrl}
+				isDirty={isDirty}
+				isSaving={updateVersion.isPending}
+				isPublishing={publishVersion.isPending}
+				onSave={handleSave}
+				onPublish={handlePublish}
+			/>
 		</div>
 	);
 }

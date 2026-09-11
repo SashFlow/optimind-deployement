@@ -105,6 +105,7 @@
 		"./sheet": "./src/shadcn/sheet.tsx",
 		"./table": "./src/shadcn/table.tsx",
 		"./tabs": "./src/shadcn/tabs.tsx",
+		"./folder-tabs": "./src/shadcn/folder-tabs.tsx",
 		"./toggle": "./src/shadcn/toggle.tsx",
 		"./tooltip": "./src/shadcn/tooltip.tsx",
 		"./sonner": "./src/shadcn/sonner.tsx",

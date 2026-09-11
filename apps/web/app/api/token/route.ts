@@ -28,7 +28,9 @@ function resolveInteractionMode(scenarioType: string): "audio" | "video" {
 }
 
 function configRecordingEnabled(config: unknown): boolean {
-	if (!config || typeof config !== "object") return false;
+	if (!config || typeof config !== "object") {
+		return false;
+	}
 	const c = config as {
 		recording_enabled?: boolean;
 		recordingEnabled?: boolean;

@@ -98,8 +98,10 @@ export function evaluateCondition(
 		}
 		switch (op) {
 			case "==":
+				// biome-ignore lint/suspicious/noDoubleEquals: template DSL uses loose equality
 				return left == right;
 			case "!=":
+				// biome-ignore lint/suspicious/noDoubleEquals: template DSL uses loose equality
 				return left != right;
 			case ">":
 				return Number(left) > Number(right);

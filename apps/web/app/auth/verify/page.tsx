@@ -1,4 +1,4 @@
-import { OtpForm } from "@saas/auth/components/OtpForm";
+import { OtpForm } from "@saas/auth/OtpForm";
 import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";

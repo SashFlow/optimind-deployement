@@ -13,7 +13,6 @@ import {
 } from "@repo/ui/select";
 import { Spinner } from "@repo/ui/spinner";
 import { cn } from "@repo/ui/utils";
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import {
 	CameraIcon,
 	MicIcon,
@@ -25,6 +24,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { InlineSkeleton } from "@/components/saas/shared/skeletons";
 import { useApiClient } from "@/components/shared/components/ApiClientProvider";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
 import { normalizePhoneNumber } from "@/lib/phone";
 import { fetchSessionCredentials } from "@/services/api/livekit";

@@ -262,6 +262,7 @@ export async function processWorkflowRun(runId: string) {
 						"http://localhost:3000";
 					const finalized = await finalizeHumanApprovalWait({
 						organizationId: run.organizationId,
+						campaignId: run.campaignId,
 						runId: run.id,
 						stepId: step.id,
 						waitId: wait.id,

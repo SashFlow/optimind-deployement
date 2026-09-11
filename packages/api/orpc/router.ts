@@ -7,6 +7,7 @@ import { campaignsRouter } from "../modules/campaigns/router";
 import { catalogRouter } from "../modules/catalog/router";
 import { contactRouter } from "../modules/contact/router";
 import { dashboardRouter } from "../modules/dashboard/router";
+import { jobsRouter } from "../modules/jobs/router";
 import { knowledgeRouter } from "../modules/knowledge/router";
 import { metricsRouter } from "../modules/metrics/router";
 import { newsletterRouter } from "../modules/newsletter/router";
@@ -32,6 +33,7 @@ export const router = publicProcedure
 		payments: paymentsRouter,
 		agents: agentsRouter,
 		audit: auditRouter,
+		jobs: jobsRouter,
 		campaigns: campaignsRouter,
 		workflows: workflowsRouter,
 		knowledge: knowledgeRouter,

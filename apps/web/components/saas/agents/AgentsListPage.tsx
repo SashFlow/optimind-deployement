@@ -2,12 +2,12 @@
 
 import { ResourceCreateDialog } from "@saas/app/ResourceCreateDialog";
 import { ResourcePage } from "@saas/app/ResourcePage";
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AudioWaveformIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 
 export function AgentsListPage() {
 	const router = useRouter();
@@ -33,7 +33,7 @@ export function AgentsListPage() {
 					queryKey: listQueryKey,
 				});
 				toast.success("Agent created");
-				router.push(`/app/agents/${data.agent.id}/configure`);
+				router.push(`/app/agents/${data.agent.id}`);
 			},
 			onError: (error) => {
 				toast.error(error.message || "Failed to create agent");
@@ -82,7 +82,7 @@ export function AgentsListPage() {
 				status: agent.status === "ACTIVE" ? "Active" : "Inactive",
 				meta: new Date(agent.updatedAt).toLocaleDateString(),
 				icon: <AudioWaveformIcon className="size-4" />,
-				href: `/app/agents/${agent.id}/configure`,
+				href: `/app/agents/${agent.id}`,
 				onEdit: async (name, description) => {
 					await updateMutation.mutateAsync({
 						id: agent.id,

@@ -1,8 +1,8 @@
 import { config } from "@repo/config";
-import { getOrganizationList } from "@saas/auth/lib/server";
-import { CreateOrganizationForm } from "@saas/organizations/components/CreateOrganizationForm";
+import { CreateOrganizationForm } from "@saas/organizations/CreateOrganizationForm";
 import { redirect } from "next/navigation";
 import { AuthWrapper } from "@/components/saas/shared/AuthWrapper";
+import { getOrganizationList } from "@/services/session";
 
 export const dynamic = "force-dynamic";
 

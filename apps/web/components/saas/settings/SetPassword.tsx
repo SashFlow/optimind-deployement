@@ -1,11 +1,11 @@
 "use client";
 import { authClient } from "@repo/auth/client";
 import { Button } from "@repo/ui/button";
-import { useSession } from "@saas/auth/hooks/use-session";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { SettingsItem } from "@/components/saas/shared/SettingsItem";
+import { useSession } from "@/context/SessionProvider";
 
 export function SetPasswordForm() {
 	const t = useTranslations();

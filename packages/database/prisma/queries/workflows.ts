@@ -479,6 +479,25 @@ export async function getWorkflowApprovalByToken(token: string) {
 	});
 }
 
+export async function listWorkflowApprovalsByCampaign(params: {
+	campaignId: string;
+	decision?: WorkflowApprovalDecision;
+	limit?: number;
+}) {
+	return db.workflowApproval.findMany({
+		where: {
+			run: { campaignId: params.campaignId },
+			...(params.decision ? { decision: params.decision } : {}),
+		},
+		orderBy: { createdAt: "desc" },
+		take: params.limit ?? 50,
+		include: {
+			run: { select: { id: true, status: true, campaignId: true } },
+			step: { select: { nodeId: true, nodeType: true } },
+		},
+	});
+}
+
 export async function decideWorkflowApproval(
 	token: string,
 	decision: Exclude<WorkflowApprovalDecision, "PENDING">,

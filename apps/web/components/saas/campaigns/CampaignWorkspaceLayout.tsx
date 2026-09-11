@@ -18,6 +18,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
 import { useAppHeader } from "@components/shared/app-header-provider";
+import { TabViewTransition } from "@components/shared/view-transition";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -36,6 +37,11 @@ const TABS = [
 		href: (id: string) => `/app/campaigns/${id}/workflow`,
 	},
 	{
+		value: "approvals",
+		label: "Approvals",
+		href: (id: string) => `/app/campaigns/${id}/approvals`,
+	},
+	{
 		value: "logs",
 		label: "Logs",
 		href: (id: string) => `/app/campaigns/${id}/logs`,
@@ -51,6 +57,12 @@ function tabFromPathname(pathname: string, campaignId: string): TabValue {
 		pathname.startsWith(`${base}/workflow/`)
 	) {
 		return "workflow";
+	}
+	if (
+		pathname === `${base}/approvals` ||
+		pathname.startsWith(`${base}/approvals/`)
+	) {
+		return "approvals";
 	}
 	if (pathname === `${base}/logs` || pathname.startsWith(`${base}/logs/`)) {
 		return "logs";
@@ -147,7 +159,12 @@ export function CampaignWorkspaceLayout({
 				</Tabs>
 			</div>
 			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				{children}
+				<TabViewTransition
+					activeValue={active}
+					orderedValues={TABS.map((tab) => tab.value)}
+				>
+					{children}
+				</TabViewTransition>
 			</div>
 		</div>
 	);

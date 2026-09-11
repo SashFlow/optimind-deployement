@@ -3,13 +3,13 @@ import { authClient } from "@repo/auth/client";
 import { config } from "@repo/config";
 import { Button } from "@repo/ui/button";
 import { Skeleton } from "@repo/ui/skeleton";
-import { useSession } from "@saas/auth/hooks/use-session";
-import { sessionQueryKey } from "@saas/auth/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ComputerIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { SettingsItem } from "@/components/saas/shared/SettingsItem";
+import { useSession } from "@/context/SessionProvider";
+import { sessionQueryKey } from "@/services/auth";
 
 export function ActiveSessionsBlock() {
 	const t = useTranslations();

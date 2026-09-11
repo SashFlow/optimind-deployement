@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import {
@@ -11,139 +10,38 @@ import {
 	SelectValue,
 } from "@repo/ui/select";
 import { Textarea } from "@repo/ui/textarea";
-import { NODE_OUTPUT_HINTS } from "./catalog";
 import type { WorkflowNodeData } from "./WorkflowFlowNode";
-
-type EnvVar = { key: string; value: string; isSecret?: boolean };
 
 export function WorkflowInspector({
 	selected,
 	onChange,
-	envVars,
-	onEnvVarsChange,
-	allNodes,
 }: {
-	selected: { id: string; data: WorkflowNodeData } | null;
+	selected: { id: string; data: WorkflowNodeData };
 	onChange: (data: WorkflowNodeData) => void;
-	envVars: EnvVar[];
-	onEnvVarsChange: (vars: EnvVar[]) => void;
-	allNodes: Array<{ id: string; data: WorkflowNodeData }>;
 }) {
 	return (
-		<div className="flex h-full flex-col gap-4 overflow-y-auto p-3">
-			<section className="space-y-2">
-				<h3 className="text-sm font-semibold">Env variables</h3>
-				<p className="text-xs text-muted-foreground">
-					Accessible as {"{{env.KEY}}"} across the workflow.
-				</p>
-				{envVars.map((v, i) => (
-					<div key={`env-${i}`} className="flex gap-2">
-						<Input
-							placeholder="KEY"
-							value={v.key}
-							onChange={(e) => {
-								const next = [...envVars];
-								next[i] = { ...v, key: e.target.value };
-								onEnvVarsChange(next);
-							}}
-						/>
-						<Input
-							placeholder="value"
-							type={v.isSecret ? "password" : "text"}
-							value={v.value}
-							onChange={(e) => {
-								const next = [...envVars];
-								next[i] = { ...v, value: e.target.value };
-								onEnvVarsChange(next);
-							}}
-						/>
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={() =>
-								onEnvVarsChange(
-									envVars.filter((_, j) => j !== i),
-								)
-							}
-						>
-							×
-						</Button>
-					</div>
-				))}
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={() =>
-						onEnvVarsChange([...envVars, { key: "", value: "" }])
-					}
-				>
-					Add env var
-				</Button>
-			</section>
-
-			<section className="space-y-2 border-t pt-3">
-				<h3 className="text-sm font-semibold">Out variables</h3>
-				<p className="text-xs text-muted-foreground">
-					Reference upstream outputs as {"{{nodes.<id>.field}}"}.
-				</p>
-				<ul className="space-y-1 text-xs">
-					{allNodes.map((n) => {
-						const hints = NODE_OUTPUT_HINTS[n.data.type] ?? [];
-						return (
-							<li
-								key={n.id}
-								className="rounded-md bg-muted/40 px-2 py-1"
-							>
-								<div className="font-medium">
-									{n.data.label ?? n.id}{" "}
-									<span className="text-muted-foreground">
-										({n.id})
-									</span>
-								</div>
-								<div className="text-muted-foreground">
-									{hints
-										.map((h) => `nodes.${n.id}.${h}`)
-										.join(", ") || "custom outputs"}
-								</div>
-							</li>
-						);
-					})}
-				</ul>
-			</section>
-
-			{selected ? (
-				<section className="space-y-3 border-t pt-3">
-					<h3 className="text-sm font-semibold">Node config</h3>
-					<div className="space-y-1">
-						<Label>Label</Label>
-						<Input
-							value={selected.data.label ?? ""}
-							onChange={(e) =>
-								onChange({
-									...selected.data,
-									label: e.target.value,
-								})
-							}
-						/>
-					</div>
-					<div className="text-xs text-muted-foreground">
-						{selected.data.type}
-					</div>
-					<NodeConfigFields
-						type={selected.data.type}
-						config={selected.data.config}
-						onChange={(config) =>
-							onChange({ ...selected.data, config })
+		<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
+			<section className="space-y-3">
+				<div className="space-y-1">
+					<Label>Label</Label>
+					<Input
+						value={selected.data.label ?? ""}
+						onChange={(e) =>
+							onChange({
+								...selected.data,
+								label: e.target.value,
+							})
 						}
 					/>
-				</section>
-			) : (
-				<p className="border-t pt-3 text-xs text-muted-foreground">
-					Select a node to edit its configuration.
-				</p>
-			)}
+				</div>
+				<NodeConfigFields
+					type={selected.data.type}
+					config={selected.data.config}
+					onChange={(config) =>
+						onChange({ ...selected.data, config })
+					}
+				/>
+			</section>
 		</div>
 	);
 }

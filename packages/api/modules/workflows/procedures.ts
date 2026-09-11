@@ -9,6 +9,7 @@ import {
 	getOrCreateCampaignWorkflow,
 	getWorkflowApprovalByToken,
 	getWorkflowRunById,
+	listWorkflowApprovalsByCampaign,
 	listWorkflowRuns,
 	listWorkflowVersions,
 	publishWorkflowVersion,
@@ -292,6 +293,46 @@ export const tickRunner = protectedProcedure
 		return { ...result, ...due, scheduled: scheduled.started };
 	});
 
+export const listApprovals = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/workflows/by-campaign/{campaignId}/approvals",
+		tags: ["Workflows"],
+		summary: "List workflow approvals for a campaign",
+	})
+	.input(
+		z.object({
+			campaignId: z.string(),
+			decision: z
+				.enum(["PENDING", "APPROVED", "REJECTED", "EXPIRED"])
+				.optional(),
+			limit: z.number().int().min(1).max(100).optional(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		await requireCampaignAccess(input.campaignId, context.user.id);
+		const approvals = await listWorkflowApprovalsByCampaign({
+			campaignId: input.campaignId,
+			decision: input.decision,
+			limit: input.limit,
+		});
+		return {
+			approvals: approvals.map((a) => ({
+				token: a.token,
+				decision: a.decision,
+				message: a.message,
+				channel: a.channel,
+				expiresAt: a.expiresAt,
+				createdAt: a.createdAt,
+				decidedAt: a.decidedAt,
+				runId: a.runId,
+				runStatus: a.run.status,
+				nodeId: a.step.nodeId,
+				nodeType: a.step.nodeType,
+			})),
+		};
+	});
+
 export const getApproval = publicProcedure
 	.route({
 		method: "GET",
@@ -311,6 +352,7 @@ export const getApproval = publicProcedure
 				channel: approval.channel,
 				expiresAt: approval.expiresAt,
 				runId: approval.runId,
+				campaignId: approval.run.campaignId,
 			},
 		};
 	});

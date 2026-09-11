@@ -268,6 +268,7 @@ export async function handleHumanApproval(
 /** Called by runner after WorkflowWait + step are created for human approval */
 export async function finalizeHumanApprovalWait(params: {
 	organizationId: string;
+	campaignId: string;
 	runId: string;
 	stepId: string;
 	waitId: string;
@@ -290,7 +291,7 @@ export async function finalizeHumanApprovalWait(params: {
 
 	const approveUrl = `${params.appBaseUrl}/api/workflows/approvals/${approval.token}?decision=APPROVED`;
 	const rejectUrl = `${params.appBaseUrl}/api/workflows/approvals/${approval.token}?decision=REJECTED`;
-	const webUrl = `${params.appBaseUrl}/app/workflows/approvals/${approval.token}`;
+	const webUrl = `${params.appBaseUrl}/app/campaigns/${params.campaignId}/approvals/${approval.token}`;
 
 	if (params.channel === "EMAIL" && params.emailTo) {
 		await sendEmail({

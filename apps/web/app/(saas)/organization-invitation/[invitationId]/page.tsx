@@ -1,6 +1,6 @@
 import { auth } from "@repo/auth";
 import { getOrganizationById } from "@repo/database";
-import { OrganizationInvitationModal } from "@saas/organizations/components/OrganizationInvitationModal";
+import { OrganizationInvitationModal } from "@saas/organizations/OrganizationInvitationModal";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AuthWrapper } from "@/components/saas/shared/AuthWrapper";

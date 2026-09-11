@@ -2,12 +2,12 @@
 
 import { authClient } from "@repo/auth/client";
 import { Button } from "@repo/ui/button";
-import { useSession } from "@saas/auth/hooks/use-session";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useConfirmationAlert } from "@/components/saas/shared/ConfirmationAlertProvider";
 import { SettingsItem } from "@/components/saas/shared/SettingsItem";
+import { useSession } from "@/context/SessionProvider";
 
 export function DeleteAccountForm() {
 	const t = useTranslations();

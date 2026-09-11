@@ -153,7 +153,7 @@ export function CampaignWorkflowLogs({ campaignId }: { campaignId: string }) {
 								{agentSessionId && run.campaign?.agentId && (
 									<Button asChild size="sm" variant="outline">
 										<Link
-											href={`/app/agents/${run.campaign.agentId}/logs/${agentSessionId}`}
+											href={`/app/agents/${run.campaign.agentId}/session/${agentSessionId}`}
 										>
 											Open session
 										</Link>

@@ -6,8 +6,6 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@repo/ui/collapsible";
-import { useSession } from "@saas/auth/hooks/use-session";
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import {
 	ActivityIcon,
 	CheckCircle2Icon,
@@ -28,6 +26,8 @@ import {
 	ChartCardSkeleton,
 	PageSectionSkeleton,
 } from "@/components/saas/shared/skeletons";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
+import { useSession } from "@/context/SessionProvider";
 import {
 	useDashboardAnalyticsQuery,
 	useDashboardStatsQuery,

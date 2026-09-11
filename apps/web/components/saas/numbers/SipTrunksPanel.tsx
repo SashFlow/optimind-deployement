@@ -36,17 +36,14 @@ import { cn } from "@repo/ui/utils";
 import { MoreVerticalIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import {
 	useCreateSipTrunkMutation,
 	useDeleteSipTrunkMutation,
 	useSipTrunksQuery,
-} from "@/components/saas/numbers/lib/hooks";
-import type {
-	SipTrunk,
-	TrunkDirection,
-} from "@/components/saas/numbers/lib/types";
-import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
-import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+} from "@/hooks/numbers";
+import type { SipTrunk, TrunkDirection } from "@/types/numbers";
 
 type SipTrunksPanelProps = {
 	organizationId: string | null;
@@ -68,7 +65,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 	const pageCount = Math.max(1, Math.ceil(trunks.length / PAGE_SIZE));
 
 	useEffect(() => {
-		if (currentPage > pageCount) setCurrentPage(pageCount);
+		if (currentPage > pageCount) {
+			setCurrentPage(pageCount);
+		}
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
@@ -78,7 +77,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 
 	async function handleCreate(event: React.FormEvent) {
 		event.preventDefault();
-		if (!name.trim()) return;
+		if (!name.trim()) {
+			return;
+		}
 		try {
 			await createMutation.mutateAsync({
 				name: name.trim(),
@@ -100,7 +101,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 	}
 
 	async function handleDelete() {
-		if (!deleteTarget) return;
+		if (!deleteTarget) {
+			return;
+		}
 		try {
 			await deleteMutation.mutateAsync(deleteTarget.id);
 			toast.success(`Deleted ${deleteTarget.name}`);
@@ -326,7 +329,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 			<Dialog
 				open={deleteTarget !== null}
 				onOpenChange={(open) => {
-					if (!open) setDeleteTarget(null);
+					if (!open) {
+						setDeleteTarget(null);
+					}
 				}}
 			>
 				<DialogContent>
