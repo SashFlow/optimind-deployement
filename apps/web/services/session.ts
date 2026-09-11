@@ -1,5 +1,3 @@
-"use client";
-
 import { auth } from "@repo/auth";
 import { getInvitationById } from "@repo/database";
 import { headers } from "next/headers";
