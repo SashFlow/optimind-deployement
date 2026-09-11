@@ -52,14 +52,10 @@ import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
 import { CopyIcon, MoreVerticalIcon, SearchIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useSettingsPageAction } from "@/components/saas/admin/AdminSettingsActions";
-import {
-	type Account,
-	mapUserToAccount,
-	type Role,
-} from "@/components/saas/admin/lib/types";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
+import { type Account, mapUserToAccount, type Role } from "@/types/admin";
 
 const roles: Role[] = ["admin", "user"];
 

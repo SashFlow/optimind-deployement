@@ -1,5 +1,6 @@
 "use client";
 
+import { Logo } from "@components/shared/components/Logo";
 import { config } from "@repo/config";
 import {
 	DropdownMenu,
@@ -12,14 +13,14 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/dropdown-menu";
 import { cn } from "@repo/ui/utils";
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
-import { useOrganizationListQuery } from "@saas/organizations/lib/api";
 import { clearCache } from "@shared/lib/cache";
 import { GalleryVerticalEndIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
+import { useOrganizationListQuery } from "@/services/organization";
 
 const logoButtonClass =
-	"flex size-16 shrink-0 items-center justify-center rounded-full border border-border/40 bg-white text-primary shadow-sm outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring";
+	"flex size-14 shrink-0 items-center justify-center rounded-full border border-border/40 bg-white text-primary shadow-sm outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring";
 
 export function AppSidebarLogo({ className }: { className?: string }) {
 	const { activeOrganization, setActiveOrganization } =
@@ -37,7 +38,7 @@ export function AppSidebarLogo({ className }: { className?: string }) {
 	if (!activeTeam) {
 		return (
 			<div className={cn(logoButtonClass, className)} aria-hidden>
-				<GalleryVerticalEndIcon className="size-7" />
+				<Logo withLabel={false} className="[&_svg]:size-7" />
 			</div>
 		);
 	}
@@ -48,7 +49,7 @@ export function AppSidebarLogo({ className }: { className?: string }) {
 				className={cn(logoButtonClass, className)}
 				aria-label={`Organization: ${activeTeam.name}`}
 			>
-				<GalleryVerticalEndIcon className="size-7" />
+				<Logo withLabel={false} className="[&_svg]:size-7" />
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				className="w-56"

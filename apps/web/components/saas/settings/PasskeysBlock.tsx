@@ -2,12 +2,12 @@
 import { authClient } from "@repo/auth/client";
 import { Button } from "@repo/ui/button";
 import { Skeleton } from "@repo/ui/skeleton";
-import { userPasskeyQueryKey, useUserPasskeysQuery } from "@saas/auth/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { KeyIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { SettingsItem } from "@/components/saas/shared/SettingsItem";
+import { userPasskeyQueryKey, useUserPasskeysQuery } from "@/services/auth";
 
 export function PasskeysBlock() {
 	const t = useTranslations();

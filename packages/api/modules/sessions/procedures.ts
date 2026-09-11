@@ -725,6 +725,14 @@ export const patchLifecycle = workerProcedure
 			data.status === "CANCELLED"
 		) {
 			await finalizeSessionEgressJobs(session.egressJobs);
+			try {
+				const { resumeAgentSessionWait } = await import(
+					"../workflows/lib/runner"
+				);
+				await resumeAgentSessionWait(session.id);
+			} catch {
+				// Non-fatal: workflow resume is best-effort
+			}
 		}
 
 		return {

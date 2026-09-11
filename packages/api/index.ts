@@ -81,6 +81,40 @@ export const app = new Hono()
 	.post("/webhooks/payments", (c) => paymentsWebhookHandler(c.req.raw))
 	// LiveKit egress / room webhook handler
 	.post("/webhooks/livekit", (c) => livekitWebhookHandler(c.req.raw))
+	// Campaign workflow webhook trigger
+	.post("/workflows/hooks/:token", async (c) => {
+		const token = c.req.param("token");
+		let body: unknown = {};
+		try {
+			body = await c.req.json();
+		} catch {
+			const text = await c.req.text();
+			body = text ? { raw: text } : {};
+		}
+		const headers: Record<string, string> = {};
+		c.req.raw.headers.forEach((v, k) => {
+			headers[k] = v;
+		});
+		const { startWebhookRun } = await import(
+			"./modules/workflows/procedures"
+		);
+		try {
+			const run = await startWebhookRun(token, {
+				body,
+				headers,
+				query: c.req.query(),
+			});
+			return c.json({ ok: true, runId: run?.id, status: run?.status });
+		} catch (err) {
+			return c.json(
+				{
+					ok: false,
+					error: err instanceof Error ? err.message : String(err),
+				},
+				400,
+			);
+		}
+	})
 	// Health check
 	.get("/health", (c) => c.text("OK"))
 	// oRPC handlers (for RPC and OpenAPI)

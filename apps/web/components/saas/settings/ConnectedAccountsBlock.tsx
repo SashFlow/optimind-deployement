@@ -1,15 +1,15 @@
 "use client";
-import { authClient } from "@repo/auth/client";
-import { Button } from "@repo/ui/button";
-import { Skeleton } from "@repo/ui/skeleton";
 import {
 	type OAuthProvider,
 	oAuthProviders,
-} from "@saas/auth/constants/oauth-providers";
-import { useUserAccountsQuery } from "@saas/auth/lib/api";
+} from "@components/saas/auth/oauth-providers";
+import { authClient } from "@repo/auth/client";
+import { Button } from "@repo/ui/button";
+import { Skeleton } from "@repo/ui/skeleton";
 import { CheckCircle2Icon, LinkIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { SettingsItem } from "@/components/saas/shared/SettingsItem";
+import { useUserAccountsQuery } from "@/services/auth";
 
 export function ConnectedAccountsBlock() {
 	const t = useTranslations();

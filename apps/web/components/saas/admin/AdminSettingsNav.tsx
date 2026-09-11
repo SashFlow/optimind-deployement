@@ -9,6 +9,7 @@ import {
 } from "@repo/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
+import { TabViewTransition } from "@components/shared/view-transition";
 import {
 	Building2Icon,
 	ClipboardListIcon,
@@ -122,7 +123,14 @@ export function AdminSettingsNav({ children }: PropsWithChildren) {
 					</TabsList>
 				</Tabs>
 			</div>
-			<div className="min-h-0 flex-1">{children}</div>
+			<div className="min-h-0 flex-1 overflow-hidden">
+				<TabViewTransition
+					activeValue={active}
+					orderedValues={TABS.map((tab) => tab.value)}
+				>
+					{children}
+				</TabViewTransition>
+			</div>
 		</div>
 	);
 }

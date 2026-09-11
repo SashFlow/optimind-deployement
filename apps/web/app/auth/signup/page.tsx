@@ -1,9 +1,9 @@
 import { config } from "@repo/config";
-import { SignupForm } from "@saas/auth/components/SignupForm";
-import { getInvitation } from "@saas/auth/lib/server";
+import { SignupForm } from "@saas/auth/SignupForm";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { withQuery } from "ufo";
+import { getInvitation } from "@/services/session";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

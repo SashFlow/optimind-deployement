@@ -1,0 +1,31 @@
+import {
+	cancelRun,
+	decideApproval,
+	getApproval,
+	getDefinition,
+	getRun,
+	listApprovals,
+	listRuns,
+	listVersions,
+	publish,
+	saveDraft,
+	tickRunner,
+	triggerTestRun,
+	updateEnvVars,
+} from "./procedures";
+
+export const workflowsRouter = {
+	getDefinition,
+	saveDraft,
+	updateEnvVars,
+	publish,
+	listVersions,
+	listRuns,
+	listApprovals,
+	getRun,
+	cancelRun,
+	triggerTestRun,
+	tickRunner,
+	getApproval,
+	decideApproval,
+};

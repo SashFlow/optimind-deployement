@@ -80,6 +80,21 @@ export async function livekitWebhookHandler(
 					endReason: "ROOM_FINISHED",
 				});
 			}
+			if (session) {
+				try {
+					const { resumeAgentSessionWait } = await import(
+						"../../workflows/lib/runner"
+					);
+					await resumeAgentSessionWait(session.id);
+				} catch (err) {
+					logger.error(
+						"Failed to resume workflow after room_finished",
+						{
+							err,
+						},
+					);
+				}
+			}
 		}
 
 		if (

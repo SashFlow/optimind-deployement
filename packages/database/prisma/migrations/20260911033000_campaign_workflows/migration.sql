@@ -1,0 +1,2 @@
+-- Campaign workflow engine tables (applied via prisma db push; kept for history)
+-- See schema.prisma CampaignWorkflow / WorkflowRun / WorkflowStep / WorkflowWait / WorkflowApproval

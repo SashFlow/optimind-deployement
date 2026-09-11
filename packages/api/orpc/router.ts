@@ -7,6 +7,7 @@ import { campaignsRouter } from "../modules/campaigns/router";
 import { catalogRouter } from "../modules/catalog/router";
 import { contactRouter } from "../modules/contact/router";
 import { dashboardRouter } from "../modules/dashboard/router";
+import { jobsRouter } from "../modules/jobs/router";
 import { knowledgeRouter } from "../modules/knowledge/router";
 import { metricsRouter } from "../modules/metrics/router";
 import { newsletterRouter } from "../modules/newsletter/router";
@@ -17,6 +18,7 @@ import { sessionsRouter } from "../modules/sessions/router";
 import { telephonyRouter } from "../modules/telephony/router";
 import { toolsRouter } from "../modules/tools/router";
 import { usersRouter } from "../modules/users/router";
+import { workflowsRouter } from "../modules/workflows/router";
 import { publicProcedure } from "./procedures";
 
 export const router = publicProcedure
@@ -31,7 +33,9 @@ export const router = publicProcedure
 		payments: paymentsRouter,
 		agents: agentsRouter,
 		audit: auditRouter,
+		jobs: jobsRouter,
 		campaigns: campaignsRouter,
+		workflows: workflowsRouter,
 		knowledge: knowledgeRouter,
 		telephony: telephonyRouter,
 		avatars: avatarsRouter,

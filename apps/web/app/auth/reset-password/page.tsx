@@ -1,4 +1,4 @@
-import { ResetPasswordForm } from "@saas/auth/components/ResetPasswordForm";
+import { ResetPasswordForm } from "@saas/auth/ResetPasswordForm";
 import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";

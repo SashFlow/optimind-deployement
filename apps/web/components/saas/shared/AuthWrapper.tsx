@@ -1,4 +1,4 @@
-import { AuthShell } from "@saas/auth/components/AuthShell";
+import { AuthShell } from "@saas/auth/AuthShell";
 import type { PropsWithChildren } from "react";
 
 /** @deprecated Use AuthShell — kept as alias for onboarding / invitation routes */

@@ -1,13 +1,13 @@
 "use client";
 
 import { authClient } from "@repo/auth/client";
-import { useSession } from "@saas/auth/hooks/use-session";
 import { Spinner } from "@shared/components/Spinner";
 import { UserAvatar } from "@shared/components/UserAvatar";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { useSession } from "@/context/SessionProvider";
 import { CropImageDialog } from "./CropImageDialog";
 
 export function UserAvatarUpload({

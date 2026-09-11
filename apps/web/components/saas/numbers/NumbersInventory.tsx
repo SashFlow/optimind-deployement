@@ -37,6 +37,8 @@ import { cn } from "@repo/ui/utils";
 import { MoreVerticalIcon, SearchIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import {
 	useCreatePhoneNumberMutation,
 	useDeletePhoneNumberMutation,
@@ -44,10 +46,8 @@ import {
 	useReleasePlivoNumberMutation,
 	useSipTrunksQuery,
 	useUpdatePhoneNumberMutation,
-} from "@/components/saas/numbers/lib/hooks";
-import type { Agent, PhoneNumber } from "@/components/saas/numbers/lib/types";
-import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
-import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+} from "@/hooks/numbers";
+import type { Agent, PhoneNumber } from "@/types/numbers";
 
 type NumbersInventoryProps = {
 	organizationId: string | null;
@@ -90,7 +90,9 @@ export function NumbersInventory({
 	const filtered = useMemo(() => {
 		const numbers = numbersQuery.data ?? [];
 		const query = search.trim().toLowerCase();
-		if (!query) return numbers;
+		if (!query) {
+			return numbers;
+		}
 		return numbers.filter(
 			(number) =>
 				number.e164.toLowerCase().includes(query) ||
@@ -105,7 +107,9 @@ export function NumbersInventory({
 	}, [search]);
 
 	useEffect(() => {
-		if (currentPage > pageCount) setCurrentPage(pageCount);
+		if (currentPage > pageCount) {
+			setCurrentPage(pageCount);
+		}
 	}, [currentPage, pageCount]);
 
 	const paged = useMemo(() => {
@@ -115,7 +119,9 @@ export function NumbersInventory({
 
 	async function handleAdd(event: React.FormEvent) {
 		event.preventDefault();
-		if (!e164.trim()) return;
+		if (!e164.trim()) {
+			return;
+		}
 		try {
 			await createMutation.mutateAsync({
 				e164: e164.trim(),
@@ -137,7 +143,9 @@ export function NumbersInventory({
 	}
 
 	async function handleConfirm() {
-		if (!confirm) return;
+		if (!confirm) {
+			return;
+		}
 		try {
 			if (confirm.type === "release") {
 				await releaseMutation.mutateAsync(confirm.number.id);
@@ -474,7 +482,9 @@ export function NumbersInventory({
 			<Dialog
 				open={confirm !== null}
 				onOpenChange={(open) => {
-					if (!open) setConfirm(null);
+					if (!open) {
+						setConfirm(null);
+					}
 				}}
 			>
 				<DialogContent>

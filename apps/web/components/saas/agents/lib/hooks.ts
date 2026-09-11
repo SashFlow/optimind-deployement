@@ -1,10 +1,33 @@
 "use client";
 
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type {
+	EgressJobRow,
+	SessionEventRow,
+	TranscriptSegmentRow,
+} from "@/components/saas/agents/AgentSessionDetail";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { type AgentSessionRow, computeAgentStats, mapSession } from "./types";
+
+export type SessionDetail = {
+	id: string;
+	status: string;
+	channel?: string;
+	livekitRoomName: string;
+	startedAt?: string | Date | null;
+	endedAt?: string | Date | null;
+	durationMs?: number | null;
+	errorMessage?: string | null;
+	events?: SessionEventRow[];
+	transcript?: {
+		text?: string | null;
+		fullText?: string | null;
+		segments?: TranscriptSegmentRow[];
+	} | null;
+	egressJobs?: EgressJobRow[];
+};
 
 export function useAgentSessionsQuery(
 	agentId: string | null | undefined,

@@ -11,11 +11,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
-import {
-	fullOrganizationQueryKey,
-	useFullOrganizationQuery,
-	useUpdateOrganizationMutation,
-} from "@saas/organizations/lib/api";
 import { UserAvatar } from "@shared/components/UserAvatar";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,10 +18,6 @@ import { ArrowLeftIcon, CopyIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-	mapOrgToAdminOrganization,
-	type OrganizationMember,
-} from "@/components/saas/admin/lib/types";
 import {
 	PAGE_SIZE,
 	Pagination,
@@ -36,19 +27,17 @@ import {
 	PageSectionSkeleton,
 	TableBodySkeleton,
 } from "@/components/saas/shared/skeletons";
+import {
+	fullOrganizationQueryKey,
+	useFullOrganizationQuery,
+	useUpdateOrganizationMutation,
+} from "@/services/organization";
+import {
+	mapOrgToAdminOrganization,
+	type OrganizationMember,
+} from "@/types/admin";
 
-function formatRole(role: string) {
-	return role.charAt(0).toUpperCase() + role.slice(1);
-}
-
-async function copyText(value: string, successMessage: string) {
-	try {
-		await navigator.clipboard.writeText(value);
-		toast.success(successMessage);
-	} catch {
-		toast.error("Could not copy to clipboard");
-	}
-}
+import { copyText, formatRole } from "./lib/helper";
 
 export function AdminOrganizationEditor({ id }: { id: string }) {
 	const queryClient = useQueryClient();
