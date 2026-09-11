@@ -1,6 +1,5 @@
 "use client";
 
-import { AppCanvas } from "@components/shared/app-canvas";
 import { AppHeader } from "@components/shared/app-header";
 import { AppHeaderProvider } from "@components/shared/app-header-provider";
 import { AppSidebar } from "@components/shared/app-sidebar";
@@ -11,7 +10,7 @@ export function AppShell({ children }: PropsWithChildren) {
 	return (
 		<SidebarProvider
 			open={false}
-			onOpenChange={() => {}}
+			onOpenChange={() => { }}
 			className="relative isolate flex flex-col bg-transparent"
 			style={
 				{
@@ -20,7 +19,6 @@ export function AppShell({ children }: PropsWithChildren) {
 				} as CSSProperties
 			}
 		>
-			<AppCanvas />
 			<AppHeaderProvider>
 				<div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
 					<AppHeader />

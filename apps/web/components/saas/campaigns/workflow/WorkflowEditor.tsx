@@ -3,13 +3,14 @@
 import { Button } from "@repo/ui/button";
 import {
 	Background,
-	Controls,
+	BackgroundVariant,
 	MiniMap,
 	ReactFlow,
 	ReactFlowProvider,
 	addEdge,
 	useEdgesState,
 	useNodesState,
+	useReactFlow,
 	type Connection,
 	type Edge,
 	type Node,
@@ -20,7 +21,14 @@ import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { WORKFLOW_NODE_CATALOG } from "./catalog";
+import type { CatalogItem } from "./catalog";
+import { downloadWorkflowJson, organizeWorkflowNodes } from "./layout";
+import { WorkflowAddNodePanel } from "./WorkflowAddNodePanel";
+import {
+	WorkflowCanvasToolbar,
+	type CanvasInteractionMode,
+} from "./WorkflowCanvasToolbar";
+import { WorkflowContextMenu } from "./WorkflowContextMenu";
 import { WorkflowFlowNode, type WorkflowNodeData } from "./WorkflowFlowNode";
 import { WorkflowInspector } from "./WorkflowInspector";
 
@@ -32,6 +40,8 @@ function newId(prefix: string) {
 
 function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 	const queryClient = useQueryClient();
+	const { screenToFlowPosition, fitView } = useReactFlow();
+
 	const defQuery = useQuery(
 		orpc.workflows.getDefinition.queryOptions({
 			input: { campaignId },
@@ -45,6 +55,22 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 		Array<{ key: string; value: string; isSecret?: boolean }>
 	>([]);
 	const [hydrated, setHydrated] = useState(false);
+	const [mode, setMode] = useState<CanvasInteractionMode>("pointer");
+
+	const [addPanelOpen, setAddPanelOpen] = useState(false);
+	const [addPanelAnchor, setAddPanelAnchor] = useState<{
+		x: number;
+		y: number;
+	} | null>(null);
+	const [dropFlowPos, setDropFlowPos] = useState<{
+		x: number;
+		y: number;
+	} | null>(null);
+
+	const [contextMenu, setContextMenu] = useState<{
+		x: number;
+		y: number;
+	} | null>(null);
 
 	useEffect(() => {
 		const wf = defQuery.data?.workflow;
@@ -138,28 +164,69 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 		};
 	}, [nodes]);
 
-	function addNode(
-		type: string,
-		label: string,
-		defaultConfig: Record<string, unknown>,
-	) {
-		const id = newId(type.replace(".", "_"));
+	const openAddPanel = useCallback(
+		(screen: { x: number; y: number }, flow?: { x: number; y: number }) => {
+			setAddPanelAnchor(screen);
+			setDropFlowPos(
+				flow ??
+					screenToFlowPosition({
+						x: screen.x,
+						y: screen.y,
+					}),
+			);
+			setAddPanelOpen(true);
+			setContextMenu(null);
+		},
+		[screenToFlowPosition],
+	);
+
+	function addCatalogNode(item: CatalogItem) {
+		const id = newId(item.type.replace(".", "_"));
+		const position = dropFlowPos ?? {
+			x: 120 + nodes.length * 24,
+			y: 80 + nodes.length * 36,
+		};
 		setNodes((nds) => [
 			...nds,
 			{
 				id,
 				type: "workflow",
-				position: {
-					x: 120 + nds.length * 24,
-					y: 80 + nds.length * 36,
-				},
+				position,
 				data: {
-					type,
-					label,
-					config: { ...defaultConfig },
+					type: item.type,
+					label: item.label,
+					config: { ...item.defaultConfig },
 				} satisfies WorkflowNodeData,
 			},
 		]);
+		setDropFlowPos(null);
+	}
+
+	function exportWorkflow() {
+		downloadWorkflowJson(`workflow-${campaignId}.json`, {
+			nodes: nodes.map((n) => ({
+				id: n.id,
+				type: "workflow",
+				position: n.position,
+				data: n.data,
+			})),
+			edges: edges.map((e) => ({
+				id: e.id,
+				source: e.source,
+				target: e.target,
+				sourceHandle: e.sourceHandle,
+				targetHandle: e.targetHandle,
+			})),
+			envVars,
+			viewport,
+		});
+		toast.success("Workflow exported");
+	}
+
+	function organize() {
+		setNodes((nds) => organizeWorkflowNodes(nds, edges));
+		requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 }));
+		toast.success("Nodes organized");
 	}
 
 	function persist(extra?: { publish?: boolean; test?: boolean }) {
@@ -194,48 +261,30 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 		});
 	}
 
+	useEffect(() => {
+		function onKey(e: KeyboardEvent) {
+			if (e.altKey && (e.key === "r" || e.key === "R")) {
+				e.preventDefault();
+				persist({ test: true });
+			}
+		}
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- bind once for Alt+R shortcut
+	}, []);
+
 	const webhookToken = defQuery.data?.workflow.webhookToken;
 	const publishedVersion = defQuery.data?.workflow.publishedVersion;
+	const isHand = mode === "hand";
 
 	return (
-		<div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
-			<aside className="flex w-52 shrink-0 flex-col gap-3 overflow-y-auto rounded-xl border bg-card/40 p-2">
-				{WORKFLOW_NODE_CATALOG.map((group) => (
-					<div key={group.category} className="space-y-1">
-						<div className="px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-							{group.category}
-						</div>
-						{group.items.map((item) => (
-							<button
-								key={item.type}
-								type="button"
-								className="w-full rounded-lg border bg-background px-2 py-1.5 text-left text-xs hover:bg-muted/60"
-								onClick={() =>
-									addNode(
-										item.type,
-										item.label,
-										item.defaultConfig as Record<
-											string,
-											unknown
-										>,
-									)
-								}
-							>
-								<div className="font-medium">{item.label}</div>
-								<div className="text-[10px] text-muted-foreground">
-									{item.description}
-								</div>
-							</button>
-						))}
-					</div>
-				))}
-			</aside>
-
-			<div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border bg-background">
-				<div className="absolute right-3 top-3 z-10 flex flex-wrap gap-2">
+		<div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
+			<div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-[#F9FAFB]">
+				<div className="absolute right-3 top-3 z-20 flex flex-wrap gap-2">
 					<Button
 						size="sm"
 						variant="outline"
+						className="bg-white shadow-sm"
 						onClick={() => persist()}
 						disabled={saveMutation.isPending}
 					>
@@ -243,47 +292,95 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 					</Button>
 					<Button
 						size="sm"
-						variant="secondary"
+						variant="outline"
+						className="bg-white shadow-sm"
+						onClick={() => persist({ test: true })}
+						disabled={testMutation.isPending}
+					>
+						Test Run
+					</Button>
+					<Button
+						size="sm"
+						className="bg-blue-600 shadow-sm hover:bg-blue-700"
 						onClick={() => persist({ publish: true })}
 						disabled={publishMutation.isPending}
 					>
 						Publish
 					</Button>
-					<Button
-						size="sm"
-						onClick={() => persist({ test: true })}
-						disabled={testMutation.isPending}
-					>
-						Test run
-					</Button>
 				</div>
+
+				<WorkflowCanvasToolbar
+					mode={mode}
+					onModeChange={setMode}
+					addNodeOpen={addPanelOpen}
+					onAddNode={() => {
+						const rect = document
+							.querySelector(".workflow-canvas-root")
+							?.getBoundingClientRect();
+						openAddPanel({
+							x: (rect?.left ?? 0) + 64,
+							y: (rect?.top ?? 0) + (rect?.height ?? 400) / 2 - 120,
+						});
+					}}
+					onOrganize={organize}
+					onExport={exportWorkflow}
+				/>
+
 				{webhookToken && (
-					<div className="absolute bottom-3 left-3 z-10 max-w-[70%] truncate rounded-md bg-background/90 px-2 py-1 text-[10px] text-muted-foreground ring-1 ring-border">
+					<div className="absolute bottom-3 left-14 z-10 max-w-[60%] truncate rounded-md bg-white/95 px-2 py-1 text-[10px] text-muted-foreground shadow-sm ring-1 ring-border">
 						Webhook: /api/workflows/hooks/{webhookToken}
 						{publishedVersion
 							? ` · published v${publishedVersion.version}`
 							: " · not published"}
 					</div>
 				)}
-				<ReactFlow
-					nodes={nodes}
-					edges={edges}
-					onNodesChange={onNodesChange}
-					onEdgesChange={onEdgesChange}
-					onConnect={onConnect}
-					nodeTypes={nodeTypes}
-					fitView
-					onViewportChange={setViewport}
-					defaultViewport={viewport}
-					deleteKeyCode={["Backspace", "Delete"]}
-				>
-					<Background gap={18} size={1} />
-					<Controls />
-					<MiniMap pannable zoomable />
-				</ReactFlow>
+
+				<div className="workflow-canvas-root h-full w-full">
+					<ReactFlow
+						nodes={nodes}
+						edges={edges}
+						onNodesChange={onNodesChange}
+						onEdgesChange={onEdgesChange}
+						onConnect={onConnect}
+						nodeTypes={nodeTypes}
+						fitView
+						onViewportChange={setViewport}
+						defaultViewport={viewport}
+						deleteKeyCode={["Backspace", "Delete"]}
+						panOnDrag={isHand ? true : [1, 2]}
+						selectionOnDrag={!isHand}
+						nodesDraggable={!isHand}
+						elementsSelectable={!isHand}
+						panOnScroll
+						onPaneContextMenu={(e) => {
+							e.preventDefault();
+							setContextMenu({ x: e.clientX, y: e.clientY });
+							setAddPanelOpen(false);
+						}}
+						onPaneClick={() => {
+							setContextMenu(null);
+						}}
+						proOptions={{ hideAttribution: true }}
+						defaultEdgeOptions={{
+							style: { stroke: "#93C5FD", strokeWidth: 2 },
+						}}
+					>
+						<Background
+							variant={BackgroundVariant.Dots}
+							gap={20}
+							size={1}
+							color="#E5E7EB"
+						/>
+						<MiniMap
+							pannable
+							zoomable
+							className="!bottom-3 !right-3 !m-0 overflow-hidden rounded-lg border border-border bg-white/90 shadow-sm"
+						/>
+					</ReactFlow>
+				</div>
 			</div>
 
-			<aside className="w-80 shrink-0 overflow-hidden rounded-xl border bg-card/40">
+			<aside className="w-80 shrink-0 overflow-hidden border-l border-border bg-white">
 				<WorkflowInspector
 					selected={selected}
 					envVars={envVars}
@@ -302,6 +399,25 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 					}}
 				/>
 			</aside>
+
+			<WorkflowAddNodePanel
+				open={addPanelOpen}
+				anchor={addPanelAnchor}
+				onClose={() => setAddPanelOpen(false)}
+				onSelect={addCatalogNode}
+			/>
+
+			<WorkflowContextMenu
+				open={!!contextMenu}
+				position={contextMenu}
+				onClose={() => setContextMenu(null)}
+				onAddNode={() => {
+					if (!contextMenu) return;
+					openAddPanel(contextMenu, screenToFlowPosition(contextMenu));
+				}}
+				onTestRun={() => persist({ test: true })}
+				onExport={exportWorkflow}
+			/>
 		</div>
 	);
 }
