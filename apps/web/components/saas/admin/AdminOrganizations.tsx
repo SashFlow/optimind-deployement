@@ -34,15 +34,26 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
-import { cn } from "@repo/ui/utils";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreVerticalIcon, SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+	DataTableBody,
+	DataTableBulkBar,
+	DataTableHeaderRow,
+	DataTableShell,
+	IdentityCell,
+	RowCheckbox,
+	SelectColumnHead,
+	StatusBadge,
+	dataTableRowClass,
+} from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import { useRowSelection } from "@/components/saas/shared/useRowSelection";
 import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
 import { useCreateOrganizationMutation } from "@/services/organization";
 import {
@@ -78,7 +89,7 @@ export function AdminOrganizations() {
 		setError(null);
 		setName("");
 		setCreateOpen(true);
-	});
+	}, "Create");
 
 	const filtered = useMemo(() => {
 		const orgs = organizationsQuery.data ?? [];
@@ -108,6 +119,12 @@ export function AdminOrganizations() {
 		const start = (currentPage - 1) * PAGE_SIZE;
 		return filtered.slice(start, start + PAGE_SIZE);
 	}, [filtered, currentPage]);
+
+	const pageIds = useMemo(
+		() => paged.map((organization) => organization.id),
+		[paged],
+	);
+	const selection = useRowSelection(pageIds);
 
 	const handleCreateOpenChange = (open: boolean) => {
 		setCreateOpen(open);
@@ -163,6 +180,7 @@ export function AdminOrganizations() {
 			await queryClient.invalidateQueries({
 				queryKey: orpc.admin.organizations.list.key(),
 			});
+			selection.clear();
 			toast.success("Organization deleted");
 		} catch (cause) {
 			setError(
@@ -175,6 +193,107 @@ export function AdminOrganizations() {
 		}
 	};
 
+	const bulkDelete = async () => {
+		if (selection.selectedCount === 0) return;
+		const byId = new Map(
+			(organizationsQuery.data ?? []).map((org) => [org.id, org]),
+		);
+		const targets = selection.selectedIds
+			.map((id) => byId.get(id))
+			.filter((org): org is NonNullable<typeof org> => Boolean(org));
+		if (targets.length === 0) return;
+		if (
+			!window.confirm(
+				`Delete ${targets.length} organization${targets.length === 1 ? "" : "s"}?`,
+			)
+		) {
+			return;
+		}
+		setBusy(true);
+		setError(null);
+		let deleted = 0;
+		try {
+			for (const organization of targets) {
+				const { error: deleteError } =
+					await authClient.organization.delete({
+						organizationId: organization.id,
+					});
+				if (!deleteError) deleted += 1;
+			}
+			await queryClient.invalidateQueries({
+				queryKey: orpc.admin.organizations.list.key(),
+			});
+			selection.clear();
+			if (deleted === 0) {
+				setError("Unable to delete organizations.");
+				return;
+			}
+			toast.success(
+				`Deleted ${deleted} organization${deleted === 1 ? "" : "s"}`,
+			);
+		} catch (cause) {
+			setError(
+				cause instanceof Error
+					? cause.message
+					: "Unable to delete organizations.",
+			);
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	const filters = (
+		<div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center">
+			<div className="relative w-full min-w-0 sm:w-72">
+				<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+				<Input
+					value={search}
+					onChange={(event) => setSearch(event.target.value)}
+					placeholder="Search by name or id..."
+					className="pl-9"
+				/>
+			</div>
+			<Select
+				value={typeFilter}
+				onValueChange={(value) => {
+					if (value) setTypeFilter(value as TypeFilter);
+				}}
+			>
+				<SelectTrigger className="w-full sm:w-40">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{TYPE_FILTER_ITEMS.map((option) => (
+						<SelectItem key={option.value} value={option.value}>
+							{option.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+		</div>
+	);
+
+	const bulkBar =
+		selection.selectedCount > 0 ? (
+			<DataTableBulkBar
+				count={selection.selectedCount}
+				onClear={selection.clear}
+			>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={busy}
+					className="text-destructive"
+					onClick={() => {
+						void bulkDelete();
+					}}
+				>
+					Delete selected
+				</Button>
+			</DataTableBulkBar>
+		) : null;
+
 	return (
 		<section className="flex min-h-0 flex-1 flex-col">
 			{error && !createOpen ? (
@@ -183,55 +302,35 @@ export function AdminOrganizations() {
 				</p>
 			) : null}
 
-			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-						<div className="relative min-w-0 sm:w-72">
-							<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-							<Input
-								value={search}
-								onChange={(event) =>
-									setSearch(event.target.value)
-								}
-								placeholder="Search by name or id..."
-								className="pl-9"
-							/>
-						</div>
-						<Select
-							value={typeFilter}
-							onValueChange={(value) => {
-								if (value) setTypeFilter(value as TypeFilter);
-							}}
-						>
-							<SelectTrigger className="w-full sm:w-40">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{TYPE_FILTER_ITEMS.map((option) => (
-									<SelectItem
-										key={option.value}
-										value={option.value}
-									>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
-
+			<DataTableShell
+				toolbar={selection.selectedCount > 0 ? undefined : filters}
+				bulkBar={bulkBar}
+				footer={
+					!organizationsQuery.isPending &&
+						!organizationsQuery.isError &&
+						filtered.length > 0 ? (
+						<Pagination
+							totalItems={filtered.length}
+							itemsPerPage={PAGE_SIZE}
+							currentPage={currentPage}
+							onChangeCurrentPage={setCurrentPage}
+						/>
+					) : null
+				}
+			>
 				{organizationsQuery.isPending ? (
-					<div className="min-h-0 flex-1 overflow-auto">
+					<DataTableBody>
 						<TableBodySkeleton
-							headers={["Name", "Type", "Created", "Actions"]}
+							headers={["", "Name", "Type", "Created", "Actions"]}
 							columns={[
+								{ type: "action" },
 								{ type: "lines", widths: ["w-40", "w-20"] },
 								{ type: "pill" },
 								{ type: "text", width: "w-24" },
 								{ type: "action" },
 							]}
 						/>
-					</div>
+					</DataTableBody>
 				) : organizationsQuery.isError ? (
 					<p
 						className="min-h-0 flex-1 p-6 text-sm text-destructive"
@@ -244,56 +343,70 @@ export function AdminOrganizations() {
 						No organizations found.
 					</p>
 				) : (
-					<>
-						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
-							<Table>
-								<TableHeader>
-									<TableRow className="hover:bg-transparent">
-										<TableHead>Name</TableHead>
-										<TableHead>Type</TableHead>
-										<TableHead>Created</TableHead>
-										<TableHead className="w-12">
-											<span className="sr-only">
-												Actions
-											</span>
-										</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{paged.map((organization) => (
-										<TableRow key={organization.id}>
-											<TableCell>
-												<div className="min-w-0">
-													<p className="truncate font-medium">
-														{organization.name}
-													</p>
-													<p className="font-mono text-xs text-muted-foreground">
-														{organization.id.slice(
-															0,
-															8,
-														)}
-													</p>
-												</div>
+					<DataTableBody>
+						<Table>
+							<TableHeader>
+								<DataTableHeaderRow>
+									<SelectColumnHead
+										allSelected={selection.allPageSelected}
+										someSelected={selection.somePageSelected}
+										onToggle={selection.togglePage}
+										disabled={busy}
+									/>
+									<TableHead>Name</TableHead>
+									<TableHead>Type</TableHead>
+									<TableHead>Created</TableHead>
+									<TableHead className="w-12">
+										<span className="sr-only">Actions</span>
+									</TableHead>
+								</DataTableHeaderRow>
+							</TableHeader>
+							<TableBody>
+								{paged.map((organization) => {
+									const selected = selection.isSelected(
+										organization.id,
+									);
+									const typeLabel = organization.trial
+										? "Trial"
+										: "Workspace";
+									return (
+										<TableRow
+											key={organization.id}
+											className={dataTableRowClass(
+												selected,
+											)}
+										>
+											<TableCell className="w-10 px-3">
+												<RowCheckbox
+													checked={selected}
+													onToggle={() =>
+														selection.toggle(
+															organization.id,
+														)
+													}
+													label={`Select ${organization.name}`}
+												/>
 											</TableCell>
 											<TableCell>
-												<span
-													className={cn(
-														"inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
-														organization.trial
-															? "bg-violet-50 text-violet-700"
-															: "bg-slate-50 text-slate-700",
+												<IdentityCell
+													name={organization.name}
+													secondary={organization.id.slice(
+														0,
+														8,
 													)}
-												>
-													{organization.trial
-														? "Trial"
-														: "Workspace"}
-												</span>
+												/>
+											</TableCell>
+											<TableCell>
+												<StatusBadge
+													label={typeLabel}
+													tone={typeLabel}
+												/>
 											</TableCell>
 											<TableCell className="text-muted-foreground">
 												{organization.created_at
 													? new Date(
-															organization.created_at,
-														).toLocaleDateString()
+														organization.created_at,
+													).toLocaleDateString()
 													: "—"}
 											</TableCell>
 											<TableCell>
@@ -337,21 +450,13 @@ export function AdminOrganizations() {
 												</DropdownMenu>
 											</TableCell>
 										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						</div>
-						<footer className="shrink-0 border-t px-5 py-3">
-							<Pagination
-								totalItems={filtered.length}
-								itemsPerPage={PAGE_SIZE}
-								currentPage={currentPage}
-								onChangeCurrentPage={setCurrentPage}
-							/>
-						</footer>
-					</>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</DataTableBody>
 				)}
-			</div>
+			</DataTableShell>
 
 			<Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
 				<DialogContent>

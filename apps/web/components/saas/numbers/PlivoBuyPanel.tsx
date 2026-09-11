@@ -21,6 +21,12 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
+	DataTableBody,
+	DataTableHeaderRow,
+	DataTableShell,
+	dataTableRowClass,
+} from "@/components/saas/shared/DataTable";
+import {
 	PAGE_SIZE,
 	Pagination,
 	useClientPagination,
@@ -102,162 +108,177 @@ export function PlivoBuyPanel({
 		}
 	}
 
-	return (
-		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-			<div className="shrink-0 space-y-4 border-b p-5">
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-					<div className="space-y-2">
-						<Label>Country</Label>
-						<Select
-							value={countryIso}
-							onValueChange={setCountryIso}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{COUNTRIES.map((country) => (
-									<SelectItem
-										key={country.iso}
-										value={country.iso}
-									>
-										{country.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="pattern">Pattern</Label>
-						<Input
-							id="pattern"
-							value={pattern}
-							onChange={(event) => setPattern(event.target.value)}
-							placeholder="555"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label>Agent</Label>
-						<Select
-							value={agentId || "none"}
-							onValueChange={(value) =>
-								setAgentId(value === "none" ? "" : value)
-							}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder="Optional" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="none">None</SelectItem>
-								{agents.map((agent) => (
-									<SelectItem key={agent.id} value={agent.id}>
-										{agent.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-					<div className="space-y-2">
-						<Label>Inbound trunk</Label>
-						<Select
-							value={trunkMode}
-							onValueChange={(value) => {
-								if (value === "auto" || value === "existing") {
-									setTrunkMode(value);
-								}
-							}}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="auto">
-									Create / sync automatically
+	const toolbar = (
+		<div className="w-full space-y-4">
+			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+				<div className="space-y-2">
+					<Label>Country</Label>
+					<Select value={countryIso} onValueChange={setCountryIso}>
+						<SelectTrigger className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{COUNTRIES.map((country) => (
+								<SelectItem
+									key={country.iso}
+									value={country.iso}
+								>
+									{country.label}
 								</SelectItem>
-								<SelectItem value="existing">
-									Use existing trunk
-								</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
-
-				{trunkMode === "existing" ? (
-					<div className="max-w-sm space-y-2">
-						<Label>Existing trunk</Label>
-						<Select
-							value={sipTrunkId || "none"}
-							onValueChange={(value) =>
-								setSipTrunkId(value === "none" ? "" : value)
-							}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder="Select trunk" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="none">
-									Select trunk
-								</SelectItem>
-								{inboundTrunks.map((trunk) => (
-									<SelectItem key={trunk.id} value={trunk.id}>
-										{trunk.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				) : null}
-
-				<Button
-					type="button"
-					onClick={() => setSearchEnabled(true)}
-					disabled={!organizationId}
-				>
-					Search numbers
-				</Button>
-				<p className="text-xs text-muted-foreground">
-					Buy flow is mocked — results are sample numbers; purchase
-					syncs Plivo inventory.
-				</p>
-			</div>
-
-			{!searchEnabled ? (
-				<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
-					Search to see available numbers.
-				</p>
-			) : searchQuery.isPending ? (
-				<div className="min-h-0 flex-1 overflow-auto">
-					<TableBodySkeleton
-						headers={[
-							"Number",
-							"Capabilities",
-							"Monthly",
-							"Setup",
-							"Action",
-						]}
-						columns={[
-							{ type: "text", width: "w-36" },
-							{ type: "text", width: "w-28" },
-							{ type: "text", width: "w-16" },
-							{ type: "text", width: "w-16" },
-							{ type: "action" },
-						]}
+				<div className="space-y-2">
+					<Label htmlFor="pattern">Pattern</Label>
+					<Input
+						id="pattern"
+						value={pattern}
+						onChange={(event) => setPattern(event.target.value)}
+						placeholder="555"
 					/>
 				</div>
-			) : searchQuery.isError ? (
-				<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
-					Search failed.
-				</p>
-			) : searchResults.length === 0 ? (
-				<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
-					No numbers found.
-				</p>
-			) : (
-				<>
-					<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
+				<div className="space-y-2">
+					<Label>Agent</Label>
+					<Select
+						value={agentId || "none"}
+						onValueChange={(value) =>
+							setAgentId(value === "none" ? "" : value)
+						}
+					>
+						<SelectTrigger className="w-full">
+							<SelectValue placeholder="Optional" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">None</SelectItem>
+							{agents.map((agent) => (
+								<SelectItem key={agent.id} value={agent.id}>
+									{agent.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+				<div className="space-y-2">
+					<Label>Inbound trunk</Label>
+					<Select
+						value={trunkMode}
+						onValueChange={(value) => {
+							if (value === "auto" || value === "existing") {
+								setTrunkMode(value);
+							}
+						}}
+					>
+						<SelectTrigger className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="auto">
+								Create / sync automatically
+							</SelectItem>
+							<SelectItem value="existing">
+								Use existing trunk
+							</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
+			</div>
+
+			{trunkMode === "existing" ? (
+				<div className="max-w-sm space-y-2">
+					<Label>Existing trunk</Label>
+					<Select
+						value={sipTrunkId || "none"}
+						onValueChange={(value) =>
+							setSipTrunkId(value === "none" ? "" : value)
+						}
+					>
+						<SelectTrigger className="w-full">
+							<SelectValue placeholder="Select trunk" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">Select trunk</SelectItem>
+							{inboundTrunks.map((trunk) => (
+								<SelectItem key={trunk.id} value={trunk.id}>
+									{trunk.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			) : null}
+
+			<Button
+				type="button"
+				onClick={() => setSearchEnabled(true)}
+				disabled={!organizationId}
+			>
+				Search numbers
+			</Button>
+			<p className="text-xs text-muted-foreground">
+				Buy flow is mocked — results are sample numbers; purchase syncs
+				Plivo inventory.
+			</p>
+		</div>
+	);
+
+	return (
+		<section className="flex min-h-0 flex-1 flex-col">
+			<DataTableShell
+				toolbar={toolbar}
+				footer={
+					searchEnabled &&
+					!searchQuery.isPending &&
+					!searchQuery.isError &&
+					searchResults.length > 0 ? (
+						<Pagination
+							totalItems={totalItems}
+							itemsPerPage={PAGE_SIZE}
+							currentPage={currentPage}
+							onChangeCurrentPage={setCurrentPage}
+						/>
+					) : null
+				}
+			>
+				{!searchEnabled ? (
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
+						Search to see available numbers.
+					</p>
+				) : searchQuery.isPending ? (
+					<DataTableBody>
+						<TableBodySkeleton
+							headers={[
+								"Number",
+								"Capabilities",
+								"Monthly",
+								"Setup",
+								"Action",
+							]}
+							columns={[
+								{ type: "text", width: "w-36" },
+								{ type: "text", width: "w-28" },
+								{ type: "text", width: "w-16" },
+								{ type: "text", width: "w-16" },
+								{ type: "action" },
+							]}
+						/>
+					</DataTableBody>
+				) : searchQuery.isError ? (
+					<p
+						className="min-h-0 flex-1 p-6 text-sm text-destructive"
+						role="alert"
+					>
+						Search failed.
+					</p>
+				) : searchResults.length === 0 ? (
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
+						No numbers found.
+					</p>
+				) : (
+					<DataTableBody>
 						<Table>
 							<TableHeader>
-								<TableRow className="hover:bg-transparent">
+								<DataTableHeaderRow>
 									<TableHead>Number</TableHead>
 									<TableHead>Capabilities</TableHead>
 									<TableHead>Monthly</TableHead>
@@ -265,11 +286,14 @@ export function PlivoBuyPanel({
 									<TableHead className="text-right">
 										Action
 									</TableHead>
-								</TableRow>
+								</DataTableHeaderRow>
 							</TableHeader>
 							<TableBody>
 								{pageItems.map((item) => (
-									<TableRow key={item.number}>
+									<TableRow
+										key={item.number}
+										className={dataTableRowClass()}
+									>
 										<TableCell className="font-mono font-medium">
 											{item.number}
 										</TableCell>
@@ -310,17 +334,9 @@ export function PlivoBuyPanel({
 								))}
 							</TableBody>
 						</Table>
-					</div>
-					<footer className="shrink-0 border-t px-5 py-3">
-						<Pagination
-							totalItems={totalItems}
-							itemsPerPage={PAGE_SIZE}
-							currentPage={currentPage}
-							onChangeCurrentPage={setCurrentPage}
-						/>
-					</footer>
-				</>
-			)}
-		</div>
+					</DataTableBody>
+				)}
+			</DataTableShell>
+		</section>
 	);
 }

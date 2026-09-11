@@ -30,12 +30,24 @@ import {
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CopyIcon, PencilIcon, Trash2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+	DataTableBody,
+	DataTableBulkBar,
+	DataTableHeaderRow,
+	DataTableShell,
+	IdentityCell,
+	RowCheckbox,
+	SelectColumnHead,
+	StatusBadge,
+	dataTableRowClass,
+} from "@/components/saas/shared/DataTable";
 import {
 	Pagination,
 	useClientPagination,
 } from "@/components/saas/shared/Pagination";
+import { useRowSelection } from "@/components/saas/shared/useRowSelection";
 
 type TrialLink = {
 	id: string;
@@ -114,6 +126,7 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingTrial, setEditingTrial] = useState<TrialLink | null>(null);
 	const [form, setForm] = useState<TrialFormState>(EMPTY_FORM);
+	const [bulkBusy, setBulkBusy] = useState(false);
 	const trials: TrialLink[] = (trialLinksQuery.data?.trials ?? []).map(
 		(trial) => ({
 			id: trial.id,
@@ -130,6 +143,12 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	const { currentPage, setCurrentPage, pageItems, totalItems, itemsPerPage } =
 		useClientPagination(trials);
 	const listKey = orpc.agents.listTrialLinks.key({ input: { id: agentId } });
+
+	const pageIds = useMemo(
+		() => pageItems.map((trial) => trial.id),
+		[pageItems],
+	);
+	const selection = useRowSelection(pageIds);
 
 	const createMutation = useMutation(
 		orpc.agents.createTrialLink.mutationOptions({
@@ -242,6 +261,22 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 		});
 	}
 
+	async function bulkDelete() {
+		if (selection.selectedIds.length === 0) return;
+		setBulkBusy(true);
+		try {
+			for (const trialId of selection.selectedIds) {
+				await deleteMutation.mutateAsync({
+					id: agentId,
+					trialId,
+				});
+			}
+			selection.clear();
+		} finally {
+			setBulkBusy(false);
+		}
+	}
+
 	async function toggleTrialEnabled(trial: TrialLink, enabled: boolean) {
 		await updateMutation.mutateAsync({
 			id: agentId,
@@ -250,165 +285,246 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 		});
 	}
 
+	const toolbar = (
+		<div className="flex w-full flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+			<div className="space-y-1.5">
+				<h2 className="font-semibold text-lg">Trial links</h2>
+				<p className="text-sm text-muted-foreground">
+					Shareable demo links. Guests can fully test the published
+					agent on web or mobile.
+				</p>
+			</div>
+			<Button type="button" onClick={openCreateDialog}>
+				Create link
+			</Button>
+		</div>
+	);
+
+	const bulkBar =
+		selection.selectedCount > 0 ? (
+			<DataTableBulkBar
+				count={selection.selectedCount}
+				onClear={selection.clear}
+			>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={bulkBusy || deleteMutation.isPending}
+					className="text-destructive"
+					onClick={() => {
+						void bulkDelete();
+					}}
+				>
+					{bulkBusy ? "Deleting…" : "Delete"}
+				</Button>
+			</DataTableBulkBar>
+		) : null;
+
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
-			<Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
-				<CardHeader className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-					<div className="space-y-1.5">
-						<CardTitle>Trial links</CardTitle>
-						<CardDescription>
-							Shareable demo links. Guests can fully test the
-							published agent on web or mobile.
-						</CardDescription>
-					</div>
-					<Button type="button" onClick={openCreateDialog}>
-						Create link
-					</Button>
-				</CardHeader>
-				<CardContent className="flex min-h-0 flex-1 flex-col space-y-4 overflow-hidden">
-					{trialLinksQuery.isLoading ? (
-						<p className="min-h-0 flex-1 text-sm text-muted-foreground">
+			{trialLinksQuery.isLoading ? (
+				<Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
+					<CardHeader className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+						<div className="space-y-1.5">
+							<CardTitle>Trial links</CardTitle>
+							<CardDescription>
+								Shareable demo links. Guests can fully test the
+								published agent on web or mobile.
+							</CardDescription>
+						</div>
+						<Button type="button" onClick={openCreateDialog}>
+							Create link
+						</Button>
+					</CardHeader>
+					<CardContent>
+						<p className="text-sm text-muted-foreground">
 							Loading trial links...
 						</p>
-					) : trials.length === 0 ? (
-						<p className="min-h-0 flex-1 text-sm text-muted-foreground">
+					</CardContent>
+				</Card>
+			) : trials.length === 0 ? (
+				<Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
+					<CardHeader className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+						<div className="space-y-1.5">
+							<CardTitle>Trial links</CardTitle>
+							<CardDescription>
+								Shareable demo links. Guests can fully test the
+								published agent on web or mobile.
+							</CardDescription>
+						</div>
+						<Button type="button" onClick={openCreateDialog}>
+							Create link
+						</Button>
+					</CardHeader>
+					<CardContent>
+						<p className="text-sm text-muted-foreground">
 							No trial links yet.
 						</p>
-					) : (
-						<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border">
-							<div className="min-h-0 flex-1 overflow-auto">
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead>Label</TableHead>
-											<TableHead>URL</TableHead>
-											<TableHead>Status</TableHead>
-											<TableHead>Remaining</TableHead>
-											<TableHead>Expiry</TableHead>
-											<TableHead>Enabled</TableHead>
-											<TableHead className="text-right">
-												Actions
-											</TableHead>
+					</CardContent>
+				</Card>
+			) : (
+				<DataTableShell
+					toolbar={
+						selection.selectedCount > 0 ? undefined : toolbar
+					}
+					bulkBar={bulkBar}
+					footer={
+						<Pagination
+							totalItems={totalItems}
+							itemsPerPage={itemsPerPage}
+							currentPage={currentPage}
+							onChangeCurrentPage={setCurrentPage}
+						/>
+					}
+				>
+					<DataTableBody>
+						<Table>
+							<TableHeader>
+								<DataTableHeaderRow>
+									<SelectColumnHead
+										allSelected={selection.allPageSelected}
+										someSelected={selection.somePageSelected}
+										onToggle={selection.togglePage}
+									/>
+									<TableHead>Label</TableHead>
+									<TableHead>URL</TableHead>
+									<TableHead>Status</TableHead>
+									<TableHead>Remaining</TableHead>
+									<TableHead>Expiry</TableHead>
+									<TableHead>Enabled</TableHead>
+									<TableHead className="w-24">
+										<span className="sr-only">Actions</span>
+									</TableHead>
+								</DataTableHeaderRow>
+							</TableHeader>
+							<TableBody>
+								{pageItems.map((trial) => {
+									const status = trialStatus(trial);
+									const sharePath = `/share/${trial.token}`;
+									const shareUrl =
+										absoluteShareUrl(sharePath);
+									const selected = selection.isSelected(
+										trial.id,
+									);
+									return (
+										<TableRow
+											key={trial.id}
+											className={dataTableRowClass(
+												selected,
+											)}
+										>
+											<TableCell className="w-10 px-3">
+												<RowCheckbox
+													checked={selected}
+													onToggle={() =>
+														selection.toggle(
+															trial.id,
+														)
+													}
+													label={`Select ${trial.label}`}
+												/>
+											</TableCell>
+											<TableCell>
+												<IdentityCell
+													name={trial.label}
+													showAvatar={false}
+												/>
+											</TableCell>
+											<TableCell className="max-w-[16rem]">
+												<div className="flex min-w-0 items-center gap-1">
+													<span
+														className="truncate font-mono text-xs text-muted-foreground"
+														title={shareUrl}
+													>
+														{shareUrl}
+													</span>
+													<Button
+														type="button"
+														size="icon"
+														variant="ghost"
+														aria-label={`Copy ${trial.label} link`}
+														className="size-7 shrink-0 text-muted-foreground"
+														onClick={() =>
+															void copyTrialUrl(
+																sharePath,
+															)
+														}
+													>
+														<CopyIcon className="size-3.5" />
+													</Button>
+												</div>
+											</TableCell>
+											<TableCell>
+												<StatusBadge
+													label={status.label}
+													tone={status.label.toLowerCase()}
+												/>
+											</TableCell>
+											<TableCell>
+												{status.remaining}/
+												{trial.sessions}
+											</TableCell>
+											<TableCell>
+												{formatExpiry(trial.expiresAt)}
+											</TableCell>
+											<TableCell>
+												<Switch
+													checked={trial.enabled}
+													aria-label={`Toggle ${trial.label}`}
+													disabled={
+														updateMutation.isPending
+													}
+													onCheckedChange={(
+														enabled,
+													) =>
+														void toggleTrialEnabled(
+															trial,
+															enabled,
+														)
+													}
+												/>
+											</TableCell>
+											<TableCell>
+												<div className="flex justify-end gap-1">
+													<Button
+														type="button"
+														size="icon"
+														variant="ghost"
+														aria-label={`Edit ${trial.label}`}
+														className="size-8 text-muted-foreground"
+														onClick={() =>
+															openEditDialog(
+																trial,
+															)
+														}
+													>
+														<PencilIcon className="size-4" />
+													</Button>
+													<Button
+														type="button"
+														size="icon"
+														variant="ghost"
+														aria-label={`Remove ${trial.label}`}
+														className="size-8 text-muted-foreground hover:text-destructive"
+														onClick={() =>
+															void removeTrial(
+																trial.id,
+															)
+														}
+													>
+														<Trash2Icon className="size-4" />
+													</Button>
+												</div>
+											</TableCell>
 										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{pageItems.map((trial) => {
-											const status = trialStatus(trial);
-											const sharePath = `/share/${trial.token}`;
-											const shareUrl =
-												absoluteShareUrl(sharePath);
-											return (
-												<TableRow key={trial.id}>
-													<TableCell className="font-medium">
-														{trial.label}
-													</TableCell>
-													<TableCell className="max-w-[16rem]">
-														<div className="flex min-w-0 items-center gap-1">
-															<span
-																className="truncate font-mono text-xs text-muted-foreground"
-																title={shareUrl}
-															>
-																{shareUrl}
-															</span>
-															<Button
-																type="button"
-																size="icon"
-																variant="ghost"
-																aria-label={`Copy ${trial.label} link`}
-																className="size-7 shrink-0 text-muted-foreground"
-																onClick={() =>
-																	void copyTrialUrl(
-																		sharePath,
-																	)
-																}
-															>
-																<CopyIcon className="size-3.5" />
-															</Button>
-														</div>
-													</TableCell>
-													<TableCell>
-														<span className="text-sm">
-															{status.label}
-														</span>
-													</TableCell>
-													<TableCell>
-														{status.remaining}/
-														{trial.sessions}
-													</TableCell>
-													<TableCell>
-														{formatExpiry(
-															trial.expiresAt,
-														)}
-													</TableCell>
-													<TableCell>
-														<Switch
-															checked={
-																trial.enabled
-															}
-															aria-label={`Toggle ${trial.label}`}
-															disabled={
-																updateMutation.isPending
-															}
-															onCheckedChange={(
-																enabled,
-															) =>
-																void toggleTrialEnabled(
-																	trial,
-																	enabled,
-																)
-															}
-														/>
-													</TableCell>
-													<TableCell className="text-right">
-														<div className="flex justify-end gap-1">
-															<Button
-																type="button"
-																size="icon"
-																variant="ghost"
-																aria-label={`Edit ${trial.label}`}
-																className="text-muted-foreground"
-																onClick={() =>
-																	openEditDialog(
-																		trial,
-																	)
-																}
-															>
-																<PencilIcon className="size-4" />
-															</Button>
-															<Button
-																type="button"
-																size="icon"
-																variant="ghost"
-																aria-label={`Remove ${trial.label}`}
-																className="text-muted-foreground hover:text-destructive"
-																onClick={() =>
-																	void removeTrial(
-																		trial.id,
-																	)
-																}
-															>
-																<Trash2Icon className="size-4" />
-															</Button>
-														</div>
-													</TableCell>
-												</TableRow>
-											);
-										})}
-									</TableBody>
-								</Table>
-							</div>
-							<footer className="shrink-0 border-t px-5 py-3">
-								<Pagination
-									totalItems={totalItems}
-									itemsPerPage={itemsPerPage}
-									currentPage={currentPage}
-									onChangeCurrentPage={setCurrentPage}
-								/>
-							</footer>
-						</div>
-					)}
-				</CardContent>
-			</Card>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</DataTableBody>
+				</DataTableShell>
+			)}
 
 			<Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
 				<DialogContent className="max-w-md">

@@ -35,8 +35,19 @@ import {
 import { MoreVerticalIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+	DataTableBody,
+	DataTableBulkBar,
+	DataTableHeaderRow,
+	DataTableShell,
+	IdentityCell,
+	RowCheckbox,
+	SelectColumnHead,
+	dataTableRowClass,
+} from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import { useRowSelection } from "@/components/saas/shared/useRowSelection";
 import {
 	useCreateDispatchRuleMutation,
 	useDeleteDispatchRuleMutation,
@@ -67,6 +78,7 @@ export function DispatchRulesPanel({
 	const [roomPrefix, setRoomPrefix] = useState("");
 	const [deleteTarget, setDeleteTarget] = useState<DispatchRule | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
+	const [bulkBusy, setBulkBusy] = useState(false);
 
 	const inboundTrunks = (trunksQuery.data ?? []).filter(
 		(trunk) => trunk.direction === "inbound",
@@ -85,6 +97,9 @@ export function DispatchRulesPanel({
 		const start = (currentPage - 1) * PAGE_SIZE;
 		return rules.slice(start, start + PAGE_SIZE);
 	}, [rules, currentPage]);
+
+	const pageIds = useMemo(() => paged.map((rule) => rule.id), [paged]);
+	const selection = useRowSelection(pageIds);
 
 	const trunkNameById = useMemo(() => {
 		const map = new Map<string, string>();
@@ -139,6 +154,7 @@ export function DispatchRulesPanel({
 		try {
 			await deleteMutation.mutateAsync(deleteTarget.id);
 			toast.success("Rule deleted");
+			selection.clear();
 			setDeleteTarget(null);
 		} catch (cause) {
 			toast.error(
@@ -149,58 +165,121 @@ export function DispatchRulesPanel({
 		}
 	}
 
-	const busy = createMutation.isPending || deleteMutation.isPending;
+	async function bulkDelete() {
+		if (selection.selectedCount === 0) return;
+		setBulkBusy(true);
+		let ok = 0;
+		const ids = selection.selectedIds;
+		for (const id of ids) {
+			try {
+				await deleteMutation.mutateAsync(id);
+				ok += 1;
+			} catch {
+				// continue
+			}
+		}
+		setBulkBusy(false);
+		selection.clear();
+		toast.success(
+			`Deleted ${ok} of ${ids.length} rule${ids.length === 1 ? "" : "s"}`,
+		);
+	}
+
+	const busy =
+		createMutation.isPending || deleteMutation.isPending || bulkBusy;
 	const canCreate = inboundTrunks.length > 0 && agents.length > 0;
 
-	return (
+	const toolbar = (
 		<>
-			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				<div className="flex shrink-0 items-center justify-between gap-3 border-b p-5">
-					{inboundTrunks.length === 0 ? (
-						<p className="text-sm text-muted-foreground">
-							Create an inbound trunk before adding routing.{" "}
-							<button
-								type="button"
-								className="underline"
-								onClick={onCreateTrunk}
-							>
-								Create trunk
-							</button>
-						</p>
-					) : (
-						<span />
-					)}
-					<Button
+			{inboundTrunks.length === 0 ? (
+				<p className="text-sm text-muted-foreground">
+					Create an inbound trunk before adding routing.{" "}
+					<button
 						type="button"
-						size="sm"
-						disabled={!canCreate}
-						onClick={openCreate}
+						className="underline"
+						onClick={onCreateTrunk}
 					>
-						Create rule
-					</Button>
-				</div>
+						Create trunk
+					</button>
+				</p>
+			) : (
+				<span />
+			)}
+			<Button
+				type="button"
+				size="sm"
+				className="ml-auto"
+				disabled={!canCreate}
+				onClick={openCreate}
+			>
+				Create rule
+			</Button>
+		</>
+	);
 
+	const bulkBar =
+		selection.selectedCount > 0 ? (
+			<DataTableBulkBar
+				count={selection.selectedCount}
+				onClear={selection.clear}
+			>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={busy}
+					className="text-destructive"
+					onClick={() => {
+						void bulkDelete();
+					}}
+				>
+					Delete
+				</Button>
+			</DataTableBulkBar>
+		) : null;
+
+	return (
+		<section className="flex min-h-0 flex-1 flex-col">
+			<DataTableShell
+				toolbar={selection.selectedCount > 0 ? undefined : toolbar}
+				bulkBar={bulkBar}
+				footer={
+					!rulesQuery.isPending &&
+					!rulesQuery.isError &&
+					rules.length > 0 ? (
+						<Pagination
+							totalItems={rules.length}
+							itemsPerPage={PAGE_SIZE}
+							currentPage={currentPage}
+							onChangeCurrentPage={setCurrentPage}
+						/>
+					) : null
+				}
+			>
 				{rulesQuery.isPending ? (
-					<div className="min-h-0 flex-1 overflow-auto">
+					<DataTableBody>
 						<TableBodySkeleton
 							headers={[
+								"",
 								"Name",
 								"Trunk",
 								"Agent",
-								"Prefix",
 								"Actions",
 							]}
 							columns={[
-								{ type: "text", width: "w-32" },
+								{ type: "action" },
+								{ type: "lines", widths: ["w-32", "w-16"] },
 								{ type: "text", width: "w-28" },
 								{ type: "text", width: "w-28" },
-								{ type: "text", width: "w-16" },
 								{ type: "action" },
 							]}
 						/>
-					</div>
+					</DataTableBody>
 				) : rulesQuery.isError ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
+					<p
+						className="min-h-0 flex-1 p-6 text-sm text-destructive"
+						role="alert"
+					>
 						Unable to load rules.
 					</p>
 				) : rules.length === 0 ? (
@@ -208,91 +287,112 @@ export function DispatchRulesPanel({
 						No routing rules yet.
 					</p>
 				) : (
-					<>
-						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
-							<Table>
+					<DataTableBody>
+						<Table>
 							<TableHeader>
-								<TableRow className="hover:bg-transparent">
+								<DataTableHeaderRow>
+									<SelectColumnHead
+										allSelected={selection.allPageSelected}
+										someSelected={selection.somePageSelected}
+										onToggle={selection.togglePage}
+									/>
 									<TableHead>Name</TableHead>
 									<TableHead>Trunk</TableHead>
 									<TableHead>Agent</TableHead>
-									<TableHead>Prefix</TableHead>
 									<TableHead className="w-12">
 										<span className="sr-only">Actions</span>
 									</TableHead>
-								</TableRow>
+								</DataTableHeaderRow>
 							</TableHeader>
 							<TableBody>
-								{paged.map((rule) => (
-									<TableRow key={rule.id}>
-										<TableCell className="font-medium">
-											{rule.name}
-										</TableCell>
-										<TableCell className="text-muted-foreground">
-											{rule.sip_trunk_id
-												? (trunkNameById.get(
-														rule.sip_trunk_id,
-													) ??
-													rule.sip_trunk_id.slice(
-														0,
-														8,
-													))
-												: "—"}
-										</TableCell>
-										<TableCell className="text-muted-foreground">
-											{rule.agent_id
-												? (agentNameById.get(
-														rule.agent_id,
-													) ??
-													rule.agent_id.slice(0, 8))
-												: "—"}
-										</TableCell>
-										<TableCell className="font-mono text-xs text-muted-foreground">
-											{rule.room_prefix ?? "—"}
-										</TableCell>
-										<TableCell>
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button
-														variant="ghost"
-														size="icon"
-														className="size-8"
-														disabled={busy}
-														aria-label={`Actions for ${rule.name}`}
-													>
-														<MoreVerticalIcon className="size-4" />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													<DropdownMenuItem
-														className="text-destructive focus:text-destructive"
-														onClick={() =>
-															setDeleteTarget(
-																rule,
-															)
-														}
-													>
-														Delete
-													</DropdownMenuItem>
-												</DropdownMenuContent>
-											</DropdownMenu>
-										</TableCell>
-									</TableRow>
-								))}
+								{paged.map((rule) => {
+									const selected = selection.isSelected(
+										rule.id,
+									);
+									return (
+										<TableRow
+											key={rule.id}
+											className={dataTableRowClass(
+												selected,
+											)}
+										>
+											<TableCell className="w-10 px-3">
+												<RowCheckbox
+													checked={selected}
+													onToggle={() =>
+														selection.toggle(
+															rule.id,
+														)
+													}
+													label={`Select ${rule.name}`}
+												/>
+											</TableCell>
+											<TableCell>
+												<IdentityCell
+													name={rule.name}
+													secondary={
+														rule.room_prefix ??
+														undefined
+													}
+												/>
+											</TableCell>
+											<TableCell className="text-muted-foreground">
+												{rule.sip_trunk_id
+													? (trunkNameById.get(
+															rule.sip_trunk_id,
+														) ??
+														rule.sip_trunk_id.slice(
+															0,
+															8,
+														))
+													: "—"}
+											</TableCell>
+											<TableCell className="text-muted-foreground">
+												{rule.agent_id
+													? (agentNameById.get(
+															rule.agent_id,
+														) ??
+														rule.agent_id.slice(
+															0,
+															8,
+														))
+													: "—"}
+											</TableCell>
+											<TableCell>
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="size-8"
+															disabled={busy}
+															aria-label={`Actions for ${rule.name}`}
+														>
+															<MoreVerticalIcon className="size-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuItem
+															className="text-destructive focus:text-destructive"
+															onClick={() =>
+																setDeleteTarget(
+																	rule,
+																)
+															}
+														>
+															Delete
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
+											</TableCell>
+										</TableRow>
+									);
+								})}
 							</TableBody>
 						</Table>
-					</div>
-					<footer className="shrink-0 border-t px-5 py-3">
-						<Pagination
-							totalItems={rules.length}
-							itemsPerPage={PAGE_SIZE}
-							currentPage={currentPage}
-							onChangeCurrentPage={setCurrentPage}
-						/>
-					</footer>
-				</>
-			)}
-			</div>
+					</DataTableBody>
+				)}
+			</DataTableShell>
 
 			<Dialog open={formOpen} onOpenChange={setFormOpen}>
 				<DialogContent>
@@ -406,6 +506,6 @@ export function DispatchRulesPanel({
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-		</>
+		</section>
 	);
 }

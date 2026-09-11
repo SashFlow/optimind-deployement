@@ -33,10 +33,17 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
-import { cn } from "@repo/ui/utils";
 import { MoreVerticalIcon, SearchIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+	DataTableBody,
+	DataTableHeaderRow,
+	DataTableShell,
+	IdentityCell,
+	StatusBadge,
+	dataTableRowClass,
+} from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import {
@@ -165,31 +172,49 @@ export function NumbersInventory({
 		releaseMutation.isPending ||
 		deleteMutation.isPending;
 
-	return (
+	const toolbar = (
 		<>
-			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
-					<div className="relative min-w-0 sm:w-72">
-						<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-						<Input
-							value={search}
-							onChange={(event) => setSearch(event.target.value)}
-							placeholder="Search numbers..."
-							className="pl-9"
-						/>
-					</div>
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						onClick={() => setAddOpen(true)}
-					>
-						Register number
-					</Button>
-				</div>
+			<div className="relative min-w-0 sm:w-72">
+				<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+				<Input
+					value={search}
+					onChange={(event) => setSearch(event.target.value)}
+					placeholder="Search numbers..."
+					className="pl-9"
+				/>
+			</div>
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				className="ml-auto"
+				onClick={() => setAddOpen(true)}
+			>
+				Register number
+			</Button>
+		</>
+	);
 
+	return (
+		<section className="flex min-h-0 flex-1 flex-col">
+			<DataTableShell
+				toolbar={toolbar}
+				footer={
+					!numbersQuery.isPending &&
+					!numbersQuery.isError &&
+					(numbersQuery.data ?? []).length > 0 &&
+					filtered.length > 0 ? (
+						<Pagination
+							totalItems={filtered.length}
+							itemsPerPage={PAGE_SIZE}
+							currentPage={currentPage}
+							onChangeCurrentPage={setCurrentPage}
+						/>
+					) : null
+				}
+			>
 				{numbersQuery.isPending ? (
-					<div className="min-h-0 flex-1 overflow-auto">
+					<DataTableBody>
 						<TableBodySkeleton
 							headers={[
 								"Number",
@@ -206,9 +231,12 @@ export function NumbersInventory({
 								{ type: "action" },
 							]}
 						/>
-					</div>
+					</DataTableBody>
 				) : numbersQuery.isError ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
+					<p
+						className="min-h-0 flex-1 p-6 text-sm text-destructive"
+						role="alert"
+					>
 						Unable to load phone numbers.
 					</p>
 				) : (numbersQuery.data ?? []).length === 0 ? (
@@ -235,11 +263,10 @@ export function NumbersInventory({
 						No numbers found.
 					</p>
 				) : (
-					<>
-						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
-							<Table>
+					<DataTableBody>
+						<Table>
 							<TableHeader>
-								<TableRow className="hover:bg-transparent">
+								<DataTableHeaderRow>
 									<TableHead>Number</TableHead>
 									<TableHead>Agent</TableHead>
 									<TableHead>Trunk</TableHead>
@@ -247,22 +274,24 @@ export function NumbersInventory({
 									<TableHead className="w-12">
 										<span className="sr-only">Actions</span>
 									</TableHead>
-								</TableRow>
+								</DataTableHeaderRow>
 							</TableHeader>
 							<TableBody>
 								{paged.map((number) => (
-									<TableRow key={number.id}>
+									<TableRow
+										key={number.id}
+										className={dataTableRowClass()}
+									>
 										<TableCell>
-											<div className="min-w-0">
-												<p className="font-mono font-medium">
-													{number.e164}
-												</p>
-												<p className="text-xs text-muted-foreground">
-													{number.provider_sid
+											<IdentityCell
+												name={number.e164}
+												secondary={
+													number.provider_sid
 														? `Plivo · ${number.provider_sid.slice(0, 12)}`
-														: "Manual"}
-												</p>
-											</div>
+														: "Manual"
+												}
+												showAvatar={false}
+											/>
 										</TableCell>
 										<TableCell>
 											<Select
@@ -328,18 +357,18 @@ export function NumbersInventory({
 												: "—"}
 										</TableCell>
 										<TableCell>
-											<span
-												className={cn(
-													"inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
+											<StatusBadge
+												label={
 													number.is_active
-														? "bg-emerald-50 text-emerald-700"
-														: "bg-rose-50 text-rose-700",
-												)}
-											>
-												{number.is_active
-													? "Active"
-													: "Inactive"}
-											</span>
+														? "Active"
+														: "Inactive"
+												}
+												tone={
+													number.is_active
+														? "active"
+														: "inactive"
+												}
+											/>
 										</TableCell>
 										<TableCell>
 											<DropdownMenu>
@@ -384,18 +413,9 @@ export function NumbersInventory({
 								))}
 							</TableBody>
 						</Table>
-					</div>
-					<footer className="shrink-0 border-t px-5 py-3">
-						<Pagination
-							totalItems={filtered.length}
-							itemsPerPage={PAGE_SIZE}
-							currentPage={currentPage}
-							onChangeCurrentPage={setCurrentPage}
-						/>
-					</footer>
-				</>
-			)}
-			</div>
+					</DataTableBody>
+				)}
+			</DataTableShell>
 
 			<Dialog open={addOpen} onOpenChange={setAddOpen}>
 				<DialogContent>
@@ -527,6 +547,6 @@ export function NumbersInventory({
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-		</>
+		</section>
 	);
 }

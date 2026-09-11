@@ -33,12 +33,23 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
-import { cn } from "@repo/ui/utils";
 import { formatDistanceToNow } from "date-fns";
 import { MoreVerticalIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import {
+	DataTableBody,
+	DataTableBulkBar,
+	DataTableHeaderRow,
+	DataTableShell,
+	IdentityCell,
+	RowCheckbox,
+	SelectColumnHead,
+	StatusBadge,
+	dataTableRowClass,
+} from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import { useRowSelection } from "@/components/saas/shared/useRowSelection";
 import type {
 	KnowledgeDocument,
 	KnowledgeDocumentStatus,
@@ -54,19 +65,6 @@ const STATUS_FILTER_ITEMS: { value: StatusFilter; label: string }[] = [
 	{ value: "FAILED", label: "Failed" },
 ];
 
-function statusPillClass(status: string) {
-	if (status === "READY") {
-		return "bg-emerald-50 text-emerald-700";
-	}
-	if (status === "PENDING" || status === "PROCESSING") {
-		return "bg-amber-50 text-amber-700";
-	}
-	if (status === "FAILED") {
-		return "bg-rose-50 text-rose-700";
-	}
-	return "bg-slate-50 text-slate-700";
-}
-
 function sourceLabel(sourceType: KnowledgeDocument["sourceType"]) {
 	switch (sourceType) {
 		case "TEXT":
@@ -80,6 +78,11 @@ function sourceLabel(sourceType: KnowledgeDocument["sourceType"]) {
 		default:
 			return sourceType;
 	}
+}
+
+function documentSecondary(doc: KnowledgeDocument) {
+	if (doc.sourceUrl) return doc.sourceUrl;
+	return sourceLabel(doc.sourceType);
 }
 
 type KnowledgeDocumentsTableProps = {
@@ -104,6 +107,7 @@ export function KnowledgeDocumentsTable({
 	const [currentPage, setCurrentPage] = useState(1);
 	const [pendingDelete, setPendingDelete] =
 		useState<KnowledgeDocument | null>(null);
+	const [bulkBusy, setBulkBusy] = useState(false);
 
 	const filtered = useMemo(() => {
 		const query = search.trim().toLowerCase();
@@ -121,101 +125,152 @@ export function KnowledgeDocumentsTable({
 		});
 	}, [documents, search, statusFilter]);
 
+	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
 	useEffect(() => {
 		setCurrentPage(1);
 	}, [search, statusFilter]);
+
+	useEffect(() => {
+		if (currentPage > pageCount) setCurrentPage(pageCount);
+	}, [currentPage, pageCount]);
 
 	const pageItems = useMemo(() => {
 		const start = (currentPage - 1) * PAGE_SIZE;
 		return filtered.slice(start, start + PAGE_SIZE);
 	}, [filtered, currentPage]);
 
+	const pageIds = useMemo(() => pageItems.map((doc) => doc.id), [pageItems]);
+	const selection = useRowSelection(pageIds);
+
 	async function handleDelete() {
 		if (!pendingDelete) {
 			return;
 		}
 		await onDeleteDocument(pendingDelete.id);
+		selection.clear();
 		setPendingDelete(null);
 	}
 
+	async function bulkDelete() {
+		if (selection.selectedIds.length === 0) return;
+		setBulkBusy(true);
+		try {
+			for (const id of selection.selectedIds) {
+				await onDeleteDocument(id);
+			}
+			selection.clear();
+		} finally {
+			setBulkBusy(false);
+		}
+	}
+
+	const toolbar = (
+		<>
+			<div>
+				<h2 className="font-semibold text-lg">Documents</h2>
+				<p className="text-muted-foreground text-sm">
+					Manage sources ingested into this knowledge base.
+				</p>
+			</div>
+			<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+				<div className="relative min-w-0 sm:w-64">
+					<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+					<Input
+						value={search}
+						onChange={(event) => setSearch(event.target.value)}
+						placeholder="Search documents…"
+						className="pl-9"
+					/>
+				</div>
+				<Select
+					value={statusFilter}
+					onValueChange={(value) =>
+						value && setStatusFilter(value as StatusFilter)
+					}
+				>
+					<SelectTrigger className="w-full sm:w-40">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{STATUS_FILTER_ITEMS.map((option) => (
+							<SelectItem key={option.value} value={option.value}>
+								{option.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<Button
+					type="button"
+					className="rounded-full"
+					onClick={onAddDocument}
+				>
+					<PlusIcon className="size-4" />
+					Add document
+				</Button>
+			</div>
+		</>
+	);
+
+	const bulkBar =
+		selection.selectedCount > 0 ? (
+			<DataTableBulkBar
+				count={selection.selectedCount}
+				onClear={selection.clear}
+			>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={bulkBusy || isDeleting}
+					className="text-destructive"
+					onClick={() => {
+						void bulkDelete();
+					}}
+				>
+					{bulkBusy ? "Deleting…" : "Delete"}
+				</Button>
+			</DataTableBulkBar>
+		) : null;
+
 	return (
 		<>
-			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
-					<div>
-						<h2 className="font-semibold text-lg">Documents</h2>
-						<p className="text-muted-foreground text-sm">
-							Manage sources ingested into this knowledge base.
-						</p>
-					</div>
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-						<div className="relative min-w-0 sm:w-64">
-							<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-							<Input
-								value={search}
-								onChange={(event) =>
-									setSearch(event.target.value)
-								}
-								placeholder="Search documents…"
-								className="pl-9"
-							/>
-						</div>
-						<Select
-							value={statusFilter}
-							onValueChange={(value) =>
-								value && setStatusFilter(value as StatusFilter)
-							}
-						>
-							<SelectTrigger className="w-full sm:w-40">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{STATUS_FILTER_ITEMS.map((option) => (
-									<SelectItem
-										key={option.value}
-										value={option.value}
-									>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<Button
-							type="button"
-							className="rounded-full"
-							onClick={onAddDocument}
-						>
-							<PlusIcon className="size-4" />
-							Add document
-						</Button>
-					</div>
-				</div>
-
+			<DataTableShell
+				toolbar={selection.selectedCount > 0 ? undefined : toolbar}
+				bulkBar={bulkBar}
+				footer={
+					!isLoading && !isError && filtered.length > 0 ? (
+						<Pagination
+							totalItems={filtered.length}
+							itemsPerPage={PAGE_SIZE}
+							currentPage={currentPage}
+							onChangeCurrentPage={setCurrentPage}
+						/>
+					) : null
+				}
+			>
 				{isLoading ? (
-					<div className="min-h-0 flex-1 overflow-auto">
+					<DataTableBody>
 						<TableBodySkeleton
 							headers={[
+								"",
 								"Title",
-								"Source",
 								"Status",
 								"Updated",
 								"Actions",
 							]}
 							columns={[
+								{ type: "action" },
 								{
 									type: "lines",
 									widths: ["w-40", "w-28"],
-								},
-								{
-									type: "lines",
-									widths: ["w-20", "w-32"],
 								},
 								{ type: "pill" },
 								{ type: "text", width: "w-24" },
 								{ type: "action" },
 							]}
 						/>
-					</div>
+					</DataTableBody>
 				) : isError ? (
 					<p className="min-h-0 flex-1 p-6 text-destructive text-sm">
 						Failed to load documents.
@@ -226,56 +281,63 @@ export function KnowledgeDocumentsTable({
 						started.
 					</p>
 				) : (
-					<>
-						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
-							<Table>
-								<TableHeader>
-									<TableRow className="hover:bg-transparent">
-										<TableHead>Title</TableHead>
-										<TableHead>Source</TableHead>
-										<TableHead>Status</TableHead>
-										<TableHead>Updated</TableHead>
-										<TableHead className="text-right">
-											Actions
-										</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{pageItems.map((doc) => (
-										<TableRow key={doc.id}>
+					<DataTableBody>
+						<Table>
+							<TableHeader>
+								<DataTableHeaderRow>
+									<SelectColumnHead
+										allSelected={selection.allPageSelected}
+										someSelected={selection.somePageSelected}
+										onToggle={selection.togglePage}
+									/>
+									<TableHead>Title</TableHead>
+									<TableHead>Status</TableHead>
+									<TableHead>Updated</TableHead>
+									<TableHead className="w-20">
+										<span className="sr-only">Actions</span>
+									</TableHead>
+								</DataTableHeaderRow>
+							</TableHeader>
+							<TableBody>
+								{pageItems.map((doc) => {
+									const selected = selection.isSelected(
+										doc.id,
+									);
+									return (
+										<TableRow
+											key={doc.id}
+											className={dataTableRowClass(
+												selected,
+											)}
+										>
+											<TableCell className="w-10 px-3">
+												<RowCheckbox
+													checked={selected}
+													onToggle={() =>
+														selection.toggle(doc.id)
+													}
+													label={`Select ${doc.title}`}
+												/>
+											</TableCell>
 											<TableCell>
-												<p className="font-medium text-sm">
-													{doc.title}
-												</p>
+												<IdentityCell
+													name={doc.title}
+													secondary={documentSecondary(
+														doc,
+													)}
+													showAvatar={false}
+												/>
 												{doc.errorMessage ? (
 													<p className="mt-0.5 text-rose-600 text-xs">
 														{doc.errorMessage}
 													</p>
 												) : null}
 											</TableCell>
-											<TableCell className="text-muted-foreground text-sm">
-												<span>
-													{sourceLabel(
-														doc.sourceType,
-													)}
-												</span>
-												{doc.sourceUrl ? (
-													<p className="mt-0.5 max-w-[240px] truncate text-xs">
-														{doc.sourceUrl}
-													</p>
-												) : null}
-											</TableCell>
 											<TableCell>
-												<span
-													className={cn(
-														"inline-flex rounded-md px-2 py-0.5 font-medium text-xs",
-														statusPillClass(
-															doc.status,
-														),
-													)}
-												>
-													{doc.status}
-												</span>
+												<StatusBadge
+													label={doc.status}
+													tone={doc.status.toLowerCase()}
+												/>
 											</TableCell>
 											<TableCell className="text-muted-foreground text-sm">
 												{formatDistanceToNow(
@@ -283,50 +345,45 @@ export function KnowledgeDocumentsTable({
 													{ addSuffix: true },
 												)}
 											</TableCell>
-											<TableCell className="text-right">
-												<DropdownMenu>
-													<DropdownMenuTrigger
-														asChild
-													>
-														<Button
-															type="button"
-															variant="ghost"
-															size="icon"
-															aria-label="Document actions"
+											<TableCell>
+												<div className="flex items-center justify-end">
+													<DropdownMenu>
+														<DropdownMenuTrigger
+															asChild
 														>
-															<MoreVerticalIcon className="size-4" />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														<DropdownMenuItem
-															className="text-destructive focus:text-destructive"
-															onClick={() =>
-																setPendingDelete(
-																	doc,
-																)
-															}
-														>
-															Delete
-														</DropdownMenuItem>
-													</DropdownMenuContent>
-												</DropdownMenu>
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon"
+																className="size-8"
+																aria-label="Document actions"
+															>
+																<MoreVerticalIcon className="size-4" />
+															</Button>
+														</DropdownMenuTrigger>
+														<DropdownMenuContent align="end">
+															<DropdownMenuItem
+																className="text-destructive focus:text-destructive"
+																onClick={() =>
+																	setPendingDelete(
+																		doc,
+																	)
+																}
+															>
+																Delete
+															</DropdownMenuItem>
+														</DropdownMenuContent>
+													</DropdownMenu>
+												</div>
 											</TableCell>
 										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						</div>
-						<footer className="shrink-0 border-t px-5 py-3">
-							<Pagination
-								totalItems={filtered.length}
-								itemsPerPage={PAGE_SIZE}
-								currentPage={currentPage}
-								onChangeCurrentPage={setCurrentPage}
-							/>
-						</footer>
-					</>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</DataTableBody>
 				)}
-			</div>
+			</DataTableShell>
 
 			<AlertDialog
 				open={!!pendingDelete}

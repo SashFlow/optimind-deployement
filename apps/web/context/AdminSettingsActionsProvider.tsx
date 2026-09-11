@@ -18,10 +18,16 @@ type BulkHandlers = {
 	retryFailed?: () => void | Promise<void>;
 };
 
+type PageAction = {
+	label: string;
+	run: () => void;
+};
+
 type AdminSettingsActionsContextValue = {
 	hasAction: boolean;
+	actionLabel: string | null;
 	runAction: () => void;
-	registerAction: (handler: (() => void) | null) => void;
+	registerAction: (action: PageAction | null) => void;
 	hasBulk: boolean;
 	runBulk: (key: BulkActionKey) => void;
 	registerBulkHandlers: (handlers: BulkHandlers | null) => void;
@@ -35,18 +41,20 @@ export function AdminSettingsActionsProvider({
 }: {
 	children: ReactNode;
 }) {
-	const actionRef = useRef<(() => void) | null>(null);
+	const actionRef = useRef<PageAction | null>(null);
 	const bulkRef = useRef<BulkHandlers | null>(null);
 	const [hasAction, setHasAction] = useState(false);
+	const [actionLabel, setActionLabel] = useState<string | null>(null);
 	const [hasBulk, setHasBulk] = useState(false);
 
-	const registerAction = useCallback((handler: (() => void) | null) => {
-		actionRef.current = handler;
-		setHasAction(handler != null);
+	const registerAction = useCallback((action: PageAction | null) => {
+		actionRef.current = action;
+		setHasAction(action != null);
+		setActionLabel(action?.label ?? null);
 	}, []);
 
 	const runAction = useCallback(() => {
-		actionRef.current?.();
+		actionRef.current?.run();
 	}, []);
 
 	const registerBulkHandlers = useCallback(
@@ -76,6 +84,7 @@ export function AdminSettingsActionsProvider({
 	const value = useMemo(
 		() => ({
 			hasAction,
+			actionLabel,
 			runAction,
 			registerAction,
 			hasBulk,
@@ -84,6 +93,7 @@ export function AdminSettingsActionsProvider({
 		}),
 		[
 			hasAction,
+			actionLabel,
 			runAction,
 			registerAction,
 			hasBulk,
@@ -109,7 +119,7 @@ export function useAdminSettingsActions() {
 	return context;
 }
 
-export function useSettingsPageAction(handler: () => void) {
+export function useSettingsPageAction(handler: () => void, label = "Create") {
 	const { registerAction } = useAdminSettingsActions();
 	const handlerRef = useRef(handler);
 
@@ -118,9 +128,12 @@ export function useSettingsPageAction(handler: () => void) {
 	});
 
 	useEffect(() => {
-		registerAction(() => handlerRef.current());
+		registerAction({
+			label,
+			run: () => handlerRef.current(),
+		});
 		return () => registerAction(null);
-	}, [registerAction]);
+	}, [registerAction, label]);
 }
 
 export function useSettingsBulkActions(handlers: BulkHandlers) {

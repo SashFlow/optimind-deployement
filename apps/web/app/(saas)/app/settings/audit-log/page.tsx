@@ -1,3 +1,5 @@
+"use client";
+
 import {
 	FolderTabs,
 	FolderTabsBar,
@@ -5,6 +7,7 @@ import {
 	FolderTabsList,
 	FolderTabsTrigger,
 } from "@repo/ui/folder-tabs";
+import { SettingsTabActions } from "@/components/saas/admin/SettingsTabActions";
 import AuditLogsPageContent from "@/components/saas/audit-logs/AuditLogs";
 
 export default function AuditLogsPage() {
@@ -16,6 +19,7 @@ export default function AuditLogsPage() {
 						Audit Logs
 					</FolderTabsTrigger>
 				</FolderTabsList>
+				<SettingsTabActions showPlus={false} />
 			</FolderTabsBar>
 			<FolderTabsContent value="audit-logs">
 				<AuditLogsPageContent />

@@ -17,17 +17,28 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
-import { cn } from "@repo/ui/utils";
 import { formatDistanceToNow } from "date-fns";
 import { SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import {
+	DataTableBody,
+	DataTableBulkBar,
+	DataTableHeaderRow,
+	DataTableShell,
+	IdentityCell,
+	RowCheckbox,
+	SelectColumnHead,
+	StatusBadge,
+	dataTableRowClass,
+} from "@/components/saas/shared/DataTable";
 import {
 	PAGE_SIZE,
 	Pagination,
 	useClientPagination,
 } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import { useRowSelection } from "@/components/saas/shared/useRowSelection";
 import { useEndSessionMutation } from "./lib/hooks";
 import type { AgentSessionRow } from "./lib/types";
 
@@ -58,16 +69,6 @@ function formatDuration(ms: number | null) {
 	return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
-function statusPillClass(status: string) {
-	if (status === "ACTIVE" || status === "QUEUED") {
-		return "bg-emerald-50 text-emerald-700";
-	}
-	if (status === "COMPLETED") return "bg-slate-50 text-slate-700";
-	if (status === "FAILED") return "bg-rose-50 text-rose-700";
-	if (status === "CANCELLED") return "bg-violet-50 text-violet-700";
-	return "bg-amber-50 text-amber-700";
-}
-
 export function AgentSessionsTable({
 	sessions,
 	agentId,
@@ -82,6 +83,7 @@ export function AgentSessionsTable({
 }) {
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+	const [bulkBusy, setBulkBusy] = useState(false);
 	const endSession = useEndSessionMutation();
 
 	const filtered = useMemo(() => {
@@ -105,49 +107,109 @@ export function AgentSessionsTable({
 		setCurrentPage(1);
 	}, [search, statusFilter, setCurrentPage]);
 
+	const pageIds = useMemo(
+		() => pageItems.map((session) => session.id),
+		[pageItems],
+	);
+	const selection = useRowSelection(pageIds);
+
+	const selectedEndable = useMemo(() => {
+		const byId = new Map(sessions.map((s) => [s.id, s]));
+		return selection.selectedIds
+			.map((id) => byId.get(id))
+			.filter((session): session is AgentSessionRow => Boolean(session))
+			.filter((session) => ENDABLE_STATUSES.has(session.status));
+	}, [selection.selectedIds, sessions]);
+
+	async function bulkEnd() {
+		if (selectedEndable.length === 0) return;
+		setBulkBusy(true);
+		try {
+			for (const session of selectedEndable) {
+				await endSession.mutateAsync({ id: session.id });
+			}
+			selection.clear();
+		} finally {
+			setBulkBusy(false);
+		}
+	}
+
+	const filters = (
+		<div className="ml-auto flex flex-col gap-2 sm:flex-row sm:items-center">
+			<div className="relative min-w-0 sm:w-72">
+				<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+				<Input
+					value={search}
+					onChange={(event) => setSearch(event.target.value)}
+					placeholder="Search sessions..."
+					className="pl-9"
+				/>
+			</div>
+			<Select
+				value={statusFilter}
+				onValueChange={(value) =>
+					value && setStatusFilter(value as StatusFilter)
+				}
+			>
+				<SelectTrigger className="w-full sm:w-40">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{STATUS_FILTER_ITEMS.map((option) => (
+						<SelectItem key={option.value} value={option.value}>
+							{option.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+		</div>
+	);
+
+	const bulkBar =
+		selection.selectedCount > 0 ? (
+			<DataTableBulkBar
+				count={selection.selectedCount}
+				onClear={selection.clear}
+			>
+				{selectedEndable.length > 0 ? (
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						disabled={bulkBusy || endSession.isPending}
+						onClick={() => {
+							void bulkEnd();
+						}}
+					>
+						{bulkBusy
+							? "Ending…"
+							: `End selected (${selectedEndable.length})`}
+					</Button>
+				) : null}
+			</DataTableBulkBar>
+		) : null;
+
 	return (
 		<section className="flex min-h-0 flex-1 flex-col">
-			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-						<div className="relative min-w-0 sm:w-72">
-							<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-							<Input
-								value={search}
-								onChange={(event) =>
-									setSearch(event.target.value)
-								}
-								placeholder="Search sessions..."
-								className="pl-9"
-							/>
-						</div>
-						<Select
-							value={statusFilter}
-							onValueChange={(value) =>
-								setStatusFilter(value as StatusFilter)
-							}
-						>
-							<SelectTrigger className="w-full sm:w-40">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{STATUS_FILTER_ITEMS.map((option) => (
-									<SelectItem
-										key={option.value}
-										value={option.value}
-									>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
-
+			<DataTableShell
+				toolbar={selection.selectedCount > 0 ? undefined : filters}
+				bulkBar={bulkBar}
+				footer={
+					!isLoading && !isError && filtered.length > 0 ? (
+						<Pagination
+							totalItems={totalItems}
+							itemsPerPage={PAGE_SIZE}
+							currentPage={currentPage}
+							onChangeCurrentPage={setCurrentPage}
+						/>
+					) : null
+				}
+			>
 				{isLoading ? (
-					<div className="min-h-0 flex-1 overflow-auto">
+					<DataTableBody>
 						<TableBodySkeleton
 							headers={[
+								"",
 								"Session",
 								"Status",
 								"Channel",
@@ -156,6 +218,7 @@ export function AgentSessionsTable({
 								"Actions",
 							]}
 							columns={[
+								{ type: "action" },
 								{ type: "text", width: "w-28" },
 								{ type: "pill" },
 								{ type: "text", width: "w-16" },
@@ -164,7 +227,7 @@ export function AgentSessionsTable({
 								{ type: "action" },
 							]}
 						/>
-					</div>
+					</DataTableBody>
 				) : isError ? (
 					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
 						Failed to load sessions.
@@ -174,46 +237,70 @@ export function AgentSessionsTable({
 						No sessions found.
 					</p>
 				) : (
-					<>
-						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
-							<Table>
-								<TableHeader>
-									<TableRow className="hover:bg-transparent">
-										<TableHead>Session</TableHead>
-										<TableHead>Status</TableHead>
-										<TableHead>Channel</TableHead>
-										<TableHead>Started</TableHead>
-										<TableHead>Duration</TableHead>
-										<TableHead className="text-right">
-											Actions
-										</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{pageItems.map((session) => (
-										<TableRow key={session.id}>
+					<DataTableBody>
+						<Table>
+							<TableHeader>
+								<DataTableHeaderRow>
+									<SelectColumnHead
+										allSelected={selection.allPageSelected}
+										someSelected={selection.somePageSelected}
+										onToggle={selection.togglePage}
+									/>
+									<TableHead>Session</TableHead>
+									<TableHead>Status</TableHead>
+									<TableHead>Channel</TableHead>
+									<TableHead>Started</TableHead>
+									<TableHead>Duration</TableHead>
+									<TableHead className="w-24">
+										<span className="sr-only">Actions</span>
+									</TableHead>
+								</DataTableHeaderRow>
+							</TableHeader>
+							<TableBody>
+								{pageItems.map((session) => {
+									const selected = selection.isSelected(
+										session.id,
+									);
+									return (
+										<TableRow
+											key={session.id}
+											className={dataTableRowClass(
+												selected,
+											)}
+										>
+											<TableCell className="w-10 px-3">
+												<RowCheckbox
+													checked={selected}
+													onToggle={() =>
+														selection.toggle(
+															session.id,
+														)
+													}
+													label={`Select session ${session.id.slice(0, 10)}`}
+												/>
+											</TableCell>
 											<TableCell>
 												<Link
 													href={`/app/agents/${agentId}/session/${session.id}`}
-													className="font-mono text-xs font-medium underline-offset-2 hover:underline"
+													className="block min-w-0 underline-offset-2 hover:underline"
 												>
-													{session.id.slice(0, 10)}
+													<IdentityCell
+														name={session.id.slice(
+															0,
+															10,
+														)}
+														secondary={
+															session.livekitRoomName
+														}
+														showAvatar={false}
+													/>
 												</Link>
-												<p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-													{session.livekitRoomName}
-												</p>
 											</TableCell>
 											<TableCell>
-												<span
-													className={cn(
-														"inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
-														statusPillClass(
-															session.status,
-														),
-													)}
-												>
-													{session.status}
-												</span>
+												<StatusBadge
+													label={session.status}
+													tone={session.status.toLowerCase()}
+												/>
 											</TableCell>
 											<TableCell className="text-muted-foreground text-sm">
 												{session.channel}
@@ -233,54 +320,53 @@ export function AgentSessionsTable({
 													session.durationMs,
 												)}
 											</TableCell>
-											<TableCell className="text-right">
-												{ENDABLE_STATUSES.has(
-													session.status,
-												) ? (
-													<Button
-														type="button"
-														size="sm"
-														variant="outline"
-														disabled={
-															endSession.isPending &&
+											<TableCell>
+												<div className="flex items-center justify-end">
+													{ENDABLE_STATUSES.has(
+														session.status,
+													) ? (
+														<Button
+															type="button"
+															size="sm"
+															variant="outline"
+															disabled={
+																(endSession.isPending &&
+																	endSession
+																		.variables
+																		?.id ===
+																		session.id) ||
+																bulkBusy
+															}
+															onClick={() =>
+																endSession.mutate(
+																	{
+																		id: session.id,
+																	},
+																)
+															}
+														>
+															{endSession.isPending &&
 															endSession.variables
 																?.id ===
 																session.id
-														}
-														onClick={() =>
-															endSession.mutate({
-																id: session.id,
-															})
-														}
-													>
-														{endSession.isPending &&
-														endSession.variables
-															?.id === session.id
-															? "Ending…"
-															: "End"}
-													</Button>
-												) : (
-													<span className="text-muted-foreground text-xs">
-														—
-													</span>
-												)}
+																? "Ending…"
+																: "End"}
+														</Button>
+													) : (
+														<span className="text-muted-foreground text-xs">
+															—
+														</span>
+													)}
+												</div>
 											</TableCell>
 										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						</div>
-						<footer className="shrink-0 border-t px-5 py-3">
-							<Pagination
-								totalItems={totalItems}
-								itemsPerPage={PAGE_SIZE}
-								currentPage={currentPage}
-								onChangeCurrentPage={setCurrentPage}
-							/>
-						</footer>
-					</>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</DataTableBody>
 				)}
-			</div>
+			</DataTableShell>
 		</section>
 	);
 }

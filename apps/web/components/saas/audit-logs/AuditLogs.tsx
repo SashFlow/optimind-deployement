@@ -19,6 +19,11 @@ import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+	DataTableBody,
+	DataTableHeaderRow,
+	DataTableShell,
+} from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
@@ -166,13 +171,13 @@ export default function AuditLogsPageContent() {
 		toast.success(`Exported ${rows.length} events`);
 	}, [rows]);
 
-	useSettingsPageAction(exportCsv);
+	useSettingsPageAction(exportCsv, "Export CSV");
 
 	return (
 		<section className="flex min-h-0 flex-1 flex-col">
-			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+			<DataTableShell
+				toolbar={
+					<div className="ml-auto flex flex-col gap-2 sm:flex-row sm:items-center">
 						<Select
 							value={action}
 							onValueChange={(value) => {
@@ -223,16 +228,35 @@ export default function AuditLogsPageContent() {
 							</SelectContent>
 						</Select>
 					</div>
-				</div>
-
+				}
+				footer={
+					activeOrganizationId &&
+					!query.isLoading &&
+					!query.isError &&
+					rows.length > 0 ? (
+						<Pagination
+							totalItems={rows.length}
+							itemsPerPage={PAGE_SIZE}
+							currentPage={currentPage}
+							onChangeCurrentPage={setCurrentPage}
+						/>
+					) : null
+				}
+			>
 				{!activeOrganizationId ? (
 					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
 						Select an organization to view audit events.
 					</p>
 				) : query.isLoading ? (
-					<div className="min-h-0 flex-1 overflow-auto">
+					<DataTableBody>
 						<TableBodySkeleton
-							headers={["When", "Action", "Resource", "Actor", "IP"]}
+							headers={[
+								"When",
+								"Action",
+								"Resource",
+								"Actor",
+								"IP",
+							]}
 							columns={[
 								{ type: "text", width: "w-32" },
 								{ type: "text", width: "w-24" },
@@ -241,7 +265,7 @@ export default function AuditLogsPageContent() {
 								{ type: "text", width: "w-20" },
 							]}
 						/>
-					</div>
+					</DataTableBody>
 				) : query.isError ? (
 					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
 						Failed to load audit logs.
@@ -251,67 +275,60 @@ export default function AuditLogsPageContent() {
 						No audit events.
 					</p>
 				) : (
-					<>
-						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
-							<Table>
-								<TableHeader>
-									<TableRow className="hover:bg-transparent">
-										<TableHead>When</TableHead>
-										<TableHead>Action</TableHead>
-										<TableHead>Resource</TableHead>
-										<TableHead>Actor</TableHead>
-										<TableHead>IP</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{paged.map((row) => (
-										<TableRow key={row.id}>
-											<TableCell className="text-muted-foreground">
-												{new Date(
-													row.occurred_at,
-												).toLocaleString()}
-											</TableCell>
-											<TableCell className="font-medium">
-												{row.action}
-											</TableCell>
-											<TableCell>
-												<span className="text-muted-foreground">
-													{row.resource_type}
+					<DataTableBody>
+						<Table>
+							<TableHeader>
+								<DataTableHeaderRow>
+									<TableHead>When</TableHead>
+									<TableHead>Action</TableHead>
+									<TableHead>Resource</TableHead>
+									<TableHead>Actor</TableHead>
+									<TableHead>IP</TableHead>
+								</DataTableHeaderRow>
+							</TableHeader>
+							<TableBody>
+								{paged.map((row) => (
+									<TableRow
+										key={row.id}
+										className="hover:bg-muted/50"
+									>
+										<TableCell className="text-muted-foreground">
+											{new Date(
+												row.occurred_at,
+											).toLocaleString()}
+										</TableCell>
+										<TableCell className="font-medium">
+											{row.action}
+										</TableCell>
+										<TableCell>
+											<span className="text-muted-foreground">
+												{row.resource_type}
+											</span>
+											{row.resource_id ? (
+												<span className="ml-1 font-mono text-xs text-muted-foreground">
+													{row.resource_id.slice(
+														0,
+														8,
+													)}
 												</span>
-												{row.resource_id ? (
-													<span className="ml-1 font-mono text-xs text-muted-foreground">
-														{row.resource_id.slice(
-															0,
-															8,
-														)}
-													</span>
-												) : null}
-											</TableCell>
-											<TableCell className="font-mono text-xs text-muted-foreground">
-												{row.actor_account_id?.slice(
-													0,
-													8,
-												) ?? "—"}
-											</TableCell>
-											<TableCell className="text-xs text-muted-foreground">
-												{row.ip ?? "—"}
-											</TableCell>
-										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						</div>
-						<footer className="shrink-0 border-t px-5 py-3">
-							<Pagination
-								totalItems={rows.length}
-								itemsPerPage={PAGE_SIZE}
-								currentPage={currentPage}
-								onChangeCurrentPage={setCurrentPage}
-							/>
-						</footer>
-					</>
+											) : null}
+										</TableCell>
+										<TableCell className="font-mono text-xs text-muted-foreground">
+											{row.actor_account_id?.slice(
+												0,
+												8,
+											) ?? "—"}
+										</TableCell>
+										<TableCell className="text-xs text-muted-foreground">
+											{row.ip ?? "—"}
+										</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</DataTableBody>
 				)}
-			</div>
+			</DataTableShell>
 		</section>
 	);
 }

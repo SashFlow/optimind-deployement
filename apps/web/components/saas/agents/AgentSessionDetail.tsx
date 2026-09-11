@@ -632,7 +632,7 @@ export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 							return (
 								<Fragment key={event.id}>
 									<TableRow
-										className="cursor-pointer"
+										className="group/row cursor-pointer hover:bg-muted/50 data-[state=selected]:bg-primary/5"
 										data-state={
 											isOpen ? "selected" : undefined
 										}

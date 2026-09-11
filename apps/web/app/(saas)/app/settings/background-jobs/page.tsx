@@ -1,3 +1,5 @@
+"use client";
+
 import {
 	FolderTabs,
 	FolderTabsBar,
@@ -5,6 +7,7 @@ import {
 	FolderTabsList,
 	FolderTabsTrigger,
 } from "@repo/ui/folder-tabs";
+import { SettingsTabActions } from "@/components/saas/admin/SettingsTabActions";
 import BackgroundJobsPageContent from "@/components/saas/background-jobs/BackgroundJobs";
 
 export default function BackgroundJobsPage() {
@@ -16,6 +19,7 @@ export default function BackgroundJobsPage() {
 						Background Jobs
 					</FolderTabsTrigger>
 				</FolderTabsList>
+				<SettingsTabActions showPlus={false} />
 			</FolderTabsBar>
 			<FolderTabsContent value="background-jobs">
 				<BackgroundJobsPageContent />
