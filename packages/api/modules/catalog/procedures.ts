@@ -27,7 +27,7 @@ export const listModels = publicProcedure
 	})
 	.input(
 		z.object({
-			kind: z.enum(["llm", "realtime", "stt", "tts"]).optional(),
+			kind: z.enum(["llm", "realtime", "live", "stt", "tts"]).optional(),
 		}),
 	)
 	.handler(async ({ input }) => ({

@@ -86,6 +86,7 @@ export function AgentConfigureForm({
 	const [activeSection, setActiveSection] = useState<SectionValue>("general");
 	const llmModels = useProviderModelsQuery("llm").data ?? [];
 	const realtimeModels = useProviderModelsQuery("realtime").data ?? [];
+	const liveModels = useProviderModelsQuery("live").data ?? [];
 	const sttModels = useProviderModelsQuery("stt").data ?? [];
 	const ttsModels = useProviderModelsQuery("tts").data ?? [];
 	const providers = useProvidersQuery().data ?? [];
@@ -196,6 +197,7 @@ export function AgentConfigureForm({
 									providers={providers}
 									llmModels={llmModels}
 									realtimeModels={realtimeModels}
+									liveModels={liveModels}
 									sttModels={sttModels}
 									ttsModels={ttsModels}
 									voices={voices}

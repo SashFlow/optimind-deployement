@@ -338,7 +338,7 @@ export function useProvidersQuery() {
 }
 
 export function useProviderModelsQuery(
-	kind: "llm" | "realtime" | "stt" | "tts",
+	kind: "llm" | "realtime" | "live" | "stt" | "tts",
 ) {
 	return useQuery({
 		...orpc.catalog.listModels.queryOptions({

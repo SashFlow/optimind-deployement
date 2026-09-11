@@ -5,6 +5,14 @@ export function isRealtimePipeline(config: AgentConfigDocument): boolean {
 	return config.pipeline_mode === "realtime";
 }
 
+export function isLivePipeline(config: AgentConfigDocument): boolean {
+	return config.pipeline_mode === "live";
+}
+
+export function isCascadedPipeline(config: AgentConfigDocument): boolean {
+	return config.pipeline_mode === "cascaded";
+}
+
 export function modelSupportsTextOutput(
 	model: ProviderModel | undefined | null,
 ): boolean {
@@ -24,6 +32,9 @@ export function getVoiceModelId(
 	config: AgentConfigDocument,
 	selectedRealtimeModel?: ProviderModel | null,
 ): string | null {
+	if (isLivePipeline(config)) {
+		return config.live?.provider_model_id ?? null;
+	}
 	if (isRealtimePipeline(config)) {
 		if (realtimeUsesExternalTts(config, selectedRealtimeModel)) {
 			return config.tts?.provider_model_id ?? null;
@@ -37,13 +48,19 @@ export function setPipelineMode(
 	config: AgentConfigDocument,
 	mode: AgentConfigDocument["pipeline_mode"],
 ): Partial<AgentConfigDocument> {
-	return {
+	const turnMode =
+		mode === "realtime" || mode === "live" ? "realtime_multimodal" : "vad";
+	const patch: Partial<AgentConfigDocument> = {
 		pipeline_mode: mode,
 		turn_detection: {
 			...config.turn_detection,
-			mode: mode === "realtime" ? "realtime_multimodal" : "vad",
+			mode: turnMode,
 		},
 	};
+	if (mode === "live") {
+		patch.tts = null;
+	}
+	return patch;
 }
 
 export function selectLlmModel(
@@ -150,6 +167,78 @@ export function selectRealtimeOutputModality(
 					: null,
 			output_modality: modality,
 			params: config.realtime?.params ?? {},
+		},
+	};
+}
+
+export function selectLiveModel(
+	config: AgentConfigDocument,
+	providerModelId: string,
+	models: ProviderModel[],
+	llmModels: ProviderModel[],
+): Partial<AgentConfigDocument> {
+	const liveModel = models.find((item) => item.id === providerModelId);
+	const currentReasoningId = config.llm?.provider_model_id ?? null;
+	const currentReasoning = llmModels.find(
+		(item) => item.id === currentReasoningId,
+	);
+	const reasoningCompatible =
+		liveModel &&
+		currentReasoning &&
+		currentReasoning.provider_id === liveModel.provider_id;
+
+	return {
+		live: {
+			...config.live,
+			provider_model_id: providerModelId,
+			voice_id: null,
+			params: config.live?.params ?? {},
+		},
+		llm: reasoningCompatible
+			? config.llm
+			: {
+					provider_model_id: null,
+					params: {},
+				},
+		tts: null,
+	};
+}
+
+export function selectLiveVoice(
+	config: AgentConfigDocument,
+	voiceId: string,
+): Partial<AgentConfigDocument> {
+	return {
+		live: {
+			...config.live,
+			provider_model_id: config.live?.provider_model_id ?? null,
+			voice_id: voiceId,
+			params: config.live?.params ?? {},
+		},
+	};
+}
+
+export function selectLiveReasoningModel(
+	config: AgentConfigDocument,
+	providerModelId: string,
+	llmModels: ProviderModel[],
+	liveModels: ProviderModel[],
+): Partial<AgentConfigDocument> {
+	const liveModel = liveModels.find(
+		(item) => item.id === config.live?.provider_model_id,
+	);
+	const reasoningModel = llmModels.find((item) => item.id === providerModelId);
+	if (
+		liveModel &&
+		reasoningModel &&
+		liveModel.provider_id !== reasoningModel.provider_id
+	) {
+		return {};
+	}
+	return {
+		llm: {
+			provider_model_id: providerModelId,
+			params: {},
 		},
 	};
 }

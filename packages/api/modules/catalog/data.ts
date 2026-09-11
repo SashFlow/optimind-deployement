@@ -9,7 +9,7 @@ export type CatalogModel = {
 	provider_id: string;
 	is_enabled: boolean;
 	delivery_mode: "hosted" | "byok";
-	kind: "llm" | "realtime" | "stt" | "tts";
+	kind: "llm" | "realtime" | "live" | "stt" | "tts";
 	supports_text_output?: boolean;
 };
 
@@ -91,6 +91,9 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("gemini-live", "Gemini Live", "gemini", "realtime", {
 		supports_text_output: false,
 	}),
+
+	// Live (full-duplex + delegated reasoning)
+	model("gpt-live-1", "GPT Live 1", "openai", "live"),
 
 	// STT — OpenAI
 	model("whisper-1", "Whisper", "openai", "stt"),
@@ -267,6 +270,22 @@ const OPENAI_REALTIME_VOICES = [
 	"cedar",
 ] as const;
 
+const OPENAI_LIVE_VOICES = [
+	{ id: "marin", label: "Marin" },
+	{ id: "quartz", label: "Quartz (Australian feminine)" },
+	{ id: "ripple", label: "Ripple (Australian masculine)" },
+	{ id: "vesper", label: "Vesper (British masculine)" },
+	{ id: "willow", label: "Willow (Irish feminine)" },
+	{ id: "stone", label: "Stone (Irish masculine)" },
+	{ id: "gleam", label: "Gleam (North American feminine)" },
+	{ id: "meridian", label: "Meridian (North American masculine)" },
+	{ id: "bossa", label: "Bossa (Brazilian Portuguese feminine)" },
+	{ id: "tempo", label: "Tempo (Brazilian Portuguese masculine)" },
+	{ id: "beacon", label: "Beacon (Filipino masculine)" },
+	{ id: "delta", label: "Delta (Southern U.S. feminine)" },
+	{ id: "cinder", label: "Cinder (Southern U.S. masculine)" },
+] as const;
+
 function voicesFor(
 	providerModelId: string,
 	voices: readonly string[] | readonly { id: string; label: string }[],
@@ -292,6 +311,7 @@ export const CATALOG_VOICES: CatalogVoice[] = [
 	...voicesFor("tts-1", OPENAI_TTS_1_VOICES),
 	...voicesFor("tts-1-hd", OPENAI_TTS_1_VOICES),
 	...voicesFor("gpt-realtime", OPENAI_REALTIME_VOICES),
+	...voicesFor("gpt-live-1", OPENAI_LIVE_VOICES),
 	...voicesFor("gemini-3.1-flash-tts-preview", GEMINI_VOICES),
 	...voicesFor("gemini-2.5-flash-preview-tts", GEMINI_VOICES),
 	...voicesFor("gemini-2.5-pro-preview-tts", GEMINI_VOICES),

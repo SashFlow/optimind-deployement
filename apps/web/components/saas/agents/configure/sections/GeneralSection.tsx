@@ -21,9 +21,14 @@ import { ModelSelect } from "@/components/saas/agents/configure/ModelSelect";
 import { VoiceSelect } from "@/components/saas/agents/configure/VoiceSelect";
 import type { AgentConfigDocument } from "@/lib/agent-config";
 import {
+	isCascadedPipeline,
+	isLivePipeline,
 	isRealtimePipeline,
 	modelSupportsTextOutput,
 	realtimeUsesExternalTts,
+	selectLiveModel,
+	selectLiveReasoningModel,
+	selectLiveVoice,
 	selectLlmModel,
 	selectRealtimeModel,
 	selectRealtimeOutputModality,
@@ -51,6 +56,7 @@ type GeneralSectionProps = {
 	providers: Provider[];
 	llmModels: ProviderModel[];
 	realtimeModels: ProviderModel[];
+	liveModels: ProviderModel[];
 	sttModels: ProviderModel[];
 	ttsModels: ProviderModel[];
 	voices: ProviderVoice[];
@@ -89,14 +95,20 @@ export function GeneralSection({
 	providers,
 	llmModels,
 	realtimeModels,
+	liveModels,
 	sttModels,
 	ttsModels,
 	voices,
 	knowledgeBases,
 }: GeneralSectionProps) {
 	const isRealtime = isRealtimePipeline(config);
+	const isLive = isLivePipeline(config);
+	const isCascaded = isCascadedPipeline(config);
 	const selectedRealtimeModel = realtimeModels.find(
 		(model) => model.id === config.realtime?.provider_model_id,
+	);
+	const selectedLiveModel = liveModels.find(
+		(model) => model.id === config.live?.provider_model_id,
 	);
 	const supportsTextOutput = modelSupportsTextOutput(selectedRealtimeModel);
 	const usesExternalTts = realtimeUsesExternalTts(
@@ -104,6 +116,11 @@ export function GeneralSection({
 		selectedRealtimeModel,
 	);
 	const outputModality = config.realtime?.output_modality ?? "audio";
+	const reasoningModels = selectedLiveModel
+		? llmModels.filter(
+				(model) => model.provider_id === selectedLiveModel.provider_id,
+			)
+		: [];
 
 	function update(patch: Partial<AgentConfigDocument>) {
 		onConfigChange(patch);
@@ -134,13 +151,68 @@ export function GeneralSection({
 							description:
 								"Single speech-to-speech model with lower latency.",
 						},
+						{
+							value: "live",
+							label: "Live",
+							description:
+								"Full-duplex voice model with a same-provider reasoning model.",
+						},
 					]}
 				/>
 			</div>
 
 			<div className="divide-y">
 				<div className="space-y-4 px-4 py-4 md:px-5">
-					{isRealtime ? (
+					{isLive ? (
+						<>
+							<FieldBlock
+								label="Live model"
+								description="Full-duplex voice model that handles the conversation."
+							>
+								<ModelSelect
+									models={liveModels}
+									providers={providers}
+									value={config.live?.provider_model_id ?? ""}
+									onValueChange={(value) =>
+										update(
+											selectLiveModel(
+												config,
+												value,
+												liveModels,
+												llmModels,
+											),
+										)
+									}
+									placeholder="Select live model"
+								/>
+							</FieldBlock>
+							<FieldBlock
+								label="Reasoning model"
+								description="Backend model that handles tools and deeper reasoning. Must match the live model's provider."
+							>
+								<ModelSelect
+									models={reasoningModels}
+									providers={providers}
+									value={config.llm?.provider_model_id ?? ""}
+									onValueChange={(value) =>
+										update(
+											selectLiveReasoningModel(
+												config,
+												value,
+												llmModels,
+												liveModels,
+											),
+										)
+									}
+									placeholder={
+										selectedLiveModel
+											? "Select reasoning model"
+											: "Select a live model first"
+									}
+								/>
+							</FieldBlock>
+						</>
+					) : isRealtime ? (
 						<FieldBlock
 							label="Realtime model"
 							description="Speech-to-speech model used for the entire conversation."
@@ -184,7 +256,7 @@ export function GeneralSection({
 						</FieldBlock>
 					)}
 
-					{!isRealtime ? (
+					{isCascaded ? (
 						<FieldBlock
 							label="STT"
 							description="Converts caller speech into text for the LLM."
@@ -212,15 +284,31 @@ export function GeneralSection({
 					<div>
 						<h3 className="text-sm font-semibold">Voice output</h3>
 						<p className="mt-0.5 text-xs text-muted-foreground">
-							{isRealtime
-								? usesExternalTts
-									? "External TTS converts the realtime model's text responses to speech."
-									: "Voice used by the realtime speech-to-speech model."
-								: "Text-to-speech model and voice for assistant responses."}
+							{isLive
+								? "Built-in voice for the live speech model. External TTS is not supported."
+								: isRealtime
+									? usesExternalTts
+										? "External TTS converts the realtime model's text responses to speech."
+										: "Voice used by the realtime speech-to-speech model."
+									: "Text-to-speech model and voice for assistant responses."}
 						</p>
 					</div>
 
-					{isRealtime ? (
+					{isLive ? (
+						<FieldBlock label="Voice">
+							<div className="sm:max-w-xs">
+								<VoiceSelect
+									voices={voices}
+									value={config.live?.voice_id}
+									onValueChange={(value) =>
+										update(selectLiveVoice(config, value))
+									}
+									disabled={!config.live?.provider_model_id}
+									disabledPlaceholder="Select a live model first"
+								/>
+							</div>
+						</FieldBlock>
+					) : isRealtime ? (
 						<div className="space-y-4">
 							{supportsTextOutput ? (
 								<ConfigureRadioCard

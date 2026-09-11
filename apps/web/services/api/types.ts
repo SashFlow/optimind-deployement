@@ -101,7 +101,7 @@ export type ProviderModel = {
 	provider_id: string;
 	is_enabled: boolean;
 	delivery_mode: "hosted" | "byok";
-	kind: "llm" | "realtime" | "stt" | "tts";
+	kind: "llm" | "realtime" | "live" | "stt" | "tts";
 	supports_text_output?: boolean;
 };
 

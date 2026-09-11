@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CATALOG_MODELS } from "../../catalog/data";
 
 const modelRefSchema = z
 	.object({
@@ -21,6 +22,15 @@ const realtimeRefSchema = z
 		model_id: z.string().nullable().optional(),
 		voice_id: z.string().nullable().optional(),
 		output_modality: z.enum(["audio", "text"]).optional(),
+		params: z.record(z.string(), z.unknown()).optional(),
+	})
+	.passthrough();
+
+const liveRefSchema = z
+	.object({
+		provider_model_id: z.string().nullable().optional(),
+		model_id: z.string().nullable().optional(),
+		voice_id: z.string().nullable().optional(),
 		params: z.record(z.string(), z.unknown()).optional(),
 	})
 	.passthrough();
@@ -53,9 +63,10 @@ export const agentConfigSchema = z
 			})
 			.passthrough()
 			.optional(),
-		pipeline_mode: z.enum(["cascaded", "realtime"]).optional(),
+		pipeline_mode: z.enum(["cascaded", "realtime", "live"]).optional(),
 		llm: modelRefSchema.nullable().optional(),
 		realtime: realtimeRefSchema.nullable().optional(),
+		live: liveRefSchema.nullable().optional(),
 		stt: modelRefSchema.nullable().optional(),
 		tts: ttsRefSchema.nullable().optional(),
 		avatar: z
@@ -254,6 +265,66 @@ export const agentConfigSchema = z
 		metadata: z.record(z.string(), z.unknown()).optional(),
 		recording_enabled: z.boolean().optional(),
 	})
-	.passthrough();
+	.passthrough()
+	.superRefine((value, ctx) => {
+		if (value.pipeline_mode !== "live") return;
+
+		const liveModelId =
+			value.live?.provider_model_id?.trim() ||
+			value.live?.model_id?.trim() ||
+			"";
+		const reasoningModelId =
+			value.llm?.provider_model_id?.trim() ||
+			value.llm?.model_id?.trim() ||
+			"";
+
+		if (!liveModelId) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Live pipeline requires a live model",
+				path: ["live", "provider_model_id"],
+			});
+		}
+		if (!reasoningModelId) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Live pipeline requires a reasoning model",
+				path: ["llm", "provider_model_id"],
+			});
+		}
+		if (!liveModelId || !reasoningModelId) return;
+
+		const liveModel = CATALOG_MODELS.find(
+			(model) => model.id === liveModelId && model.kind === "live",
+		);
+		const reasoningModel = CATALOG_MODELS.find(
+			(model) => model.id === reasoningModelId && model.kind === "llm",
+		);
+
+		if (!liveModel) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: `Unknown live model: ${liveModelId}`,
+				path: ["live", "provider_model_id"],
+			});
+			return;
+		}
+		if (!reasoningModel) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: `Unknown reasoning model: ${reasoningModelId}`,
+				path: ["llm", "provider_model_id"],
+			});
+			return;
+		}
+		if (liveModel.provider_id !== reasoningModel.provider_id) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message:
+					"Live model and reasoning model must use the same provider",
+				path: ["llm", "provider_model_id"],
+			});
+		}
+	});
 
 export type AgentConfig = z.infer<typeof agentConfigSchema>;

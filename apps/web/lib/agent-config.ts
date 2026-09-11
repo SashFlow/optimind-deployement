@@ -24,6 +24,13 @@ export type RealtimeRef = {
 	params?: Record<string, unknown>;
 };
 
+export type LiveRef = {
+	provider_model_id?: string | null;
+	model_id?: string | null;
+	voice_id?: string | null;
+	params?: Record<string, unknown>;
+};
+
 export type AvatarRef = {
 	enabled: boolean;
 	org_avatar_id?: string | null;
@@ -132,9 +139,10 @@ export type AgentVariableDefinition = {
 export type AgentConfigDocument = {
 	instructions: string;
 	greeting: GreetingConfig;
-	pipeline_mode: "cascaded" | "realtime";
+	pipeline_mode: "cascaded" | "realtime" | "live";
 	llm: ModelRef | null;
 	realtime: RealtimeRef | null;
+	live: LiveRef | null;
 	stt: ModelRef | null;
 	tts: TtsRef | null;
 	avatar: AvatarRef | null;
@@ -233,6 +241,7 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 		pipeline_mode: "cascaded",
 		llm: null,
 		realtime: null,
+		live: null,
 		stt: null,
 		tts: null,
 		avatar: { enabled: false, params: {} },
@@ -430,6 +439,7 @@ export function normalizeAgentConfig(
 		realtime: c.realtime
 			? { output_modality: "audio", ...c.realtime }
 			: defaults.realtime,
+		live: c.live ? { ...c.live } : defaults.live,
 		mcp: {
 			...defaults.mcp,
 			...(c.mcp ?? {}),
