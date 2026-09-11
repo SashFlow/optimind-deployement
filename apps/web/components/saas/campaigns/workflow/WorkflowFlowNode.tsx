@@ -10,7 +10,10 @@ export type WorkflowNodeData = {
 	config: Record<string, unknown>;
 };
 
-function previewFor(type: string, config: Record<string, unknown>): string | null {
+function previewFor(
+	type: string,
+	config: Record<string, unknown>,
+): string | null {
 	switch (type) {
 		case "start.webhook":
 			return "HTTP trigger";
@@ -19,9 +22,11 @@ function previewFor(type: string, config: Record<string, unknown>): string | nul
 		case "http.request":
 			return `${String(config.method ?? "GET")} ${String(config.url || "—").slice(0, 40)}`;
 		case "code.js":
-			return String(config.code ?? "")
-				.split("\n")[0]
-				?.slice(0, 48) || "JS";
+			return (
+				String(config.code ?? "")
+					.split("\n")[0]
+					?.slice(0, 48) || "JS"
+			);
 		case "human.approval":
 			return `Channel: ${String(config.channel ?? "WEB")}`;
 		case "knowledge.retrieve":

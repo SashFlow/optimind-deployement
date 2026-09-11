@@ -319,7 +319,10 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 							?.getBoundingClientRect();
 						openAddPanel({
 							x: (rect?.left ?? 0) + 64,
-							y: (rect?.top ?? 0) + (rect?.height ?? 400) / 2 - 120,
+							y:
+								(rect?.top ?? 0) +
+								(rect?.height ?? 400) / 2 -
+								120,
 						});
 					}}
 					onOrganize={organize}
@@ -413,7 +416,10 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 				onClose={() => setContextMenu(null)}
 				onAddNode={() => {
 					if (!contextMenu) return;
-					openAddPanel(contextMenu, screenToFlowPosition(contextMenu));
+					openAddPanel(
+						contextMenu,
+						screenToFlowPosition(contextMenu),
+					);
 				}}
 				onTestRun={() => persist({ test: true })}
 				onExport={exportWorkflow}

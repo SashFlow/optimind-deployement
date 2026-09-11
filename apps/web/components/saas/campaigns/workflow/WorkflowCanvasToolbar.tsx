@@ -1,13 +1,7 @@
 "use client";
 
 import { cn } from "@repo/ui/utils";
-import {
-	Download,
-	Hand,
-	LayoutGrid,
-	MousePointer2,
-	Plus,
-} from "lucide-react";
+import { Download, Hand, LayoutGrid, MousePointer2, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 
 export type CanvasInteractionMode = "pointer" | "hand";

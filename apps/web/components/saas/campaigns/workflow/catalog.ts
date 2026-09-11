@@ -247,10 +247,7 @@ export function getCatalogItem(type: string): CatalogItem | undefined {
 	return ITEM_BY_TYPE.get(type);
 }
 
-export function filterCatalog(
-	tab: CatalogTab,
-	query: string,
-): CatalogGroup[] {
+export function filterCatalog(tab: CatalogTab, query: string): CatalogGroup[] {
 	const q = query.trim().toLowerCase();
 	return WORKFLOW_NODE_CATALOG.map((group) => {
 		if (tab !== "Nodes" && !group.tabs.includes(tab)) {

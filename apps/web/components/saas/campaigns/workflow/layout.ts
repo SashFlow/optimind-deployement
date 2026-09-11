@@ -1,10 +1,7 @@
 import type { Edge, Node } from "@xyflow/react";
 
 /** Simple left-to-right layered layout from start nodes (BFS). */
-export function organizeWorkflowNodes(
-	nodes: Node[],
-	edges: Edge[],
-): Node[] {
+export function organizeWorkflowNodes(nodes: Node[], edges: Edge[]): Node[] {
 	if (nodes.length === 0) return nodes;
 
 	const outgoing = new Map<string, string[]>();
@@ -73,10 +70,7 @@ export function organizeWorkflowNodes(
 	}));
 }
 
-export function downloadWorkflowJson(
-	filename: string,
-	payload: unknown,
-) {
+export function downloadWorkflowJson(filename: string, payload: unknown) {
 	const blob = new Blob([JSON.stringify(payload, null, 2)], {
 		type: "application/json",
 	});

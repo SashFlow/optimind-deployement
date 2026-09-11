@@ -4,11 +4,7 @@ import { Input } from "@repo/ui/input";
 import { cn } from "@repo/ui/utils";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-	filterCatalog,
-	type CatalogItem,
-	type CatalogTab,
-} from "./catalog";
+import { filterCatalog, type CatalogItem, type CatalogTab } from "./catalog";
 
 const TABS: CatalogTab[] = ["Nodes", "Start", "AI", "Tools"];
 
