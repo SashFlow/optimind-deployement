@@ -28,7 +28,7 @@ export const CarouselContext = createContext<{
 	onCardClose: (index: number) => void;
 	currentIndex: number;
 }>({
-	onCardClose: () => { },
+	onCardClose: () => {},
 	currentIndex: 0,
 });
 

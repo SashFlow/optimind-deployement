@@ -67,11 +67,11 @@ export default async function ChoosePlanPage() {
 				<PricingTable
 					{...(organizationId
 						? {
-							organizationId,
-						}
+								organizationId,
+							}
 						: {
-							userId: session.user.id,
-						})}
+								userId: session.user.id,
+							})}
 				/>
 			</div>
 		</AuthWrapper>

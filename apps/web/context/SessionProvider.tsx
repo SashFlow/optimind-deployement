@@ -4,21 +4,16 @@ import type { Session } from "@repo/auth";
 import { authClient } from "@repo/auth/client";
 import { useQueryClient } from "@tanstack/react-query";
 
-import React, {
-	type ReactNode,
-	useContext,
-	useEffect,
-	useState,
-} from "react";
+import React, { type ReactNode, useContext, useEffect, useState } from "react";
 import { sessionQueryKey, useSessionQuery } from "@/services/auth";
 
 export const SessionContext = React.createContext<
 	| {
-		session: Session["session"] | null;
-		user: Session["user"] | null;
-		loaded: boolean;
-		reloadSession: () => Promise<void>;
-	}
+			session: Session["session"] | null;
+			user: Session["user"] | null;
+			loaded: boolean;
+			reloadSession: () => Promise<void>;
+	  }
 	| undefined
 >(undefined);
 
