@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
 		"@aws-sdk/client-s3",
 		"@aws-sdk/s3-request-presigner",
 		"fast-xml-parser",
+		"pdf-parse",
 		"strnum",
 	],
 	transpilePackages: [

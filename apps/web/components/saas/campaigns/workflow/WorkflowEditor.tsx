@@ -83,10 +83,10 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 		const wf = defQuery.data?.workflow;
 		if (!wf || hydrated) return;
 		const draftNodes = Array.isArray(wf.draftNodes)
-			? (wf.draftNodes as Node[])
+			? (wf.draftNodes as unknown as Node[])
 			: [];
 		const draftEdges = Array.isArray(wf.draftEdges)
-			? (wf.draftEdges as Edge[])
+			? (wf.draftEdges as unknown as Edge[])
 			: [];
 		setNodes(
 			draftNodes.map((n) => ({
@@ -96,11 +96,11 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 		);
 		setEdges(draftEdges);
 		if (wf.draftViewport && typeof wf.draftViewport === "object") {
-			setViewport(wf.draftViewport as Viewport);
+			setViewport(wf.draftViewport as unknown as Viewport);
 		}
 		if (Array.isArray(wf.envVars)) {
 			setEnvVars(
-				wf.envVars as Array<{
+				wf.envVars as unknown as Array<{
 					key: string;
 					value: string;
 					isSecret?: boolean;

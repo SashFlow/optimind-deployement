@@ -18,7 +18,7 @@
 	"main": "./index.ts",
 	"name": "@repo/database",
 	"scripts": {
-		"generate": "prisma generate --no-hints --schema=./prisma/schema.prisma",
+		"generate": "prisma generate --no-hints --schema=./prisma/schema.prisma && node ./scripts/patch-zod-cuid.cjs",
 		"push": "dotenv -c -e ../../.env -- prisma db push --skip-generate --schema=./prisma/schema.prisma",
 		"migrate": "dotenv -c -e ../../.env -- prisma migrate dev --schema=./prisma/schema.prisma",
 		"studio": "dotenv -c -e ../../.env -- prisma studio --schema=./prisma/schema.prisma",
