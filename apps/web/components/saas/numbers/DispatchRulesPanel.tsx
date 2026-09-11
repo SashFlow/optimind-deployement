@@ -154,54 +154,63 @@ export function DispatchRulesPanel({
 
 	return (
 		<>
-			<div className="flex items-center justify-between gap-3 border-b p-5">
-				{inboundTrunks.length === 0 ? (
-					<p className="text-sm text-muted-foreground">
-						Create an inbound trunk before adding routing.{" "}
-						<button
-							type="button"
-							className="underline"
-							onClick={onCreateTrunk}
-						>
-							Create trunk
-						</button>
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+				<div className="flex shrink-0 items-center justify-between gap-3 border-b p-5">
+					{inboundTrunks.length === 0 ? (
+						<p className="text-sm text-muted-foreground">
+							Create an inbound trunk before adding routing.{" "}
+							<button
+								type="button"
+								className="underline"
+								onClick={onCreateTrunk}
+							>
+								Create trunk
+							</button>
+						</p>
+					) : (
+						<span />
+					)}
+					<Button
+						type="button"
+						size="sm"
+						disabled={!canCreate}
+						onClick={openCreate}
+					>
+						Create rule
+					</Button>
+				</div>
+
+				{rulesQuery.isPending ? (
+					<div className="min-h-0 flex-1 overflow-auto">
+						<TableBodySkeleton
+							headers={[
+								"Name",
+								"Trunk",
+								"Agent",
+								"Prefix",
+								"Actions",
+							]}
+							columns={[
+								{ type: "text", width: "w-32" },
+								{ type: "text", width: "w-28" },
+								{ type: "text", width: "w-28" },
+								{ type: "text", width: "w-16" },
+								{ type: "action" },
+							]}
+						/>
+					</div>
+				) : rulesQuery.isError ? (
+					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
+						Unable to load rules.
+					</p>
+				) : rules.length === 0 ? (
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
+						No routing rules yet.
 					</p>
 				) : (
-					<span />
-				)}
-				<Button
-					type="button"
-					size="sm"
-					disabled={!canCreate}
-					onClick={openCreate}
-				>
-					Create rule
-				</Button>
-			</div>
-
-			{rulesQuery.isPending ? (
-				<TableBodySkeleton
-					headers={["Name", "Trunk", "Agent", "Prefix", "Actions"]}
-					columns={[
-						{ type: "text", width: "w-32" },
-						{ type: "text", width: "w-28" },
-						{ type: "text", width: "w-28" },
-						{ type: "text", width: "w-16" },
-						{ type: "action" },
-					]}
-				/>
-			) : rulesQuery.isError ? (
-				<p className="p-6 text-sm text-destructive">
-					Unable to load rules.
-				</p>
-			) : rules.length === 0 ? (
-				<p className="p-6 text-sm text-muted-foreground">
-					No routing rules yet.
-				</p>
-			) : (
-				<>
-					<div className="overflow-x-auto scrollbar-none">
-						<Table>
+					<>
+						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
+							<Table>
 							<TableHeader>
 								<TableRow className="hover:bg-transparent">
 									<TableHead>Name</TableHead>
@@ -273,7 +282,7 @@ export function DispatchRulesPanel({
 							</TableBody>
 						</Table>
 					</div>
-					<footer className="border-t px-5 py-3">
+					<footer className="shrink-0 border-t px-5 py-3">
 						<Pagination
 							totalItems={rules.length}
 							itemsPerPage={PAGE_SIZE}
@@ -283,6 +292,7 @@ export function DispatchRulesPanel({
 					</footer>
 				</>
 			)}
+			</div>
 
 			<Dialog open={formOpen} onOpenChange={setFormOpen}>
 				<DialogContent>

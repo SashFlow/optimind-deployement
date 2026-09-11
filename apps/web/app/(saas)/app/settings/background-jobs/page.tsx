@@ -9,7 +9,7 @@ import BackgroundJobsPageContent from "@/components/saas/background-jobs/Backgro
 
 export default function BackgroundJobsPage() {
 	return (
-		<FolderTabs defaultValue="background-jobs" className="h-full">
+		<FolderTabs defaultValue="background-jobs" className="min-h-0 flex-1">
 			<FolderTabsBar>
 				<FolderTabsList>
 					<FolderTabsTrigger value="background-jobs">

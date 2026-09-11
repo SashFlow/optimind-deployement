@@ -14,7 +14,7 @@ import AgentMonitorPage from "@/components/saas/agents/AgentMonitorPage";
 
 export default function AgentDetailLayout() {
 	return (
-		<FolderTabs defaultValue="configure" className="h-full">
+		<FolderTabs defaultValue="configure" className="min-h-0 flex-1">
 			<FolderTabsBar>
 				<FolderTabsBack href="/app/agents" />
 				<FolderTabsList>

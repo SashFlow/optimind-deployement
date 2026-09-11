@@ -15,7 +15,7 @@ export default async function SettingsLayout({ children }: PropsWithChildren) {
 	}
 
 	return (
-		<div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-auto">
+		<div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-hidden">
 			<AdminSettingsActionsProvider>
 				{children}
 			</AdminSettingsActionsProvider>

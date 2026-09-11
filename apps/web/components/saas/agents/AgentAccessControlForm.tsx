@@ -251,9 +251,9 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	}
 
 	return (
-		<div className="space-y-6">
-			<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
-				<CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+		<div className="flex min-h-0 flex-1 flex-col">
+			<Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
+				<CardHeader className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div className="space-y-1.5">
 						<CardTitle>Trial links</CardTitle>
 						<CardDescription>
@@ -265,18 +265,18 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 						Create link
 					</Button>
 				</CardHeader>
-				<CardContent className="space-y-4">
+				<CardContent className="flex min-h-0 flex-1 flex-col space-y-4 overflow-hidden">
 					{trialLinksQuery.isLoading ? (
-						<p className="text-sm text-muted-foreground">
+						<p className="min-h-0 flex-1 text-sm text-muted-foreground">
 							Loading trial links...
 						</p>
 					) : trials.length === 0 ? (
-						<p className="text-sm text-muted-foreground">
+						<p className="min-h-0 flex-1 text-sm text-muted-foreground">
 							No trial links yet.
 						</p>
 					) : (
-						<div className="overflow-hidden rounded-xl border">
-							<div className="overflow-x-auto">
+						<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border">
+							<div className="min-h-0 flex-1 overflow-auto">
 								<Table>
 									<TableHeader>
 										<TableRow>
@@ -397,7 +397,7 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 									</TableBody>
 								</Table>
 							</div>
-							<footer className="border-t px-5 py-3">
+							<footer className="shrink-0 border-t px-5 py-3">
 								<Pagination
 									totalItems={totalItems}
 									itemsPerPage={itemsPerPage}

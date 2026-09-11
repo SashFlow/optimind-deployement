@@ -167,68 +167,77 @@ export function NumbersInventory({
 
 	return (
 		<>
-			<div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
-				<div className="relative min-w-0 sm:w-72">
-					<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						value={search}
-						onChange={(event) => setSearch(event.target.value)}
-						placeholder="Search numbers..."
-						className="pl-9"
-					/>
-				</div>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={() => setAddOpen(true)}
-				>
-					Register number
-				</Button>
-			</div>
-
-			{numbersQuery.isPending ? (
-				<TableBodySkeleton
-					headers={["Number", "Agent", "Trunk", "Status", "Actions"]}
-					columns={[
-						{ type: "lines", widths: ["w-36", "w-28"] },
-						{ type: "text", width: "w-28" },
-						{ type: "text", width: "w-24" },
-						{ type: "pill" },
-						{ type: "action" },
-					]}
-				/>
-			) : numbersQuery.isError ? (
-				<p className="p-6 text-sm text-destructive">
-					Unable to load phone numbers.
-				</p>
-			) : (numbersQuery.data ?? []).length === 0 ? (
-				<div className="px-6 py-10 text-center">
-					<p className="font-medium">No numbers yet</p>
-					<p className="mt-1 text-sm text-muted-foreground">
-						Buy a Plivo number or register one you already own.
-					</p>
-					<div className="mt-4 flex flex-wrap justify-center gap-2">
-						<Button type="button" onClick={onGetNumber}>
-							Get a number
-						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => setAddOpen(true)}
-						>
-							Register existing
-						</Button>
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
+					<div className="relative min-w-0 sm:w-72">
+						<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+						<Input
+							value={search}
+							onChange={(event) => setSearch(event.target.value)}
+							placeholder="Search numbers..."
+							className="pl-9"
+						/>
 					</div>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => setAddOpen(true)}
+					>
+						Register number
+					</Button>
 				</div>
-			) : filtered.length === 0 ? (
-				<p className="p-6 text-sm text-muted-foreground">
-					No numbers found.
-				</p>
-			) : (
-				<>
-					<div className="overflow-x-auto scrollbar-none">
-						<Table>
+
+				{numbersQuery.isPending ? (
+					<div className="min-h-0 flex-1 overflow-auto">
+						<TableBodySkeleton
+							headers={[
+								"Number",
+								"Agent",
+								"Trunk",
+								"Status",
+								"Actions",
+							]}
+							columns={[
+								{ type: "lines", widths: ["w-36", "w-28"] },
+								{ type: "text", width: "w-28" },
+								{ type: "text", width: "w-24" },
+								{ type: "pill" },
+								{ type: "action" },
+							]}
+						/>
+					</div>
+				) : numbersQuery.isError ? (
+					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
+						Unable to load phone numbers.
+					</p>
+				) : (numbersQuery.data ?? []).length === 0 ? (
+					<div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-10 text-center">
+						<p className="font-medium">No numbers yet</p>
+						<p className="mt-1 text-sm text-muted-foreground">
+							Buy a Plivo number or register one you already own.
+						</p>
+						<div className="mt-4 flex flex-wrap justify-center gap-2">
+							<Button type="button" onClick={onGetNumber}>
+								Get a number
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => setAddOpen(true)}
+							>
+								Register existing
+							</Button>
+						</div>
+					</div>
+				) : filtered.length === 0 ? (
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
+						No numbers found.
+					</p>
+				) : (
+					<>
+						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
+							<Table>
 							<TableHeader>
 								<TableRow className="hover:bg-transparent">
 									<TableHead>Number</TableHead>
@@ -376,7 +385,7 @@ export function NumbersInventory({
 							</TableBody>
 						</Table>
 					</div>
-					<footer className="border-t px-5 py-3">
+					<footer className="shrink-0 border-t px-5 py-3">
 						<Pagination
 							totalItems={filtered.length}
 							itemsPerPage={PAGE_SIZE}
@@ -386,6 +395,7 @@ export function NumbersInventory({
 					</footer>
 				</>
 			)}
+			</div>
 
 			<Dialog open={addOpen} onOpenChange={setAddOpen}>
 				<DialogContent>

@@ -169,9 +169,9 @@ export default function AuditLogsPageContent() {
 	useSettingsPageAction(exportCsv);
 
 	return (
-		<section className="space-y-6">
-			<div className="overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
+		<section className="flex min-h-0 flex-1 flex-col">
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
+				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
 					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 						<Select
 							value={action}
@@ -226,31 +226,33 @@ export default function AuditLogsPageContent() {
 				</div>
 
 				{!activeOrganizationId ? (
-					<p className="p-6 text-sm text-muted-foreground">
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
 						Select an organization to view audit events.
 					</p>
 				) : query.isLoading ? (
-					<TableBodySkeleton
-						headers={["When", "Action", "Resource", "Actor", "IP"]}
-						columns={[
-							{ type: "text", width: "w-32" },
-							{ type: "text", width: "w-24" },
-							{ type: "lines", widths: ["w-20", "w-16"] },
-							{ type: "text", width: "w-16" },
-							{ type: "text", width: "w-20" },
-						]}
-					/>
+					<div className="min-h-0 flex-1 overflow-auto">
+						<TableBodySkeleton
+							headers={["When", "Action", "Resource", "Actor", "IP"]}
+							columns={[
+								{ type: "text", width: "w-32" },
+								{ type: "text", width: "w-24" },
+								{ type: "lines", widths: ["w-20", "w-16"] },
+								{ type: "text", width: "w-16" },
+								{ type: "text", width: "w-20" },
+							]}
+						/>
+					</div>
 				) : query.isError ? (
-					<p className="p-6 text-sm text-destructive">
+					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
 						Failed to load audit logs.
 					</p>
 				) : rows.length === 0 ? (
-					<p className="p-6 text-sm text-muted-foreground">
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
 						No audit events.
 					</p>
 				) : (
 					<>
-						<div className="overflow-x-auto scrollbar-none">
+						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
 							<Table>
 								<TableHeader>
 									<TableRow className="hover:bg-transparent">
@@ -299,7 +301,7 @@ export default function AuditLogsPageContent() {
 								</TableBody>
 							</Table>
 						</div>
-						<footer className="border-t px-5 py-3">
+						<footer className="shrink-0 border-t px-5 py-3">
 							<Pagination
 								totalItems={rows.length}
 								itemsPerPage={PAGE_SIZE}

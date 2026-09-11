@@ -106,9 +106,9 @@ export function AgentSessionsTable({
 	}, [search, statusFilter, setCurrentPage]);
 
 	return (
-		<section className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6">
-			<div className="overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
+		<section className="flex min-h-0 flex-1 flex-col">
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
+				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
 					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 						<div className="relative min-w-0 sm:w-72">
 							<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -145,35 +145,37 @@ export function AgentSessionsTable({
 				</div>
 
 				{isLoading ? (
-					<TableBodySkeleton
-						headers={[
-							"Session",
-							"Status",
-							"Channel",
-							"Started",
-							"Duration",
-							"Actions",
-						]}
-						columns={[
-							{ type: "text", width: "w-28" },
-							{ type: "pill" },
-							{ type: "text", width: "w-16" },
-							{ type: "text", width: "w-24" },
-							{ type: "text", width: "w-14" },
-							{ type: "action" },
-						]}
-					/>
+					<div className="min-h-0 flex-1 overflow-auto">
+						<TableBodySkeleton
+							headers={[
+								"Session",
+								"Status",
+								"Channel",
+								"Started",
+								"Duration",
+								"Actions",
+							]}
+							columns={[
+								{ type: "text", width: "w-28" },
+								{ type: "pill" },
+								{ type: "text", width: "w-16" },
+								{ type: "text", width: "w-24" },
+								{ type: "text", width: "w-14" },
+								{ type: "action" },
+							]}
+						/>
+					</div>
 				) : isError ? (
-					<p className="p-6 text-sm text-destructive">
+					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
 						Failed to load sessions.
 					</p>
 				) : filtered.length === 0 ? (
-					<p className="p-6 text-sm text-muted-foreground">
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
 						No sessions found.
 					</p>
 				) : (
 					<>
-						<div className="overflow-x-auto scrollbar-none">
+						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
 							<Table>
 								<TableHeader>
 									<TableRow className="hover:bg-transparent">
@@ -268,7 +270,7 @@ export function AgentSessionsTable({
 								</TableBody>
 							</Table>
 						</div>
-						<footer className="border-t px-5 py-3">
+						<footer className="shrink-0 border-t px-5 py-3">
 							<Pagination
 								totalItems={totalItems}
 								itemsPerPage={PAGE_SIZE}

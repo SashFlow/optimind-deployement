@@ -121,45 +121,48 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 
 	return (
 		<>
-			<div className="flex justify-end border-b p-5">
-				<Button
-					type="button"
-					size="sm"
-					onClick={() => setFormOpen(true)}
-				>
-					Create trunk
-				</Button>
-			</div>
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+				<div className="flex shrink-0 justify-end border-b p-5">
+					<Button
+						type="button"
+						size="sm"
+						onClick={() => setFormOpen(true)}
+					>
+						Create trunk
+					</Button>
+				</div>
 
-			{trunksQuery.isPending ? (
-				<TableBodySkeleton
-					headers={[
-						"Name",
-						"Direction",
-						"Status",
-						"LiveKit",
-						"Actions",
-					]}
-					columns={[
-						{ type: "text", width: "w-32" },
-						{ type: "pill" },
-						{ type: "pill" },
-						{ type: "text", width: "w-24" },
-						{ type: "action" },
-					]}
-				/>
-			) : trunksQuery.isError ? (
-				<p className="p-6 text-sm text-destructive">
-					Unable to load trunks.
-				</p>
-			) : trunks.length === 0 ? (
-				<p className="p-6 text-sm text-muted-foreground">
-					No SIP trunks yet.
-				</p>
-			) : (
-				<>
-					<div className="overflow-x-auto scrollbar-none">
-						<Table>
+				{trunksQuery.isPending ? (
+					<div className="min-h-0 flex-1 overflow-auto">
+						<TableBodySkeleton
+							headers={[
+								"Name",
+								"Direction",
+								"Status",
+								"LiveKit",
+								"Actions",
+							]}
+							columns={[
+								{ type: "text", width: "w-32" },
+								{ type: "pill" },
+								{ type: "pill" },
+								{ type: "text", width: "w-24" },
+								{ type: "action" },
+							]}
+						/>
+					</div>
+				) : trunksQuery.isError ? (
+					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
+						Unable to load trunks.
+					</p>
+				) : trunks.length === 0 ? (
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
+						No SIP trunks yet.
+					</p>
+				) : (
+					<>
+						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
+							<Table>
 							<TableHeader>
 								<TableRow className="hover:bg-transparent">
 									<TableHead>Name</TableHead>
@@ -228,7 +231,7 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 							</TableBody>
 						</Table>
 					</div>
-					<footer className="border-t px-5 py-3">
+					<footer className="shrink-0 border-t px-5 py-3">
 						<Pagination
 							totalItems={trunks.length}
 							itemsPerPage={PAGE_SIZE}
@@ -238,6 +241,7 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 					</footer>
 				</>
 			)}
+			</div>
 
 			<Dialog open={formOpen} onOpenChange={setFormOpen}>
 				<DialogContent>

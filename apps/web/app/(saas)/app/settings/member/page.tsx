@@ -14,7 +14,7 @@ export default async function AdminUsersPage() {
 	const isSuperAdmin = session?.user.role === "admin";
 
 	return (
-		<FolderTabs defaultValue="members" className="h-full">
+		<FolderTabs defaultValue="members" className="min-h-0 flex-1">
 			<FolderTabsBar>
 				<FolderTabsList>
 					<FolderTabsTrigger value="members">

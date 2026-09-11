@@ -35,7 +35,7 @@ export default function NumbersPageContent() {
 		<FolderTabs
 			value={tab}
 			onValueChange={(value) => setTab(value as NumbersTab)}
-			className="h-full"
+			className="min-h-0 flex-1"
 		>
 			<FolderTabsBar>
 				<FolderTabsList>

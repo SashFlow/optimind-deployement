@@ -14,7 +14,7 @@ import { useParams } from "next/navigation";
 export default function KnowledgeBasePage() {
 	const params = useParams<{ sourceId: string }>();
 	return (
-		<FolderTabs defaultValue="knowledge-base" className="h-full">
+		<FolderTabs defaultValue="knowledge-base" className="min-h-0 flex-1">
 			<FolderTabsBar>
 				<FolderTabsBack href="/app/knowledge-base" />
 				<FolderTabsList>

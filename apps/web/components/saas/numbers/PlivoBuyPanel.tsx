@@ -103,8 +103,8 @@ export function PlivoBuyPanel({
 	}
 
 	return (
-		<div>
-			<div className="space-y-4 border-b p-5">
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+			<div className="shrink-0 space-y-4 border-b p-5">
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					<div className="space-y-2">
 						<Label>Country</Label>
@@ -222,35 +222,39 @@ export function PlivoBuyPanel({
 			</div>
 
 			{!searchEnabled ? (
-				<p className="p-6 text-sm text-muted-foreground">
+				<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
 					Search to see available numbers.
 				</p>
 			) : searchQuery.isPending ? (
-				<TableBodySkeleton
-					headers={[
-						"Number",
-						"Capabilities",
-						"Monthly",
-						"Setup",
-						"Action",
-					]}
-					columns={[
-						{ type: "text", width: "w-36" },
-						{ type: "text", width: "w-28" },
-						{ type: "text", width: "w-16" },
-						{ type: "text", width: "w-16" },
-						{ type: "action" },
-					]}
-				/>
+				<div className="min-h-0 flex-1 overflow-auto">
+					<TableBodySkeleton
+						headers={[
+							"Number",
+							"Capabilities",
+							"Monthly",
+							"Setup",
+							"Action",
+						]}
+						columns={[
+							{ type: "text", width: "w-36" },
+							{ type: "text", width: "w-28" },
+							{ type: "text", width: "w-16" },
+							{ type: "text", width: "w-16" },
+							{ type: "action" },
+						]}
+					/>
+				</div>
 			) : searchQuery.isError ? (
-				<p className="p-6 text-sm text-destructive">Search failed.</p>
+				<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
+					Search failed.
+				</p>
 			) : searchResults.length === 0 ? (
-				<p className="p-6 text-sm text-muted-foreground">
+				<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
 					No numbers found.
 				</p>
 			) : (
 				<>
-					<div className="overflow-x-auto scrollbar-none">
+					<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
 						<Table>
 							<TableHeader>
 								<TableRow className="hover:bg-transparent">
@@ -307,7 +311,7 @@ export function PlivoBuyPanel({
 							</TableBody>
 						</Table>
 					</div>
-					<footer className="border-t px-5 py-3">
+					<footer className="shrink-0 border-t px-5 py-3">
 						<Pagination
 							totalItems={totalItems}
 							itemsPerPage={PAGE_SIZE}

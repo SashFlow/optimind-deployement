@@ -140,8 +140,8 @@ export function KnowledgeDocumentsTable({
 
 	return (
 		<>
-			<div className="overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
+				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
 					<div>
 						<h2 className="font-semibold text-lg">Documents</h2>
 						<p className="text-muted-foreground text-sm">
@@ -192,40 +192,42 @@ export function KnowledgeDocumentsTable({
 				</div>
 
 				{isLoading ? (
-					<TableBodySkeleton
-						headers={[
-							"Title",
-							"Source",
-							"Status",
-							"Updated",
-							"Actions",
-						]}
-						columns={[
-							{
-								type: "lines",
-								widths: ["w-40", "w-28"],
-							},
-							{
-								type: "lines",
-								widths: ["w-20", "w-32"],
-							},
-							{ type: "pill" },
-							{ type: "text", width: "w-24" },
-							{ type: "action" },
-						]}
-					/>
+					<div className="min-h-0 flex-1 overflow-auto">
+						<TableBodySkeleton
+							headers={[
+								"Title",
+								"Source",
+								"Status",
+								"Updated",
+								"Actions",
+							]}
+							columns={[
+								{
+									type: "lines",
+									widths: ["w-40", "w-28"],
+								},
+								{
+									type: "lines",
+									widths: ["w-20", "w-32"],
+								},
+								{ type: "pill" },
+								{ type: "text", width: "w-24" },
+								{ type: "action" },
+							]}
+						/>
+					</div>
 				) : isError ? (
-					<p className="p-6 text-destructive text-sm">
+					<p className="min-h-0 flex-1 p-6 text-destructive text-sm">
 						Failed to load documents.
 					</p>
 				) : filtered.length === 0 ? (
-					<p className="p-6 text-muted-foreground text-sm">
+					<p className="min-h-0 flex-1 p-6 text-muted-foreground text-sm">
 						No documents found. Add a text source or URL to get
 						started.
 					</p>
 				) : (
 					<>
-						<div className="overflow-x-auto scrollbar-none">
+						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
 							<Table>
 								<TableHeader>
 									<TableRow className="hover:bg-transparent">
@@ -314,7 +316,7 @@ export function KnowledgeDocumentsTable({
 								</TableBody>
 							</Table>
 						</div>
-						<footer className="border-t px-5 py-3">
+						<footer className="shrink-0 border-t px-5 py-3">
 							<Pagination
 								totalItems={filtered.length}
 								itemsPerPage={PAGE_SIZE}

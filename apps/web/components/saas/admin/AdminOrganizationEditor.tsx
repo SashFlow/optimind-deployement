@@ -153,8 +153,8 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 	};
 
 	return (
-		<section className="space-y-5">
-			<div className="overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
+		<section className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden">
+			<div className="shrink-0 overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
 				<form onSubmit={save} className="p-5">
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-end">
 						<div className="min-w-0 flex-1 space-y-2">
@@ -189,8 +189,8 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 				</form>
 			</div>
 
-			<div className="overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
+				<div className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-4">
 					<div>
 						<p className="font-medium">Members</p>
 						<p className="mt-0.5 text-sm text-muted-foreground">
@@ -206,20 +206,25 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 					) : null}
 				</div>
 				{fullOrganizationQuery.isPending ? (
-					<TableBodySkeleton
-						headers={["Member", "Role", "Account"]}
-						columns={[
-							{ type: "avatar" },
-							{ type: "text", width: "w-20" },
-							{ type: "text", width: "w-28" },
-						]}
-					/>
+					<div className="min-h-0 flex-1 overflow-auto">
+						<TableBodySkeleton
+							headers={["Member", "Role", "Account"]}
+							columns={[
+								{ type: "avatar" },
+								{ type: "text", width: "w-20" },
+								{ type: "text", width: "w-28" },
+							]}
+						/>
+					</div>
 				) : fullOrganizationQuery.isError ? (
-					<p className="p-6 text-sm text-destructive" role="alert">
+					<p
+						className="min-h-0 flex-1 p-6 text-sm text-destructive"
+						role="alert"
+					>
 						Unable to load members.
 					</p>
 				) : members.length === 0 ? (
-					<div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+					<div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
 						<div className="flex size-10 items-center justify-center rounded-full bg-slate-50 text-slate-400">
 							<UsersIcon className="size-5" />
 						</div>
@@ -231,7 +236,7 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 					</div>
 				) : (
 					<>
-						<div className="overflow-x-auto scrollbar-none">
+						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
 							<Table>
 								<TableHeader>
 									<TableRow className="hover:bg-transparent">
@@ -303,7 +308,7 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 								</TableBody>
 							</Table>
 						</div>
-						<footer className="border-t px-5 py-3">
+						<footer className="shrink-0 border-t px-5 py-3">
 							<Pagination
 								totalItems={totalItems}
 								itemsPerPage={PAGE_SIZE}

@@ -45,8 +45,8 @@ export function KnowledgeDetailPage({ sourceId }: { sourceId: string }) {
 	}
 
 	return (
-		<section className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6">
-			<div className="flex items-start justify-between gap-4">
+		<section className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden">
+			<div className="flex shrink-0 items-start justify-between gap-4">
 				<div>
 					<h1 className="font-semibold text-2xl tracking-tight">
 						{kb.name}

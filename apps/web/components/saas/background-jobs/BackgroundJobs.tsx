@@ -235,9 +235,9 @@ export default function BackgroundJobsPageContent() {
 	});
 
 	return (
-		<section className="space-y-6">
-			<div className="overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
+		<section className="flex min-h-0 flex-1 flex-col">
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
+				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
 					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 						<Select
 							value={status}
@@ -290,39 +290,41 @@ export default function BackgroundJobsPageContent() {
 				</div>
 
 				{!organizationId ? (
-					<p className="p-6 text-sm text-muted-foreground">
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
 						Select an organization to view background jobs.
 					</p>
 				) : query.isLoading ? (
-					<TableBodySkeleton
-						headers={[
-							"Created",
-							"Type",
-							"Status",
-							"Resource",
-							"Error",
-							"Actions",
-						]}
-						columns={[
-							{ type: "text", width: "w-32" },
-							{ type: "text", width: "w-28" },
-							{ type: "pill" },
-							{ type: "text", width: "w-28" },
-							{ type: "text", width: "w-36" },
-							{ type: "action" },
-						]}
-					/>
+					<div className="min-h-0 flex-1 overflow-auto">
+						<TableBodySkeleton
+							headers={[
+								"Created",
+								"Type",
+								"Status",
+								"Resource",
+								"Error",
+								"Actions",
+							]}
+							columns={[
+								{ type: "text", width: "w-32" },
+								{ type: "text", width: "w-28" },
+								{ type: "pill" },
+								{ type: "text", width: "w-28" },
+								{ type: "text", width: "w-36" },
+								{ type: "action" },
+							]}
+						/>
+					</div>
 				) : query.isError ? (
-					<p className="p-6 text-sm text-destructive">
+					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
 						Failed to load jobs.
 					</p>
 				) : jobs.length === 0 ? (
-					<p className="p-6 text-sm text-muted-foreground">
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
 						No background jobs.
 					</p>
 				) : (
 					<>
-						<div className="overflow-x-auto scrollbar-none">
+						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
 							<Table>
 								<TableHeader>
 									<TableRow className="hover:bg-transparent">
@@ -429,7 +431,7 @@ export default function BackgroundJobsPageContent() {
 								</TableBody>
 							</Table>
 						</div>
-						<footer className="border-t px-5 py-3">
+						<footer className="shrink-0 border-t px-5 py-3">
 							<Pagination
 								totalItems={jobs.length}
 								itemsPerPage={PAGE_SIZE}

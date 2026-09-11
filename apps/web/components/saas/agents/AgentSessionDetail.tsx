@@ -597,12 +597,16 @@ export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 	}, [currentPage]);
 
 	if (events.length === 0) {
-		return <p className="text-sm text-muted-foreground">No events.</p>;
+		return (
+			<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
+				No events.
+			</p>
+		);
 	}
 
 	return (
-		<div className="overflow-hidden rounded-xl border bg-white">
-			<div className="overflow-x-auto scrollbar-none">
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card">
+			<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
 				<Table>
 					<TableHeader>
 						<TableRow className="hover:bg-transparent">
@@ -682,7 +686,7 @@ export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 			</div>
 
 			{totalItems > itemsPerPage ? (
-				<div className="border-t bg-white px-2 py-2">
+				<div className="shrink-0 border-t bg-card px-2 py-2">
 					<Pagination
 						currentPage={currentPage}
 						totalItems={totalItems}

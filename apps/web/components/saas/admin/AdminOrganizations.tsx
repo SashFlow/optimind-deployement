@@ -176,15 +176,15 @@ export function AdminOrganizations() {
 	};
 
 	return (
-		<section className="space-y-6">
+		<section className="flex min-h-0 flex-1 flex-col">
 			{error && !createOpen ? (
-				<p className="text-sm text-destructive" role="alert">
+				<p className="shrink-0 text-sm text-destructive" role="alert">
 					{error}
 				</p>
 			) : null}
 
-			<div className="overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
+				<div className="flex shrink-0 flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-end">
 					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 						<div className="relative min-w-0 sm:w-72">
 							<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -221,26 +221,31 @@ export function AdminOrganizations() {
 				</div>
 
 				{organizationsQuery.isPending ? (
-					<TableBodySkeleton
-						headers={["Name", "Type", "Created", "Actions"]}
-						columns={[
-							{ type: "lines", widths: ["w-40", "w-20"] },
-							{ type: "pill" },
-							{ type: "text", width: "w-24" },
-							{ type: "action" },
-						]}
-					/>
+					<div className="min-h-0 flex-1 overflow-auto">
+						<TableBodySkeleton
+							headers={["Name", "Type", "Created", "Actions"]}
+							columns={[
+								{ type: "lines", widths: ["w-40", "w-20"] },
+								{ type: "pill" },
+								{ type: "text", width: "w-24" },
+								{ type: "action" },
+							]}
+						/>
+					</div>
 				) : organizationsQuery.isError ? (
-					<p className="p-6 text-sm text-destructive" role="alert">
+					<p
+						className="min-h-0 flex-1 p-6 text-sm text-destructive"
+						role="alert"
+					>
 						Unable to load organizations.
 					</p>
 				) : filtered.length === 0 ? (
-					<p className="p-6 text-sm text-muted-foreground">
+					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
 						No organizations found.
 					</p>
 				) : (
 					<>
-						<div className="overflow-x-auto scrollbar-none">
+						<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
 							<Table>
 								<TableHeader>
 									<TableRow className="hover:bg-transparent">
@@ -336,7 +341,7 @@ export function AdminOrganizations() {
 								</TableBody>
 							</Table>
 						</div>
-						<footer className="border-t px-5 py-3">
+						<footer className="shrink-0 border-t px-5 py-3">
 							<Pagination
 								totalItems={filtered.length}
 								itemsPerPage={PAGE_SIZE}

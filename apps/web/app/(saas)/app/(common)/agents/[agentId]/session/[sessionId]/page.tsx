@@ -39,7 +39,7 @@ export default function AgentSessionPage() {
 	const events = session.events ?? [];
 
 	return (
-		<FolderTabs defaultValue="overview" className="h-full">
+		<FolderTabs defaultValue="overview" className="min-h-0 flex-1">
 			<FolderTabsBar>
 				<FolderTabsBack href={`/app/agents/${params.agentId}`} />
 				<FolderTabsList>

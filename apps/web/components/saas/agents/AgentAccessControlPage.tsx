@@ -23,7 +23,7 @@ export default function AgentAccessControlPage() {
 	}
 
 	return (
-		<div className="mx-auto w-full max-w-[1600px] px-5 py-6 md:px-6">
+		<div className="flex min-h-0 flex-1 flex-col">
 			<AgentAccessControlForm agentId={params.agentId} />
 		</div>
 	);
