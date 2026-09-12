@@ -1,5 +1,4 @@
 import { cn } from "@repo/ui/utils";
-import Image from "next/image";
 
 export function Logo({
 	withLabel = true,
@@ -34,7 +33,6 @@ export function Logo({
 					fill="currentColor"
 				/>
 			</svg>
-			{/* <Image src="/images/logo.png" alt="Optimind" width={32} height={32} className="rounded-full" /> */}
 			{withLabel && (
 				<span className="ml-3 hidden text-lg font-serif md:block">
 					Optimind

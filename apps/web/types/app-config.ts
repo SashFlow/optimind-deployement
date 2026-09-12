@@ -50,9 +50,9 @@ export const APP_CONFIG_DEFAULTS: AppConfig = {
 	showWelcomeCameraPreview: true,
 	forceEnableCameraOnSessionView: true,
 
-	logo: "/lk-logo.svg",
+	logo: "/images/logo.png",
 	accent: "#002cf2",
-	logoDark: "/lk-logo-dark.svg",
+	logoDark: "/images/logo.png",
 	accentDark: "#1fd5f9",
 	startButtonText: "Start call",
 

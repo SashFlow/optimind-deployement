@@ -6,7 +6,6 @@ import { blur, translate } from "../anim";
 interface LinkType {
 	title: string;
 	href: string;
-	src: string;
 }
 
 export default function Body({
