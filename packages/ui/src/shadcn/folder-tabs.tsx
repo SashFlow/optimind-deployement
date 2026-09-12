@@ -135,7 +135,7 @@ const FolderTabsContent = React.forwardRef<
 	React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & {
 		scrollable?: boolean;
 	}
->(({ className, scrollable = false, children, ...props }, ref) => (
+>(({ className, scrollable = true, children, ...props }, ref) => (
 	<TabsPrimitive.Content
 		ref={ref}
 		className={cn(

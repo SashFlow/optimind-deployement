@@ -40,7 +40,7 @@ export default function AgentDetailLayout() {
 			<FolderTabsContent value="dashboard">
 				<AgentMonitorPage />
 			</FolderTabsContent>
-			<FolderTabsContent value="sessions">
+			<FolderTabsContent value="sessions" scrollable={false}>
 				<AgentLogsPage />
 			</FolderTabsContent>
 			<FolderTabsContent value="access-control">
