@@ -41,7 +41,13 @@ export default async function SignupPage({
 			redirect(withQuery("/auth/login", params));
 		}
 
-		return <SignupForm prefillEmail={invitation.email} />;
+		return (
+			<SignupForm
+				invitationId={invitation.id}
+				prefillEmail={invitation.email}
+				organizationName={invitation.organization.name}
+			/>
+		);
 	}
 
 	return <SignupForm />;

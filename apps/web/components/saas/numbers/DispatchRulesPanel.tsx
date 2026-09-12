@@ -259,13 +259,7 @@ export function DispatchRulesPanel({
 				{rulesQuery.isPending ? (
 					<DataTableBody>
 						<TableBodySkeleton
-							headers={[
-								"",
-								"Name",
-								"Trunk",
-								"Agent",
-								"Actions",
-							]}
+							headers={["", "Name", "Trunk", "Agent", "Actions"]}
 							columns={[
 								{ type: "action" },
 								{ type: "lines", widths: ["w-32", "w-16"] },
@@ -293,7 +287,9 @@ export function DispatchRulesPanel({
 								<DataTableHeaderRow>
 									<SelectColumnHead
 										allSelected={selection.allPageSelected}
-										someSelected={selection.somePageSelected}
+										someSelected={
+											selection.somePageSelected
+										}
 										onToggle={selection.togglePage}
 									/>
 									<TableHead>Name</TableHead>
@@ -360,7 +356,9 @@ export function DispatchRulesPanel({
 											</TableCell>
 											<TableCell>
 												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
+													<DropdownMenuTrigger
+														asChild
+													>
 														<Button
 															variant="ghost"
 															size="icon"

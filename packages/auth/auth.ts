@@ -5,7 +5,6 @@ import {
 	getPurchasesByOrganizationId,
 	getPurchasesByUserId,
 	getUserByEmail,
-	updateUser,
 } from "@repo/database";
 import type { Locale } from "@repo/i18n";
 import { logger } from "@repo/logs";
@@ -25,6 +24,7 @@ import {
 } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
 import { parse as parseCookies } from "cookie";
+import { buildOrganizationInviteUrl } from "./lib/invite";
 import { updateSeatsInOrganizationSubscription } from "./lib/organization";
 import { invitationOnlyPlugin } from "./plugins/invitation-only";
 
@@ -170,12 +170,6 @@ export const auth = betterAuth({
 				locale,
 			});
 		},
-		// Admin invites send a password-reset link; once set, treat email as verified.
-		onPasswordReset: async ({ user }) => {
-			if (!user.emailVerified) {
-				await updateUser({ id: user.id, emailVerified: true });
-			}
-		},
 	},
 	emailVerification: {
 		sendOnSignUp: config.auth.enableSignup,
@@ -233,14 +227,11 @@ export const auth = betterAuth({
 			) => {
 				const locale = getLocaleFromRequest(request);
 				const existingUser = await getUserByEmail(email);
-
-				const url = new URL(
-					existingUser ? "/auth/login" : "/auth/signup",
-					getBaseUrl(),
-				);
-
-				url.searchParams.set("invitationId", id);
-				url.searchParams.set("email", email);
+				const url = buildOrganizationInviteUrl({
+					invitationId: id,
+					email,
+					existingUser: Boolean(existingUser),
+				});
 
 				await sendEmail({
 					to: email,
@@ -248,7 +239,7 @@ export const auth = betterAuth({
 					locale,
 					context: {
 						organizationName: organization.name,
-						url: url.toString(),
+						url,
 					},
 				});
 			},

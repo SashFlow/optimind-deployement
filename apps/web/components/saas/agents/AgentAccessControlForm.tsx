@@ -365,9 +365,7 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 				</Card>
 			) : (
 				<DataTableShell
-					toolbar={
-						selection.selectedCount > 0 ? undefined : toolbar
-					}
+					toolbar={selection.selectedCount > 0 ? undefined : toolbar}
 					bulkBar={bulkBar}
 					footer={
 						<Pagination
@@ -384,7 +382,9 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 								<DataTableHeaderRow>
 									<SelectColumnHead
 										allSelected={selection.allPageSelected}
-										someSelected={selection.somePageSelected}
+										someSelected={
+											selection.somePageSelected
+										}
 										onToggle={selection.togglePage}
 									/>
 									<TableHead>Label</TableHead>

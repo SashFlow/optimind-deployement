@@ -27,11 +27,6 @@ export function MagicLink({
 			<PrimaryButton href={url}>
 				{t("mail.magicLink.login")} &rarr;
 			</PrimaryButton>
-
-			<Text className="text-muted-foreground text-sm">
-				{t("mail.common.openLinkInBrowser")}
-				<Link href={url}>{url}</Link>
-			</Text>
 		</Wrapper>
 	);
 }

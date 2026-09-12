@@ -2,6 +2,7 @@ import type { RouterClient } from "@orpc/server";
 import { adminRouter } from "../modules/admin/router";
 import { agentsRouter } from "../modules/agents/router";
 import { auditRouter } from "../modules/audit/router";
+import { authRouter } from "../modules/auth/router";
 import { avatarsRouter } from "../modules/avatars/router";
 import { campaignsRouter } from "../modules/campaigns/router";
 import { catalogRouter } from "../modules/catalog/router";
@@ -26,6 +27,7 @@ export const router = publicProcedure
 	.prefix("/api")
 	.router({
 		admin: adminRouter,
+		auth: authRouter,
 		newsletter: newsletterRouter,
 		contact: contactRouter,
 		organizations: organizationsRouter,

@@ -48,15 +48,6 @@ export async function getOrganizationById(id: string) {
 	});
 }
 
-export async function getInvitationById(id: string) {
-	return db.invitation.findUnique({
-		where: { id },
-		include: {
-			organization: true,
-		},
-	});
-}
-
 export async function getOrganizationBySlug(slug: string) {
 	return db.organization.findUnique({
 		where: { slug },
@@ -103,15 +94,6 @@ export async function getOrganizationWithPurchasesAndMembersCount(
 				membersCount: organization._count.members,
 			}
 		: null;
-}
-
-export async function getPendingInvitationByEmail(email: string) {
-	return db.invitation.findFirst({
-		where: {
-			email,
-			status: "pending",
-		},
-	});
 }
 
 export async function updateOrganization(

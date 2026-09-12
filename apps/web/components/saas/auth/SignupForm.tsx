@@ -22,7 +22,7 @@ import {
 	authSubmitClassName,
 } from "@saas/auth/AuthCard";
 import { AuthPasswordInput } from "@saas/auth/AuthPasswordInput";
-import { OrganizationInvitationAlert } from "@saas/organizations/OrganizationInvitationAlert";
+import { orpcClient } from "@shared/lib/orpc-client";
 import { MailboxIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -39,72 +39,77 @@ import { SocialSigninButton } from "./SocialSigninButton";
 const formSchema = z.object({
 	email: z.string().email(),
 	name: z.string().min(1),
-	password: z.string(),
+	password: z.string().min(8),
 });
 
-export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
+export function SignupForm({
+	prefillEmail,
+	invitationId: invitationIdProp,
+	organizationName,
+}: {
+	prefillEmail?: string;
+	invitationId?: string;
+	organizationName?: string;
+}) {
 	const t = useTranslations();
 	const router = useRouter();
 	const { getAuthErrorMessage } = useAuthErrorMessages();
 	const searchParams = useSearchParams();
 
-	const invitationId = searchParams.get("invitationId");
-	const email = searchParams.get("email");
+	const invitationId =
+		invitationIdProp ?? searchParams.get("invitationId") ?? undefined;
 	const redirectTo = searchParams.get("redirectTo");
 
 	const form = useForm({
 		resolver: zodResolver(formSchema),
 		values: {
 			name: "",
-			email: prefillEmail ?? email ?? "",
+			email: prefillEmail ?? "",
 			password: "",
 		},
 	});
 
-	const invitationOnlyMode = !config.auth.enableSignup && invitationId;
+	const invitationOnlyMode = Boolean(invitationId);
 
-	const redirectPath = invitationId
-		? `/organization-invitation/${invitationId}`
-		: (redirectTo ?? config.auth.redirectAfterSignIn);
-
-	const onSubmit = form.handleSubmit(async ({ email, password, name }) => {
+	const onSubmit = form.handleSubmit(async ({ password, name }) => {
 		try {
-			const { error } = await (config.auth.enablePasswordLogin
-				? await authClient.signUp.email({
-						email,
-						password,
-						name,
-						callbackURL: redirectPath,
-					})
-				: authClient.signIn.magicLink({
-						email,
-						name,
-						callbackURL: redirectPath,
-					}));
-
-			if (error) {
-				throw error;
-			}
-
-			if (invitationOnlyMode && invitationId) {
-				const { error: acceptError } =
-					await authClient.organization.acceptInvitation({
-						invitationId,
-					});
-
-				if (acceptError) {
-					throw acceptError;
+			if (!invitationId) {
+				if (!config.auth.enableSignup) {
+					throw new Error("An invitation is required to sign up");
 				}
-
-				router.push(config.auth.redirectAfterSignIn);
+				const { error } = await authClient.signUp.email({
+					email: form.getValues("email"),
+					password,
+					name,
+					callbackURL: redirectTo ?? config.auth.redirectAfterSignIn,
+				});
+				if (error) throw error;
+				return;
 			}
+
+			const result = await orpcClient.auth.signupWithInvite({
+				invitationId,
+				name,
+				password,
+			});
+
+			const { error: signInError } = await authClient.signIn.email({
+				email: result.email,
+				password,
+			});
+			if (signInError) throw signInError;
+
+			router.push(config.auth.redirectAfterSignIn);
 		} catch (e) {
 			form.setError("root", {
-				message: getAuthErrorMessage(
-					e && typeof e === "object" && "code" in e
-						? (e.code as string)
-						: undefined,
-				),
+				message:
+					e instanceof Error && e.message
+						? e.message
+						: getAuthErrorMessage(
+								e && typeof e === "object" && "code" in e
+									? (e.code as string)
+									: undefined,
+							),
 			});
 		}
 	});
@@ -125,7 +130,11 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 	return (
 		<AuthCard
 			title={t("auth.signup.title")}
-			description={t("auth.signup.message")}
+			description={
+				organizationName
+					? `Join ${organizationName}`
+					: t("auth.signup.message")
+			}
 			footer={
 				<>
 					{t("auth.signup.alreadyHaveAccount")}{" "}
@@ -141,8 +150,6 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 				</>
 			}
 		>
-			{invitationId && <OrganizationInvitationAlert className="mb-6" />}
-
 			<Form {...form}>
 				<form className="space-y-5" onSubmit={onSubmit}>
 					<AuthError
@@ -185,7 +192,7 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 									<Input
 										{...field}
 										autoComplete="email"
-										readOnly={!!prefillEmail}
+										readOnly={invitationOnlyMode}
 										className={authInputClassName}
 										placeholder="Enter your email"
 									/>

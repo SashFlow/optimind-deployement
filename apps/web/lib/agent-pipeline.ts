@@ -227,7 +227,9 @@ export function selectLiveReasoningModel(
 	const liveModel = liveModels.find(
 		(item) => item.id === config.live?.provider_model_id,
 	);
-	const reasoningModel = llmModels.find((item) => item.id === providerModelId);
+	const reasoningModel = llmModels.find(
+		(item) => item.id === providerModelId,
+	);
 	if (
 		liveModel &&
 		reasoningModel &&

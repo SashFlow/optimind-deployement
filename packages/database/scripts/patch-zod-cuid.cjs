@@ -8,13 +8,13 @@ if (!source.includes("generateCuid")) {
 	process.exit(0);
 }
 
-if (source.includes('@paralleldrive/cuid2')) {
+if (source.includes("@paralleldrive/cuid2")) {
 	process.exit(0);
 }
 
 const patched = source.replace(
-	'import * as z from \'zod\';',
-	'import { createId as generateCuid } from "@paralleldrive/cuid2";\nimport * as z from \'zod\';',
+	"import * as z from 'zod';",
+	"import { createId as generateCuid } from \"@paralleldrive/cuid2\";\nimport * as z from 'zod';",
 );
 
 if (patched === source) {

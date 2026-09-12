@@ -26,11 +26,6 @@ export function ForgotPassword({
 			<PrimaryButton href={url}>
 				{t("mail.forgotPassword.resetPassword")} &rarr;
 			</PrimaryButton>
-
-			<Text className="text-muted-foreground text-sm">
-				{t("mail.common.openLinkInBrowser")}
-				<Link href={url}>{url}</Link>
-			</Text>
 		</Wrapper>
 	);
 }

@@ -455,7 +455,9 @@ export default function BackgroundJobsPageContent() {
 								<DataTableHeaderRow>
 									<SelectColumnHead
 										allSelected={selection.allPageSelected}
-										someSelected={selection.somePageSelected}
+										someSelected={
+											selection.somePageSelected
+										}
 										onToggle={selection.togglePage}
 										disabled={bulkBusy}
 									/>

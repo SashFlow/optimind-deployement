@@ -19,8 +19,64 @@ export async function getUsers({
 					},
 				}
 			: undefined,
+		include: {
+			members: {
+				select: {
+					id: true,
+					role: true,
+					organizationId: true,
+					organization: {
+						select: {
+							id: true,
+							name: true,
+						},
+					},
+				},
+			},
+		},
 		take: limit,
 		skip: offset,
+	});
+}
+
+export async function upsertOrganizationMembership({
+	userId,
+	organizationId,
+	role,
+}: {
+	userId: string;
+	organizationId: string;
+	role: string;
+}) {
+	return db.member.upsert({
+		where: {
+			organizationId_userId: {
+				organizationId,
+				userId,
+			},
+		},
+		create: {
+			userId,
+			organizationId,
+			role,
+			createdAt: new Date(),
+		},
+		update: {
+			role,
+		},
+	});
+}
+
+export async function updateOrganizationMembershipRole({
+	memberId,
+	role,
+}: {
+	memberId: string;
+	role: string;
+}) {
+	return db.member.update({
+		where: { id: memberId },
+		data: { role },
 	});
 }
 

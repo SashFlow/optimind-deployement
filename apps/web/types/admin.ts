@@ -1,10 +1,20 @@
 export type Role = "admin" | "user";
 
+export type OrganizationMemberRole = "owner" | "admin" | "member";
+
+export type AccountMembership = {
+	id: string;
+	role: OrganizationMemberRole;
+	organizationId: string;
+	organizationName: string;
+};
+
 export type Account = {
 	id: string;
 	name: string;
 	email: string;
 	role: Role;
+	memberships: AccountMembership[];
 	is_active: boolean;
 	invite_pending: boolean;
 	created_at: string | null;
@@ -55,6 +65,15 @@ export const TYPE_FILTER_ITEMS = [
 	{ value: "workspace", label: "Workspace" },
 ] as const;
 
+function mapOrganizationMemberRole(
+	role?: string | null,
+): OrganizationMemberRole {
+	if (role === "owner" || role === "admin" || role === "member") {
+		return role;
+	}
+	return "member";
+}
+
 export function mapUserToAccount(user: {
 	id: string;
 	name: string;
@@ -63,6 +82,12 @@ export function mapUserToAccount(user: {
 	banned?: boolean | null;
 	emailVerified?: boolean;
 	createdAt?: Date | string | null;
+	members?: Array<{
+		id: string;
+		role: string;
+		organizationId: string;
+		organization?: { id: string; name: string } | null;
+	}>;
 }): Account {
 	const role: Role = user.role === "admin" ? "admin" : "user";
 	return {
@@ -70,6 +95,12 @@ export function mapUserToAccount(user: {
 		name: user.name || user.email,
 		email: user.email,
 		role,
+		memberships: (user.members ?? []).map((member) => ({
+			id: member.id,
+			role: mapOrganizationMemberRole(member.role),
+			organizationId: member.organizationId,
+			organizationName: member.organization?.name ?? "Organization",
+		})),
 		is_active: !user.banned,
 		invite_pending: user.emailVerified === false,
 		created_at: user.createdAt

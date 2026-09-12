@@ -35,11 +35,6 @@ export function OrganizationInvitation({
 			<PrimaryButton href={url}>
 				{t("mail.organizationInvitation.join")}
 			</PrimaryButton>
-
-			<Text className="mt-4 text-muted-foreground text-sm">
-				{t("mail.common.openLinkInBrowser")}
-				<Link href={url}>{url}</Link>
-			</Text>
 		</Wrapper>
 	);
 }

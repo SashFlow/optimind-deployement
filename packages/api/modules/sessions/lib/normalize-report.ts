@@ -240,7 +240,11 @@ export function transcriptSegmentsFromReport(
 
 function mapModality(value: unknown): UsageModality {
 	const m = str(value).toLowerCase();
-	if (m.includes("realtime") || m.includes("gptlive") || m.includes("gpt-live"))
+	if (
+		m.includes("realtime") ||
+		m.includes("gptlive") ||
+		m.includes("gpt-live")
+	)
 		return "REALTIME";
 	if (m.includes("stt") || m.includes("speech-to-text")) return "STT";
 	if (m.includes("tts") || m.includes("text-to-speech")) return "TTS";

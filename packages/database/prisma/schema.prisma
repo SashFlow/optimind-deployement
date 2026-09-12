@@ -182,6 +182,7 @@ model Invitation {
     organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     email          String
     role           String?
+    platformRole   String?      @default("user")
     status         String
     expiresAt      DateTime
     inviterId      String

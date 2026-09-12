@@ -21,7 +21,6 @@ import {
 	authSubmitClassName,
 } from "@saas/auth/AuthCard";
 import { AuthPasswordInput } from "@saas/auth/AuthPasswordInput";
-import { OrganizationInvitationAlert } from "@saas/organizations/OrganizationInvitationAlert";
 import { useRouter } from "@shared/hooks/router";
 import { useQueryClient } from "@tanstack/react-query";
 import { KeyIcon, MailboxIcon } from "lucide-react";
@@ -190,8 +189,6 @@ export function LoginForm() {
 				) : undefined
 			}
 		>
-			{invitationId && <OrganizationInvitationAlert className="mb-6" />}
-
 			<Form {...form}>
 				<form
 					className="space-y-5"

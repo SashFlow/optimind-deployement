@@ -34,6 +34,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@repo/ui/table";
+import { clearCache } from "@shared/lib/cache";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreVerticalIcon, SearchIcon } from "lucide-react";
@@ -54,6 +55,7 @@ import {
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { useRowSelection } from "@/components/saas/shared/useRowSelection";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
 import { useCreateOrganizationMutation } from "@/services/organization";
 import {
@@ -65,6 +67,8 @@ import {
 export function AdminOrganizations() {
 	const router = useRouter();
 	const queryClient = useQueryClient();
+	const { activeOrganization, setActiveOrganization } =
+		useActiveOrganization();
 	const createOrganizationMutation = useCreateOrganizationMutation();
 	const organizationsQuery = useQuery({
 		...orpc.admin.organizations.list.queryOptions({
@@ -193,6 +197,37 @@ export function AdminOrganizations() {
 		}
 	};
 
+	const switchOrganization = async (organization: {
+		id: string;
+		name: string;
+		slug: string | null;
+	}) => {
+		if (!organization.slug) {
+			toast.error("This organization has no slug to switch to.");
+			return;
+		}
+		if (activeOrganization?.id === organization.id) {
+			toast.message(`${organization.name} is already active`);
+			return;
+		}
+		setBusy(true);
+		setError(null);
+		try {
+			await clearCache();
+			await setActiveOrganization(organization.slug);
+			toast.success(`Switched to ${organization.name}`);
+		} catch (cause) {
+			const message =
+				cause instanceof Error
+					? cause.message
+					: "Unable to switch organization.";
+			setError(message);
+			toast.error(message);
+		} finally {
+			setBusy(false);
+		}
+	};
+
 	const bulkDelete = async () => {
 		if (selection.selectedCount === 0) return;
 		const byId = new Map(
@@ -307,8 +342,8 @@ export function AdminOrganizations() {
 				bulkBar={bulkBar}
 				footer={
 					!organizationsQuery.isPending &&
-						!organizationsQuery.isError &&
-						filtered.length > 0 ? (
+					!organizationsQuery.isError &&
+					filtered.length > 0 ? (
 						<Pagination
 							totalItems={filtered.length}
 							itemsPerPage={PAGE_SIZE}
@@ -349,12 +384,13 @@ export function AdminOrganizations() {
 								<DataTableHeaderRow>
 									<SelectColumnHead
 										allSelected={selection.allPageSelected}
-										someSelected={selection.somePageSelected}
+										someSelected={
+											selection.somePageSelected
+										}
 										onToggle={selection.togglePage}
 										disabled={busy}
 									/>
 									<TableHead>Name</TableHead>
-									<TableHead>Type</TableHead>
 									<TableHead>Created</TableHead>
 									<TableHead className="w-12">
 										<span className="sr-only">Actions</span>
@@ -388,25 +424,13 @@ export function AdminOrganizations() {
 												/>
 											</TableCell>
 											<TableCell>
-												<IdentityCell
-													name={organization.name}
-													secondary={organization.id.slice(
-														0,
-														8,
-													)}
-												/>
-											</TableCell>
-											<TableCell>
-												<StatusBadge
-													label={typeLabel}
-													tone={typeLabel}
-												/>
+												{organization.name}
 											</TableCell>
 											<TableCell className="text-muted-foreground">
 												{organization.created_at
 													? new Date(
-														organization.created_at,
-													).toLocaleDateString()
+															organization.created_at,
+														).toLocaleDateString()
 													: "—"}
 											</TableCell>
 											<TableCell>
@@ -425,6 +449,20 @@ export function AdminOrganizations() {
 														</Button>
 													</DropdownMenuTrigger>
 													<DropdownMenuContent align="end">
+														<DropdownMenuItem
+															disabled={
+																!organization.slug ||
+																activeOrganization?.id ===
+																	organization.id
+															}
+															onClick={() => {
+																void switchOrganization(
+																	organization,
+																);
+															}}
+														>
+															Switch
+														</DropdownMenuItem>
 														<DropdownMenuItem
 															onClick={() => {
 																router.push(

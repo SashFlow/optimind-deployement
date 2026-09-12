@@ -37,7 +37,9 @@ export function DataTableShell({
 			) : null}
 			{children}
 			{footer ? (
-				<footer className="shrink-0 border-t px-5 py-3">{footer}</footer>
+				<footer className="shrink-0 border-t px-5 py-3">
+					{footer}
+				</footer>
 			) : null}
 		</div>
 	);
@@ -202,7 +204,8 @@ export function StatusBadge({
 export function dataTableRowClass(selected?: boolean) {
 	return cn(
 		"group/row",
-		selected && "bg-primary/5 hover:bg-primary/10 data-[state=selected]:bg-primary/5",
+		selected &&
+			"bg-primary/5 hover:bg-primary/10 data-[state=selected]:bg-primary/5",
 	);
 }
 

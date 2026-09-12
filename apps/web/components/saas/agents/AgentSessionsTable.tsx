@@ -243,7 +243,9 @@ export function AgentSessionsTable({
 								<DataTableHeaderRow>
 									<SelectColumnHead
 										allSelected={selection.allPageSelected}
-										someSelected={selection.somePageSelected}
+										someSelected={
+											selection.somePageSelected
+										}
 										onToggle={selection.togglePage}
 									/>
 									<TableHead>Session</TableHead>

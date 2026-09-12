@@ -240,7 +240,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 								<DataTableHeaderRow>
 									<SelectColumnHead
 										allSelected={selection.allPageSelected}
-										someSelected={selection.somePageSelected}
+										someSelected={
+											selection.somePageSelected
+										}
 										onToggle={selection.togglePage}
 									/>
 									<TableHead>Name</TableHead>
@@ -297,7 +299,9 @@ export function SipTrunksPanel({ organizationId }: SipTrunksPanelProps) {
 											</TableCell>
 											<TableCell>
 												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
+													<DropdownMenuTrigger
+														asChild
+													>
 														<Button
 															variant="ghost"
 															size="icon"

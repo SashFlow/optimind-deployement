@@ -12,11 +12,7 @@ import { AdminOrganizations } from "@/components/saas/admin/AdminOrganizations";
 import { AdminUsers } from "@/components/saas/admin/AdminUsers";
 import { SettingsTabActions } from "@/components/saas/admin/SettingsTabActions";
 
-export function AdminMembersTabs({
-	isSuperAdmin,
-}: {
-	isSuperAdmin: boolean;
-}) {
+export function AdminMembersTabs({ isSuperAdmin }: { isSuperAdmin: boolean }) {
 	const [tab, setTab] = useState("members");
 
 	return (
@@ -39,7 +35,9 @@ export function AdminMembersTabs({
 				<SettingsTabActions />
 			</FolderTabsBar>
 			<FolderTabsContent value="members">
-				{tab === "members" ? <AdminUsers /> : null}
+				{tab === "members" ? (
+					<AdminUsers isSuperAdmin={isSuperAdmin} />
+				) : null}
 			</FolderTabsContent>
 			{isSuperAdmin ? (
 				<FolderTabsContent value="organizations">
