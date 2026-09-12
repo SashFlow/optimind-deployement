@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "@repo/ui/button";
+import { ButtonGroup } from "@repo/ui/button-group";
 import { Card, CardContent } from "@repo/ui/card";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@repo/ui/dropdown-menu";
 import {
 	Select,
 	SelectContent,
@@ -11,6 +18,7 @@ import {
 } from "@repo/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
+import { ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 import { AgentConfigurePreview } from "@/components/saas/agents/AgentConfigurePreview";
 import { AdvancedSection } from "@/components/saas/agents/configure/sections/AdvancedSection";
@@ -32,6 +40,7 @@ import {
 import type { Agent } from "@/services/api/types";
 
 const SECTIONS = [
+	{ value: "preview", label: "Preview" },
 	{ value: "general", label: "General" },
 	{ value: "prompts", label: "Prompts" },
 	{ value: "voice", label: "Voice" },
@@ -39,7 +48,6 @@ const SECTIONS = [
 	{ value: "call", label: "Call & Session" },
 	{ value: "tools", label: "Tools" },
 	{ value: "advanced", label: "Advanced" },
-	{ value: "preview", label: "Preview" },
 ] as const;
 
 type SectionValue = (typeof SECTIONS)[number]["value"];
@@ -83,7 +91,7 @@ export function AgentConfigureForm({
 	onSave,
 	onPublish,
 }: AgentConfigureFormProps) {
-	const [activeSection, setActiveSection] = useState<SectionValue>("general");
+	const [activeSection, setActiveSection] = useState<SectionValue>("preview");
 	const llmModels = useProviderModelsQuery("llm").data ?? [];
 	const realtimeModels = useProviderModelsQuery("realtime").data ?? [];
 	const liveModels = useProviderModelsQuery("live").data ?? [];
@@ -125,7 +133,7 @@ export function AgentConfigureForm({
 							>
 								<SelectTrigger
 									aria-label="Configure section"
-									className="w-full rounded-full bg-sidebar shadow-sm ring-1 ring-black/5 sm:hidden"
+									className="h-9 w-full rounded-full bg-sidebar shadow-sm ring-1 ring-black/5 min-[1250px]:hidden"
 								>
 									<SelectValue placeholder="Select section" />
 								</SelectTrigger>
@@ -141,8 +149,8 @@ export function AgentConfigureForm({
 								</SelectContent>
 							</Select>
 
-							<div className="scrollbar-none hidden min-w-0 overflow-x-auto sm:block">
-								<TabsList className="h-auto w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
+							<div className="scrollbar-none hidden min-w-0 overflow-x-auto min-[1250px]:block">
+								<TabsList className="h-9 w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
 									{SECTIONS.map((section) => {
 										const isActive =
 											activeSection === section.value;
@@ -151,9 +159,9 @@ export function AgentConfigureForm({
 												key={section.value}
 												value={section.value}
 												className={cn(
-													"h-9 flex-none gap-2 rounded-full px-4 py-2 shadow-none transition-colors",
+													"h-7 flex-none gap-2 rounded-full px-4 py-0 shadow-none transition-colors",
 													isActive
-														? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+														? "bg-secondary text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground"
 														: "text-muted-foreground hover:text-foreground",
 												)}
 											>
@@ -164,25 +172,48 @@ export function AgentConfigureForm({
 								</TabsList>
 							</div>
 						</div>
-						<div className="flex shrink-0 items-center gap-2">
+						<ButtonGroup className="h-9 shrink-0">
 							<Button
 								type="button"
-								variant="outline"
-								size="sm"
-								disabled={!isDirty || actionsBusy || !onSave}
-								onClick={() => void onSave?.()}
-							>
-								{isSaving ? "Saving…" : "Save"}
-							</Button>
-							<Button
-								type="button"
-								size="sm"
 								disabled={actionsBusy || !onPublish}
 								onClick={() => void onPublish?.()}
+								className="h-9"
 							>
-								{isPublishing ? "Publishing…" : "Publish"}
+								{isPublishing
+									? "Publishing…"
+									: isSaving
+										? "Saving…"
+										: "Publish"}
 							</Button>
-						</div>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										disabled={actionsBusy}
+										aria-label="More save options"
+										className="h-9 px-2"
+									>
+										<ChevronDownIcon className="size-3.5" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuItem
+										disabled={
+											!isDirty || actionsBusy || !onSave
+										}
+										onClick={() => void onSave?.()}
+									>
+										Save
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										disabled={actionsBusy || !onPublish}
+										onClick={() => void onPublish?.()}
+									>
+										Publish
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</ButtonGroup>
 					</div>
 
 					<CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-0 md:px-6">

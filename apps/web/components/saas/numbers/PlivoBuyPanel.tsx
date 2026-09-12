@@ -49,7 +49,7 @@ const COUNTRIES = [
 type PlivoBuyPanelProps = {
 	organizationId: string | null;
 	agents: Agent[];
-	onPurchased: () => void;
+	onPurchased?: () => void;
 };
 
 export function PlivoBuyPanel({
@@ -98,7 +98,7 @@ export function PlivoBuyPanel({
 				create_inbound_trunk: trunkMode === "auto",
 			});
 			toast.success(`Synced after mock buy of ${number}`);
-			onPurchased();
+			onPurchased?.();
 		} catch (cause) {
 			toast.error(
 				cause instanceof Error ? cause.message : "Failed to buy number",
@@ -223,8 +223,9 @@ export function PlivoBuyPanel({
 	);
 
 	return (
-		<section className="flex min-h-0 flex-1 flex-col">
+		<section className="flex min-h-[28rem] flex-1 flex-col">
 			<DataTableShell
+				className="min-h-[28rem]"
 				toolbar={toolbar}
 				footer={
 					searchEnabled &&

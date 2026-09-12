@@ -16,7 +16,7 @@ export default function BackgroundJobsPage() {
 			<FolderTabsBar>
 				<FolderTabsList>
 					<FolderTabsTrigger value="background-jobs">
-						Background Jobs
+						Jobs
 					</FolderTabsTrigger>
 				</FolderTabsList>
 				<SettingsTabActions showPlus={false} />

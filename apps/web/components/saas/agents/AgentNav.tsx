@@ -112,7 +112,7 @@ export function AgentNav({ agentId }: AgentNavProps) {
 										key={tab.value}
 										value={tab.value}
 										asChild
-										className="flex-none px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+										className="flex-none px-3 data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground"
 									>
 										<Link href={tab.href(agentId)}>
 											{tab.label}

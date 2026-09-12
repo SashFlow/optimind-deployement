@@ -29,7 +29,7 @@ const FolderTabsBar = React.forwardRef<
 	<div
 		ref={ref}
 		className={cn(
-			"flex shrink-0 items-end gap-2 bg-linear-to-t from-black/15 to-transparent px-2 pt-2 sm:px-3 sm:pt-2.5",
+			"flex shrink-0 items-end gap-2 bg-linear-to-t from-black/6 to-transparent px-2 pt-2 sm:px-3 sm:pt-2.5",
 			className,
 		)}
 		{...props}
@@ -51,8 +51,8 @@ const FolderTabsBack = React.forwardRef<
 			type="button"
 			aria-label="Back"
 			className={cn(
-				"text-muted-foreground inline-flex shrink-0 items-center gap-1.5 self-center rounded-lg p-1.5 text-sm font-medium transition-colors",
-				"hover:bg-background/60 hover:text-foreground",
+				"text-muted-foreground inline-flex size-6 shrink-0 items-center justify-center gap-1.5 self-center rounded-full bg-white text-sm font-medium shadow-sm transition-colors",
+				"hover:bg-white hover:text-foreground",
 				"focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-hidden",
 				"disabled:pointer-events-none disabled:opacity-50",
 				className,
@@ -82,7 +82,7 @@ const FolderTabsList = React.forwardRef<
 	<TabsPrimitive.List
 		ref={ref}
 		className={cn(
-			"text-muted-foreground flex min-w-0 flex-1 items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+			"text-muted-foreground flex min-w-0 flex-1 items-end gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-1.5",
 			className,
 		)}
 		{...props}
@@ -116,9 +116,13 @@ const FolderTabsActions = React.forwardRef<
 	<div
 		ref={ref}
 		className={cn(
-			"mb-1.5 flex shrink-0 items-center gap-1 self-center sm:gap-1.5",
-			"[&_button]:inline-flex [&_button]:items-center [&_button]:gap-1.5 [&_button]:rounded-lg [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-sm [&_button]:font-medium [&_button]:shadow-xs [&_button]:transition-colors",
-			"[&_button]:focus-visible:ring-ring [&_button]:focus-visible:ring-2 [&_button]:focus-visible:outline-hidden",
+			"flex shrink-0 items-end gap-1 sm:gap-1.5",
+			"[&_a]:relative [&_a]:z-0 [&_a]:inline-flex [&_a]:shrink-0 [&_a]:items-center [&_a]:gap-2 [&_a]:rounded-t-xl [&_a]:rounded-b-none [&_a]:px-3.5 [&_a]:py-2.5 [&_a]:text-sm [&_a]:font-medium [&_a]:whitespace-nowrap [&_a]:transition-colors",
+			"[&_a]:bg-primary [&_a]:text-primary-foreground [&_a]:hover:bg-primary/90 [&_a]:hover:text-primary-foreground",
+			"[&_a]:focus-visible:ring-ring [&_a]:focus-visible:z-20 [&_a]:focus-visible:ring-2 [&_a]:focus-visible:outline-hidden",
+			"[&_button]:relative [&_button]:z-0 [&_button]:inline-flex [&_button]:shrink-0 [&_button]:items-center [&_button]:gap-2 [&_button]:rounded-t-xl [&_button]:rounded-b-none [&_button]:px-3.5 [&_button]:py-2.5 [&_button]:text-sm [&_button]:font-medium [&_button]:whitespace-nowrap [&_button]:transition-colors",
+			"[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary/90 [&_button]:hover:text-primary-foreground",
+			"[&_button]:focus-visible:ring-ring [&_button]:focus-visible:z-20 [&_button]:focus-visible:ring-2 [&_button]:focus-visible:outline-hidden",
 			className,
 		)}
 		{...props}
@@ -131,19 +135,35 @@ const FolderTabsContent = React.forwardRef<
 	React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & {
 		scrollable?: boolean;
 	}
->(({ className, scrollable = false, ...props }, ref) => (
+>(({ className, scrollable = false, children, ...props }, ref) => (
 	<TabsPrimitive.Content
 		ref={ref}
 		className={cn(
-			"bg-card flex min-h-0 flex-1 flex-col rounded-b-2xl outline-hidden p-3 md:p-6",
-			scrollable
-				? "no-scrollbar overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-				: "overflow-hidden",
+			"bg-card relative flex min-h-0 flex-1 flex-col rounded-b-2xl outline-hidden",
+			scrollable ? "overflow-hidden" : "overflow-hidden p-3 md:p-6",
 			"data-[state=inactive]:hidden",
 			className,
 		)}
 		{...props}
-	/>
+	>
+		{scrollable ? (
+			<>
+				<div
+					aria-hidden
+					className="pointer-events-none absolute inset-x-0 top-0 z-10 h-10 bg-linear-to-b from-card to-transparent"
+				/>
+				<div
+					aria-hidden
+					className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 rounded-b-2xl bg-linear-to-t from-card to-transparent"
+				/>
+				<div className="no-scrollbar min-h-0 flex-1 overflow-y-auto p-3 md:p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+					{children}
+				</div>
+			</>
+		) : (
+			children
+		)}
+	</TabsPrimitive.Content>
 ));
 FolderTabsContent.displayName = "FolderTabsContent";
 

@@ -111,8 +111,8 @@ export function AdminSettingsNav({ children }: PropsWithChildren) {
 									value={tab.value}
 									className={cn(
 										"h-9 flex-none gap-2 rounded-full px-4 py-2 text-muted-foreground shadow-none transition-colors hover:text-foreground",
-										"data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none",
-										"data-[state=active]:hover:bg-primary data-[state=active]:hover:text-primary-foreground",
+										"data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:shadow-none",
+										"data-[state=active]:hover:bg-secondary data-[state=active]:hover:text-secondary-foreground",
 									)}
 								>
 									<Icon className="size-4" />

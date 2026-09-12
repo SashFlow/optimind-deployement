@@ -55,18 +55,16 @@ import {
 	useUpdatePhoneNumberMutation,
 } from "@/hooks/numbers";
 import type { Agent, PhoneNumber } from "@/types/numbers";
+import { PlivoBuyPanel } from "./PlivoBuyPanel";
 
 type NumbersInventoryProps = {
 	organizationId: string | null;
 	agents: Agent[];
-	onGetNumber: () => void;
-	onManageRouting: () => void;
 };
 
 export function NumbersInventory({
 	organizationId,
 	agents,
-	onGetNumber,
 }: NumbersInventoryProps) {
 	const numbersQuery = usePhoneNumbersQuery(organizationId);
 	const trunksQuery = useSipTrunksQuery(organizationId);
@@ -75,6 +73,7 @@ export function NumbersInventory({
 	const deleteMutation = useDeletePhoneNumberMutation(organizationId);
 	const releaseMutation = useReleasePlivoNumberMutation(organizationId);
 
+	const [buyOpen, setBuyOpen] = useState(false);
 	const [addOpen, setAddOpen] = useState(false);
 	const [e164, setE164] = useState("");
 	const [addAgentId, setAddAgentId] = useState("");
@@ -183,15 +182,23 @@ export function NumbersInventory({
 					className="pl-9"
 				/>
 			</div>
-			<Button
-				type="button"
-				variant="outline"
-				size="sm"
-				className="ml-auto"
-				onClick={() => setAddOpen(true)}
-			>
-				Register number
-			</Button>
+			<div className="ml-auto flex flex-wrap items-center gap-2">
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					onClick={() => setAddOpen(true)}
+				>
+					Register number
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					onClick={() => setBuyOpen(true)}
+				>
+					Buy number
+				</Button>
+			</div>
 		</>
 	);
 
@@ -246,8 +253,11 @@ export function NumbersInventory({
 							Buy a Plivo number or register one you already own.
 						</p>
 						<div className="mt-4 flex flex-wrap justify-center gap-2">
-							<Button type="button" onClick={onGetNumber}>
-								Get a number
+							<Button
+								type="button"
+								onClick={() => setBuyOpen(true)}
+							>
+								Buy a number
 							</Button>
 							<Button
 								type="button"
@@ -416,6 +426,25 @@ export function NumbersInventory({
 					</DataTableBody>
 				)}
 			</DataTableShell>
+
+			<Dialog open={buyOpen} onOpenChange={setBuyOpen}>
+				<DialogContent className="flex max-h-[90vh] w-full max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl">
+					<DialogHeader className="shrink-0 border-b px-6 py-4">
+						<DialogTitle>Buy numbers</DialogTitle>
+						<DialogDescription>
+							Search available Plivo numbers and add them to this
+							organization.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="min-h-0 flex-1 overflow-auto p-4">
+						<PlivoBuyPanel
+							organizationId={organizationId}
+							agents={agents}
+							onPurchased={() => setBuyOpen(false)}
+						/>
+					</div>
+				</DialogContent>
+			</Dialog>
 
 			<Dialog open={addOpen} onOpenChange={setAddOpen}>
 				<DialogContent>

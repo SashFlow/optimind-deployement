@@ -1,6 +1,5 @@
 "use client";
 
-import { ResourceCreateDialog } from "@saas/app/ResourceCreateDialog";
 import { ResourcePage } from "@saas/app/ResourcePage";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -20,28 +19,9 @@ export function CampaignsListPage() {
 		enabled: !!organizationId,
 	});
 
-	const agentsQuery = useQuery({
-		...orpc.agents.list.queryOptions({
-			input: { organizationId },
-		}),
-		enabled: !!organizationId,
-	});
-
 	const listQueryKey = orpc.campaigns.list.key({
 		input: { organizationId },
 	});
-
-	const createMutation = useMutation(
-		orpc.campaigns.create.mutationOptions({
-			onSuccess: async () => {
-				await queryClient.invalidateQueries({
-					queryKey: listQueryKey,
-				});
-				toast.success("Campaign created");
-			},
-			onError: (error) => toast.error(error.message),
-		}),
-	);
 
 	const updateMutation = useMutation(
 		orpc.campaigns.update.mutationOptions({
@@ -68,7 +48,6 @@ export function CampaignsListPage() {
 	);
 
 	const campaigns = query.data?.campaigns ?? [];
-	const defaultAgentId = agentsQuery.data?.agents[0]?.id;
 	const isLoading = !organizationId || query.isPending;
 
 	return (
@@ -97,36 +76,6 @@ export function CampaignsListPage() {
 				},
 			}))}
 			searchPlaceholder="Search campaigns"
-			createAction={
-				<ResourceCreateDialog
-					title="Create campaign"
-					description={
-						defaultAgentId
-							? "Start an outbound voice campaign with your first agent."
-							: "Create an agent first, then add a campaign."
-					}
-					namePlaceholder="Q2 outreach"
-					descriptionPlaceholder="Optional description"
-					submitLabel="Create campaign"
-					loading={createMutation.isPending}
-					onCreate={async (name, description) => {
-						if (!organizationId || !defaultAgentId) {
-							toast.error(
-								"Create an agent before starting a campaign",
-							);
-							return;
-						}
-						await createMutation.mutateAsync({
-							organizationId,
-							agentId: defaultAgentId,
-							name,
-							description: description || undefined,
-							mode: "OUTBOUND_LIST",
-							channel: "VOICE",
-						});
-					}}
-				/>
-			}
 			empty={{
 				icon: <SendHorizonalIcon className="size-8" />,
 				title: "No campaigns",

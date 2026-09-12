@@ -13,6 +13,7 @@ import {
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
+import { cn } from "@repo/ui/utils";
 import { PlusIcon } from "lucide-react";
 import * as React from "react";
 
@@ -25,6 +26,9 @@ type ResourceCreateDialogProps = {
 	descriptionPlaceholder: string;
 	submitLabel: string;
 	loading?: boolean;
+	triggerClassName?: string;
+	/** Custom trigger element (e.g. FolderTabsActions button). Defaults to primary Button. */
+	trigger?: React.ReactElement;
 	onCreate: (name: string, description: string) => void | Promise<void>;
 };
 
@@ -37,6 +41,8 @@ export function ResourceCreateDialog({
 	descriptionPlaceholder,
 	submitLabel,
 	loading = false,
+	triggerClassName,
+	trigger,
 	onCreate,
 }: ResourceCreateDialogProps) {
 	const [open, setOpen] = React.useState(false);
@@ -66,10 +72,15 @@ export function ResourceCreateDialog({
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>
-				<Button className="gap-2" loading={loading}>
-					<PlusIcon className="size-4" />
-					{submitLabel}
-				</Button>
+				{trigger ?? (
+					<Button
+						className={cn("gap-2", triggerClassName)}
+						loading={loading}
+					>
+						<PlusIcon className="size-4" />
+						{submitLabel}
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="max-w-md">
 				<DialogHeader>

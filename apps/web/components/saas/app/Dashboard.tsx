@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@repo/ui/button";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -13,7 +12,6 @@ import {
 	ClockIcon,
 	PhoneIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActivityChartCard } from "@/components/saas/app/dashboard/ActivityChartCard";
 import { ChannelBreakdownCard } from "@/components/saas/app/dashboard/ChannelBreakdownCard";
@@ -81,7 +79,7 @@ function DashboardBody({
 
 	return (
 		<section className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6">
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+			<div className="flex flex-col gap-4">
 				<div className="space-y-1">
 					<h1 className="text-2xl font-semibold tracking-tight">
 						Welcome Back!
@@ -89,11 +87,6 @@ function DashboardBody({
 					<p className="text-sm text-muted-foreground">
 						Here&apos;s what&apos;s happening across {orgName}.
 					</p>
-				</div>
-				<div className="flex flex-wrap gap-2">
-					<Button asChild className="rounded-full">
-						<Link href="/app/agents">Review sessions</Link>
-					</Button>
 				</div>
 			</div>
 

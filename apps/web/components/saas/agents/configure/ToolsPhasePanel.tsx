@@ -229,7 +229,7 @@ export function ToolsPhasePanel({
 							<TabsTrigger
 								key={phase.value}
 								value={phase.value}
-								className="rounded-none px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+								className="rounded-none px-4 data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground"
 							>
 								{phase.label}
 							</TabsTrigger>
