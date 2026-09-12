@@ -6,11 +6,14 @@ const { from } = config.mails;
 
 export const send: SendEmailHandler = async ({ to, subject, html, text }) => {
 	const resend = new Resend(process.env.RESEND_API_KEY);
-	await resend.emails.send({
+	const { error } = await resend.emails.send({
 		from,
 		to: [to],
 		subject,
 		html,
 		text,
 	});
+	if (error) {
+		throw new Error(error.message || "Failed to send email via Resend");
+	}
 };

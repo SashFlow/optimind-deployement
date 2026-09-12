@@ -56,6 +56,6 @@ export async function sendEmail<T extends TemplateId>(
 		return true;
 	} catch (e) {
 		logger.error(e);
-		return false;
+		throw e instanceof Error ? e : new Error("Failed to send email");
 	}
 }

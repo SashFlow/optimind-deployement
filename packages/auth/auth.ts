@@ -5,6 +5,7 @@ import {
 	getPurchasesByOrganizationId,
 	getPurchasesByUserId,
 	getUserByEmail,
+	updateUser,
 } from "@repo/database";
 import type { Locale } from "@repo/i18n";
 import { logger } from "@repo/logs";
@@ -168,6 +169,12 @@ export const auth = betterAuth({
 				},
 				locale,
 			});
+		},
+		// Admin invites send a password-reset link; once set, treat email as verified.
+		onPasswordReset: async ({ user }) => {
+			if (!user.emailVerified) {
+				await updateUser({ id: user.id, emailVerified: true });
+			}
 		},
 	},
 	emailVerification: {

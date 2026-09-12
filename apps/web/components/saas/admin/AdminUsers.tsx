@@ -133,6 +133,20 @@ function randomTempPassword() {
 	return `Tmp-${Math.random().toString(36).slice(2, 10)}!9`;
 }
 
+async function sendInviteEmail(email: string) {
+	const redirectTo = new URL(
+		"/auth/reset-password",
+		window.location.origin,
+	).toString();
+	const { error } = await authClient.requestPasswordReset({
+		email,
+		redirectTo,
+	});
+	if (error) {
+		throw new Error(error.message || "Unable to send invite email.");
+	}
+}
+
 export function AdminUsers() {
 	const queryClient = useQueryClient();
 	const usersQuery = useQuery({
@@ -249,12 +263,14 @@ export function AdminUsers() {
 			if (error)
 				throw new Error(error.message || "Unable to invite user.");
 
-			await authClient.sendVerificationEmail({ email });
+			// sendVerificationEmail only works for the signed-in user's own email,
+			// so invites use a password-reset link instead.
+			await sendInviteEmail(email);
 			setInviteUrl(
-				new URL("/auth/login", window.location.origin).toString(),
+				new URL("/auth/forgot-password", window.location.origin).toString(),
 			);
 			await invalidateUsers();
-			toast.success("User created");
+			toast.success("Invite email sent");
 		} catch (cause) {
 			setInviteError(
 				cause instanceof Error
@@ -292,16 +308,12 @@ export function AdminUsers() {
 	const reinviteUser = async (user: Account) => {
 		setBusyId(user.id);
 		try {
-			const { error } = await authClient.sendVerificationEmail({
-				email: user.email,
-			});
-			if (error)
-				throw new Error(error.message || "Unable to reinvite user.");
+			await sendInviteEmail(user.email);
 			setInviteUrl(
-				new URL("/auth/login", window.location.origin).toString(),
+				new URL("/auth/forgot-password", window.location.origin).toString(),
 			);
 			setInviteOpen(true);
-			toast.success("Verification email sent");
+			toast.success("Invite email sent");
 		} catch (cause) {
 			toast.error(
 				cause instanceof Error
@@ -362,10 +374,8 @@ export function AdminUsers() {
 		let ok = 0;
 		for (const user of selectedInvited) {
 			try {
-				const { error } = await authClient.sendVerificationEmail({
-					email: user.email,
-				});
-				if (!error) ok += 1;
+				await sendInviteEmail(user.email);
+				ok += 1;
 			} catch {
 				// continue
 			}
@@ -818,12 +828,12 @@ export function AdminUsers() {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							{inviteUrl ? "Invite link" : "Invite user"}
+							{inviteUrl ? "Invite sent" : "Invite user"}
 						</DialogTitle>
 						<DialogDescription>
 							{inviteUrl
-								? "Share this sign-in link with the invitee."
-								: "Create a user with a role. They can verify email and set a password."}
+								? "We emailed a link to set their password. You can also share the forgot-password page if they need to request another link."
+								: "Create a user and email them a link to set their password."}
 						</DialogDescription>
 					</DialogHeader>
 					{inviteUrl ? (
