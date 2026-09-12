@@ -16,11 +16,24 @@ import { cn } from "@repo/ui/utils";
 import { clearCache } from "@shared/lib/cache";
 import { GalleryVerticalEndIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useOrganizationListQuery } from "@/services/organization";
 
 const logoButtonClass =
-	"flex size-14 shrink-0 items-center justify-center rounded-full border border-border/40 bg-white text-primary shadow-sm outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring";
+	"relative z-10 flex size-14 shrink-0 items-center justify-center rounded-full border border-border/40 bg-white text-primary shadow-sm outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring";
+
+function LogoBackdrop({ children }: { children: ReactNode }) {
+	return (
+		<div className="relative flex items-center justify-center">
+			<div
+				aria-hidden
+				className="pointer-events-none absolute size-[4.75rem] rounded-full bg-[radial-gradient(circle,rgba(0,0,0,0.2)_0%,transparent_70%)]"
+			/>
+			{children}
+		</div>
+	);
+}
 
 export function AppSidebarLogo({ className }: { className?: string }) {
 	const { activeOrganization, setActiveOrganization } =
@@ -37,20 +50,24 @@ export function AppSidebarLogo({ className }: { className?: string }) {
 
 	if (!activeTeam) {
 		return (
-			<div className={cn(logoButtonClass, className)} aria-hidden>
-				<Logo withLabel={false} className="[&_svg]:size-7" />
-			</div>
+			<LogoBackdrop>
+				<div className={cn(logoButtonClass, className)} aria-hidden>
+					<Logo withLabel={false} className="[&_svg]:size-7" />
+				</div>
+			</LogoBackdrop>
 		);
 	}
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger
-				className={cn(logoButtonClass, className)}
-				aria-label={`Organization: ${activeTeam.name}`}
-			>
-				<Logo withLabel={false} className="[&_svg]:size-7" />
-			</DropdownMenuTrigger>
+			<LogoBackdrop>
+				<DropdownMenuTrigger
+					className={cn(logoButtonClass, className)}
+					aria-label={`Organization: ${activeTeam.name}`}
+				>
+					<Logo withLabel={false} className="[&_svg]:size-7" />
+				</DropdownMenuTrigger>
+			</LogoBackdrop>
 			<DropdownMenuContent
 				className="w-56"
 				align="start"

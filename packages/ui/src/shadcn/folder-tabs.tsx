@@ -29,7 +29,7 @@ const FolderTabsBar = React.forwardRef<
 	<div
 		ref={ref}
 		className={cn(
-			"flex shrink-0 items-end gap-2 px-2 pt-2 sm:px-3 sm:pt-2.5",
+			"flex shrink-0 items-end gap-2 bg-linear-to-t from-black/15 to-transparent px-2 pt-2 sm:px-3 sm:pt-2.5",
 			className,
 		)}
 		{...props}
@@ -98,10 +98,10 @@ const FolderTabsTrigger = React.forwardRef<
 		ref={ref}
 		className={cn(
 			"relative z-0 inline-flex shrink-0 items-center gap-2 rounded-t-xl px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
-			"bg-background/70 text-muted-foreground shadow-xs hover:bg-background hover:text-foreground",
+			"bg-background/70 text-muted-foreground hover:bg-background hover:text-foreground",
 			"focus-visible:ring-ring focus-visible:z-20 focus-visible:ring-2 focus-visible:outline-hidden",
 			"disabled:pointer-events-none disabled:opacity-50",
-			"data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:z-10 data-[state=active]:shadow-sm",
+			"data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:z-10",
 			className,
 		)}
 		{...props}

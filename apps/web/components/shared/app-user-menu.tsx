@@ -73,8 +73,8 @@ export function AppUserMenu({
 				<DropdownMenuTrigger
 					className={cn(
 						showMeta
-							? "inline-flex h-16 items-center gap-2 rounded-full border border-border/60 bg-white px-1.5 text-left shadow-xs outline-none backdrop-blur-sm transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring"
-							: "inline-flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/40 bg-white shadow-sm outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring",
+							? "inline-flex h-16 items-center gap-2 rounded-full border border-primary bg-white px-1.5 text-left shadow-xs outline-none backdrop-blur-sm transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring"
+							: "inline-flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary bg-white shadow-sm outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring",
 						className,
 					)}
 					aria-label={showMeta ? undefined : `Account: ${name}`}

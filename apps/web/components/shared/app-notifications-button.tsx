@@ -14,7 +14,7 @@ export function AppNotificationsButton({ className }: { className?: string }) {
 		<DropdownMenu>
 			<DropdownMenuTrigger
 				className={cn(
-					"inline-flex size-12 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+					"inline-flex size-12 shrink-0 items-center justify-center rounded-full text-muted-foreground shadow-md outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
 					className,
 				)}
 				aria-label="Notifications"
