@@ -105,7 +105,7 @@ export function DashboardAnalyticsSections({
 			/>
 
 			{/* 3. Minutes + SIP */}
-			<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
+			<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px_220px]">
 				<AnalyticsLineChart
 					title="Minutes"
 					hint="Inbound, outbound, and total session duration for your organization."
@@ -128,6 +128,15 @@ export function DashboardAnalyticsSections({
 					title="Total outbound"
 					hint="Sum of outbound session duration."
 					value={formatDurationMs(telephony.total_outbound_ms)}
+				/>
+				<BigNumberCard
+					title="Answer rate"
+					hint="SIP/phone sessions that reached connected."
+					value={
+						telephony.answer_rate != null
+							? `${(telephony.answer_rate * 100).toFixed(1)}%`
+							: "—"
+					}
 				/>
 			</div>
 			<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">

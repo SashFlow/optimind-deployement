@@ -46,6 +46,99 @@ export function useDashboardAnalyticsQuery(
 	});
 }
 
+export function useDashboardUsageQuery(
+	organizationId?: string,
+	days = 30,
+	options?: { enabled?: boolean },
+) {
+	return useQuery({
+		...orpc.dashboard.usage.queryOptions({
+			input: { organizationId: organizationId ?? "", days },
+		}),
+		enabled: !!organizationId && (options?.enabled ?? true),
+		select: (data) => data.usage,
+	});
+}
+
+export function useDashboardCostQuery(
+	organizationId?: string,
+	days = 30,
+	options?: { enabled?: boolean },
+) {
+	return useQuery({
+		...orpc.dashboard.cost.queryOptions({
+			input: { organizationId: organizationId ?? "", days },
+		}),
+		enabled: !!organizationId && (options?.enabled ?? true),
+		select: (data) => data.cost,
+	});
+}
+
+export function useDashboardQualityQuery(
+	organizationId?: string,
+	days = 30,
+	options?: { enabled?: boolean },
+) {
+	return useQuery({
+		...orpc.dashboard.quality.queryOptions({
+			input: { organizationId: organizationId ?? "", days },
+		}),
+		enabled: !!organizationId && (options?.enabled ?? true),
+		select: (data) => data.quality,
+	});
+}
+
+export function useDashboardActionsQuery(
+	organizationId?: string,
+	days = 30,
+	options?: { enabled?: boolean },
+) {
+	return useQuery({
+		...orpc.dashboard.actions.queryOptions({
+			input: { organizationId: organizationId ?? "", days },
+		}),
+		enabled: !!organizationId && (options?.enabled ?? true),
+		select: (data) => data.actions,
+	});
+}
+
+export function useDashboardLatencyQuery(
+	organizationId?: string,
+	days = 30,
+	options?: { enabled?: boolean },
+) {
+	return useQuery({
+		...orpc.dashboard.latency.queryOptions({
+			input: { organizationId: organizationId ?? "", days },
+		}),
+		enabled: !!organizationId && (options?.enabled ?? true),
+		select: (data) => data.latency,
+	});
+}
+
+export function useAgentServerStatsQuery(
+	agentId?: string,
+	days = 30,
+) {
+	return useQuery({
+		...orpc.agents.stats.queryOptions({
+			input: { id: agentId ?? "", days },
+		}),
+		enabled: !!agentId,
+		select: (data) => data.stats,
+	});
+}
+
+export function useCampaignAnalyticsQuery(campaignId?: string) {
+	return useQuery({
+		...orpc.campaigns.analytics.queryOptions({
+			input: { id: campaignId ?? "" },
+		}),
+		enabled: !!campaignId,
+		select: (data) => data.analytics,
+	});
+}
+
 export function useAvatarsQuery(organizationId: string) {
 	return useQuery({
 		...orpc.avatars.list.queryOptions({

@@ -14,10 +14,34 @@ export type DashboardStats = {
 	total_sessions: number;
 	active_sessions: number;
 	completed_sessions: number;
+	failed_sessions?: number;
 	avg_duration_ms: number | null;
+	p50_duration_ms?: number | null;
+	p95_duration_ms?: number | null;
+	avg_time_to_connect_ms?: number | null;
 	failure_rate: number | null;
+	success_rate?: number | null;
 	daily: AgentDailyStats[];
 	by_channel: Record<string, number>;
+	by_direction?: Record<string, number>;
+	by_end_reason?: Record<string, number>;
+	by_agent?: Array<{
+		agentId: string;
+		name: string;
+		count: number;
+		completed: number;
+		failed: number;
+		avg_duration_ms: number | null;
+	}>;
+	failures?: Array<{
+		id: string;
+		agentId: string;
+		agentName: string;
+		errorCode: string | null;
+		errorMessage: string | null;
+		endReason: string | null;
+		createdAt: string | Date;
+	}>;
 };
 
 export type AnalyticsLabelPct = {
@@ -66,6 +90,19 @@ export type DashboardAnalytics = {
 		total_inbound_ms: number;
 		total_outbound_ms: number;
 		sip_sessions_total: number;
+		answer_rate?: number | null;
+		top_numbers?: Array<{
+			number: string;
+			attempts: number;
+			connects: number;
+			duration_ms: number;
+		}>;
+		trunks?: Array<{
+			trunkId: string;
+			count: number;
+			failed: number;
+			duration_ms: number;
+		}>;
 	};
 	egress: {
 		by_type_daily: Array<{
@@ -78,6 +115,8 @@ export type DashboardAnalytics = {
 		total_count: number;
 		total_billable_duration_ms: number;
 		total_track_duration_ms: number;
+		failure_rate?: number | null;
+		total_bytes?: number;
 	};
 };
 

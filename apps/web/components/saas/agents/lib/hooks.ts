@@ -27,6 +27,25 @@ export type SessionDetail = {
 		segments?: TranscriptSegmentRow[];
 	} | null;
 	egressJobs?: EgressJobRow[];
+	collectedFields?: Array<{
+		id: string;
+		key: string;
+		label?: string | null;
+		value: unknown;
+	}>;
+	campaignSession?: {
+		outcome?: string | null;
+		summary?: string | null;
+		recordingUrl?: string | null;
+		status?: string;
+	} | null;
+	callbackSchedules?: Array<{
+		id: string;
+		scheduledAt: string | Date;
+		status: string;
+		phoneE164: string;
+		source: string;
+	}>;
 };
 
 export function useAgentSessionsQuery(

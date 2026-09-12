@@ -36,6 +36,8 @@ const sessionDetailInclude = {
 	toolCalls: { orderBy: { createdAt: "asc" as const } },
 	events: { orderBy: { sequence: "asc" as const }, take: 200 },
 	campaignSession: true,
+	collectedFields: { orderBy: { capturedAt: "asc" as const } },
+	callbackSchedules: { orderBy: { scheduledAt: "desc" as const }, take: 20 },
 } satisfies Prisma.AgentSessionInclude;
 
 export async function createAgentSession(data: {
@@ -526,6 +528,141 @@ export async function linkCampaignSessionToAgentSession(
 		where: { id: campaignSessionId },
 		data: { agentSessionId },
 	});
+}
+
+/**
+ * Sync CampaignSession outcome/recording/duration from a terminal AgentSession.
+ */
+export async function syncCampaignSessionFromAgentSession(
+	agentSessionId: string,
+) {
+	const session = await db.agentSession.findUnique({
+		where: { id: agentSessionId },
+		include: {
+			campaignSession: true,
+			transcript: {
+				include: {
+					segments: { orderBy: { sequence: "asc" } },
+				},
+			},
+			egressJobs: { orderBy: { createdAt: "desc" } },
+			events: {
+				where: {
+					eventType: {
+						in: [
+							"transfer_started",
+							"amd_result",
+							"reschedule_requested",
+							"voicemail_retry_scheduled",
+							"end_call",
+						],
+					},
+				},
+				orderBy: { sequence: "asc" },
+			},
+		},
+	});
+
+	if (!session?.campaignSession) return null;
+
+	const cs = session.campaignSession;
+	const durationSeconds =
+		session.durationMs != null
+			? Math.round(session.durationMs / 1000)
+			: cs.durationSeconds;
+
+	let campaignStatus:
+		| "COMPLETED"
+		| "FAILED"
+		| "ABANDONED"
+		| "RESCHEDULED"
+		| "IN_PROGRESS" = "IN_PROGRESS";
+	if (session.status === "COMPLETED") campaignStatus = "COMPLETED";
+	else if (session.status === "FAILED") campaignStatus = "FAILED";
+	else if (session.status === "CANCELLED") campaignStatus = "ABANDONED";
+
+	let outcome =
+		session.endReason?.toLowerCase() ??
+		session.status.toLowerCase() ??
+		null;
+
+	for (const event of session.events) {
+		if (event.eventType === "transfer_started") outcome = "transferred";
+		if (event.eventType === "reschedule_requested") {
+			outcome = "rescheduled";
+			campaignStatus = "RESCHEDULED";
+		}
+		if (event.eventType === "voicemail_retry_scheduled") {
+			outcome = "voicemail";
+			campaignStatus = "RESCHEDULED";
+		}
+		if (event.eventType === "amd_result") {
+			const payload =
+				event.payload &&
+				typeof event.payload === "object" &&
+				!Array.isArray(event.payload)
+					? (event.payload as Record<string, unknown>)
+					: {};
+			const category =
+				typeof payload.category === "string"
+					? payload.category
+					: null;
+			if (category) outcome = `amd:${category}`;
+		}
+		if (event.eventType === "end_call") outcome = "completed";
+	}
+
+	const recordingUrl =
+		session.egressJobs.find(
+			(j) => j.status === "COMPLETE" && (j.fileUrl || j.outputUrls[0]),
+		)?.fileUrl ??
+		session.egressJobs.find((j) => j.outputUrls[0])?.outputUrls[0] ??
+		cs.recordingUrl;
+
+	const messages = session.transcript?.segments.map((seg) => ({
+		role: seg.role,
+		text: seg.text,
+		startMs: seg.startMs,
+		endMs: seg.endMs,
+	}));
+
+	const updated = await db.campaignSession.update({
+		where: { id: cs.id },
+		data: {
+			status: campaignStatus,
+			endedAt: session.endedAt ?? new Date(),
+			durationSeconds: durationSeconds ?? undefined,
+			outcome,
+			transcript: session.transcript?.fullText
+				? { fullText: session.transcript.fullText }
+				: undefined,
+			messages: messages ? toJson(messages) : undefined,
+			recordingUrl: recordingUrl ?? undefined,
+			egressId:
+				session.egressJobs[0]?.livekitEgressId ?? cs.egressId ?? undefined,
+			egressStatus: session.egressJobs[0]?.status ?? cs.egressStatus ?? undefined,
+		},
+	});
+
+	if (cs.contactId && outcome) {
+		const contactStatus =
+			campaignStatus === "RESCHEDULED"
+				? ("RESCHEDULED" as const)
+				: campaignStatus === "COMPLETED"
+					? ("COMPLETED" as const)
+					: campaignStatus === "FAILED"
+						? ("FAILED" as const)
+						: undefined;
+		await db.campaignContact.update({
+			where: { id: cs.contactId },
+			data: {
+				lastOutcome: outcome,
+				...(contactStatus ? { status: contactStatus } : {}),
+			},
+		});
+	}
+
+	return updated;
 }
 
 export async function getEgressJobByLivekitId(livekitEgressId: string) {

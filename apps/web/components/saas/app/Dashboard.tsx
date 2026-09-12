@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { ActivityChartCard } from "@/components/saas/app/dashboard/ActivityChartCard";
 import { ChannelBreakdownCard } from "@/components/saas/app/dashboard/ChannelBreakdownCard";
 import { DashboardAnalyticsSections } from "@/components/saas/app/dashboard/DashboardAnalyticsSections";
+import { DashboardExtendedSections } from "@/components/saas/app/dashboard/DashboardExtendedSections";
 import {
 	computeDeltaPct,
 	StatCard,
@@ -124,7 +125,7 @@ function DashboardBody({
 					title="Avg duration"
 					value={formatDuration(stats.avg_duration_ms)}
 					icon={ClockIcon}
-					description={`Failure rate ${failurePct}`}
+					description={`Success ${stats.success_rate != null ? `${(stats.success_rate * 100).toFixed(1)}%` : "—"} · Fail ${failurePct}`}
 					sparkline={sparkline}
 				/>
 			</div>
@@ -157,10 +158,15 @@ function DashboardBody({
 								Usage analytics
 							</h2>
 							<p className="text-sm text-muted-foreground">
-								LiveKit Cloud metrics (up to 7 days) and org
-								telephony / egress
+								Operations, usage/cost, quality, actions,
+								latency, telephony, and egress
 							</p>
 						</div>
+						<DashboardExtendedSections
+							organizationId={organizationId}
+							stats={stats}
+							enabled={advancedOpen}
+						/>
 						{analyticsQuery.isLoading ? (
 							<div className="space-y-4">
 								<ChartCardSkeleton />
@@ -174,7 +180,7 @@ function DashboardBody({
 								className="text-sm text-destructive"
 								role="alert"
 							>
-								Unable to load analytics.
+								Unable to load telephony analytics.
 							</p>
 						) : analyticsQuery.data ? (
 							<DashboardAnalyticsSections

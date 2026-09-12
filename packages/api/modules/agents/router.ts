@@ -8,6 +8,7 @@ import {
 	listTrialLinks,
 	list,
 	publish,
+	stats,
 	updateTrialLink,
 	update,
 	updateConfig,
@@ -26,4 +27,5 @@ export const agentsRouter = {
 	createTrialLink,
 	updateTrialLink,
 	deleteTrialLink,
+	stats,
 };

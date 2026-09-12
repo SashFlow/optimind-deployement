@@ -11,7 +11,9 @@ import {
 	linkCampaignSessionToAgentSession,
 	listAgentSessions,
 	saveAgentSessionReport,
+	syncCampaignSessionFromAgentSession,
 	updateAgentSessionLifecycle,
+	upsertSessionCollectedFields,
 } from "@repo/database";
 import {
 	createOutboundRoomWithDispatch,
@@ -726,6 +728,11 @@ export const patchLifecycle = workerProcedure
 		) {
 			await finalizeSessionEgressJobs(session.egressJobs);
 			try {
+				await syncCampaignSessionFromAgentSession(session.id);
+			} catch {
+				// Non-fatal: campaign sync is best-effort
+			}
+			try {
 				const { resumeAgentSessionWait } = await import(
 					"../workflows/lib/runner"
 				);
@@ -829,6 +836,17 @@ export const postReport = workerProcedure
 				])
 				.optional(),
 			metrics: z.array(z.record(z.string(), z.unknown())).optional(),
+			collectedData: z
+				.array(
+					z.object({
+						key: z.string().min(1),
+						value: z.unknown(),
+						label: z.string().optional(),
+						fieldType: z.string().optional(),
+						required: z.boolean().optional(),
+					}),
+				)
+				.optional(),
 			isFinal: z.boolean().optional(),
 		}),
 	)
@@ -862,6 +880,39 @@ export const postReport = workerProcedure
 			metrics: input.metrics,
 			isFinal: input.isFinal ?? true,
 		});
+
+		if (input.collectedData && input.collectedData.length > 0) {
+			await upsertSessionCollectedFields({
+				organizationId: session.organizationId,
+				sessionId: session.id,
+				agentId: session.agentId,
+				fields: input.collectedData,
+			});
+			const prevMeta =
+				session.metadata &&
+				typeof session.metadata === "object" &&
+				!Array.isArray(session.metadata)
+					? (session.metadata as Record<string, unknown>)
+					: {};
+			const { db } = await import("@repo/database");
+			await db.agentSession.update({
+				where: { id: session.id },
+				data: {
+					metadata: {
+						...prevMeta,
+						collectedData: Object.fromEntries(
+							input.collectedData.map((f) => [f.key, f.value]),
+						),
+					} as object,
+				},
+			});
+		}
+
+		try {
+			await syncCampaignSessionFromAgentSession(session.id);
+		} catch {
+			// Non-fatal
+		}
 
 		return {
 			session: await getAgentSessionById(session.id),

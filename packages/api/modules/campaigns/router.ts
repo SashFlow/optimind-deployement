@@ -1,5 +1,6 @@
 import {
 	attachKnowledgeBase,
+	analytics,
 	create,
 	createAccessLink,
 	createContact,
@@ -34,4 +35,5 @@ export const campaignsRouter = {
 	listSessions,
 	createAccessLink,
 	attachKnowledgeBase,
+	analytics,
 };

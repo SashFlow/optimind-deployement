@@ -1,4 +1,15 @@
-import { db } from "@repo/database";
+import {
+	aggregateActions,
+	aggregateCampaignAnalytics,
+	aggregateCost,
+	aggregateLatency,
+	aggregateQuality,
+	aggregateSessionStats,
+	aggregateUsage,
+	db,
+	listSessionCollectedFields,
+} from "@repo/database";
+import { ORPCError } from "@orpc/client";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
@@ -23,6 +34,12 @@ function emptyDailyMap(days: number) {
 	);
 }
 
+const orgDaysInput = z.object({
+	organizationId: z.string(),
+	days: z.number().int().min(1).max(90).default(30),
+	agentId: z.string().optional(),
+});
+
 export const stats = protectedProcedure
 	.route({
 		method: "GET",
@@ -30,43 +47,21 @@ export const stats = protectedProcedure
 		tags: ["Dashboard"],
 		summary: "Organization dashboard session stats",
 	})
-	.input(
-		z.object({
-			organizationId: z.string(),
-			days: z.number().int().min(1).max(90).default(30),
-		}),
-	)
+	.input(orgDaysInput)
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
 
 		const since = new Date();
 		since.setDate(since.getDate() - input.days);
 
-		const sessions = await db.agentSession.findMany({
-			where: {
-				organizationId: input.organizationId,
-				createdAt: { gte: since },
-			},
-			select: {
-				status: true,
-				channel: true,
-				durationMs: true,
-				createdAt: true,
-			},
+		const agg = await aggregateSessionStats({
+			organizationId: input.organizationId,
+			since,
+			agentId: input.agentId,
 		});
 
-		const activeStatuses = new Set(["QUEUED", "ACTIVE"]);
-		const completed = sessions.filter((s) => s.status === "COMPLETED");
-		const failed = sessions.filter((s) => s.status === "FAILED");
-		const durations = sessions
-			.map((s) => s.durationMs)
-			.filter((ms): ms is number => typeof ms === "number" && ms > 0);
-		const totalDuration = durations.reduce((sum, ms) => sum + ms, 0);
-
 		const dailyMap = emptyDailyMap(input.days);
-		const byChannel: Record<string, number> = {};
-
-		for (const session of sessions) {
+		for (const session of agg.sessions) {
 			const key = session.createdAt.toISOString().slice(0, 10);
 			const bucket = dailyMap.get(key);
 			if (bucket) {
@@ -74,27 +69,30 @@ export const stats = protectedProcedure
 				if (session.status === "COMPLETED") bucket.completed += 1;
 				if (session.status === "FAILED") bucket.failed += 1;
 			}
-			const channel = session.channel ?? "WEB";
-			byChannel[channel] = (byChannel[channel] ?? 0) + 1;
 		}
 
-		const failureRate =
-			sessions.length > 0 ? failed.length / sessions.length : null;
+		const failures = agg.sessions
+			.filter((s) => s.status === "FAILED")
+			.slice(0, 25)
+			.map((s) => ({
+				id: s.id,
+				agentId: s.agentId,
+				agentName: s.agent.name,
+				errorCode: s.errorCode,
+				errorMessage: s.errorMessage,
+				endReason: s.endReason,
+				createdAt: s.createdAt,
+			}));
 
 		return {
 			stats: {
-				total_sessions: sessions.length,
-				active_sessions: sessions.filter((s) =>
-					activeStatuses.has(s.status),
-				).length,
-				completed_sessions: completed.length,
-				avg_duration_ms:
-					durations.length > 0
-						? Math.round(totalDuration / durations.length)
-						: null,
-				failure_rate: failureRate,
+				...agg.totals,
 				daily: Array.from(dailyMap.values()),
-				by_channel: byChannel,
+				by_channel: agg.by_channel,
+				by_direction: agg.by_direction,
+				by_end_reason: agg.by_end_reason,
+				by_agent: agg.by_agent,
+				failures,
 			},
 		};
 	});
@@ -129,6 +127,11 @@ export const analytics = protectedProcedure
 				direction: true,
 				durationMs: true,
 				createdAt: true,
+				fromNumber: true,
+				toNumber: true,
+				sipTrunkId: true,
+				connectedAt: true,
+				status: true,
 			},
 		});
 
@@ -141,6 +144,9 @@ export const analytics = protectedProcedure
 				type: true,
 				createdAt: true,
 				durationMs: true,
+				sizeBytes: true,
+				status: true,
+				errorMessage: true,
 			},
 		});
 
@@ -157,6 +163,17 @@ export const analytics = protectedProcedure
 		let totalInbound = 0;
 		let totalOutbound = 0;
 		let sipTotal = 0;
+		let connected = 0;
+		let attempted = 0;
+
+		const numberStats = new Map<
+			string,
+			{ number: string; attempts: number; connects: number; duration_ms: number }
+		>();
+		const trunkStats = new Map<
+			string,
+			{ trunkId: string; count: number; failed: number; duration_ms: number }
+		>();
 
 		for (const session of sessions) {
 			const date = session.createdAt.toISOString().slice(0, 10);
@@ -174,8 +191,36 @@ export const analytics = protectedProcedure
 			}
 			if (session.channel === "SIP" || session.channel === "PHONE") {
 				sipTotal += 1;
+				attempted += 1;
+				if (session.connectedAt) connected += 1;
 				const sipBucket = sipMap.get(date);
 				if (sipBucket) sipBucket.count += 1;
+
+				for (const num of [session.fromNumber, session.toNumber]) {
+					if (!num) continue;
+					const n = numberStats.get(num) ?? {
+						number: num,
+						attempts: 0,
+						connects: 0,
+						duration_ms: 0,
+					};
+					n.attempts += 1;
+					if (session.connectedAt) n.connects += 1;
+					n.duration_ms += duration;
+					numberStats.set(num, n);
+				}
+				if (session.sipTrunkId) {
+					const t = trunkStats.get(session.sipTrunkId) ?? {
+						trunkId: session.sipTrunkId,
+						count: 0,
+						failed: 0,
+						duration_ms: 0,
+					};
+					t.count += 1;
+					if (session.status === "FAILED") t.failed += 1;
+					t.duration_ms += duration;
+					trunkStats.set(session.sipTrunkId, t);
+				}
 			}
 		}
 
@@ -190,11 +235,17 @@ export const analytics = protectedProcedure
 		let totalEgress = 0;
 		let totalBillable = 0;
 		let totalTrack = 0;
+		let egressFailed = 0;
+		let totalBytes = 0;
 
 		for (const job of egressJobs) {
 			totalEgress += 1;
 			const duration = job.durationMs ?? 0;
 			totalBillable += duration;
+			totalBytes += job.sizeBytes ?? 0;
+			if (job.status === "FAILED" || job.status === "ABORTED") {
+				egressFailed += 1;
+			}
 			const date = job.createdAt.toISOString().slice(0, 10);
 			const bucket = egressMap.get(date);
 			const type = String(job.type ?? "").toUpperCase();
@@ -245,13 +296,153 @@ export const analytics = protectedProcedure
 					total_inbound_ms: totalInbound,
 					total_outbound_ms: totalOutbound,
 					sip_sessions_total: sipTotal,
+					answer_rate: attempted > 0 ? connected / attempted : null,
+					top_numbers: Array.from(numberStats.values())
+						.sort((a, b) => b.attempts - a.attempts)
+						.slice(0, 20),
+					trunks: Array.from(trunkStats.values()),
 				},
 				egress: {
 					by_type_daily: Array.from(egressMap.values()),
 					total_count: totalEgress,
 					total_billable_duration_ms: totalBillable,
 					total_track_duration_ms: totalTrack,
+					failure_rate:
+						totalEgress > 0 ? egressFailed / totalEgress : null,
+					total_bytes: totalBytes,
 				},
 			},
 		};
+	});
+
+export const usage = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/dashboard/usage",
+		tags: ["Dashboard"],
+		summary: "SessionUsage aggregates by modality/provider",
+	})
+	.input(orgDaysInput)
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+		const since = new Date();
+		since.setDate(since.getDate() - input.days);
+		const { usages: _u, ...rest } = await aggregateUsage({
+			organizationId: input.organizationId,
+			since,
+			agentId: input.agentId,
+		});
+		return { usage: rest };
+	});
+
+export const cost = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/dashboard/cost",
+		tags: ["Dashboard"],
+		summary: "Estimated cost from SessionUsage × ProviderRate",
+	})
+	.input(orgDaysInput)
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+		const since = new Date();
+		since.setDate(since.getDate() - input.days);
+		const result = await aggregateCost({
+			organizationId: input.organizationId,
+			since,
+			agentId: input.agentId,
+		});
+		return { cost: result };
+	});
+
+export const quality = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/dashboard/quality",
+		tags: ["Dashboard"],
+		summary: "Transcript / conversation quality aggregates",
+	})
+	.input(orgDaysInput)
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+		const since = new Date();
+		since.setDate(since.getDate() - input.days);
+		const result = await aggregateQuality({
+			organizationId: input.organizationId,
+			since,
+			agentId: input.agentId,
+		});
+		return { quality: result };
+	});
+
+export const actions = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/dashboard/actions",
+		tags: ["Dashboard"],
+		summary: "Tool / AMD / transfer / reschedule action aggregates",
+	})
+	.input(orgDaysInput)
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+		const since = new Date();
+		since.setDate(since.getDate() - input.days);
+		const result = await aggregateActions({
+			organizationId: input.organizationId,
+			since,
+			agentId: input.agentId,
+		});
+		return { actions: result };
+	});
+
+export const latency = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/dashboard/latency",
+		tags: ["Dashboard"],
+		summary: "Agent metric latency percentiles",
+	})
+	.input(orgDaysInput)
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+		const since = new Date();
+		since.setDate(since.getDate() - input.days);
+		const result = await aggregateLatency({
+			organizationId: input.organizationId,
+			since,
+			agentId: input.agentId,
+		});
+		return { latency: result };
+	});
+
+export const collectedFields = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/sessions/collected-fields",
+		tags: ["Sessions"],
+		summary: "List collected data fields across sessions",
+	})
+	.input(
+		z.object({
+			organizationId: z.string(),
+			sessionId: z.string().optional(),
+			agentId: z.string().optional(),
+			key: z.string().optional(),
+			days: z.number().int().min(1).max(90).default(30),
+			limit: z.number().int().min(1).max(500).default(100),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+		const since = new Date();
+		since.setDate(since.getDate() - input.days);
+		const fields = await listSessionCollectedFields({
+			organizationId: input.organizationId,
+			sessionId: input.sessionId,
+			agentId: input.agentId,
+			key: input.key,
+			from: since,
+			limit: input.limit,
+		});
+		return { fields };
 	});

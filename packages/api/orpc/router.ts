@@ -4,6 +4,7 @@ import { agentsRouter } from "../modules/agents/router";
 import { auditRouter } from "../modules/audit/router";
 import { authRouter } from "../modules/auth/router";
 import { avatarsRouter } from "../modules/avatars/router";
+import { callbacksRouter } from "../modules/callbacks/router";
 import { campaignsRouter } from "../modules/campaigns/router";
 import { catalogRouter } from "../modules/catalog/router";
 import { contactRouter } from "../modules/contact/router";
@@ -15,6 +16,7 @@ import { newsletterRouter } from "../modules/newsletter/router";
 import { organizationsRouter } from "../modules/organizations/router";
 import { paymentsRouter } from "../modules/payments/router";
 import { previewAssetsRouter } from "../modules/preview-assets/router";
+import { providerRatesRouter } from "../modules/provider-rates/router";
 import { sessionsRouter } from "../modules/sessions/router";
 import { telephonyRouter } from "../modules/telephony/router";
 import { toolsRouter } from "../modules/tools/router";
@@ -47,6 +49,8 @@ export const router = publicProcedure
 		dashboard: dashboardRouter,
 		tools: toolsRouter,
 		previewAssets: previewAssetsRouter,
+		callbacks: callbacksRouter,
+		providerRates: providerRatesRouter,
 	});
 
 export type ApiRouterClient = RouterClient<typeof router>;

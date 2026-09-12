@@ -14,12 +14,10 @@ import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
-import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
+import { useCampaignAnalyticsQuery } from "@/services/api/hooks";
 
 export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 	const queryClient = useQueryClient();
-	const { activeOrganization } = useActiveOrganization();
-	const organizationId = activeOrganization?.id ?? "";
 
 	const campaignQuery = useQuery(
 		orpc.campaigns.get.queryOptions({ input: { id: campaignId } }),
@@ -29,12 +27,7 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 			input: { campaignId, limit: 8 },
 		}),
 	);
-	const metricsQuery = useQuery({
-		...orpc.metrics.byCampaign.queryOptions({
-			input: { organizationId, campaignId },
-		}),
-		enabled: !!organizationId,
-	});
+	const analyticsQuery = useCampaignAnalyticsQuery(campaignId);
 
 	const updateMutation = useMutation(
 		orpc.campaigns.update.mutationOptions({
@@ -68,6 +61,9 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 
 	const campaign = campaignQuery.data?.campaign;
 	const runs = runsQuery.data?.runs ?? [];
+	const analytics = analyticsQuery.data;
+	const funnel = analytics?.funnel;
+	const concurrency = analytics?.concurrency;
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4">
@@ -132,20 +128,148 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<StatCard
 					title="Contacts"
-					value={String(campaign?._count?.contacts ?? 0)}
+					value={String(
+						funnel?.total_contacts ??
+							campaign?._count?.contacts ??
+							0,
+					)}
 				/>
 				<StatCard
 					title="Sessions"
-					value={String(campaign?._count?.sessions ?? 0)}
+					value={String(
+						analytics?.totals.sessions ??
+							campaign?._count?.sessions ??
+							0,
+					)}
 				/>
 				<StatCard
-					title="Workflow runs"
-					value={String(runsQuery.data?.total ?? runs.length)}
+					title="Completion rate"
+					value={
+						funnel?.completion_rate != null
+							? `${(funnel.completion_rate * 100).toFixed(1)}%`
+							: "—"
+					}
 				/>
 				<StatCard
-					title="Metrics points"
-					value={String(metricsQuery.data?.rows?.length ?? 0)}
+					title="Concurrency"
+					value={`${concurrency?.active_now ?? 0}/${concurrency?.max ?? "—"}`}
 				/>
+			</div>
+
+			<div className="grid gap-3 lg:grid-cols-2">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">
+							Contact funnel
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-2 sm:grid-cols-2 text-sm">
+						{Object.entries(funnel?.by_status ?? {}).map(
+							([status, count]) => (
+								<div
+									key={status}
+									className="flex justify-between rounded-md border px-3 py-2"
+								>
+									<span className="text-muted-foreground">
+										{status}
+									</span>
+									<span className="font-medium">
+										{count}
+									</span>
+								</div>
+							),
+						)}
+						{Object.keys(funnel?.by_status ?? {}).length === 0 ? (
+							<p className="text-muted-foreground">
+								No contact status data yet.
+							</p>
+						) : null}
+						<div className="sm:col-span-2 text-xs text-muted-foreground">
+							Avg attempts:{" "}
+							{funnel?.avg_attempts != null
+								? funnel.avg_attempts.toFixed(2)
+								: "—"}{" "}
+							· Consent:{" "}
+							{funnel?.consent_rate != null
+								? `${(funnel.consent_rate * 100).toFixed(1)}%`
+								: "—"}{" "}
+							· DNC: {funnel?.dnc_count ?? 0}
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">
+							Outcomes &amp; callbacks
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-3 text-sm">
+						<div className="grid gap-2 sm:grid-cols-2">
+							{Object.entries(analytics?.outcomes ?? {}).map(
+								([outcome, count]) => (
+									<div
+										key={outcome}
+										className="flex justify-between rounded-md border px-3 py-2"
+									>
+										<span className="truncate text-muted-foreground">
+											{outcome}
+										</span>
+										<span className="font-medium">
+											{count}
+										</span>
+									</div>
+								),
+							)}
+						</div>
+						<div className="flex flex-wrap gap-2">
+							{Object.entries(analytics?.callbacks ?? {}).map(
+								([status, count]) => (
+									<Badge key={status} variant="secondary">
+										{status}: {count}
+									</Badge>
+								),
+							)}
+							{Object.keys(analytics?.callbacks ?? {}).length ===
+							0 ? (
+								<span className="text-muted-foreground">
+									No callbacks scheduled
+								</span>
+							) : null}
+						</div>
+						{(analytics?.access_links?.length ?? 0) > 0 ? (
+							<div className="space-y-1">
+								<div className="text-xs font-medium text-muted-foreground">
+									Access links
+								</div>
+								{(analytics?.access_links ?? []).map(
+									(link: {
+										id: string;
+										label: string | null;
+										kind: string;
+										useCount: number;
+										maxUses: number | null;
+									}) => (
+										<div
+											key={link.id}
+											className="flex justify-between rounded-md border px-3 py-1.5"
+										>
+											<span>
+												{link.label || link.kind}
+											</span>
+											<span>
+												{link.useCount}
+												{link.maxUses != null
+													? `/${link.maxUses}`
+													: ""}
+											</span>
+										</div>
+									),
+								)}
+							</div>
+						) : null}
+					</CardContent>
+				</Card>
 			</div>
 
 			<Card>

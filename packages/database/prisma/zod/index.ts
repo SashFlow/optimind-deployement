@@ -263,6 +263,24 @@ export const SessionUsageScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'upd
 
 export type SessionUsageScalarFieldEnum = z.infer<typeof SessionUsageScalarFieldEnumSchema>;
 
+// File: SessionCollectedFieldScalarFieldEnum.schema.ts
+
+export const SessionCollectedFieldScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'sessionId', 'agentId', 'key', 'label', 'fieldType', 'value', 'required', 'capturedAt'])
+
+export type SessionCollectedFieldScalarFieldEnum = z.infer<typeof SessionCollectedFieldScalarFieldEnumSchema>;
+
+// File: CallbackScheduleScalarFieldEnum.schema.ts
+
+export const CallbackScheduleScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'sessionId', 'campaignId', 'campaignContactId', 'phoneE164', 'scheduledAt', 'status', 'source', 'contactMetadata', 'errorMessage', 'completedSessionId'])
+
+export type CallbackScheduleScalarFieldEnum = z.infer<typeof CallbackScheduleScalarFieldEnumSchema>;
+
+// File: ProviderRateScalarFieldEnum.schema.ts
+
+export const ProviderRateScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'modality', 'provider', 'model', 'unit', 'unitAmountMicros', 'currency', 'unitSource', 'effectiveFrom', 'effectiveTo'])
+
+export type ProviderRateScalarFieldEnum = z.infer<typeof ProviderRateScalarFieldEnumSchema>;
+
 // File: SortOrder.schema.ts
 
 export const SortOrderSchema = z.enum(['asc', 'desc'])
@@ -526,6 +544,24 @@ export type UsageModality = z.infer<typeof UsageModalitySchema>;
 export const UnitSourceSchema = z.enum(['LIVEKIT_INFERENCE', 'BYOK', 'PLATFORM'])
 
 export type UnitSource = z.infer<typeof UnitSourceSchema>;
+
+// File: CallbackScheduleStatus.schema.ts
+
+export const CallbackScheduleStatusSchema = z.enum(['PENDING', 'QUEUED', 'COMPLETED', 'CANCELLED', 'FAILED'])
+
+export type CallbackScheduleStatus = z.infer<typeof CallbackScheduleStatusSchema>;
+
+// File: CallbackScheduleSource.schema.ts
+
+export const CallbackScheduleSourceSchema = z.enum(['RESCHEDULE', 'VOICEMAIL', 'MANUAL'])
+
+export type CallbackScheduleSource = z.infer<typeof CallbackScheduleSourceSchema>;
+
+// File: ProviderRateUnit.schema.ts
+
+export const ProviderRateUnitSchema = z.enum(['TOKEN', 'MINUTE', 'CHARACTER', 'REQUEST'])
+
+export type ProviderRateUnit = z.infer<typeof ProviderRateUnitSchema>;
 
 // File: User.schema.ts
 
@@ -1399,4 +1435,67 @@ export const SessionUsageSchema = z.object({
 });
 
 export type SessionUsageType = z.infer<typeof SessionUsageSchema>;
+
+
+// File: SessionCollectedField.schema.ts
+
+export const SessionCollectedFieldSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  organizationId: z.string(),
+  sessionId: z.string(),
+  agentId: z.string(),
+  key: z.string(),
+  label: z.string().nullish(),
+  fieldType: z.string().default("string"),
+  value: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("null"),
+  required: z.boolean(),
+  capturedAt: z.date(),
+});
+
+export type SessionCollectedFieldType = z.infer<typeof SessionCollectedFieldSchema>;
+
+
+// File: CallbackSchedule.schema.ts
+
+export const CallbackScheduleSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  organizationId: z.string(),
+  sessionId: z.string().nullish(),
+  campaignId: z.string().nullish(),
+  campaignContactId: z.string().nullish(),
+  phoneE164: z.string(),
+  scheduledAt: z.date(),
+  status: CallbackScheduleStatusSchema.default("PENDING"),
+  source: CallbackScheduleSourceSchema.default("RESCHEDULE"),
+  contactMetadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  errorMessage: z.string().nullish(),
+  completedSessionId: z.string().nullish(),
+});
+
+export type CallbackScheduleType = z.infer<typeof CallbackScheduleSchema>;
+
+
+// File: ProviderRate.schema.ts
+
+export const ProviderRateSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  organizationId: z.string().nullish(),
+  modality: UsageModalitySchema,
+  provider: z.string(),
+  model: z.string().nullish(),
+  unit: ProviderRateUnitSchema,
+  unitAmountMicros: z.number().int(),
+  currency: z.string().default("USD"),
+  unitSource: UnitSourceSchema.nullish(),
+  effectiveFrom: z.date(),
+  effectiveTo: z.date().nullish(),
+});
+
+export type ProviderRateType = z.infer<typeof ProviderRateSchema>;
 

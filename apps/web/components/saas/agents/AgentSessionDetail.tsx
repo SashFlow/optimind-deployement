@@ -811,6 +811,80 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 				</Card>
 			</div>
 
+			{(session.collectedFields?.length ?? 0) > 0 ? (
+				<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
+					<CardHeader>
+						<CardTitle className="text-sm font-semibold">
+							Collected fields
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-2 sm:grid-cols-2">
+						{(session.collectedFields ?? []).map((field) => (
+							<div
+								key={field.id}
+								className="rounded-xl border border-border/60 px-3 py-2 text-sm"
+							>
+								<div className="text-xs text-muted-foreground">
+									{field.label || field.key}
+								</div>
+								<div className="font-medium">
+									{String(field.value ?? "—")}
+								</div>
+							</div>
+						))}
+					</CardContent>
+				</Card>
+			) : null}
+
+			{session.campaignSession ? (
+				<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
+					<CardHeader>
+						<CardTitle className="text-sm font-semibold">
+							Campaign outcome
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-1 text-sm">
+						<div>
+							Status: {session.campaignSession.status ?? "—"}
+						</div>
+						<div>
+							Outcome: {session.campaignSession.outcome ?? "—"}
+						</div>
+						{session.campaignSession.summary ? (
+							<p className="text-muted-foreground">
+								{session.campaignSession.summary}
+							</p>
+						) : null}
+					</CardContent>
+				</Card>
+			) : null}
+
+			{(session.callbackSchedules?.length ?? 0) > 0 ? (
+				<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
+					<CardHeader>
+						<CardTitle className="text-sm font-semibold">
+							Callbacks
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-2 text-sm">
+						{(session.callbackSchedules ?? []).map((cb) => (
+							<div
+								key={cb.id}
+								className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 px-3 py-2"
+							>
+								<span>
+									{cb.phoneE164} · {cb.source}
+								</span>
+								<span className="text-muted-foreground">
+									{formatDateTime(cb.scheduledAt)} ·{" "}
+									{cb.status}
+								</span>
+							</div>
+						))}
+					</CardContent>
+				</Card>
+			) : null}
+
 			{session.errorMessage ? (
 				<Card className="rounded-3xl border-destructive/40 shadow-sm ring-1 ring-destructive/10">
 					<CardHeader>

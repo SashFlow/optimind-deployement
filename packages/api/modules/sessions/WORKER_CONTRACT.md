@@ -104,11 +104,16 @@ X-Worker-Api-Key: ...
   },
   "usage": { "model_usage": [ /* LLM/STT/TTS summaries */ ] },
   "metrics": [ /* optional plugin metric dumps */ ],
+  "collectedData": [
+    { "key": "dob", "value": "1990-01-01", "label": "Date of birth", "fieldType": "string", "required": true }
+  ],
   "isFinal": true
 }
 ```
 
 `usage` may be either an object (`{ model_usage: [...] }`) or a raw array of model usage rows.
+
+`collectedData` is optional; when present, rows are upserted into `SessionCollectedField` and mirrored on `AgentSession.metadata.collectedData`.
 
 Then:
 
@@ -118,7 +123,24 @@ X-Worker-Api-Key: ...
 { "status": "COMPLETED", "endReason": "COMPLETED" }
 ```
 
-The report handler:
+### Callbacks / reschedule
+
+```http
+POST /api/internal/callbacks/schedule
+X-Worker-Api-Key: ...
+{
+  "sessionId": "...",
+  "scheduledAt": "2026-09-13T10:00:00+05:30",
+  "phoneNumber": "+15551234567",
+  "campaignId": "...",
+  "contactMetadata": {},
+  "source": "RESCHEDULE"
+}
+```
+
+Response: `{ ok, callbackId, contactId, nextAttemptAt, status }`. Creates a `CallbackSchedule` row and, when a campaign contact is known, reschedules that contact for the dialer.
+
+The report / terminal lifecycle handlers:
 
 - merges into `livekitSessionReport` (never replaces a full report with a metrics-only stub)
 - extracts `chat_history.items` → `Transcript` + `TranscriptSegment` (spoken + typed chat)
@@ -126,6 +148,8 @@ The report handler:
 - materializes `report.events` → `SessionEvent` (`agent.event.*`)
 - materializes function call items → `ToolCallRecord`
 - appends `metrics[]` → `SessionEvent` (`agent.metric.*`)
+- upserts `collectedData` → `SessionCollectedField`
+- syncs linked `CampaignSession` outcome / duration / transcript / recording from the agent session
 
 ## Org-authenticated APIs
 

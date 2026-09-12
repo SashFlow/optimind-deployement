@@ -425,3 +425,117 @@ export const deleteTrialLink = protectedProcedure
 		});
 		return { success: true };
 	});
+
+export const stats = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/agents/{id}/stats",
+		tags: ["Agents"],
+		summary: "Agent scorecard (server-side aggregates)",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			days: z.number().int().min(1).max(90).default(30),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		const agent = await getAgentById(input.id);
+		if (!agent) throw new ORPCError("NOT_FOUND");
+		await requireOrgMembership(agent.organizationId, context.user.id);
+
+		const since = new Date();
+		since.setDate(since.getDate() - input.days);
+
+		const {
+			aggregateSessionStats,
+			aggregateUsage,
+			aggregateCost,
+			aggregateQuality,
+			aggregateActions,
+			aggregateLatency,
+			listSessionCollectedFields,
+			db,
+		} = await import("@repo/database");
+
+		const [
+			sessionAgg,
+			usageAgg,
+			costAgg,
+			qualityAgg,
+			actionsAgg,
+			latencyAgg,
+			collected,
+		] = await Promise.all([
+			aggregateSessionStats({
+				organizationId: agent.organizationId,
+				since,
+				agentId: agent.id,
+			}),
+			aggregateUsage({
+				organizationId: agent.organizationId,
+				since,
+				agentId: agent.id,
+			}),
+			aggregateCost({
+				organizationId: agent.organizationId,
+				since,
+				agentId: agent.id,
+			}),
+			aggregateQuality({
+				organizationId: agent.organizationId,
+				since,
+				agentId: agent.id,
+			}),
+			aggregateActions({
+				organizationId: agent.organizationId,
+				since,
+				agentId: agent.id,
+			}),
+			aggregateLatency({
+				organizationId: agent.organizationId,
+				since,
+				agentId: agent.id,
+			}),
+			listSessionCollectedFields({
+				organizationId: agent.organizationId,
+				agentId: agent.id,
+				from: since,
+				limit: 50,
+			}),
+		]);
+
+		const versionRows = await db.agentSession.groupBy({
+			by: ["agentVersionId"],
+			where: {
+				agentId: agent.id,
+				createdAt: { gte: since },
+			},
+			_count: { _all: true },
+			_avg: { durationMs: true },
+		});
+
+		const { usages: _u, ...usageRest } = usageAgg;
+
+		return {
+			stats: {
+				...sessionAgg.totals,
+				by_channel: sessionAgg.by_channel,
+				by_direction: sessionAgg.by_direction,
+				by_end_reason: sessionAgg.by_end_reason,
+				usage: usageRest,
+				cost: costAgg,
+				quality: qualityAgg,
+				actions: actionsAgg,
+				latency: latencyAgg,
+				versions: versionRows.map((v) => ({
+					agentVersionId: v.agentVersionId,
+					sessions: v._count._all,
+					avg_duration_ms: v._avg.durationMs
+						? Math.round(v._avg.durationMs)
+						: null,
+				})),
+				collected_fields_sample: collected,
+			},
+		};
+	});

@@ -155,9 +155,12 @@ model Organization {
     egressJobs          EgressJob[]
     avatarProfiles      AvatarProfile[]
     usageMetrics        UsageMetric[]
-    campaignWorkflows   CampaignWorkflow[]
-    workflowRuns        WorkflowRun[]
-    workflowApprovals   WorkflowApproval[]
+    campaignWorkflows      CampaignWorkflow[]
+    workflowRuns           WorkflowRun[]
+    workflowApprovals      WorkflowApproval[]
+    sessionCollectedFields SessionCollectedField[]
+    callbackSchedules      CallbackSchedule[]
+    providerRates          ProviderRate[]
 
     @@unique([slug])
     @@map("organization")
@@ -297,9 +300,10 @@ model Agent {
     knowledgeBases     AgentKnowledgeBase[]
     phoneNumbers       PhoneNumber[]
     dispatchRules      DispatchRule[]
-    usageMetrics       UsageMetric[]
-    embedEnabled       Boolean             @default(false)
-    token              String?             @unique
+    usageMetrics           UsageMetric[]
+    sessionCollectedFields SessionCollectedField[]
+    embedEnabled           Boolean             @default(false)
+    token                  String?             @unique
 
     @@index([organizationId])
     @@map("agent")
@@ -470,11 +474,14 @@ model AgentSession {
     externalUserId String?
     metadata       Json    @default("{}")
 
-    events     SessionEvent[]
-    transcript Transcript?
-    toolCalls  ToolCallRecord[]
-    usages     SessionUsage[]
-    egressJobs EgressJob[]
+    events                 SessionEvent[]
+    transcript             Transcript?
+    toolCalls              ToolCallRecord[]
+    usages                 SessionUsage[]
+    egressJobs             EgressJob[]
+    collectedFields        SessionCollectedField[]
+    callbackSchedules      CallbackSchedule[]      @relation("CallbackOriginSession")
+    completedCallbacks     CallbackSchedule[]      @relation("CallbackCompletedSession")
 
     @@index([organizationId, startedAt])
     @@index([agentId, startedAt])
@@ -503,6 +510,7 @@ model SessionEvent {
     @@unique([sessionId, sequence])
     @@index([organizationId, occurredAt])
     @@index([sessionId, occurredAt])
+    @@index([organizationId, eventType, occurredAt])
     @@map("session_event")
 }
 
@@ -686,15 +694,16 @@ model Campaign {
 
     metadata Json @default("{}")
 
-    contacts       CampaignContact[]
-    accessLinks    CampaignAccessLink[]
-    sessions       CampaignSession[]
-    knowledgeBases CampaignKnowledgeBase[]
-    phoneNumbers   PhoneNumber[]
-    dispatchRules  DispatchRule[]
-    usageMetrics   UsageMetric[]
-    workflow       CampaignWorkflow?
-    workflowRuns   WorkflowRun[]
+    contacts          CampaignContact[]
+    accessLinks       CampaignAccessLink[]
+    sessions          CampaignSession[]
+    knowledgeBases    CampaignKnowledgeBase[]
+    phoneNumbers      PhoneNumber[]
+    dispatchRules     DispatchRule[]
+    usageMetrics      UsageMetric[]
+    workflow          CampaignWorkflow?
+    workflowRuns      WorkflowRun[]
+    callbackSchedules CallbackSchedule[]
 
     @@index([organizationId, status])
     @@index([agentId])
@@ -737,8 +746,9 @@ model CampaignContact {
 
     metadata Json @default("{}")
 
-    accessLinks CampaignAccessLink[]
-    sessions    CampaignSession[]
+    accessLinks       CampaignAccessLink[]
+    sessions          CampaignSession[]
+    callbackSchedules CallbackSchedule[]
 
     @@index([campaignId, status])
     @@index([campaignId, nextAttemptAt])
@@ -1438,7 +1448,115 @@ model SessionUsage {
 
     @@unique([sessionId, modality, provider, model])
     @@index([organizationId, capturedAt])
+    @@index([organizationId, modality, capturedAt])
     @@index([agentId])
     @@index([sessionId])
     @@map("session_usage")
+}
+
+// ------------------------------------------------------------
+// ------------------ Analytics platform extensions -----------
+// ------------------------------------------------------------
+
+model SessionCollectedField {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    sessionId      String
+    session        AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    agentId        String
+    agent          Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
+
+    key       String
+    label     String?
+    fieldType String        @default("string")
+    value     Json          @default("null")
+    required  Boolean       @default(false)
+    capturedAt DateTime     @default(now())
+
+    @@unique([sessionId, key])
+    @@index([organizationId, capturedAt])
+    @@index([agentId, key])
+    @@map("session_collected_field")
+}
+
+enum CallbackScheduleStatus {
+    PENDING
+    QUEUED
+    COMPLETED
+    CANCELLED
+    FAILED
+}
+
+enum CallbackScheduleSource {
+    RESCHEDULE
+    VOICEMAIL
+    MANUAL
+}
+
+model CallbackSchedule {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    sessionId String?
+    session   AgentSession? @relation("CallbackOriginSession", fields: [sessionId], references: [id], onDelete: SetNull)
+
+    campaignId String?
+    campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+    campaignContactId String?
+    campaignContact   CampaignContact? @relation(fields: [campaignContactId], references: [id], onDelete: SetNull)
+
+    phoneE164   String
+    scheduledAt DateTime
+    status      CallbackScheduleStatus @default(PENDING)
+    source      CallbackScheduleSource @default(RESCHEDULE)
+
+    contactMetadata Json @default("{}")
+    errorMessage    String? @db.Text
+
+    completedSessionId String?
+    completedSession   AgentSession? @relation("CallbackCompletedSession", fields: [completedSessionId], references: [id], onDelete: SetNull)
+
+    @@index([organizationId, scheduledAt])
+    @@index([status, scheduledAt])
+    @@index([campaignContactId])
+    @@index([sessionId])
+    @@map("callback_schedule")
+}
+
+enum ProviderRateUnit {
+    TOKEN
+    MINUTE
+    CHARACTER
+    REQUEST
+}
+
+model ProviderRate {
+    id             String        @id @default(cuid())
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
+    /// null = platform default rate
+    organizationId String?
+    organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    modality   UsageModality
+    provider   String
+    model      String?
+    unit       ProviderRateUnit
+    /// Micros of currency per unit (1 USD = 1_000_000 micros)
+    unitAmountMicros Int
+    currency   String          @default("USD")
+    unitSource UnitSource?
+    effectiveFrom DateTime     @default(now())
+    effectiveTo   DateTime?
+
+    @@index([modality, provider, effectiveFrom])
+    @@index([organizationId, modality, provider])
+    @@map("provider_rate")
 }

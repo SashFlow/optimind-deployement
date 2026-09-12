@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import {
 	attachKnowledgeBaseToCampaign,
+	aggregateCampaignAnalytics,
 	createCampaign,
 	createCampaignAccessLink,
 	createCampaignContact,
@@ -534,4 +535,22 @@ export const attachKnowledgeBase = protectedProcedure
 			input.knowledgeBaseId,
 		);
 		return { link };
+	});
+
+export const analytics = protectedProcedure
+	.route({
+		method: "GET",
+		path: "/campaigns/{id}/analytics",
+		tags: ["Campaigns"],
+		summary: "Campaign funnel and dialer analytics",
+	})
+	.input(z.object({ id: z.string() }))
+	.handler(async ({ input, context }) => {
+		const campaign = await requireCampaign(input.id, context.user.id);
+		const analytics = await aggregateCampaignAnalytics({
+			organizationId: campaign.organizationId,
+			campaignId: campaign.id,
+		});
+		if (!analytics) throw new ORPCError("NOT_FOUND");
+		return { analytics };
 	});
