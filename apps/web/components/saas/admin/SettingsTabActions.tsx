@@ -30,13 +30,18 @@ export function SettingsTabActions({
 							key={action.key}
 							type="button"
 							onClick={() => runBulk(action.key)}
+							className="text-muted-foreground hover:bg-background/60 hover:text-foreground"
 						>
 							{action.label}
 						</button>
 					))
 				: null}
 			{hasAction ? (
-				<button type="button" onClick={runAction}>
+				<button
+					type="button"
+					onClick={runAction}
+					className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+				>
 					{showPlus ? <PlusIcon className="size-4" /> : null}
 					{actionLabel ?? "Create"}
 				</button>

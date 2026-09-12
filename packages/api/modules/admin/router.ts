@@ -1,3 +1,4 @@
+import { fillDemoData } from "./procedures/fill-demo-data";
 import { findOrganization } from "./procedures/find-organization";
 import { inviteMember } from "./procedures/invite-member";
 import { listInvitations } from "./procedures/list-invitations";
@@ -21,5 +22,6 @@ export const adminRouter = {
 	organizations: {
 		list: listOrganizations,
 		find: findOrganization,
+		fillDemoData,
 	},
 };

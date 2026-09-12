@@ -4,6 +4,7 @@ export * from "./audit";
 export * from "./avatars";
 export * from "./campaigns";
 export * from "./dashboard-analytics";
+export * from "./demo-dashboard-data";
 export * from "./invitations";
 export * from "./jobs";
 export * from "./knowledge";

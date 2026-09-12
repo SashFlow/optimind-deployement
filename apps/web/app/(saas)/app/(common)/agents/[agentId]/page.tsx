@@ -14,19 +14,21 @@ import AgentMonitorPage from "@/components/saas/agents/AgentMonitorPage";
 
 export default function AgentDetailLayout() {
 	return (
-		<FolderTabs defaultValue="configure" className="min-h-0 flex-1">
+		<FolderTabs defaultValue="dashboard" className="min-h-0 flex-1">
 			<FolderTabsBar>
 				<FolderTabsBack href="/app/agents" />
 				<FolderTabsList>
-					<FolderTabsTrigger value="configure">
-						Configure
+
+					<FolderTabsTrigger value="dashboard">
+						Dashboard
 					</FolderTabsTrigger>
-					<FolderTabsTrigger value="monitor">
-						Monitor
+					<FolderTabsTrigger value="configure">
+						Agent
 					</FolderTabsTrigger>
 					<FolderTabsTrigger value="sessions">
 						Sessions
 					</FolderTabsTrigger>
+
 					<FolderTabsTrigger value="access-control">
 						Access Control
 					</FolderTabsTrigger>
@@ -35,7 +37,7 @@ export default function AgentDetailLayout() {
 			<FolderTabsContent value="configure">
 				<AgentConfigurePage />
 			</FolderTabsContent>
-			<FolderTabsContent value="monitor">
+			<FolderTabsContent value="dashboard">
 				<AgentMonitorPage />
 			</FolderTabsContent>
 			<FolderTabsContent value="sessions">

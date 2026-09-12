@@ -64,17 +64,17 @@ import {
 	DataTableBulkBar,
 	DataTableHeaderRow,
 	DataTableShell,
+	dataTableRowClass,
 	IdentityCell,
 	RowCheckbox,
 	SelectColumnHead,
 	StatusBadge,
-	dataTableRowClass,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { useRowSelection } from "@/components/saas/shared/useRowSelection";
-import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
+import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
 import {
 	type Account,
 	type AccountMembership,
@@ -348,7 +348,7 @@ export function AdminUsers({
 	useSettingsPageAction(() => {
 		resetInviteForm();
 		setInviteOpen(true);
-	}, "Invite user");
+	}, "Invite");
 
 	const invalidateUsers = async () => {
 		await Promise.all([
@@ -486,9 +486,9 @@ export function AdminUsers({
 				role: user.pendingInvitationRole ?? "member",
 				...(isSuperAdmin
 					? {
-							platformRole:
-								user.pendingInvitationPlatformRole ?? "user",
-						}
+						platformRole:
+							user.pendingInvitationPlatformRole ?? "user",
+					}
 					: {}),
 			});
 			setInviteUrl(invite.inviteUrl);
@@ -621,10 +621,10 @@ export function AdminUsers({
 					role: user.pendingInvitationRole ?? "member",
 					...(isSuperAdmin
 						? {
-								platformRole:
-									user.pendingInvitationPlatformRole ??
-									"user",
-							}
+							platformRole:
+								user.pendingInvitationPlatformRole ??
+								"user",
+						}
 						: {}),
 				});
 				ok += 1;
@@ -827,9 +827,9 @@ export function AdminUsers({
 				bulkBar={bulkBar}
 				footer={
 					!usersQuery.isPending &&
-					!invitationsQuery.isPending &&
-					!usersQuery.isError &&
-					filtered.length > 0 ? (
+						!invitationsQuery.isPending &&
+						!usersQuery.isError &&
+						filtered.length > 0 ? (
 						<Pagination
 							totalItems={filtered.length}
 							itemsPerPage={PAGE_SIZE}
@@ -840,8 +840,8 @@ export function AdminUsers({
 				}
 			>
 				{usersQuery.isPending ||
-				(Boolean(activeOrganizationId) &&
-					invitationsQuery.isPending) ? (
+					(Boolean(activeOrganizationId) &&
+						invitationsQuery.isPending) ? (
 					<DataTableBody>
 						<TableBodySkeleton
 							headers={[
@@ -990,7 +990,7 @@ export function AdminUsers({
 																					option.label
 																				}
 																				{user.role ===
-																				option.value ? (
+																					option.value ? (
 																					<CheckIcon className="size-4" />
 																				) : null}
 																			</span>
@@ -1060,7 +1060,7 @@ export function AdminUsers({
 																					option.label
 																				}
 																				{membership.role ===
-																				option.value ? (
+																					option.value ? (
 																					<CheckIcon className="size-4" />
 																				) : null}
 																			</span>
@@ -1087,7 +1087,7 @@ export function AdminUsers({
 															className={cn(
 																"size-8 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100",
 																selected &&
-																	"opacity-100",
+																"opacity-100",
 															)}
 															disabled={
 																busyId ===

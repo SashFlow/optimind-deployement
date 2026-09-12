@@ -57,8 +57,7 @@ export const variableTokenTheme = EditorView.baseTheme({
 		color: "var(--primary)",
 		borderRadius: "0.25rem",
 		padding: "0 0.125rem",
-		fontFamily:
-			"ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+		fontFamily: "Nunito, ui-sans-serif, sans-serif, system-ui",
 		fontSize: "0.8125em",
 	},
 	".cm-template-secret": {
@@ -67,8 +66,7 @@ export const variableTokenTheme = EditorView.baseTheme({
 		color: "var(--color-amber-700)",
 		borderRadius: "0.25rem",
 		padding: "0 0.125rem",
-		fontFamily:
-			"ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+		fontFamily: "Nunito, ui-sans-serif, sans-serif, system-ui",
 		fontSize: "0.8125em",
 	},
 });

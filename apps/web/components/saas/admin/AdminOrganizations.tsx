@@ -35,22 +35,22 @@ import {
 	TableRow,
 } from "@repo/ui/table";
 import { clearCache } from "@shared/lib/cache";
+import { orpcClient } from "@shared/lib/orpc-client";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreVerticalIcon, SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useConfirmationAlert } from "@/components/saas/shared/ConfirmationAlertProvider";
 import {
 	DataTableBody,
 	DataTableBulkBar,
 	DataTableHeaderRow,
 	DataTableShell,
-	IdentityCell,
+	dataTableRowClass,
 	RowCheckbox,
 	SelectColumnHead,
-	StatusBadge,
-	dataTableRowClass,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
@@ -67,6 +67,7 @@ import {
 export function AdminOrganizations() {
 	const router = useRouter();
 	const queryClient = useQueryClient();
+	const { confirm } = useConfirmationAlert();
 	const { activeOrganization, setActiveOrganization } =
 		useActiveOrganization();
 	const createOrganizationMutation = useCreateOrganizationMutation();
@@ -166,35 +167,42 @@ export function AdminOrganizations() {
 		}
 	};
 
-	const deleteOrganization = async (id: string, organizationName: string) => {
-		if (!window.confirm(`Delete ${organizationName}?`)) return;
-		setBusy(true);
-		setError(null);
-		try {
-			const { error: deleteError } = await authClient.organization.delete(
-				{
-					organizationId: id,
-				},
-			);
-			if (deleteError) {
-				throw new Error(
-					deleteError.message || "Unable to delete organization.",
-				);
-			}
-			await queryClient.invalidateQueries({
-				queryKey: orpc.admin.organizations.list.key(),
-			});
-			selection.clear();
-			toast.success("Organization deleted");
-		} catch (cause) {
-			setError(
-				cause instanceof Error
-					? cause.message
-					: "Unable to delete organization.",
-			);
-		} finally {
-			setBusy(false);
-		}
+	const deleteOrganization = (id: string, organizationName: string) => {
+		confirm({
+			title: "Delete organization",
+			message: `Delete ${organizationName}?`,
+			confirmLabel: "Delete",
+			destructive: true,
+			onConfirm: async () => {
+				setBusy(true);
+				setError(null);
+				try {
+					const { error: deleteError } =
+						await authClient.organization.delete({
+							organizationId: id,
+						});
+					if (deleteError) {
+						throw new Error(
+							deleteError.message ||
+								"Unable to delete organization.",
+						);
+					}
+					await queryClient.invalidateQueries({
+						queryKey: orpc.admin.organizations.list.key(),
+					});
+					selection.clear();
+					toast.success("Organization deleted");
+				} catch (cause) {
+					setError(
+						cause instanceof Error
+							? cause.message
+							: "Unable to delete organization.",
+					);
+				} finally {
+					setBusy(false);
+				}
+			},
+		});
 	};
 
 	const switchOrganization = async (organization: {
@@ -228,7 +236,37 @@ export function AdminOrganizations() {
 		}
 	};
 
-	const bulkDelete = async () => {
+	const fillDemoData = (organization: { id: string; name: string }) => {
+		confirm({
+			title: "Fill demo data",
+			message: `Fill demo dashboard data for ${organization.name}? This replaces any previous demo fill for that organization.`,
+			confirmLabel: "Fill demo data",
+			onConfirm: async () => {
+				setBusy(true);
+				setError(null);
+				try {
+					const result =
+						await orpcClient.admin.organizations.fillDemoData({
+							organizationId: organization.id,
+						});
+					toast.success(
+						`Seeded ${result.sessionsCreated} demo sessions for ${organization.name}`,
+					);
+				} catch (cause) {
+					const message =
+						cause instanceof Error
+							? cause.message
+							: "Unable to fill demo data.";
+					setError(message);
+					toast.error(message);
+				} finally {
+					setBusy(false);
+				}
+			},
+		});
+	};
+
+	const bulkDelete = () => {
 		if (selection.selectedCount === 0) return;
 		const byId = new Map(
 			(organizationsQuery.data ?? []).map((org) => [org.id, org]),
@@ -237,44 +275,45 @@ export function AdminOrganizations() {
 			.map((id) => byId.get(id))
 			.filter((org): org is NonNullable<typeof org> => Boolean(org));
 		if (targets.length === 0) return;
-		if (
-			!window.confirm(
-				`Delete ${targets.length} organization${targets.length === 1 ? "" : "s"}?`,
-			)
-		) {
-			return;
-		}
-		setBusy(true);
-		setError(null);
-		let deleted = 0;
-		try {
-			for (const organization of targets) {
-				const { error: deleteError } =
-					await authClient.organization.delete({
-						organizationId: organization.id,
+		confirm({
+			title: "Delete organizations",
+			message: `Delete ${targets.length} organization${targets.length === 1 ? "" : "s"}?`,
+			confirmLabel: "Delete",
+			destructive: true,
+			onConfirm: async () => {
+				setBusy(true);
+				setError(null);
+				let deleted = 0;
+				try {
+					for (const organization of targets) {
+						const { error: deleteError } =
+							await authClient.organization.delete({
+								organizationId: organization.id,
+							});
+						if (!deleteError) deleted += 1;
+					}
+					await queryClient.invalidateQueries({
+						queryKey: orpc.admin.organizations.list.key(),
 					});
-				if (!deleteError) deleted += 1;
-			}
-			await queryClient.invalidateQueries({
-				queryKey: orpc.admin.organizations.list.key(),
-			});
-			selection.clear();
-			if (deleted === 0) {
-				setError("Unable to delete organizations.");
-				return;
-			}
-			toast.success(
-				`Deleted ${deleted} organization${deleted === 1 ? "" : "s"}`,
-			);
-		} catch (cause) {
-			setError(
-				cause instanceof Error
-					? cause.message
-					: "Unable to delete organizations.",
-			);
-		} finally {
-			setBusy(false);
-		}
+					selection.clear();
+					if (deleted === 0) {
+						setError("Unable to delete organizations.");
+						return;
+					}
+					toast.success(
+						`Deleted ${deleted} organization${deleted === 1 ? "" : "s"}`,
+					);
+				} catch (cause) {
+					setError(
+						cause instanceof Error
+							? cause.message
+							: "Unable to delete organizations.",
+					);
+				} finally {
+					setBusy(false);
+				}
+			},
+		});
 	};
 
 	const filters = (
@@ -342,8 +381,8 @@ export function AdminOrganizations() {
 				bulkBar={bulkBar}
 				footer={
 					!organizationsQuery.isPending &&
-					!organizationsQuery.isError &&
-					filtered.length > 0 ? (
+						!organizationsQuery.isError &&
+						filtered.length > 0 ? (
 						<Pagination
 							totalItems={filtered.length}
 							itemsPerPage={PAGE_SIZE}
@@ -402,9 +441,6 @@ export function AdminOrganizations() {
 									const selected = selection.isSelected(
 										organization.id,
 									);
-									const typeLabel = organization.trial
-										? "Trial"
-										: "Workspace";
 									return (
 										<TableRow
 											key={organization.id}
@@ -429,8 +465,8 @@ export function AdminOrganizations() {
 											<TableCell className="text-muted-foreground">
 												{organization.created_at
 													? new Date(
-															organization.created_at,
-														).toLocaleDateString()
+														organization.created_at,
+													).toLocaleDateString()
 													: "—"}
 											</TableCell>
 											<TableCell>
@@ -453,7 +489,7 @@ export function AdminOrganizations() {
 															disabled={
 																!organization.slug ||
 																activeOrganization?.id ===
-																	organization.id
+																organization.id
 															}
 															onClick={() => {
 																void switchOrganization(
@@ -462,6 +498,15 @@ export function AdminOrganizations() {
 															}}
 														>
 															Switch
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onClick={() => {
+																void fillDemoData(
+																	organization,
+																);
+															}}
+														>
+															Demo Data
 														</DropdownMenuItem>
 														<DropdownMenuItem
 															onClick={() => {

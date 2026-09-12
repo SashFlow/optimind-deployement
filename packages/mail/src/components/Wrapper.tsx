@@ -14,7 +14,7 @@ export default function Wrapper({ children }: PropsWithChildren) {
 		<Html lang="en">
 			<Head>
 				<Font
-					fontFamily="Inter"
+					fontFamily="Nunito"
 					fallbackFontFamily="Arial"
 					fontWeight={400}
 					fontStyle="normal"

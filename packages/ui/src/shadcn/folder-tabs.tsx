@@ -82,7 +82,7 @@ const FolderTabsList = React.forwardRef<
 	<TabsPrimitive.List
 		ref={ref}
 		className={cn(
-			"text-muted-foreground flex min-w-0 flex-1 items-end gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+			"text-muted-foreground flex min-w-0 flex-1 items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
 			className,
 		)}
 		{...props}
@@ -97,13 +97,11 @@ const FolderTabsTrigger = React.forwardRef<
 	<TabsPrimitive.Trigger
 		ref={ref}
 		className={cn(
-			"relative z-0 inline-flex shrink-0 items-center gap-2 px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
-			"text-muted-foreground hover:text-foreground",
+			"relative z-0 inline-flex shrink-0 items-center gap-2 rounded-t-xl px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
+			"bg-background/70 text-muted-foreground shadow-xs hover:bg-background hover:text-foreground",
 			"focus-visible:ring-ring focus-visible:z-20 focus-visible:ring-2 focus-visible:outline-hidden",
 			"disabled:pointer-events-none disabled:opacity-50",
-			"data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:z-10 data-[state=active]:rounded-t-xl",
-			"data-[state=active]:before:pointer-events-none data-[state=active]:before:absolute data-[state=active]:before:bottom-0 data-[state=active]:before:left-[-12px] data-[state=active]:before:size-3 data-[state=active]:before:rounded-br-[12px] data-[state=active]:before:shadow-[6px_0_0_0_var(--card)] data-[state=active]:before:content-['']",
-			"data-[state=active]:after:pointer-events-none data-[state=active]:after:absolute data-[state=active]:after:right-[-12px] data-[state=active]:after:bottom-0 data-[state=active]:after:size-3 data-[state=active]:after:rounded-bl-[12px] data-[state=active]:after:shadow-[-6px_0_0_0_var(--card)] data-[state=active]:after:content-['']",
+			"data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:z-10 data-[state=active]:shadow-sm",
 			className,
 		)}
 		{...props}
@@ -118,9 +116,8 @@ const FolderTabsActions = React.forwardRef<
 	<div
 		ref={ref}
 		className={cn(
-			"text-muted-foreground mb-1.5 flex shrink-0 items-center gap-1 self-center sm:gap-1.5",
-			"[&_button]:inline-flex [&_button]:items-center [&_button]:gap-1.5 [&_button]:rounded-lg [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-sm [&_button]:font-medium [&_button]:transition-colors",
-			"[&_button]:hover:bg-background/60 [&_button]:hover:text-foreground",
+			"mb-1.5 flex shrink-0 items-center gap-1 self-center sm:gap-1.5",
+			"[&_button]:inline-flex [&_button]:items-center [&_button]:gap-1.5 [&_button]:rounded-lg [&_button]:px-2.5 [&_button]:py-1.5 [&_button]:text-sm [&_button]:font-medium [&_button]:shadow-xs [&_button]:transition-colors",
 			"[&_button]:focus-visible:ring-ring [&_button]:focus-visible:ring-2 [&_button]:focus-visible:outline-hidden",
 			className,
 		)}
@@ -138,7 +135,7 @@ const FolderTabsContent = React.forwardRef<
 	<TabsPrimitive.Content
 		ref={ref}
 		className={cn(
-			"bg-card focus-visible:ring-ring flex min-h-0 flex-1 flex-col rounded-b-2xl focus-visible:ring-2 focus-visible:outline-hidden focus-visible:ring-inset p-3 md:p-6",
+			"bg-card flex min-h-0 flex-1 flex-col rounded-b-2xl outline-hidden p-3 md:p-6",
 			scrollable
 				? "no-scrollbar overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
 				: "overflow-hidden",

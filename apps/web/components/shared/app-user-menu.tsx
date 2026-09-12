@@ -11,8 +11,10 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/dropdown-menu";
 import { cn } from "@repo/ui/utils";
-import { BadgeCheckIcon, LogOutIcon, ShieldIcon } from "lucide-react";
-import Link from "next/link";
+import { BadgeCheckIcon, HeartPulseIcon, LogOutIcon } from "lucide-react";
+import { useState } from "react";
+import { AccountSettingsDialog } from "@/components/shared/account-settings-dialog";
+import { HealthStatusDialog } from "@/components/shared/health-status-dialog";
 import { useSession } from "@/context/SessionProvider";
 
 function getInitials(name: string, email: string) {
@@ -49,7 +51,8 @@ export function AppUserMenu({
 	const email = user?.email ?? "";
 	const initials = getInitials(name, email);
 	const roleLabel = formatRole(user?.role);
-	const isAdmin = user?.role === "admin";
+	const [accountOpen, setAccountOpen] = useState(false);
+	const [healthOpen, setHealthOpen] = useState(false);
 
 	const onLogout = () => {
 		authClient.signOut({
@@ -65,57 +68,64 @@ export function AppUserMenu({
 	};
 
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger
-				className={cn(
-					showMeta
-						? "inline-flex h-16 items-center gap-2 rounded-full border border-border/60 bg-white px-1.5 text-left shadow-xs outline-none backdrop-blur-sm transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring"
-						: "inline-flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/40 bg-white shadow-sm outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring",
-					className,
-				)}
-				aria-label={showMeta ? undefined : `Account: ${name}`}
-			>
-				<Avatar className={showMeta ? "size-14!" : "size-full"}>
-					<AvatarImage src={user?.image ?? undefined} alt={name} />
-					<AvatarFallback className="text-xs">
-						{initials}
-					</AvatarFallback>
-				</Avatar>
-				{showMeta && name && email ? (
-					<div className="mr-2 hidden min-w-0 text-end leading-tight lg:block">
-						<div className="truncate font-medium text-foreground text-sm">
-							{name}
+		<>
+			<DropdownMenu>
+				<DropdownMenuTrigger
+					className={cn(
+						showMeta
+							? "inline-flex h-16 items-center gap-2 rounded-full border border-border/60 bg-white px-1.5 text-left shadow-xs outline-none backdrop-blur-sm transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring"
+							: "inline-flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/40 bg-white shadow-sm outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring",
+						className,
+					)}
+					aria-label={showMeta ? undefined : `Account: ${name}`}
+				>
+					<Avatar className={showMeta ? "size-14!" : "size-full"}>
+						<AvatarImage src={user?.image ?? undefined} alt={name} />
+						<AvatarFallback className="text-xs">
+							{initials}
+						</AvatarFallback>
+					</Avatar>
+					{showMeta && name && email ? (
+						<div className="mr-2 hidden min-w-0 text-end leading-tight lg:block">
+							<div className="truncate font-medium text-foreground text-sm">
+								{name}
+							</div>
+							<div className="truncate text-muted-foreground text-xs">
+								{roleLabel}
+							</div>
 						</div>
-						<div className="truncate text-muted-foreground text-xs">
-							{roleLabel}
-						</div>
-					</div>
-				) : null}
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align={align} side={side} sideOffset={8}>
-				<DropdownMenuItem asChild className="h-12 cursor-pointer">
-					<Link href="/app/dashboard">
+					) : null}
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align={align} side={side} sideOffset={8}>
+					<DropdownMenuItem
+						className="h-12 cursor-pointer"
+						onSelect={() => setAccountOpen(true)}
+					>
 						<BadgeCheckIcon className="mr-3 size-5" />
 						Account
-					</Link>
-				</DropdownMenuItem>
-				{isAdmin ? (
-					<DropdownMenuItem asChild className="h-12 cursor-pointer">
-						<Link href="/app/settings/member">
-							<ShieldIcon className="mr-3 size-5" />
-							Admin
-						</Link>
 					</DropdownMenuItem>
-				) : null}
-				<DropdownMenuSeparator />
-				<DropdownMenuItem
-					className="h-12 cursor-pointer"
-					onClick={onLogout}
-				>
-					<LogOutIcon className="mr-3 size-5" />
-					Log out
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+					<DropdownMenuItem
+						className="h-12 cursor-pointer"
+						onSelect={() => setHealthOpen(true)}
+					>
+						<HeartPulseIcon className="mr-3 size-5" />
+						Health
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						className="h-12 cursor-pointer"
+						onClick={onLogout}
+					>
+						<LogOutIcon className="mr-3 size-5" />
+						Log out
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+			<AccountSettingsDialog
+				open={accountOpen}
+				onOpenChange={setAccountOpen}
+			/>
+			<HealthStatusDialog open={healthOpen} onOpenChange={setHealthOpen} />
+		</>
 	);
 }
