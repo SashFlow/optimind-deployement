@@ -54,6 +54,11 @@ const nextConfig: NextConfig = {
 				protocol: "https",
 				hostname: "assets.aceternity.com",
 			},
+			{
+				// tweakcn images
+				protocol: "https",
+				hostname: "tweakcn.com",
+			},
 		],
 	},
 	async redirects() {
