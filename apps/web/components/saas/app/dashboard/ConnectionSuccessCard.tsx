@@ -1,9 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from "@repo/ui/card";
-import { Progress } from "@repo/ui/progress";
-
-import { MetricHelpTitle } from "./MetricHelpTitle";
+import { StatCard } from "@/components/saas/app/dashboard/StatCard";
 
 export function ConnectionSuccessCard({
 	pct,
@@ -12,31 +9,25 @@ export function ConnectionSuccessCard({
 	pct: number | null;
 	unavailable?: boolean;
 }) {
-	const value = pct ?? 0;
-	const display = pct == null ? "—" : `${pct.toFixed(1)}%`;
+	const rate =
+		unavailable || pct == null
+			? 0
+			: Math.max(0, Math.min(100, pct)) / 100;
+	const display =
+		unavailable || pct == null ? "—" : `${pct.toFixed(1)}%`;
+	const donutLabel =
+		unavailable || pct == null ? "—" : `${pct.toFixed(0)}%`;
 
 	return (
-		<Card className="h-full">
-			<CardHeader className="pb-2">
-				<MetricHelpTitle
-					title="Connection success"
-					hint="Successful LiveKit connection attempts over total attempts in the analytics window."
-				/>
-			</CardHeader>
-			<CardContent className="space-y-4">
-				{unavailable ? (
-					<p className="text-sm text-muted-foreground">
-						Analytics unavailable
-					</p>
-				) : (
-					<>
-						<div className="text-3xl font-semibold tabular-nums">
-							{display}
-						</div>
-						<Progress value={value} className="w-full" />
-					</>
-				)}
-			</CardContent>
-		</Card>
+		<StatCard
+			title="Connection success"
+			subtitle="LiveKit connection attempts"
+			value={display}
+			variant="donut"
+			color="var(--chart-1)"
+			progress={rate}
+			donutLabel={donutLabel}
+			donutCaption="Success"
+		/>
 	);
 }

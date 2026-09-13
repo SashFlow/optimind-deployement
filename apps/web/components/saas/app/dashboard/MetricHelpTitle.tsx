@@ -17,7 +17,7 @@ export function MetricHelpTitle({
 }) {
 	return (
 		<div className="flex items-center gap-1.5">
-			<span className="text-sm font-medium text-muted-foreground">
+			<span className="text-base font-bold leading-none text-balance">
 				{title}
 			</span>
 			{hint ? (

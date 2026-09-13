@@ -13,7 +13,7 @@ export function TopCountriesCard({
 	unavailable?: boolean;
 }) {
 	return (
-		<Card className="h-full">
+		<Card className="h-full shadow-xs">
 			<CardHeader className="pb-2">
 				<MetricHelpTitle
 					title="Top countries"
@@ -26,37 +26,32 @@ export function TopCountriesCard({
 						Analytics unavailable
 					</p>
 				) : countries.length === 0 ? (
-					<p className="text-sm text-muted-foreground">
-						No data yet.
-					</p>
+					<p className="text-sm text-muted-foreground">No data yet.</p>
 				) : (
-					<table className="w-full text-sm">
-						<thead>
-							<tr className="border-b text-left text-xs text-muted-foreground">
-								<th className="pb-2 font-medium">#</th>
-								<th className="pb-2 font-medium">Name</th>
-								<th className="pb-2 text-right font-medium">
-									Count
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{countries.map((row) => (
-								<tr
-									key={`${row.rank}-${row.name}`}
-									className="border-b last:border-0"
-								>
-									<td className="py-2 tabular-nums text-muted-foreground">
+					<ul className="min-w-0">
+						{countries.map((row, index) => (
+							<li
+								key={`${row.rank}-${row.name}`}
+								className={
+									index < countries.length - 1
+										? "border-b border-border/60"
+										: undefined
+								}
+							>
+								<div className="flex items-center gap-2 py-2.5 text-sm">
+									<span className="w-6 shrink-0 tabular-nums text-muted-foreground">
 										{row.rank}
-									</td>
-									<td className="py-2">{row.name}</td>
-									<td className="py-2 text-right font-medium tabular-nums">
+									</span>
+									<span className="min-w-0 flex-1 truncate">
+										{row.name}
+									</span>
+									<span className="shrink-0 font-semibold tabular-nums">
 										{row.count}
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+									</span>
+								</div>
+							</li>
+						))}
+					</ul>
 				)}
 			</CardContent>
 		</Card>

@@ -3,70 +3,153 @@
 import {
 	Card,
 	CardContent,
-	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "@repo/ui/card";
+import {
+	type ChartConfig,
+	ChartContainer,
+	ChartTooltip,
+	ChartTooltipContent,
+} from "@repo/ui/chart";
+import { Cell, Pie, PieChart } from "recharts";
+
+import { MetricHelpTitle } from "./MetricHelpTitle";
+
+const BREAKDOWN_COLORS = [
+	"var(--chart-1)",
+	"var(--chart-3)",
+	"var(--chart-2)",
+	"var(--chart-4)",
+	"var(--chart-5)",
+];
 
 export function ChannelBreakdownCard({
 	byChannel,
+	title = "By channel",
+	hint,
+	centerLabel = "Sessions",
 }: {
 	byChannel: Record<string, number>;
+	title?: string;
+	hint?: string;
+	centerLabel?: string;
 }) {
-	const entries = Object.entries(byChannel).sort((a, b) => b[1] - a[1]);
-	const max = Math.max(...entries.map(([, count]) => count), 1);
+	const entries = Object.entries(byChannel)
+		.sort((a, b) => b[1] - a[1])
+		.map(([channel, count], index) => ({
+			channel,
+			count,
+			fill: BREAKDOWN_COLORS[index % BREAKDOWN_COLORS.length],
+		}));
+
+	const total = entries.reduce((sum, entry) => sum + entry.count, 0);
+
+	const chartConfig = Object.fromEntries(
+		entries.map((entry) => [
+			entry.channel,
+			{ label: entry.channel, color: entry.fill },
+		]),
+	) satisfies ChartConfig;
 
 	return (
-		<Card className="h-full border-transparent bg-foreground text-background">
-			<CardHeader>
-				<CardTitle className="text-background">By channel</CardTitle>
-				<CardDescription>
-					Session volume across channels
-				</CardDescription>
+		<Card className="h-full shadow-xs">
+			<CardHeader className="pb-2">
+				{hint ? (
+					<MetricHelpTitle title={title} hint={hint} />
+				) : (
+					<CardTitle className="text-base font-bold leading-none">
+						{title}
+					</CardTitle>
+				)}
 			</CardHeader>
-			<CardContent className="space-y-4">
-				{entries.length === 0 ? (
-					<p className="text-sm text-background/60">
+			<CardContent>
+				{entries.length === 0 || total <= 0 ? (
+					<p className="text-sm text-muted-foreground">
 						No sessions yet.
 					</p>
 				) : (
-					entries.map(([channel, count]) => {
-						const ratio = count / max;
-						const segments = 24;
-						const filled = Math.max(
-							1,
-							Math.round(ratio * segments),
-						);
+					<div className="flex items-center gap-5">
+						<div className="relative shrink-0">
+							<ChartContainer
+								config={chartConfig}
+								className="aspect-square h-[148px] w-[148px]"
+							>
+								<PieChart>
+									<ChartTooltip
+										content={
+											<ChartTooltipContent hideLabel />
+										}
+									/>
+									<Pie
+										data={entries}
+										dataKey="count"
+										nameKey="channel"
+										innerRadius={46}
+										outerRadius={68}
+										paddingAngle={3}
+										cornerRadius={4}
+										strokeWidth={0}
+									>
+										{entries.map((entry) => (
+											<Cell
+												key={entry.channel}
+												fill={entry.fill}
+											/>
+										))}
+									</Pie>
+								</PieChart>
+							</ChartContainer>
+							<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+								<span className="text-[11px] text-muted-foreground">
+									{centerLabel}
+								</span>
+								<span className="text-lg font-semibold tabular-nums tracking-tight">
+									{total.toLocaleString()}
+								</span>
+							</div>
+						</div>
 
-						return (
-							<div key={channel} className="space-y-2">
-								<div className="flex items-center justify-between gap-3 text-sm">
-									<span className="capitalize text-background/80">
-										{channel}
-									</span>
-									<span className="font-medium tabular-nums text-background">
-										{count.toLocaleString()}
-									</span>
-								</div>
-								<div className="flex h-3 gap-0.5">
-									{Array.from({ length: segments }).map(
-										(_, index) => (
-											<div
-												key={index}
-												className="h-full flex-1 rounded-[1px]"
+						<ul className="min-w-0 flex-1">
+							{entries.map((entry, index) => {
+								const pct =
+									total > 0
+										? Math.round((entry.count / total) * 100)
+										: 0;
+
+								return (
+									<li
+										key={entry.channel}
+										className={
+											index < entries.length - 1
+												? "border-b border-border/60"
+												: undefined
+										}
+									>
+										<div className="flex items-center gap-2 py-2.5 text-sm">
+											<span
+												className="size-2 shrink-0 rounded-full"
 												style={{
-													background:
-														index < filled
-															? "linear-gradient(90deg, var(--chart-1), var(--chart-3))"
-															: "color-mix(in oklch, var(--background) 18%, transparent)",
+													background: entry.fill,
 												}}
 											/>
-										),
-									)}
-								</div>
-							</div>
-						);
-					})
+											<span className="min-w-0 flex-1 truncate capitalize">
+												{entry.channel
+													.replaceAll("_", " ")
+													.toLowerCase()}
+											</span>
+											<span className="shrink-0 font-semibold tabular-nums">
+												{entry.count.toLocaleString()}
+											</span>
+											<span className="w-10 shrink-0 text-right tabular-nums text-muted-foreground">
+												{pct}%
+											</span>
+										</div>
+									</li>
+								);
+							})}
+						</ul>
+					</div>
 				)}
 			</CardContent>
 		</Card>

@@ -12,8 +12,18 @@ import {
 } from "@repo/ui/select";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	ActivityIcon,
+	CheckCircle2Icon,
+	PhoneIcon,
+	UsersIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { ChannelBreakdownCard } from "@/components/saas/app/dashboard/ChannelBreakdownCard";
+import { GaugeBreakdownCard } from "@/components/saas/app/dashboard/GaugeBreakdownCard";
+import { MetricKpiCard } from "@/components/saas/app/dashboard/MetricKpiCard";
+import { StatCard } from "@/components/saas/app/dashboard/StatCard";
 import { useCampaignAnalyticsQuery } from "@/services/api/hooks";
 
 export function CampaignDashboard({ campaignId }: { campaignId: string }) {
@@ -64,12 +74,19 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 	const analytics = analyticsQuery.data;
 	const funnel = analytics?.funnel;
 	const concurrency = analytics?.concurrency;
+	const contactCount =
+		funnel?.total_contacts ?? campaign?._count?.contacts ?? 0;
+	const sessionCount =
+		analytics?.totals.sessions ?? campaign?._count?.sessions ?? 0;
+	const completionRate = funnel?.completion_rate ?? null;
+	const activeNow = concurrency?.active_now ?? 0;
+	const maxConcurrency = concurrency?.max;
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4">
+		<div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col gap-6 overflow-y-auto pb-4">
 			<div className="flex flex-wrap items-center justify-between gap-3">
-				<div>
-					<h1 className="text-xl font-semibold">
+				<div className="space-y-1">
+					<h1 className="text-2xl font-semibold tracking-tight">
 						{campaign?.name ?? "Campaign"}
 					</h1>
 					<p className="text-sm text-muted-foreground">
@@ -125,156 +142,152 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 				</div>
 			</div>
 
-			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				<StatCard
+			<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+				<MetricKpiCard
 					title="Contacts"
-					value={String(
-						funnel?.total_contacts ??
-							campaign?._count?.contacts ??
-							0,
-					)}
+					value={String(contactCount)}
+					icon={UsersIcon}
+					detail="In this campaign"
 				/>
-				<StatCard
+				<MetricKpiCard
 					title="Sessions"
-					value={String(
-						analytics?.totals.sessions ??
-							campaign?._count?.sessions ??
-							0,
-					)}
+					value={String(sessionCount)}
+					icon={PhoneIcon}
+					detail="All time"
 				/>
 				<StatCard
 					title="Completion rate"
+					subtitle="Contact funnel"
 					value={
-						funnel?.completion_rate != null
-							? `${(funnel.completion_rate * 100).toFixed(1)}%`
+						completionRate != null
+							? `${(completionRate * 100).toFixed(1)}%`
 							: "—"
 					}
+					variant="donut"
+					color="var(--chart-1)"
+					progress={completionRate ?? 0}
+					donutLabel={
+						completionRate != null
+							? `${(completionRate * 100).toFixed(0)}%`
+							: "—"
+					}
+					donutCaption="Complete"
 				/>
-				<StatCard
+				<MetricKpiCard
 					title="Concurrency"
-					value={`${concurrency?.active_now ?? 0}/${concurrency?.max ?? "—"}`}
+					value={`${activeNow}/${maxConcurrency ?? "—"}`}
+					icon={ActivityIcon}
+					detail="Active / max"
+					progress={
+						maxConcurrency && maxConcurrency > 0
+							? Math.min(1, activeNow / maxConcurrency)
+							: null
+					}
 				/>
 			</div>
 
-			<div className="grid gap-3 lg:grid-cols-2">
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-base">
-							Contact funnel
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="grid gap-2 sm:grid-cols-2 text-sm">
-						{Object.entries(funnel?.by_status ?? {}).map(
-							([status, count]) => (
-								<div
-									key={status}
-									className="flex justify-between rounded-md border px-3 py-2"
-								>
-									<span className="text-muted-foreground">
-										{status}
-									</span>
-									<span className="font-medium">
-										{count}
-									</span>
-								</div>
+			<section className="space-y-3">
+				<h3 className="text-base font-semibold">Operations</h3>
+				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+					<MetricKpiCard
+						title="Avg attempts"
+						value={
+							funnel?.avg_attempts != null
+								? funnel.avg_attempts.toFixed(2)
+								: "—"
+						}
+						icon={PhoneIcon}
+					/>
+					<MetricKpiCard
+						title="Consent rate"
+						value={
+							funnel?.consent_rate != null
+								? `${(funnel.consent_rate * 100).toFixed(1)}%`
+								: "—"
+						}
+						icon={CheckCircle2Icon}
+					/>
+					<MetricKpiCard
+						title="DNC"
+						value={String(funnel?.dnc_count ?? 0)}
+						icon={UsersIcon}
+					/>
+					<MetricKpiCard
+						title="Callbacks"
+						value={String(
+							Object.values(analytics?.callbacks ?? {}).reduce(
+								(sum, n) => sum + n,
+								0,
 							),
 						)}
-						{Object.keys(funnel?.by_status ?? {}).length === 0 ? (
-							<p className="text-muted-foreground">
-								No contact status data yet.
-							</p>
-						) : null}
-						<div className="sm:col-span-2 text-xs text-muted-foreground">
-							Avg attempts:{" "}
-							{funnel?.avg_attempts != null
-								? funnel.avg_attempts.toFixed(2)
-								: "—"}{" "}
-							· Consent:{" "}
-							{funnel?.consent_rate != null
-								? `${(funnel.consent_rate * 100).toFixed(1)}%`
-								: "—"}{" "}
-							· DNC: {funnel?.dnc_count ?? 0}
-						</div>
-					</CardContent>
-				</Card>
+						icon={ActivityIcon}
+					/>
+				</div>
+				<div className="grid gap-4 lg:grid-cols-2">
+					<ChannelBreakdownCard
+						title="Contact funnel"
+						hint="Contacts by status"
+						byChannel={funnel?.by_status ?? {}}
+						centerLabel="Contacts"
+					/>
+					<GaugeBreakdownCard
+						title="Outcomes"
+						hint="Session outcome mix"
+						items={analytics?.outcomes ?? {}}
+						centerLabel="Sessions"
+					/>
+				</div>
+			</section>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-base">
-							Outcomes &amp; callbacks
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-3 text-sm">
-						<div className="grid gap-2 sm:grid-cols-2">
-							{Object.entries(analytics?.outcomes ?? {}).map(
-								([outcome, count]) => (
+			{(Object.keys(analytics?.callbacks ?? {}).length > 0 ||
+				(analytics?.access_links?.length ?? 0) > 0) && (
+				<section className="space-y-3">
+					<h3 className="text-base font-semibold">
+						Callbacks &amp; access
+					</h3>
+					<div className="flex flex-wrap gap-2">
+						{Object.entries(analytics?.callbacks ?? {}).map(
+							([status, count]) => (
+								<Badge key={status} variant="secondary">
+									{status}: {count}
+								</Badge>
+							),
+						)}
+					</div>
+					{(analytics?.access_links?.length ?? 0) > 0 ? (
+						<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+							{(analytics?.access_links ?? []).map(
+								(link: {
+									id: string;
+									label: string | null;
+									kind: string;
+									useCount: number;
+									maxUses: number | null;
+								}) => (
 									<div
-										key={outcome}
-										className="flex justify-between rounded-md border px-3 py-2"
+										key={link.id}
+										className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-3 py-2 text-sm shadow-xs"
 									>
-										<span className="truncate text-muted-foreground">
-											{outcome}
-										</span>
-										<span className="font-medium">
-											{count}
+										<span>{link.label || link.kind}</span>
+										<span className="font-semibold tabular-nums">
+											{link.useCount}
+											{link.maxUses != null
+												? `/${link.maxUses}`
+												: ""}
 										</span>
 									</div>
 								),
 							)}
 						</div>
-						<div className="flex flex-wrap gap-2">
-							{Object.entries(analytics?.callbacks ?? {}).map(
-								([status, count]) => (
-									<Badge key={status} variant="secondary">
-										{status}: {count}
-									</Badge>
-								),
-							)}
-							{Object.keys(analytics?.callbacks ?? {}).length ===
-							0 ? (
-								<span className="text-muted-foreground">
-									No callbacks scheduled
-								</span>
-							) : null}
-						</div>
-						{(analytics?.access_links?.length ?? 0) > 0 ? (
-							<div className="space-y-1">
-								<div className="text-xs font-medium text-muted-foreground">
-									Access links
-								</div>
-								{(analytics?.access_links ?? []).map(
-									(link: {
-										id: string;
-										label: string | null;
-										kind: string;
-										useCount: number;
-										maxUses: number | null;
-									}) => (
-										<div
-											key={link.id}
-											className="flex justify-between rounded-md border px-3 py-1.5"
-										>
-											<span>
-												{link.label || link.kind}
-											</span>
-											<span>
-												{link.useCount}
-												{link.maxUses != null
-													? `/${link.maxUses}`
-													: ""}
-											</span>
-										</div>
-									),
-								)}
-							</div>
-						) : null}
-					</CardContent>
-				</Card>
-			</div>
+					) : null}
+				</section>
+			)}
 
-			<Card>
+			<Card className="shadow-xs">
 				<CardHeader className="flex flex-row items-center justify-between">
-					<CardTitle className="text-base">Recent runs</CardTitle>
+					<CardTitle className="text-base font-bold leading-none">
+						Recent runs
+					</CardTitle>
 					<Button asChild variant="ghost" size="sm">
 						<Link href={`/app/campaigns/${campaignId}/logs`}>
 							View logs
@@ -291,7 +304,7 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 					{runs.map((run) => (
 						<div
 							key={run.id}
-							className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
+							className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2 text-sm"
 						>
 							<div className="min-w-0">
 								<div className="truncate font-medium">
@@ -311,20 +324,5 @@ export function CampaignDashboard({ campaignId }: { campaignId: string }) {
 				</CardContent>
 			</Card>
 		</div>
-	);
-}
-
-function StatCard({ title, value }: { title: string; value: string }) {
-	return (
-		<Card>
-			<CardHeader className="pb-2">
-				<CardTitle className="text-sm font-medium text-muted-foreground">
-					{title}
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div className="text-2xl font-semibold">{value}</div>
-			</CardContent>
-		</Card>
 	);
 }

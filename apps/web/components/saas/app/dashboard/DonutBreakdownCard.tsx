@@ -1,6 +1,11 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from "@repo/ui/card";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@repo/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -16,11 +21,11 @@ import type {
 import { MetricHelpTitle } from "./MetricHelpTitle";
 
 const CHART_COLORS = [
-	"var(--color-chart-1)",
-	"var(--color-chart-2)",
-	"var(--color-chart-3)",
-	"var(--color-chart-4)",
-	"var(--color-chart-5)",
+	"var(--chart-1)",
+	"var(--chart-3)",
+	"var(--chart-2)",
+	"var(--chart-4)",
+	"var(--chart-5)",
 ];
 
 export function DonutBreakdownCard({
@@ -29,12 +34,14 @@ export function DonutBreakdownCard({
 	items,
 	unavailable,
 	mode = "pct",
+	centerLabel = "Total",
 }: {
 	title: string;
 	hint?: string;
 	items: AnalyticsLabelPct[] | AnalyticsLabelMinutes[];
 	unavailable?: boolean;
 	mode?: "pct" | "minutes";
+	centerLabel?: string;
 }) {
 	const data = items.map((item, index) => {
 		const value =
@@ -55,9 +62,13 @@ export function DonutBreakdownCard({
 	const total = data.reduce((sum, d) => sum + d.value, 0);
 
 	return (
-		<Card className="h-full">
+		<Card className="h-full shadow-xs">
 			<CardHeader className="pb-2">
-				<MetricHelpTitle title={title} hint={hint} />
+				{hint ? (
+					<MetricHelpTitle title={title} hint={hint} />
+				) : (
+					<CardTitle>{title}</CardTitle>
+				)}
 			</CardHeader>
 			<CardContent>
 				{unavailable ? (
@@ -65,56 +76,80 @@ export function DonutBreakdownCard({
 						Analytics unavailable
 					</p>
 				) : total <= 0 ? (
-					<p className="text-sm text-muted-foreground">
-						No data yet.
-					</p>
+					<p className="text-sm text-muted-foreground">No data yet.</p>
 				) : (
-					<div className="flex items-center gap-4">
-						<ChartContainer
-							config={chartConfig}
-							className="aspect-square h-[120px] w-[120px] shrink-0"
-						>
-							<PieChart>
-								<ChartTooltip
-									content={<ChartTooltipContent hideLabel />}
-								/>
-								<Pie
-									data={data}
-									dataKey="value"
-									nameKey="label"
-									innerRadius={32}
-									outerRadius={52}
-									strokeWidth={2}
-								>
-									{data.map((entry) => (
-										<Cell
-											key={entry.label}
-											fill={entry.fill}
-										/>
-									))}
-								</Pie>
-							</PieChart>
-						</ChartContainer>
-						<ul className="min-w-0 flex-1 space-y-1.5 text-sm">
-							{data.map((entry) => (
+					<div className="flex items-center gap-5">
+						<div className="relative shrink-0">
+							<ChartContainer
+								config={chartConfig}
+								className="aspect-square h-[148px] w-[148px]"
+							>
+								<PieChart>
+									<ChartTooltip
+										content={
+											<ChartTooltipContent hideLabel />
+										}
+									/>
+									<Pie
+										data={data}
+										dataKey="value"
+										nameKey="label"
+										innerRadius={46}
+										outerRadius={68}
+										paddingAngle={3}
+										cornerRadius={4}
+										strokeWidth={0}
+									>
+										{data.map((entry) => (
+											<Cell
+												key={entry.label}
+												fill={entry.fill}
+											/>
+										))}
+									</Pie>
+								</PieChart>
+							</ChartContainer>
+							<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+								<span className="text-[11px] text-muted-foreground">
+									{centerLabel}
+								</span>
+								<span className="text-lg font-semibold tabular-nums tracking-tight">
+									{mode === "minutes"
+										? `${Math.round(total)}`
+										: `${total.toFixed(0)}%`}
+								</span>
+							</div>
+						</div>
+
+						<ul className="min-w-0 flex-1">
+							{data.map((entry, index) => (
 								<li
 									key={entry.label}
-									className="flex items-center justify-between gap-2"
+									className={
+										index < data.length - 1
+											? "border-b border-border/60"
+											: undefined
+									}
 								>
-									<span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+									<div className="flex items-center gap-2 py-2.5 text-sm">
 										<span
-											className="size-2 shrink-0 rounded-sm"
+											className="size-2 shrink-0 rounded-full"
 											style={{ background: entry.fill }}
 										/>
-										<span className="truncate">
+										<span className="min-w-0 flex-1 truncate">
 											{entry.label}
 										</span>
-									</span>
-									<span className="shrink-0 font-medium tabular-nums">
-										{mode === "minutes"
-											? `${Math.round(entry.value)} mins`
-											: `${entry.value.toFixed(1)}%`}
-									</span>
+										<span className="shrink-0 font-semibold tabular-nums">
+											{mode === "minutes"
+												? `${Math.round(entry.value)}`
+												: entry.value.toFixed(1)}
+										</span>
+										<span className="w-12 shrink-0 text-right tabular-nums text-muted-foreground">
+											{mode === "minutes"
+												? "mins"
+												: "%"}
+										</span>
+									</div>
 								</li>
 							))}
 						</ul>

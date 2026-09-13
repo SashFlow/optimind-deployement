@@ -25,6 +25,7 @@ import {
 	VideoIcon,
 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { MetricKpiCard } from "@/components/saas/app/dashboard/MetricKpiCard";
 import {
 	PAGE_SIZE,
 	Pagination,
@@ -707,74 +708,48 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 
 	return (
 		<div className="mt-4 space-y-4">
-			<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-				{[
-					{
-						label: "Channel",
-						value: session.channel ?? "WEB",
-						icon: RadioIcon,
-					},
-					{
-						label: "Started",
-						value: formatDateTime(session.startedAt),
-						icon: ClockIcon,
-					},
-					{
-						label: "Ended",
-						value: formatDateTime(session.endedAt),
-						icon: ClockIcon,
-					},
-					{
-						label: "Duration",
-						value: formatDuration(session.durationMs),
-						icon: ClockIcon,
-					},
-				].map((item) => (
-					<Card
-						key={item.label}
-						className="rounded-3xl border shadow-sm ring-1 ring-black/5"
-					>
-						<CardContent className="flex items-start gap-3 p-4">
-							<span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-								<item.icon className="size-4" />
-							</span>
-							<div className="min-w-0 space-y-0.5">
-								<p className="text-xs font-medium text-muted-foreground">
-									{item.label}
-								</p>
-								<p className="truncate text-sm font-semibold tracking-tight">
-									{item.value}
-								</p>
-							</div>
-						</CardContent>
-					</Card>
-				))}
+			<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+				<MetricKpiCard
+					title="Channel"
+					value={session.channel ?? "WEB"}
+					icon={RadioIcon}
+					valueClassName="text-xl"
+				/>
+				<MetricKpiCard
+					title="Started"
+					value={formatDateTime(session.startedAt)}
+					icon={ClockIcon}
+					valueClassName="text-xl"
+				/>
+				<MetricKpiCard
+					title="Ended"
+					value={formatDateTime(session.endedAt)}
+					icon={ClockIcon}
+					valueClassName="text-xl"
+				/>
+				<MetricKpiCard
+					title="Duration"
+					value={formatDuration(session.durationMs)}
+					icon={ClockIcon}
+					valueClassName="text-xl"
+				/>
 			</div>
 
-			<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
-				<CardContent className="flex items-start gap-3 p-4">
-					<span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-						<HashIcon className="size-4" />
-					</span>
-					<div className="min-w-0 space-y-0.5">
-						<p className="text-xs font-medium text-muted-foreground">
-							Room
-						</p>
-						<p className="truncate font-mono text-xs">
-							{session.livekitRoomName}
-						</p>
-					</div>
-				</CardContent>
-			</Card>
+			<MetricKpiCard
+				title="Room"
+				value={session.livekitRoomName}
+				icon={HashIcon}
+				valueClassName="truncate font-mono text-sm"
+			/>
 
 			<div className="grid gap-4 lg:grid-cols-2">
-				<Card className="flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
+				<Card className="flex min-h-0 flex-col overflow-hidden shadow-xs">
 					<CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 pb-3">
 						<div className="flex items-center gap-2">
 							<span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
 								<MessageSquareTextIcon className="size-4" />
 							</span>
-							<CardTitle className="text-sm font-semibold">
+							<CardTitle className="text-base font-bold leading-none">
 								Transcript
 							</CardTitle>
 						</div>
@@ -788,13 +763,13 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 					</CardContent>
 				</Card>
 
-				<Card className="flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
+				<Card className="flex min-h-0 flex-col overflow-hidden shadow-xs">
 					<CardHeader className="flex-row items-center justify-between space-y-0 border-b border-border/60 pb-3">
 						<div className="flex items-center gap-2">
 							<span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
 								<VideoIcon className="size-4" />
 							</span>
-							<CardTitle className="text-sm font-semibold">
+							<CardTitle className="text-base font-bold leading-none">
 								Egress
 							</CardTitle>
 						</div>
@@ -812,9 +787,9 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 			</div>
 
 			{(session.collectedFields?.length ?? 0) > 0 ? (
-				<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
+				<Card className="shadow-xs">
 					<CardHeader>
-						<CardTitle className="text-sm font-semibold">
+						<CardTitle className="text-base font-bold leading-none">
 							Collected fields
 						</CardTitle>
 					</CardHeader>
@@ -822,7 +797,7 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 						{(session.collectedFields ?? []).map((field) => (
 							<div
 								key={field.id}
-								className="rounded-xl border border-border/60 px-3 py-2 text-sm"
+								className="rounded-xl border border-border/70 px-3 py-2 text-sm shadow-xs"
 							>
 								<div className="text-xs text-muted-foreground">
 									{field.label || field.key}
@@ -837,9 +812,9 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 			) : null}
 
 			{session.campaignSession ? (
-				<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
+				<Card className="shadow-xs">
 					<CardHeader>
-						<CardTitle className="text-sm font-semibold">
+						<CardTitle className="text-base font-bold leading-none">
 							Campaign outcome
 						</CardTitle>
 					</CardHeader>
@@ -860,9 +835,9 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 			) : null}
 
 			{(session.callbackSchedules?.length ?? 0) > 0 ? (
-				<Card className="rounded-3xl border shadow-sm ring-1 ring-black/5">
+				<Card className="shadow-xs">
 					<CardHeader>
-						<CardTitle className="text-sm font-semibold">
+						<CardTitle className="text-base font-bold leading-none">
 							Callbacks
 						</CardTitle>
 					</CardHeader>
@@ -870,7 +845,7 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 						{(session.callbackSchedules ?? []).map((cb) => (
 							<div
 								key={cb.id}
-								className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 px-3 py-2"
+								className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/70 px-3 py-2"
 							>
 								<span>
 									{cb.phoneE164} · {cb.source}
@@ -886,9 +861,9 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 			) : null}
 
 			{session.errorMessage ? (
-				<Card className="rounded-3xl border-destructive/40 shadow-sm ring-1 ring-destructive/10">
+				<Card className="border-destructive/40 shadow-xs">
 					<CardHeader>
-						<CardTitle className="text-sm text-destructive">
+						<CardTitle className="text-base font-bold leading-none text-destructive">
 							Error
 						</CardTitle>
 					</CardHeader>

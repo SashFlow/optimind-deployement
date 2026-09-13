@@ -1,15 +1,30 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from "@repo/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@repo/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@repo/ui/chart";
-import { CartesianGrid, Legend, Line, LineChart, XAxis, YAxis } from "recharts";
+import { useId } from "react";
+import {
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Legend,
+	Line,
+	LineChart,
+	XAxis,
+	YAxis,
+} from "recharts";
 import { shortDateLabel } from "./format";
-import { MetricHelpTitle } from "./MetricHelpTitle";
 
 export type AnalyticsLineSeries = {
 	key: string;
@@ -25,6 +40,7 @@ export function AnalyticsLineChart({
 	unavailable,
 	height = 280,
 	yTickFormatter,
+	variant,
 }: {
 	title: string;
 	hint?: string;
@@ -33,13 +49,18 @@ export function AnalyticsLineChart({
 	unavailable?: boolean;
 	height?: number;
 	yTickFormatter?: (value: number) => string;
+	/** Defaults to bar for a single series, line for multiple. */
+	variant?: "line" | "bar";
 }) {
+	const hatchId = useId().replace(/:/g, "");
+	const chartVariant = variant ?? (series.length === 1 ? "bar" : "line");
+
 	const chartConfig = Object.fromEntries(
 		series.map((s, i) => [
 			s.key,
 			{
 				label: s.label,
-				color: s.color ?? `var(--color-chart-${(i % 5) + 1})`,
+				color: s.color ?? `var(--chart-${(i % 5) + 1})`,
 			},
 		]),
 	) satisfies ChartConfig;
@@ -52,10 +73,50 @@ export function AnalyticsLineChart({
 				: String(row.label ?? ""),
 	}));
 
+	const sharedAxes = (
+		<>
+			<CartesianGrid vertical={false} strokeDasharray="3 3" />
+			<XAxis
+				dataKey="label"
+				tickLine={false}
+				axisLine={false}
+				tickMargin={8}
+				interval="preserveStartEnd"
+				minTickGap={24}
+			/>
+			<YAxis
+				tickLine={false}
+				axisLine={false}
+				tickMargin={8}
+				width={48}
+				tickFormatter={yTickFormatter}
+			/>
+			<ChartTooltip
+				content={
+					<ChartTooltipContent
+						labelFormatter={(_, payload) => {
+							const date = payload?.[0]?.payload?.date as
+								| string
+								| undefined;
+							return date ?? "";
+						}}
+					/>
+				}
+			/>
+		</>
+	);
+
 	return (
-		<Card className="h-full">
-			<CardHeader className="pb-2">
-				<MetricHelpTitle title={title} hint={hint} />
+		<Card className="h-full shadow-xs">
+			<CardHeader className="space-y-1 pb-2">
+				<CardTitle className="text-base font-bold leading-none text-balance">
+					{title}
+				</CardTitle>
+				{hint ? (
+					<CardDescription className="text-pretty">
+						{hint}
+					</CardDescription>
+				) : null}
 			</CardHeader>
 			<CardContent>
 				{unavailable ? (
@@ -63,9 +124,68 @@ export function AnalyticsLineChart({
 						Analytics unavailable
 					</p>
 				) : chartData.length === 0 ? (
-					<p className="text-sm text-muted-foreground">
-						No data yet.
-					</p>
+					<p className="text-sm text-muted-foreground">No data yet.</p>
+				) : chartVariant === "bar" ? (
+					<ChartContainer
+						config={chartConfig}
+						className="aspect-auto w-full"
+						style={{ height: `${height}px` }}
+					>
+						<BarChart
+							data={chartData}
+							margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+						>
+							<defs>
+								{series.map((s, index) => {
+									const color =
+										s.color ??
+										`var(--chart-${(index % 5) + 1})`;
+									const id = `analytics-hatch-${hatchId}-${s.key}`;
+									return (
+										<pattern
+											key={id}
+											id={id}
+											width="7"
+											height="7"
+											patternUnits="userSpaceOnUse"
+											patternTransform="rotate(45)"
+										>
+											<rect
+												width="7"
+												height="7"
+												fill={color}
+												fillOpacity={0.22}
+											/>
+											<rect
+												width="3.5"
+												height="7"
+												fill={color}
+											/>
+										</pattern>
+									);
+								})}
+							</defs>
+							{sharedAxes}
+							{series.length > 1 ? (
+								<Legend
+									verticalAlign="top"
+									align="left"
+									wrapperStyle={{ paddingBottom: 8 }}
+								/>
+							) : null}
+							{series.map((s) => (
+								<Bar
+									key={s.key}
+									dataKey={s.key}
+									name={s.label}
+									fill={`url(#analytics-hatch-${hatchId}-${s.key})`}
+									radius={[4, 4, 0, 0]}
+									maxBarSize={series.length === 1 ? 28 : 18}
+									isAnimationActive={false}
+								/>
+							))}
+						</BarChart>
+					</ChartContainer>
 				) : (
 					<ChartContainer
 						config={chartConfig}
@@ -76,22 +196,7 @@ export function AnalyticsLineChart({
 							data={chartData}
 							margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
 						>
-							<CartesianGrid vertical={false} />
-							<XAxis
-								dataKey="label"
-								tickLine={false}
-								axisLine={false}
-								tickMargin={8}
-								interval="preserveStartEnd"
-							/>
-							<YAxis
-								tickLine={false}
-								axisLine={false}
-								tickMargin={8}
-								width={48}
-								tickFormatter={yTickFormatter}
-							/>
-							<ChartTooltip content={<ChartTooltipContent />} />
+							{sharedAxes}
 							{series.length > 1 ? (
 								<Legend
 									verticalAlign="top"
@@ -99,18 +204,32 @@ export function AnalyticsLineChart({
 									wrapperStyle={{ paddingBottom: 8 }}
 								/>
 							) : null}
-							{series.map((s) => (
-								<Line
-									key={s.key}
-									type="monotone"
-									dataKey={s.key}
-									name={s.label}
-									stroke={`var(--color-${s.key})`}
-									strokeWidth={2}
-									dot={false}
-									activeDot={{ r: 3 }}
-								/>
-							))}
+							{series.map((s, index) => {
+								const color =
+									s.color ??
+									`var(--chart-${(index % 5) + 1})`;
+								return (
+									<Line
+										key={s.key}
+										type="monotone"
+										dataKey={s.key}
+										name={s.label}
+										stroke={color}
+										strokeWidth={2.5}
+										strokeDasharray={
+											index > 0 ? "4 4" : undefined
+										}
+										dot={false}
+										activeDot={{
+											r: 5,
+											fill: color,
+											stroke: "var(--card)",
+											strokeWidth: 2,
+										}}
+										isAnimationActive={false}
+									/>
+								);
+							})}
 						</LineChart>
 					</ChartContainer>
 				)}

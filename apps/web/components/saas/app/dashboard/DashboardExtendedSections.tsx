@@ -1,6 +1,22 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import type { ColumnDef } from "@tanstack/react-table";
+import {
+	ArrowLeftRightIcon,
+	AudioLinesIcon,
+	CalendarClockIcon,
+	CheckCircle2Icon,
+	ClockIcon,
+	DollarSignIcon,
+	MessageSquareTextIcon,
+	MicIcon,
+	PlugZapIcon,
+	SparklesIcon,
+	TypeIcon,
+	WrenchIcon,
+	XCircleIcon,
+} from "lucide-react";
+import { useMemo } from "react";
 import type { DashboardStats } from "@/services/api/types";
 import {
 	useDashboardActionsQuery,
@@ -9,10 +25,17 @@ import {
 	useDashboardQualityQuery,
 	useDashboardUsageQuery,
 } from "@/services/api/hooks";
+import {
+	DataTableTypeBadge,
+	DataTableValuePill,
+	StandardDataTable,
+} from "@/components/saas/shared/StandardDataTable";
 import { AnalyticsLineChart } from "./AnalyticsLineChart";
-import { BigNumberCard } from "./BigNumberCard";
-import { DonutBreakdownCard } from "./DonutBreakdownCard";
+import { ChannelBreakdownCard } from "./ChannelBreakdownCard";
+import { FailuresActivityCard } from "./FailuresActivityCard";
 import { formatDurationMs } from "./format";
+import { GaugeBreakdownCard } from "./GaugeBreakdownCard";
+import { MetricKpiCard } from "./MetricKpiCard";
 
 function formatUsd(micros: number) {
 	return `$${(micros / 1_000_000).toFixed(2)}`;
@@ -23,14 +46,173 @@ function pct(value: number | null | undefined) {
 	return `${(value * 100).toFixed(1)}%`;
 }
 
+function halfWindowSum(values: number[]): {
+	prior: number | null;
+	deltaPct: number | null;
+} {
+	if (values.length < 4) return { prior: null, deltaPct: null };
+	const mid = Math.floor(values.length / 2);
+	const prior = values.slice(0, mid).reduce((sum, n) => sum + n, 0);
+	const recent = values.slice(mid).reduce((sum, n) => sum + n, 0);
+	if (prior === 0) {
+		return { prior, deltaPct: recent === 0 ? 0 : 100 };
+	}
+	return {
+		prior,
+		deltaPct: ((recent - prior) / Math.abs(prior)) * 100,
+	};
+}
+
+type AgentRow = NonNullable<DashboardStats["by_agent"]>[number];
+
+type ToolRow = {
+	toolName: string;
+	count: number;
+	failure_rate: number | null;
+	avg_latency_ms: number | null;
+};
+
+type LatencyRow = {
+	metric: string;
+	count: number;
+	avg_ms: number | null;
+	p50_ms: number | null;
+	p95_ms: number | null;
+};
+
+const agentColumns: ColumnDef<AgentRow>[] = [
+	{
+		accessorKey: "name",
+		header: "Agent",
+		cell: ({ row }) => (
+			<span className="font-medium text-foreground">
+				{row.original.name}
+			</span>
+		),
+	},
+	{
+		accessorKey: "count",
+		header: "Sessions",
+		cell: ({ row }) => (
+			<DataTableValuePill>{row.original.count}</DataTableValuePill>
+		),
+	},
+	{
+		accessorKey: "completed",
+		header: "Completed",
+		cell: ({ row }) => (
+			<DataTableValuePill>{row.original.completed}</DataTableValuePill>
+		),
+	},
+	{
+		accessorKey: "failed",
+		header: "Failed",
+		cell: ({ row }) => (
+			<DataTableValuePill>{row.original.failed}</DataTableValuePill>
+		),
+	},
+	{
+		accessorKey: "avg_duration_ms",
+		header: "Avg duration",
+		cell: ({ row }) => (
+			<DataTableValuePill>
+				{formatDurationMs(row.original.avg_duration_ms)}
+			</DataTableValuePill>
+		),
+	},
+];
+
+const toolColumns: ColumnDef<ToolRow>[] = [
+	{
+		accessorKey: "toolName",
+		header: "Tool",
+		cell: ({ row }) => (
+			<span className="font-medium text-foreground">
+				{row.original.toolName}
+			</span>
+		),
+	},
+	{
+		accessorKey: "count",
+		header: "Count",
+		cell: ({ row }) => (
+			<DataTableValuePill>{row.original.count}</DataTableValuePill>
+		),
+	},
+	{
+		accessorKey: "failure_rate",
+		header: "Fail rate",
+		cell: ({ row }) => (
+			<DataTableTypeBadge>
+				{pct(row.original.failure_rate)}
+			</DataTableTypeBadge>
+		),
+	},
+	{
+		accessorKey: "avg_latency_ms",
+		header: "Avg latency",
+		cell: ({ row }) => (
+			<DataTableValuePill>
+				{formatDurationMs(row.original.avg_latency_ms)}
+			</DataTableValuePill>
+		),
+	},
+];
+
+const latencyColumns: ColumnDef<LatencyRow>[] = [
+	{
+		accessorKey: "metric",
+		header: "Metric",
+		cell: ({ row }) => (
+			<span className="font-medium text-foreground">
+				{row.original.metric}
+			</span>
+		),
+	},
+	{
+		accessorKey: "count",
+		header: "Count",
+		cell: ({ row }) => (
+			<DataTableValuePill>{row.original.count}</DataTableValuePill>
+		),
+	},
+	{
+		accessorKey: "avg_ms",
+		header: "Avg",
+		cell: ({ row }) => (
+			<DataTableValuePill>
+				{formatDurationMs(row.original.avg_ms)}
+			</DataTableValuePill>
+		),
+	},
+	{
+		accessorKey: "p50_ms",
+		header: "p50",
+		cell: ({ row }) => (
+			<DataTableValuePill>
+				{formatDurationMs(row.original.p50_ms)}
+			</DataTableValuePill>
+		),
+	},
+	{
+		accessorKey: "p95_ms",
+		header: "p95",
+		cell: ({ row }) => (
+			<DataTableValuePill>
+				{formatDurationMs(row.original.p95_ms)}
+			</DataTableValuePill>
+		),
+	},
+];
+
 export function DashboardExtendedSections({
 	organizationId,
 	stats,
-	enabled,
+	enabled = true,
 }: {
 	organizationId: string;
 	stats: DashboardStats;
-	enabled: boolean;
+	enabled?: boolean;
 }) {
 	const usageQuery = useDashboardUsageQuery(organizationId, 30, { enabled });
 	const costQuery = useDashboardCostQuery(organizationId, 30, { enabled });
@@ -50,52 +232,61 @@ export function DashboardExtendedSections({
 	const actions = actionsQuery.data;
 	const latency = latencyQuery.data;
 
-	const endReasonItems = Object.entries(stats.by_end_reason ?? {}).map(
-		([label, count]) => ({
-			label,
-			pct:
-				stats.total_sessions > 0
-					? (count / stats.total_sessions) * 100
-					: 0,
-		}),
+	const costTrend = halfWindowSum(
+		(cost?.daily ?? []).map((d) => d.cost_micros),
 	);
-
-	const directionItems = Object.entries(stats.by_direction ?? {}).map(
-		([label, count]) => ({
-			label,
-			pct:
-				stats.total_sessions > 0
-					? (count / stats.total_sessions) * 100
-					: 0,
-		}),
-	);
-
-	const modalityItems = (usage?.by_modality ?? []).map((m) => ({
-		label: m.modality,
-		pct: 0,
-		value: m.input_tokens + m.output_tokens,
+	const costSparkline = (cost?.daily ?? []).map((d) => ({
+		value: d.cost_micros / 1_000_000,
 	}));
+	const failedSessions = stats.failed_sessions ?? 0;
+	const connectMs = stats.avg_time_to_connect_ms ?? null;
+	/** Treat sub-5s connect as strong; clamp for the compact progress bar. */
+	const connectProgress =
+		connectMs != null && connectMs > 0
+			? Math.max(0, Math.min(1, 1 - connectMs / 5_000))
+			: null;
+
+	const agentRows = useMemo(
+		() => (stats.by_agent ?? []).slice(0, 50),
+		[stats.by_agent],
+	);
+	const toolRows = useMemo(
+		() => (actions?.tools ?? []) as ToolRow[],
+		[actions?.tools],
+	);
+	const latencyRows = useMemo(
+		() => (latency?.metrics ?? []) as LatencyRow[],
+		[latency?.metrics],
+	);
 
 	return (
 		<div className="space-y-8">
 			<section className="space-y-3">
 				<h3 className="text-base font-semibold">Operations</h3>
 				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-					<BigNumberCard
+					<MetricKpiCard
 						title="Success rate"
 						value={pct(stats.success_rate)}
+						icon={CheckCircle2Icon}
+						footerText={`${stats.completed_sessions.toLocaleString()} completed · ${failedSessions.toLocaleString()} failed`}
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="p95 duration"
 						value={formatDurationMs(stats.p95_duration_ms ?? null)}
+						icon={ClockIcon}
+						footerStat={{
+							label: "Sessions (30d)",
+							value: stats.total_sessions.toLocaleString(),
+						}}
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="Time to connect"
-						value={formatDurationMs(
-							stats.avg_time_to_connect_ms ?? null,
-						)}
+						value={formatDurationMs(connectMs)}
+						icon={PlugZapIcon}
+						detail="Average connect latency"
+						progress={connectProgress}
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="Est. cost (30d)"
 						value={
 							cost
@@ -104,112 +295,79 @@ export function DashboardExtendedSections({
 									? "…"
 									: "—"
 						}
+						icon={DollarSignIcon}
+						deltaPct={costTrend.deltaPct}
+						invertDelta
+						comparisonLabel="vs prior period"
+						sparkline={costSparkline}
 					/>
 				</div>
 				<div className="grid gap-4 lg:grid-cols-2">
-					<DonutBreakdownCard
+					<ChannelBreakdownCard
 						title="End reasons"
 						hint="How sessions ended"
-						items={endReasonItems}
+						byChannel={stats.by_end_reason ?? {}}
 					/>
-					<DonutBreakdownCard
+					<GaugeBreakdownCard
 						title="Direction"
 						hint="Inbound / outbound / web"
-						items={directionItems}
+						items={stats.by_direction ?? {}}
 					/>
 				</div>
-				{(stats.by_agent?.length ?? 0) > 0 ? (
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-sm">Top agents</CardTitle>
-						</CardHeader>
-						<CardContent className="overflow-x-auto">
-							<table className="w-full text-sm">
-								<thead>
-									<tr className="text-left text-muted-foreground">
-										<th className="pb-2">Agent</th>
-										<th className="pb-2">Sessions</th>
-										<th className="pb-2">Completed</th>
-										<th className="pb-2">Failed</th>
-										<th className="pb-2">Avg duration</th>
-									</tr>
-								</thead>
-								<tbody>
-									{(stats.by_agent ?? [])
-										.slice(0, 10)
-										.map((row) => (
-											<tr
-												key={row.agentId}
-												className="border-t border-border/60"
-											>
-												<td className="py-2">
-													{row.name}
-												</td>
-												<td>{row.count}</td>
-												<td>{row.completed}</td>
-												<td>{row.failed}</td>
-												<td>
-													{formatDurationMs(
-														row.avg_duration_ms,
-													)}
-												</td>
-											</tr>
-										))}
-								</tbody>
-							</table>
-						</CardContent>
-					</Card>
+				{agentRows.length > 0 ? (
+					<div className="space-y-2">
+						<h4 className="text-sm font-medium">Top agents</h4>
+						<StandardDataTable
+							columns={agentColumns}
+							data={agentRows}
+							getRowId={(row) => row.agentId}
+							emptyMessage="No agent activity yet."
+						/>
+					</div>
 				) : null}
 				{(stats.failures?.length ?? 0) > 0 ? (
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-sm">
-								Recent failures
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-2 text-sm">
-							{(stats.failures ?? []).slice(0, 8).map((f) => (
-								<div
-									key={f.id}
-									className="rounded-md border border-border/60 px-3 py-2"
-								>
-									<div className="font-medium">
-										{f.agentName} · {f.endReason ?? "error"}
-									</div>
-									<p className="text-muted-foreground">
-										{f.errorMessage ||
-											f.errorCode ||
-											"No error message"}
-									</p>
-								</div>
-							))}
-						</CardContent>
-					</Card>
+					<FailuresActivityCard failures={stats.failures ?? []} />
 				) : null}
 			</section>
 
 			<section className="space-y-3">
 				<h3 className="text-base font-semibold">Usage &amp; cost</h3>
 				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-					<BigNumberCard
+					<MetricKpiCard
 						title="Input tokens"
 						value={(usage?.totals.input_tokens ?? 0).toLocaleString()}
+						icon={SparklesIcon}
+						detail="Last 30 days"
+						sparkline={(usage?.daily ?? []).map((d) => ({
+							value: d.input_tokens,
+						}))}
+						comparisonLabel="Daily trend"
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="Output tokens"
 						value={(
 							usage?.totals.output_tokens ?? 0
 						).toLocaleString()}
+						icon={MessageSquareTextIcon}
+						detail="Last 30 days"
+						sparkline={(usage?.daily ?? []).map((d) => ({
+							value: d.output_tokens,
+						}))}
+						comparisonLabel="Daily trend"
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="TTS characters"
 						value={(usage?.totals.characters ?? 0).toLocaleString()}
+						icon={TypeIcon}
+						detail="Synthesized speech"
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="Audio minutes"
 						value={(
 							(usage?.totals.audio_ms ?? 0) / 60_000
 						).toFixed(1)}
+						icon={AudioLinesIcon}
+						detail="Billable audio"
 					/>
 				</div>
 				{usage?.daily?.length ? (
@@ -221,39 +379,27 @@ export function DashboardExtendedSections({
 							tokens: d.input_tokens + d.output_tokens,
 						}))}
 						series={[
-							{ key: "tokens", label: "Tokens", color: "#2563eb" },
+							{
+								key: "tokens",
+								label: "Tokens",
+								color: "var(--chart-1)",
+							},
 						]}
+						variant="bar"
 					/>
 				) : null}
 				{cost?.by_modality?.length ? (
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-sm">
-								Cost by modality
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-							{cost.by_modality.map((m) => (
-								<div
-									key={m.modality}
-									className="rounded-md border border-border/60 px-3 py-2 text-sm"
-								>
-									<div className="text-muted-foreground">
-										{m.modality}
-									</div>
-									<div className="font-semibold">
-										{formatUsd(m.cost_micros)}
-									</div>
-								</div>
-							))}
-						</CardContent>
-					</Card>
-				) : null}
-				{modalityItems.length > 0 ? (
-					<p className="text-xs text-muted-foreground">
-						Modalities with usage:{" "}
-						{modalityItems.map((m) => m.label).join(", ")}
-					</p>
+					<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+						{cost.by_modality.map((m) => (
+							<MetricKpiCard
+								key={m.modality}
+								title={m.modality}
+								value={formatUsd(m.cost_micros)}
+								icon={DollarSignIcon}
+								detail="Estimated cost"
+							/>
+						))}
+					</div>
 				) : null}
 			</section>
 
@@ -262,29 +408,40 @@ export function DashboardExtendedSections({
 					Conversation quality
 				</h3>
 				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-					<BigNumberCard
+					<MetricKpiCard
 						title="Avg words"
 						value={
 							quality?.avg_word_count != null
 								? String(quality.avg_word_count)
 								: "—"
 						}
+						icon={TypeIcon}
+						detail="Per session"
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="Avg turns"
 						value={
 							quality?.avg_turns != null
 								? String(quality.avg_turns)
 								: "—"
 						}
+						icon={MessageSquareTextIcon}
+						detail="Per session"
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="User talk ratio"
 						value={pct(quality?.talk_ratio_user)}
+						icon={MicIcon}
+						progress={quality?.talk_ratio_user ?? null}
+						detail="Share of talk time"
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="Interruptions"
 						value={pct(quality?.interruption_rate)}
+						icon={XCircleIcon}
+						invertDelta
+						detail="Interrupt rate"
+						progress={quality?.interruption_rate ?? null}
 					/>
 				</div>
 			</section>
@@ -292,111 +449,59 @@ export function DashboardExtendedSections({
 			<section className="space-y-3">
 				<h3 className="text-base font-semibold">Agent actions</h3>
 				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-					<BigNumberCard
+					<MetricKpiCard
 						title="Tool calls"
 						value={String(actions?.tool_call_total ?? 0)}
+						icon={WrenchIcon}
+						detail="Last 30 days"
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="Tool fail rate"
 						value={pct(actions?.tool_failure_rate)}
+						icon={XCircleIcon}
+						detail="Across tool calls"
+						progress={actions?.tool_failure_rate ?? null}
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="Transfers"
 						value={String(actions?.transfers ?? 0)}
+						icon={ArrowLeftRightIcon}
+						detail="Hand-offs"
 					/>
-					<BigNumberCard
+					<MetricKpiCard
 						title="Reschedules"
 						value={String(actions?.reschedules ?? 0)}
+						icon={CalendarClockIcon}
+						detail="Callbacks booked"
 					/>
 				</div>
-				{(actions?.tools?.length ?? 0) > 0 ? (
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-sm">
-								Tools
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="overflow-x-auto">
-							<table className="w-full text-sm">
-								<thead>
-									<tr className="text-left text-muted-foreground">
-										<th className="pb-2">Tool</th>
-										<th className="pb-2">Count</th>
-										<th className="pb-2">Fail rate</th>
-										<th className="pb-2">Avg latency</th>
-									</tr>
-								</thead>
-								<tbody>
-									{(actions?.tools ?? []).map((t) => (
-										<tr
-											key={t.toolName}
-											className="border-t border-border/60"
-										>
-											<td className="py-2">
-												{t.toolName}
-											</td>
-											<td>{t.count}</td>
-											<td>{pct(t.failure_rate)}</td>
-											<td>
-												{formatDurationMs(
-													t.avg_latency_ms,
-												)}
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</CardContent>
-					</Card>
+				{toolRows.length > 0 ? (
+					<div className="space-y-2">
+						<h4 className="text-sm font-medium">Tools</h4>
+						<StandardDataTable
+							columns={toolColumns}
+							data={toolRows}
+							getRowId={(row) => row.toolName}
+							emptyMessage="No tool calls yet."
+						/>
+					</div>
 				) : null}
 			</section>
 
 			<section className="space-y-3">
 				<h3 className="text-base font-semibold">Latency</h3>
-				{(latency?.metrics?.length ?? 0) > 0 ? (
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-sm">
-								Metric percentiles
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="overflow-x-auto">
-							<table className="w-full text-sm">
-								<thead>
-									<tr className="text-left text-muted-foreground">
-										<th className="pb-2">Metric</th>
-										<th className="pb-2">Count</th>
-										<th className="pb-2">Avg</th>
-										<th className="pb-2">p50</th>
-										<th className="pb-2">p95</th>
-									</tr>
-								</thead>
-								<tbody>
-									{(latency?.metrics ?? []).map((m) => (
-										<tr
-											key={m.metric}
-											className="border-t border-border/60"
-										>
-											<td className="py-2">{m.metric}</td>
-											<td>{m.count}</td>
-											<td>
-												{formatDurationMs(m.avg_ms)}
-											</td>
-											<td>
-												{formatDurationMs(m.p50_ms)}
-											</td>
-											<td>
-												{formatDurationMs(m.p95_ms)}
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</CardContent>
-					</Card>
+				{latencyRows.length > 0 ? (
+					<StandardDataTable
+						columns={latencyColumns}
+						data={latencyRows}
+						getRowId={(row) => row.metric}
+						emptyMessage="No latency metrics collected yet."
+					/>
 				) : (
 					<p className="text-sm text-muted-foreground">
-						No latency metrics collected yet.
+						{latencyQuery.isLoading
+							? "Loading latency metrics…"
+							: "No latency metrics collected yet."}
 					</p>
 				)}
 			</section>

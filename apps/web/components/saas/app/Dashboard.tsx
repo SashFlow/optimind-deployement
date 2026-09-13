@@ -5,17 +5,14 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@repo/ui/collapsible";
-import {
-	ActivityIcon,
-	CheckCircle2Icon,
-	ChevronDownIcon,
-	ClockIcon,
-	PhoneIcon,
-} from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ActivityChartCard } from "@/components/saas/app/dashboard/ActivityChartCard";
 import { ChannelBreakdownCard } from "@/components/saas/app/dashboard/ChannelBreakdownCard";
-import { DashboardAnalyticsSections } from "@/components/saas/app/dashboard/DashboardAnalyticsSections";
+import {
+	DashboardLivekitAnalyticsSections,
+	DashboardTelephonySections,
+} from "@/components/saas/app/dashboard/DashboardAnalyticsSections";
 import { DashboardExtendedSections } from "@/components/saas/app/dashboard/DashboardExtendedSections";
 import {
 	computeDeltaPct,
@@ -55,21 +52,32 @@ function DashboardBody({
 	orgName: string;
 	organizationId: string;
 }) {
-	const [advancedOpen, setAdvancedOpen] = useState(false);
+	const [analyticsOpen, setAnalyticsOpen] = useState(false);
 	const analyticsQuery = useDashboardAnalyticsQuery(organizationId, 7, {
-		enabled: advancedOpen,
+		enabled: true,
 	});
-	const sparkline = stats.daily.map((d) => ({ value: d.count }));
+	const sparkline = stats.daily.map((d) => ({
+		value: d.count,
+		label: d.date.slice(5),
+	}));
+	const completedSparkline = stats.daily.map((d) => ({
+		value: d.completed,
+		label: d.date.slice(5),
+	}));
 	const deltaPct = computeDeltaPct(stats.daily.map((d) => d.count));
-	const failurePct =
-		stats.failure_rate != null
-			? `${(stats.failure_rate * 100).toFixed(1)}%`
-			: "—";
+	const completedDeltaPct = computeDeltaPct(
+		stats.daily.map((d) => d.completed),
+	);
+	const completionRate =
+		stats.total_sessions > 0
+			? stats.completed_sessions / stats.total_sessions
+			: 0;
+	const completionPct = `${(completionRate * 100).toFixed(0)}%`;
 
 	useEffect(() => {
 		const syncFromHash = () => {
 			if (window.location.hash === "#analytics") {
-				setAdvancedOpen(true);
+				setAnalyticsOpen(true);
 			}
 		};
 		syncFromHash();
@@ -78,7 +86,7 @@ function DashboardBody({
 	}, []);
 
 	return (
-		<section className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6">
+		<section className="mx-auto w-full max-w-[1600px] space-y-6">
 			<div className="flex flex-col gap-4">
 				<div className="space-y-1">
 					<h1 className="text-2xl font-semibold tracking-tight">
@@ -93,33 +101,39 @@ function DashboardBody({
 			<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 				<StatCard
 					title="Total sessions"
+					subtitle="Last 30 days"
 					value={stats.total_sessions.toLocaleString()}
-					icon={PhoneIcon}
+					variant="line"
+					color="var(--chart-1)"
 					sparkline={sparkline}
 					deltaPct={deltaPct}
 				/>
 				<StatCard
 					title="Active now"
+					subtitle="Queued, starting, or live"
 					value={stats.active_sessions.toLocaleString()}
-					icon={ActivityIcon}
-					description="Queued, starting, or live"
+					variant="dotted-line"
+					color="var(--chart-2)"
 					sparkline={sparkline}
 				/>
 				<StatCard
 					title="Completed"
+					subtitle="Last 30 days"
 					value={stats.completed_sessions.toLocaleString()}
-					icon={CheckCircle2Icon}
-					sparkline={stats.daily.map((d) => ({ value: d.completed }))}
-					deltaPct={computeDeltaPct(
-						stats.daily.map((d) => d.completed),
-					)}
+					variant="donut"
+					color="var(--chart-1)"
+					progress={completionRate}
+					donutLabel={completionPct}
+					donutCaption="Complete"
+					deltaPct={completedDeltaPct}
 				/>
 				<StatCard
 					title="Avg duration"
+					subtitle="Last 30 days"
 					value={formatDuration(stats.avg_duration_ms)}
-					icon={ClockIcon}
-					description={`Success ${stats.success_rate != null ? `${(stats.success_rate * 100).toFixed(1)}%` : "—"} · Fail ${failurePct}`}
-					sparkline={sparkline}
+					variant="line"
+					color="var(--chart-3)"
+					sparkline={completedSparkline}
 				/>
 			</div>
 
@@ -130,36 +144,53 @@ function DashboardBody({
 				<ChannelBreakdownCard byChannel={stats.by_channel} />
 			</div>
 
+			<DashboardExtendedSections
+				organizationId={organizationId}
+				stats={stats}
+			/>
+
+			{analyticsQuery.isLoading ? (
+				<div className="space-y-4">
+					<ChartCardSkeleton />
+					<div className="grid gap-4 lg:grid-cols-2">
+						<ChartCardSkeleton height="h-48" />
+						<ChartCardSkeleton height="h-48" />
+					</div>
+				</div>
+			) : analyticsQuery.isError ? (
+				<p className="text-sm text-destructive" role="alert">
+					Unable to load telephony analytics.
+				</p>
+			) : analyticsQuery.data ? (
+				<DashboardTelephonySections analytics={analyticsQuery.data} />
+			) : null}
+
 			<Collapsible
-				open={advancedOpen}
-				onOpenChange={setAdvancedOpen}
+				open={analyticsOpen}
+				onOpenChange={setAnalyticsOpen}
 				id="analytics"
 				className="scroll-mt-6"
 			>
-				{!advancedOpen ? (
+				{!analyticsOpen ? (
 					<div className="flex justify-center">
 						<CollapsibleTrigger className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/80 px-4 py-2 text-sm font-medium shadow-xs outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring">
-							Advanced
+							Analytics
 							<ChevronDownIcon className="size-4 text-muted-foreground" />
 						</CollapsibleTrigger>
 					</div>
-				) : null}
+				) : (
+					<div className="flex items-center justify-between gap-3">
+						<h3 className="text-base font-semibold">
+							LiveKit analytics
+						</h3>
+						<CollapsibleTrigger className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/80 px-3 py-1.5 text-sm font-medium shadow-xs outline-none transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ring">
+							Hide
+							<ChevronDownIcon className="size-4 rotate-180 text-muted-foreground" />
+						</CollapsibleTrigger>
+					</div>
+				)}
 				<CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
-					<div className="space-y-3">
-						<div>
-							<h2 className="text-lg font-semibold tracking-tight">
-								Usage analytics
-							</h2>
-							<p className="text-sm text-muted-foreground">
-								Operations, usage/cost, quality, actions,
-								latency, telephony, and egress
-							</p>
-						</div>
-						<DashboardExtendedSections
-							organizationId={organizationId}
-							stats={stats}
-							enabled={advancedOpen}
-						/>
+					<div className="space-y-3 pt-3">
 						{analyticsQuery.isLoading ? (
 							<div className="space-y-4">
 								<ChartCardSkeleton />
@@ -173,10 +204,10 @@ function DashboardBody({
 								className="text-sm text-destructive"
 								role="alert"
 							>
-								Unable to load telephony analytics.
+								Unable to load LiveKit analytics.
 							</p>
 						) : analyticsQuery.data ? (
-							<DashboardAnalyticsSections
+							<DashboardLivekitAnalyticsSections
 								analytics={analyticsQuery.data}
 							/>
 						) : null}

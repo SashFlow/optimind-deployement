@@ -1,33 +1,32 @@
 "use client";
 
+import {
+	ArrowDownToLineIcon,
+	ArrowUpFromLineIcon,
+	ClockIcon,
+	HardDriveIcon,
+	PhoneIncomingIcon,
+	PhoneOutgoingIcon,
+	PhoneIcon,
+	VideoIcon,
+} from "lucide-react";
 import type { DashboardAnalytics } from "@/services/api/types";
 
 import { AnalyticsLineChart } from "./AnalyticsLineChart";
-import { BigNumberCard } from "./BigNumberCard";
 import { ConnectionSuccessCard } from "./ConnectionSuccessCard";
 import { DonutBreakdownCard } from "./DonutBreakdownCard";
+import { MetricKpiCard } from "./MetricKpiCard";
 import { TopCountriesCard } from "./TopCountriesCard";
 import { formatBytes, formatDurationMs, formatMinutes } from "./format";
 
-export function DashboardAnalyticsSections({
+/** LiveKit Cloud analytics — gated behind the Analytics expand control. */
+export function DashboardLivekitAnalyticsSections({
 	analytics,
 }: {
 	analytics: DashboardAnalytics;
 }) {
-	const { livekit, telephony, egress } = analytics;
+	const { livekit } = analytics;
 	const lkUnavailable = !livekit.available;
-
-	const minutesChartData = telephony.minutes_daily.map((d) => ({
-		date: d.date,
-		inbound: d.inbound_ms / 60_000,
-		outbound: d.outbound_ms / 60_000,
-		total: d.total_ms / 60_000,
-	}));
-
-	const sipChartData = telephony.sip_sessions_daily.map((d) => ({
-		date: d.date,
-		count: d.count,
-	}));
 
 	const participantsData = livekit.participants_daily.map((d) => ({
 		date: d.date,
@@ -40,14 +39,6 @@ export function DashboardAnalyticsSections({
 		upstream: d.upstream,
 	}));
 
-	const egressData = egress.by_type_daily.map((d) => ({
-		date: d.date,
-		participant: d.participant,
-		room_composite: d.room_composite,
-		track: d.track,
-		web: d.web,
-	}));
-
 	return (
 		<div className="space-y-8">
 			{lkUnavailable && livekit.message ? (
@@ -56,7 +47,6 @@ export function DashboardAnalyticsSections({
 				</p>
 			) : null}
 
-			{/* 1. Connection quality */}
 			<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 				<ConnectionSuccessCard
 					pct={livekit.connection_success_pct}
@@ -80,135 +70,266 @@ export function DashboardAnalyticsSections({
 				/>
 			</div>
 
-			{/* 2. Participant minutes */}
-			<div className="grid gap-4 lg:grid-cols-2">
-				<BigNumberCard
+			<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+				<MetricKpiCard
 					title="WebRTC participant minutes"
-					hint="Billable connection minutes from LiveKit analytics."
-					value={formatMinutes(livekit.webrtc_participant_minutes)}
-					unavailable={lkUnavailable}
-				/>
-				<DonutBreakdownCard
-					title="Participant minutes by kind"
-					hint="WebRTC minutes from LiveKit; SIP minutes from your org sessions."
-					items={livekit.participant_minutes_by_kind}
-					mode="minutes"
-					unavailable={lkUnavailable}
-				/>
-			</div>
-			<AnalyticsLineChart
-				title="Participants"
-				hint="Daily sum of participants across LiveKit Cloud sessions."
-				data={participantsData}
-				series={[{ key: "count", label: "Participants" }]}
-				unavailable={lkUnavailable}
-			/>
-
-			{/* 3. Minutes + SIP */}
-			<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_220px_220px]">
-				<AnalyticsLineChart
-					title="Minutes"
-					hint="Inbound, outbound, and total session duration for your organization."
-					data={minutesChartData}
-					series={[
-						{ key: "inbound", label: "Inbound" },
-						{ key: "outbound", label: "Outbound" },
-						{ key: "total", label: "Total minutes" },
-					]}
-					yTickFormatter={(v) =>
-						v < 1 ? `${Math.round(v * 60)}s` : `${Math.round(v)}m`
-					}
-				/>
-				<BigNumberCard
-					title="Total inbound"
-					hint="Sum of inbound session duration."
-					value={formatDurationMs(telephony.total_inbound_ms)}
-				/>
-				<BigNumberCard
-					title="Total outbound"
-					hint="Sum of outbound session duration."
-					value={formatDurationMs(telephony.total_outbound_ms)}
-				/>
-				<BigNumberCard
-					title="Answer rate"
-					hint="SIP/phone sessions that reached connected."
 					value={
-						telephony.answer_rate != null
-							? `${(telephony.answer_rate * 100).toFixed(1)}%`
-							: "—"
+						lkUnavailable
+							? "—"
+							: formatMinutes(livekit.webrtc_participant_minutes)
 					}
+					icon={ClockIcon}
+					detail="Billable connection minutes"
 				/>
-			</div>
-			<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
-				<AnalyticsLineChart
-					title="SIP sessions"
-					hint="Daily count of SIP-channel sessions for your organization."
-					data={sipChartData}
-					series={[{ key: "count", label: "SIP sessions" }]}
-				/>
-				<BigNumberCard
-					title="Total SIP sessions"
-					hint="SIP sessions in the selected period."
-					value={String(telephony.sip_sessions_total)}
-				/>
-			</div>
-
-			{/* 4. Data transfer */}
-			<div className="grid gap-4 sm:grid-cols-2">
-				<BigNumberCard
+				<MetricKpiCard
 					title="Total upstream"
-					hint="Sum of LiveKit bandwidthOut across sessions."
-					value={formatBytes(livekit.total_upstream_bytes)}
-					unavailable={lkUnavailable}
+					value={
+						lkUnavailable
+							? "—"
+							: formatBytes(livekit.total_upstream_bytes)
+					}
+					icon={ArrowUpFromLineIcon}
+					detail="Bandwidth out"
 				/>
-				<BigNumberCard
+				<MetricKpiCard
 					title="Total downstream"
-					hint="Sum of LiveKit bandwidthIn across sessions."
-					value={formatBytes(livekit.total_downstream_bytes)}
-					unavailable={lkUnavailable}
+					value={
+						lkUnavailable
+							? "—"
+							: formatBytes(livekit.total_downstream_bytes)
+					}
+					icon={ArrowDownToLineIcon}
+					detail="Bandwidth in"
 				/>
 			</div>
-			<AnalyticsLineChart
-				title="Data transfer"
-				hint="Daily upstream and downstream bytes from LiveKit Cloud."
-				data={transferData}
-				series={[
-					{ key: "downstream", label: "Downstream" },
-					{ key: "upstream", label: "Upstream" },
-				]}
+
+			<DonutBreakdownCard
+				title="Participant minutes by kind"
+				hint="WebRTC minutes from LiveKit; SIP minutes from your org sessions."
+				items={livekit.participant_minutes_by_kind}
+				mode="minutes"
 				unavailable={lkUnavailable}
-				yTickFormatter={(v) => formatBytes(v)}
 			/>
 
-			{/* 5. Egress */}
-			<div className="grid gap-4 sm:grid-cols-3">
-				<BigNumberCard
-					title="Total egress count"
-					hint="Egress jobs created for your organization."
-					value={String(egress.total_count)}
+			<div className="grid gap-4 xl:grid-cols-2">
+				<AnalyticsLineChart
+					title="Participants"
+					hint="Daily sum of participants across LiveKit Cloud sessions."
+					data={participantsData}
+					series={[
+						{
+							key: "count",
+							label: "Participants",
+							color: "var(--chart-1)",
+						},
+					]}
+					unavailable={lkUnavailable}
+					variant="bar"
 				/>
-				<BigNumberCard
-					title="Total billable egress duration"
-					hint="Sum of recorded egress durations."
-					value={formatDurationMs(egress.total_billable_duration_ms)}
-				/>
-				<BigNumberCard
-					title="Total track egress duration"
-					hint="Duration for track egress jobs only."
-					value={formatDurationMs(egress.total_track_duration_ms)}
+				<AnalyticsLineChart
+					title="Data transfer"
+					hint="Daily upstream and downstream bytes from LiveKit Cloud."
+					data={transferData}
+					series={[
+						{
+							key: "downstream",
+							label: "Downstream",
+							color: "var(--chart-1)",
+						},
+						{
+							key: "upstream",
+							label: "Upstream",
+							color: "var(--chart-3)",
+						},
+					]}
+					unavailable={lkUnavailable}
+					yTickFormatter={(v) => formatBytes(v)}
+					variant="line"
 				/>
 			</div>
-			<AnalyticsLineChart
-				title="Egresses"
-				hint="Daily egress job counts by type."
-				data={egressData}
-				series={[
-					{ key: "participant", label: "Participant" },
-					{ key: "room_composite", label: "Room composite" },
-					{ key: "track", label: "Track" },
-					{ key: "web", label: "Web" },
-				]}
-			/>
+		</div>
+	);
+}
+
+/** Org telephony + egress metrics (no LiveKit Cloud dependency). */
+export function DashboardTelephonySections({
+	analytics,
+}: {
+	analytics: DashboardAnalytics;
+}) {
+	const { telephony, egress } = analytics;
+
+	const minutesChartData = telephony.minutes_daily.map((d) => ({
+		date: d.date,
+		inbound: d.inbound_ms / 60_000,
+		outbound: d.outbound_ms / 60_000,
+		total: d.total_ms / 60_000,
+	}));
+
+	const sipChartData = telephony.sip_sessions_daily.map((d) => ({
+		date: d.date,
+		count: d.count,
+	}));
+
+	const egressData = egress.by_type_daily.map((d) => ({
+		date: d.date,
+		participant: d.participant,
+		room_composite: d.room_composite,
+		track: d.track,
+		web: d.web,
+	}));
+
+	const answerRate = telephony.answer_rate;
+
+	return (
+		<div className="space-y-8">
+			<section className="space-y-3">
+				<h3 className="text-base font-semibold">Telephony</h3>
+				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+					<MetricKpiCard
+						title="Total inbound"
+						value={formatDurationMs(telephony.total_inbound_ms)}
+						icon={PhoneIncomingIcon}
+						detail="Inbound session duration"
+					/>
+					<MetricKpiCard
+						title="Total outbound"
+						value={formatDurationMs(telephony.total_outbound_ms)}
+						icon={PhoneOutgoingIcon}
+						detail="Outbound session duration"
+					/>
+					<MetricKpiCard
+						title="Answer rate"
+						value={
+							answerRate != null
+								? `${(answerRate * 100).toFixed(1)}%`
+								: "—"
+						}
+						icon={PhoneIcon}
+						detail="SIP/phone connected"
+						progress={answerRate ?? null}
+					/>
+					<MetricKpiCard
+						title="SIP sessions"
+						value={String(telephony.sip_sessions_total)}
+						icon={PhoneIcon}
+						detail="Selected period"
+						sparkline={sipChartData.map((d) => ({ value: d.count }))}
+						comparisonLabel="Daily trend"
+					/>
+				</div>
+				<div className="grid gap-4 xl:grid-cols-2">
+					<AnalyticsLineChart
+						title="Minutes"
+						hint="Inbound, outbound, and total session duration for your organization."
+						data={minutesChartData}
+						series={[
+							{
+								key: "inbound",
+								label: "Inbound",
+								color: "var(--chart-1)",
+							},
+							{
+								key: "outbound",
+								label: "Outbound",
+								color: "var(--chart-3)",
+							},
+							{
+								key: "total",
+								label: "Total minutes",
+								color: "var(--chart-2)",
+							},
+						]}
+						yTickFormatter={(v) =>
+							v < 1
+								? `${Math.round(v * 60)}s`
+								: `${Math.round(v)}m`
+						}
+						variant="line"
+					/>
+					<AnalyticsLineChart
+						title="SIP sessions"
+						hint="Daily count of SIP-channel sessions for your organization."
+						data={sipChartData}
+						series={[
+							{
+								key: "count",
+								label: "SIP sessions",
+								color: "var(--chart-1)",
+							},
+						]}
+						variant="bar"
+					/>
+				</div>
+			</section>
+
+			<section className="space-y-3">
+				<h3 className="text-base font-semibold">Egress</h3>
+				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+					<MetricKpiCard
+						title="Total egress count"
+						value={String(egress.total_count)}
+						icon={VideoIcon}
+						detail="Egress jobs created"
+					/>
+					<MetricKpiCard
+						title="Billable duration"
+						value={formatDurationMs(
+							egress.total_billable_duration_ms,
+						)}
+						icon={ClockIcon}
+						detail="Recorded egress time"
+					/>
+					<MetricKpiCard
+						title="Track egress duration"
+						value={formatDurationMs(egress.total_track_duration_ms)}
+						icon={HardDriveIcon}
+						detail="Track jobs only"
+					/>
+				</div>
+				<AnalyticsLineChart
+					title="Egresses"
+					hint="Daily egress job counts by type."
+					data={egressData}
+					series={[
+						{
+							key: "participant",
+							label: "Participant",
+							color: "var(--chart-1)",
+						},
+						{
+							key: "room_composite",
+							label: "Room composite",
+							color: "var(--chart-2)",
+						},
+						{
+							key: "track",
+							label: "Track",
+							color: "var(--chart-3)",
+						},
+						{
+							key: "web",
+							label: "Web",
+							color: "var(--chart-4)",
+						},
+					]}
+					variant="bar"
+				/>
+			</section>
+		</div>
+	);
+}
+
+/** @deprecated Prefer DashboardLivekitAnalyticsSections + DashboardTelephonySections */
+export function DashboardAnalyticsSections({
+	analytics,
+}: {
+	analytics: DashboardAnalytics;
+}) {
+	return (
+		<div className="space-y-8">
+			<DashboardLivekitAnalyticsSections analytics={analytics} />
+			<DashboardTelephonySections analytics={analytics} />
 		</div>
 	);
 }
