@@ -98,7 +98,9 @@ function buildSessionPlan(dayOffset: number, slot: number): SessionPlan {
 	}
 
 	const startedAt =
-		status === "QUEUED" ? null : new Date(createdAt.getTime() + rand(200, 2_000));
+		status === "QUEUED"
+			? null
+			: new Date(createdAt.getTime() + rand(200, 2_000));
 	const connectDelay = rand(400, 4_500);
 	const connectedAt =
 		startedAt && status !== "QUEUED" && status !== "CANCELLED"
@@ -113,7 +115,9 @@ function buildSessionPlan(dayOffset: number, slot: number): SessionPlan {
 
 	if (status === "COMPLETED") {
 		durationMs = rand(25_000, 420_000);
-		endedAt = new Date((connectedAt ?? startedAt ?? createdAt).getTime() + durationMs);
+		endedAt = new Date(
+			(connectedAt ?? startedAt ?? createdAt).getTime() + durationMs,
+		);
 		endReason = pick<SessionEndReason>([
 			"COMPLETED",
 			"PARTICIPANT_LEFT",
@@ -121,7 +125,9 @@ function buildSessionPlan(dayOffset: number, slot: number): SessionPlan {
 		]);
 	} else if (status === "FAILED") {
 		durationMs = rand(1_000, 45_000);
-		endedAt = new Date((connectedAt ?? startedAt ?? createdAt).getTime() + durationMs);
+		endedAt = new Date(
+			(connectedAt ?? startedAt ?? createdAt).getTime() + durationMs,
+		);
 		endReason = "ERROR";
 		errorCode = pick(["SIP_BUSY", "AGENT_CRASH", "TIMEOUT", "MEDIA_ERROR"]);
 		errorMessage = `Demo failure: ${errorCode}`;
@@ -250,7 +256,9 @@ async function deletePriorDemoSessions(organizationId: string) {
 	});
 }
 
-export async function fillOrganizationDemoDashboardData(organizationId: string) {
+export async function fillOrganizationDemoDashboardData(
+	organizationId: string,
+) {
 	const org = await db.organization.findUnique({
 		where: { id: organizationId },
 		select: { id: true },
@@ -499,7 +507,8 @@ export async function fillOrganizationDemoDashboardData(organizationId: string) 
 		const toolCount = rand(1, 3);
 		for (let t = 0; t < toolCount; t += 1) {
 			const started = new Date(
-				(session.connectedAt ?? session.createdAt).getTime() + t * 5_000,
+				(session.connectedAt ?? session.createdAt).getTime() +
+					t * 5_000,
 			);
 			const completedAt = new Date(started.getTime() + rand(80, 1_200));
 			const failed = chance(0.12);
@@ -531,7 +540,9 @@ export async function fillOrganizationDemoDashboardData(organizationId: string) 
 				type,
 				status: chance(0.9) ? "COMPLETE" : "FAILED",
 				roomName: session.livekitRoomName,
-				durationMs: Math.round(durationMs * (0.6 + Math.random() * 0.4)),
+				durationMs: Math.round(
+					durationMs * (0.6 + Math.random() * 0.4),
+				),
 				sizeBytes: rand(250_000, 8_000_000),
 				errorMessage: chance(0.1) ? "Demo egress failure" : null,
 				createdAt: session.createdAt,

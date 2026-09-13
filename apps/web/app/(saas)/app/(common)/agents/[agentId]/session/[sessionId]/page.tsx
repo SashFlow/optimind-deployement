@@ -52,7 +52,7 @@ export default function AgentSessionPage() {
 			<FolderTabsContent value="overview">
 				<AgentSessionDetail session={session} />
 			</FolderTabsContent>
-			<FolderTabsContent value="events">
+			<FolderTabsContent value="events" scrollable={false}>
 				<SessionEventsPanel events={events} />
 			</FolderTabsContent>
 		</FolderTabs>

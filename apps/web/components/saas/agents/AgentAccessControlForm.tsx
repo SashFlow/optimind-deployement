@@ -2,13 +2,6 @@
 
 import { Button } from "@repo/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@repo/ui/card";
-import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
@@ -19,35 +12,20 @@ import {
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Switch } from "@repo/ui/switch";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@repo/ui/table";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 import { CopyIcon, PencilIcon, Trash2Icon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-	DataTableBody,
 	DataTableBulkBar,
-	DataTableHeaderRow,
-	DataTableShell,
 	IdentityCell,
-	RowCheckbox,
-	SelectColumnHead,
 	StatusBadge,
-	dataTableRowClass,
 } from "@/components/saas/shared/DataTable";
-import {
-	Pagination,
-	useClientPagination,
-} from "@/components/saas/shared/Pagination";
-import { useRowSelection } from "@/components/saas/shared/useRowSelection";
+import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import { DataTable } from "@/components/saas/shared/StandardDataTable";
 
 type TrialLink = {
 	id: string;
@@ -127,6 +105,8 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	const [editingTrial, setEditingTrial] = useState<TrialLink | null>(null);
 	const [form, setForm] = useState<TrialFormState>(EMPTY_FORM);
 	const [bulkBusy, setBulkBusy] = useState(false);
+	const selectedTrialsRef = useRef<TrialLink[]>([]);
+	const clearSelectionRef = useRef<() => void>(() => {});
 	const trials: TrialLink[] = (trialLinksQuery.data?.trials ?? []).map(
 		(trial) => ({
 			id: trial.id,
@@ -140,15 +120,7 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 			enabled: trial.enabled,
 		}),
 	);
-	const { currentPage, setCurrentPage, pageItems, totalItems, itemsPerPage } =
-		useClientPagination(trials);
 	const listKey = orpc.agents.listTrialLinks.key({ input: { id: agentId } });
-
-	const pageIds = useMemo(
-		() => pageItems.map((trial) => trial.id),
-		[pageItems],
-	);
-	const selection = useRowSelection(pageIds);
 
 	const createMutation = useMutation(
 		orpc.agents.createTrialLink.mutationOptions({
@@ -262,16 +234,17 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	}
 
 	async function bulkDelete() {
-		if (selection.selectedIds.length === 0) return;
+		const selected = selectedTrialsRef.current;
+		if (selected.length === 0) return;
 		setBulkBusy(true);
 		try {
-			for (const trialId of selection.selectedIds) {
+			for (const trial of selected) {
 				await deleteMutation.mutateAsync({
 					id: agentId,
-					trialId,
+					trialId: trial.id,
 				});
 			}
-			selection.clear();
+			clearSelectionRef.current();
 		} finally {
 			setBulkBusy(false);
 		}
@@ -285,245 +258,215 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 		});
 	}
 
+	const columns = useMemo<ColumnDef<TrialLink>[]>(
+		() => [
+			{
+				accessorKey: "label",
+				header: "Label",
+				cell: ({ row }) => (
+					<IdentityCell
+						name={row.original.label}
+						showAvatar={false}
+					/>
+				),
+			},
+			{
+				id: "url",
+				header: "URL",
+				cell: ({ row }) => {
+					const trial = row.original;
+					const sharePath = `/share/${trial.token}`;
+					const shareUrl = absoluteShareUrl(sharePath);
+					return (
+						<div className="flex min-w-0 max-w-[16rem] items-center gap-1">
+							<span
+								className="truncate font-mono text-xs text-muted-foreground"
+								title={shareUrl}
+							>
+								{shareUrl}
+							</span>
+							<Button
+								type="button"
+								size="icon"
+								variant="ghost"
+								aria-label={`Copy ${trial.label} link`}
+								className="size-7 shrink-0 text-muted-foreground"
+								onClick={() => void copyTrialUrl(sharePath)}
+							>
+								<CopyIcon className="size-3.5" />
+							</Button>
+						</div>
+					);
+				},
+			},
+			{
+				id: "status",
+				header: "Status",
+				cell: ({ row }) => {
+					const status = trialStatus(row.original);
+					return (
+						<StatusBadge
+							label={status.label}
+							tone={status.label.toLowerCase()}
+						/>
+					);
+				},
+			},
+			{
+				id: "remaining",
+				header: "Remaining",
+				cell: ({ row }) => {
+					const status = trialStatus(row.original);
+					return (
+						<span className="tabular-nums">
+							{status.remaining}/{row.original.sessions}
+						</span>
+					);
+				},
+			},
+			{
+				id: "expiry",
+				header: "Expiry",
+				cell: ({ row }) => formatExpiry(row.original.expiresAt),
+			},
+			{
+				id: "enabled",
+				header: "Enabled",
+				cell: ({ row }) => {
+					const trial = row.original;
+					return (
+						<Switch
+							checked={trial.enabled}
+							aria-label={`Toggle ${trial.label}`}
+							disabled={updateMutation.isPending}
+							onCheckedChange={(enabled) =>
+								void toggleTrialEnabled(trial, enabled)
+							}
+						/>
+					);
+				},
+			},
+			{
+				id: "actions",
+				header: () => <span className="sr-only">Actions</span>,
+				size: 96,
+				cell: ({ row }) => {
+					const trial = row.original;
+					return (
+						<div className="flex justify-end gap-1">
+							<Button
+								type="button"
+								size="icon"
+								variant="ghost"
+								aria-label={`Edit ${trial.label}`}
+								className="size-8 text-muted-foreground"
+								onClick={() => openEditDialog(trial)}
+							>
+								<PencilIcon className="size-4" />
+							</Button>
+							<Button
+								type="button"
+								size="icon"
+								variant="ghost"
+								aria-label={`Remove ${trial.label}`}
+								className="size-8 text-muted-foreground hover:text-destructive"
+								onClick={() => void removeTrial(trial.id)}
+							>
+								<Trash2Icon className="size-4" />
+							</Button>
+						</div>
+					);
+				},
+			},
+		],
+		[updateMutation.isPending],
+	);
+
 	const toolbar = (
-		<div className="flex w-full flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-			<div className="space-y-1.5">
+		<div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div className="space-y-1">
 				<h2 className="font-semibold text-lg">Trial links</h2>
 				<p className="text-sm text-muted-foreground">
 					Shareable demo links. Guests can fully test the published
 					agent on web or mobile.
 				</p>
 			</div>
-			<Button type="button" onClick={openCreateDialog}>
+			<Button
+				type="button"
+				className="shrink-0"
+				onClick={openCreateDialog}
+			>
 				Create link
 			</Button>
 		</div>
 	);
 
-	const bulkBar =
-		selection.selectedCount > 0 ? (
-			<DataTableBulkBar
-				count={selection.selectedCount}
-				onClear={selection.clear}
-			>
-				<Button
-					type="button"
-					size="sm"
-					variant="outline"
-					disabled={bulkBusy || deleteMutation.isPending}
-					className="text-destructive"
-					onClick={() => {
-						void bulkDelete();
-					}}
-				>
-					{bulkBusy ? "Deleting…" : "Delete"}
-				</Button>
-			</DataTableBulkBar>
-		) : null;
-
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			{trialLinksQuery.isLoading ? (
-				<Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
-					<CardHeader className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-						<div className="space-y-1.5">
-							<CardTitle>Trial links</CardTitle>
-							<CardDescription>
-								Shareable demo links. Guests can fully test the
-								published agent on web or mobile.
-							</CardDescription>
-						</div>
-						<Button type="button" onClick={openCreateDialog}>
-							Create link
-						</Button>
-					</CardHeader>
-					<CardContent>
-						<p className="text-sm text-muted-foreground">
-							Loading trial links...
-						</p>
-					</CardContent>
-				</Card>
-			) : trials.length === 0 ? (
-				<Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm ring-1 ring-black/5">
-					<CardHeader className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-						<div className="space-y-1.5">
-							<CardTitle>Trial links</CardTitle>
-							<CardDescription>
-								Shareable demo links. Guests can fully test the
-								published agent on web or mobile.
-							</CardDescription>
-						</div>
-						<Button type="button" onClick={openCreateDialog}>
-							Create link
-						</Button>
-					</CardHeader>
-					<CardContent>
-						<p className="text-sm text-muted-foreground">
-							No trial links yet.
-						</p>
-					</CardContent>
-				</Card>
-			) : (
-				<DataTableShell
-					toolbar={selection.selectedCount > 0 ? undefined : toolbar}
-					bulkBar={bulkBar}
-					footer={
-						<Pagination
-							totalItems={totalItems}
-							itemsPerPage={itemsPerPage}
-							currentPage={currentPage}
-							onChangeCurrentPage={setCurrentPage}
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex min-h-16 shrink-0 items-center border-b border-border/60 px-1 py-3 sm:px-0">
+						{toolbar}
+					</div>
+					<div className="min-h-0 flex-1 overflow-x-auto">
+						<TableBodySkeleton
+							headers={[
+								"",
+								"Label",
+								"URL",
+								"Status",
+								"Remaining",
+								"Expiry",
+								"Enabled",
+								"Actions",
+							]}
+							columns={[
+								{ type: "action" },
+								{ type: "text", width: "w-24" },
+								{ type: "text", width: "w-40" },
+								{ type: "pill" },
+								{ type: "text", width: "w-14" },
+								{ type: "text", width: "w-20" },
+								{ type: "action" },
+								{ type: "action" },
+							]}
 						/>
-					}
-				>
-					<DataTableBody>
-						<Table>
-							<TableHeader>
-								<DataTableHeaderRow>
-									<SelectColumnHead
-										allSelected={selection.allPageSelected}
-										someSelected={
-											selection.somePageSelected
-										}
-										onToggle={selection.togglePage}
-									/>
-									<TableHead>Label</TableHead>
-									<TableHead>URL</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead>Remaining</TableHead>
-									<TableHead>Expiry</TableHead>
-									<TableHead>Enabled</TableHead>
-									<TableHead className="w-24">
-										<span className="sr-only">Actions</span>
-									</TableHead>
-								</DataTableHeaderRow>
-							</TableHeader>
-							<TableBody>
-								{pageItems.map((trial) => {
-									const status = trialStatus(trial);
-									const sharePath = `/share/${trial.token}`;
-									const shareUrl =
-										absoluteShareUrl(sharePath);
-									const selected = selection.isSelected(
-										trial.id,
-									);
-									return (
-										<TableRow
-											key={trial.id}
-											className={dataTableRowClass(
-												selected,
-											)}
-										>
-											<TableCell className="w-10 px-3">
-												<RowCheckbox
-													checked={selected}
-													onToggle={() =>
-														selection.toggle(
-															trial.id,
-														)
-													}
-													label={`Select ${trial.label}`}
-												/>
-											</TableCell>
-											<TableCell>
-												<IdentityCell
-													name={trial.label}
-													showAvatar={false}
-												/>
-											</TableCell>
-											<TableCell className="max-w-[16rem]">
-												<div className="flex min-w-0 items-center gap-1">
-													<span
-														className="truncate font-mono text-xs text-muted-foreground"
-														title={shareUrl}
-													>
-														{shareUrl}
-													</span>
-													<Button
-														type="button"
-														size="icon"
-														variant="ghost"
-														aria-label={`Copy ${trial.label} link`}
-														className="size-7 shrink-0 text-muted-foreground"
-														onClick={() =>
-															void copyTrialUrl(
-																sharePath,
-															)
-														}
-													>
-														<CopyIcon className="size-3.5" />
-													</Button>
-												</div>
-											</TableCell>
-											<TableCell>
-												<StatusBadge
-													label={status.label}
-													tone={status.label.toLowerCase()}
-												/>
-											</TableCell>
-											<TableCell>
-												{status.remaining}/
-												{trial.sessions}
-											</TableCell>
-											<TableCell>
-												{formatExpiry(trial.expiresAt)}
-											</TableCell>
-											<TableCell>
-												<Switch
-													checked={trial.enabled}
-													aria-label={`Toggle ${trial.label}`}
-													disabled={
-														updateMutation.isPending
-													}
-													onCheckedChange={(
-														enabled,
-													) =>
-														void toggleTrialEnabled(
-															trial,
-															enabled,
-														)
-													}
-												/>
-											</TableCell>
-											<TableCell>
-												<div className="flex justify-end gap-1">
-													<Button
-														type="button"
-														size="icon"
-														variant="ghost"
-														aria-label={`Edit ${trial.label}`}
-														className="size-8 text-muted-foreground"
-														onClick={() =>
-															openEditDialog(
-																trial,
-															)
-														}
-													>
-														<PencilIcon className="size-4" />
-													</Button>
-													<Button
-														type="button"
-														size="icon"
-														variant="ghost"
-														aria-label={`Remove ${trial.label}`}
-														className="size-8 text-muted-foreground hover:text-destructive"
-														onClick={() =>
-															void removeTrial(
-																trial.id,
-															)
-														}
-													>
-														<Trash2Icon className="size-4" />
-													</Button>
-												</div>
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
-					</DataTableBody>
-				</DataTableShell>
+					</div>
+				</div>
+			) : (
+				<DataTable
+					columns={columns}
+					data={trials}
+					toolbar={toolbar}
+					framed={false}
+					enableRowSelection
+					pageSize={PAGE_SIZE}
+					getRowId={(row) => row.id}
+					emptyMessage="No trial links yet."
+					onSelectionChange={({ selectedRows, clearSelection }) => {
+						selectedTrialsRef.current = selectedRows;
+						clearSelectionRef.current = clearSelection;
+					}}
+					bulkBar={({ selectedCount, clearSelection }) => (
+						<DataTableBulkBar
+							count={selectedCount}
+							onClear={clearSelection}
+						>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								disabled={bulkBusy || deleteMutation.isPending}
+								className="text-destructive"
+								onClick={() => {
+									void bulkDelete();
+								}}
+							>
+								{bulkBusy ? "Deleting…" : "Delete"}
+							</Button>
+						</DataTableBulkBar>
+					)}
+				/>
 			)}
 
 			<Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>

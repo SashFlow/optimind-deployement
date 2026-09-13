@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@repo/ui/button";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import {
 	AgentMonitorBody,
@@ -14,8 +17,15 @@ import {
 import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
 import { useAgentServerStatsQuery } from "@/services/api/hooks";
 
-export default function AgentMonitorPage() {
+export default function AgentMonitorPage({
+	onEditAgent,
+}: {
+	onEditAgent?: () => void;
+}) {
 	const params = useParams<{ agentId: string }>();
+	const agentQuery = useQuery(
+		orpc.agents.get.queryOptions({ input: { id: params.agentId } }),
+	);
 	const serverStatsQuery = useAgentServerStatsQuery(params.agentId, 30);
 	const sessionsQuery = useAgentSessionsQuery(params.agentId, {
 		refetchInterval: 10_000,
@@ -33,6 +43,7 @@ export default function AgentMonitorPage() {
 		);
 	}
 
+	const agent = agentQuery.data?.agent;
 	const server = serverStatsQuery.data as AgentMonitorServerStats;
 	const sessionStats = computeAgentStats(sessionsQuery.data ?? [], 30);
 	const chartStats: AgentStats = {
@@ -46,7 +57,25 @@ export default function AgentMonitorPage() {
 	};
 
 	return (
-		<div className="mx-auto w-full max-w-[1600px] space-y-6 px-5 py-6 md:px-6">
+		<div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col gap-6 overflow-y-auto pb-4">
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<div className="space-y-1">
+					<h1 className="text-2xl font-bold tracking-tight text-primary">
+						{agent?.name ?? "Agent"}
+					</h1>
+					<p className="text-sm text-muted-foreground">
+						{agent?.description || "Agent dashboard"}
+					</p>
+				</div>
+				{onEditAgent ? (
+					<div className="flex items-center gap-2">
+						<Button size="sm" onClick={onEditAgent}>
+							Edit agent
+						</Button>
+					</div>
+				) : null}
+			</div>
+
 			<AgentMonitorBody server={server} chartStats={chartStats} />
 			<AgentActiveSessions
 				sessions={sessionsQuery.data ?? []}

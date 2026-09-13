@@ -34,7 +34,12 @@ export function Logo({
 					fill="currentColor"
 				/>
 			</svg> */}
-			<Image src="/images/logo.svg" alt="Optimind" width={64} height={64} />
+			<Image
+				src="/images/logo.svg"
+				alt="Optimind"
+				width={64}
+				height={64}
+			/>
 			{withLabel && (
 				<span className="ml-3 hidden text-lg font-serif md:block">
 					Optimind

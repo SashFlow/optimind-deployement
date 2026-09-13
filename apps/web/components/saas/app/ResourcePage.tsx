@@ -81,7 +81,7 @@ const defaultSortOptions = [
 	{ label: "Name", value: "name" },
 ];
 
-function statusPillClass(status: string) {
+function statusDotClass(status: string) {
 	const normalized = status.trim().toLowerCase();
 
 	if (
@@ -89,7 +89,7 @@ function statusPillClass(status: string) {
 		normalized === "active" ||
 		normalized === "connected"
 	) {
-		return "bg-emerald-50 text-emerald-700";
+		return "bg-emerald-500";
 	}
 
 	if (
@@ -97,14 +97,35 @@ function statusPillClass(status: string) {
 		normalized === "drafts" ||
 		normalized === "available"
 	) {
-		return "bg-violet-50 text-violet-700";
+		return "bg-violet-500";
 	}
 
 	if (normalized === "inactive" || normalized === "error") {
-		return "bg-rose-50 text-rose-700";
+		return "bg-rose-500";
 	}
 
-	return "bg-muted text-muted-foreground";
+	return "bg-muted-foreground";
+}
+
+const iconAccentPalettes = [
+	"bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200",
+	"bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-200",
+	"bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200",
+	"bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-200",
+	"bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200",
+	"bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-200",
+	"bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-200",
+	"bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/40 dark:text-fuchsia-200",
+	"bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-200",
+	"bg-lime-50 text-lime-700 dark:bg-lime-950/40 dark:text-lime-200",
+] as const;
+
+function iconAccentClass(seed: string) {
+	let hash = 0;
+	for (let i = 0; i < seed.length; i++) {
+		hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+	}
+	return iconAccentPalettes[hash % iconAccentPalettes.length];
 }
 
 function ResourceCard({ item }: { item: ResourceItem }) {
@@ -159,7 +180,7 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 				role={isInteractive ? "link" : undefined}
 				tabIndex={isInteractive ? 0 : undefined}
 				className={cn(
-					"group flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-colors",
+					"group flex flex-col gap-3 rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-colors",
 					isInteractive &&
 						"cursor-pointer hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 				)}
@@ -174,13 +195,49 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 					}
 				}}
 			>
-				<div className="flex items-start justify-between gap-3">
-					<div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200">
+				<div className="flex items-start justify-between gap-4">
+					<div className="min-w-0 flex-1 space-y-1.5">
+						<h3 className="truncate text-base font-semibold tracking-tight text-foreground">
+							{item.title}
+						</h3>
+						<p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+							{item.description || "No description"}
+						</p>
+					</div>
+
+					<div
+						className={cn(
+							"flex size-10 shrink-0 items-center justify-center rounded-xl [&_svg]:size-5",
+							iconAccentClass(item.id),
+						)}
+						aria-hidden
+					>
 						{item.icon ?? (
-							<span className="text-sm font-semibold uppercase">
+							<span className="text-base font-semibold uppercase">
 								{item.title.charAt(0) || "?"}
 							</span>
 						)}
+					</div>
+				</div>
+
+				<div className="mt-auto flex items-center justify-between gap-3 pt-2">
+					<div className="flex min-w-0 flex-wrap items-center gap-3">
+						<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+							<span
+								className={cn(
+									"size-2 shrink-0 rounded-full",
+									statusDotClass(item.status),
+								)}
+								aria-hidden
+							/>
+							<span className="capitalize">{item.status}</span>
+						</span>
+
+						{item.meta ? (
+							<span className="text-xs text-muted-foreground">
+								Updated {item.meta}
+							</span>
+						) : null}
 					</div>
 
 					{hasActions ? (
@@ -190,7 +247,7 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 									variant="ghost"
 									size="icon"
 									aria-label={`Actions for ${item.title}`}
-									className="text-muted-foreground"
+									className="size-7 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
 									onClick={(event) => event.stopPropagation()}
 								>
 									<MoreVerticalIcon className="size-4" />
@@ -228,26 +285,6 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 							</DropdownMenuContent>
 						</DropdownMenu>
 					) : null}
-				</div>
-
-				<div className="min-w-0 space-y-1.5">
-					<h3 className="truncate text-base font-semibold tracking-tight text-foreground">
-						{item.title}
-					</h3>
-					<p className="line-clamp-2 text-sm text-muted-foreground">
-						{item.description || "No description"}
-					</p>
-				</div>
-
-				<div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-					<span
-						className={cn(
-							"inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium capitalize",
-							statusPillClass(item.status),
-						)}
-					>
-						{item.status}
-					</span>
 				</div>
 			</div>
 
@@ -403,13 +440,10 @@ export function ResourcePage({
 
 	return (
 		<section
-			className={cn(
-				"mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6",
-				className,
-			)}
+			className={cn("mx-auto w-full max-w-[1600px] space-y-6", className)}
 		>
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+				<div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center justify-end">
 					<div className="relative min-w-0 sm:max-w-xs sm:flex-1">
 						<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 						<Input

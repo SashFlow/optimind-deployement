@@ -26,7 +26,9 @@ export function TopCountriesCard({
 						Analytics unavailable
 					</p>
 				) : countries.length === 0 ? (
-					<p className="text-sm text-muted-foreground">No data yet.</p>
+					<p className="text-sm text-muted-foreground">
+						No data yet.
+					</p>
 				) : (
 					<ul className="min-w-0">
 						{countries.map((row, index) => (

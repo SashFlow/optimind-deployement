@@ -1,6 +1,5 @@
 import {
 	aggregateActions,
-	aggregateCampaignAnalytics,
 	aggregateCost,
 	aggregateLatency,
 	aggregateQuality,
@@ -9,7 +8,6 @@ import {
 	db,
 	listSessionCollectedFields,
 } from "@repo/database";
-import { ORPCError } from "@orpc/client";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
@@ -168,11 +166,21 @@ export const analytics = protectedProcedure
 
 		const numberStats = new Map<
 			string,
-			{ number: string; attempts: number; connects: number; duration_ms: number }
+			{
+				number: string;
+				attempts: number;
+				connects: number;
+				duration_ms: number;
+			}
 		>();
 		const trunkStats = new Map<
 			string,
-			{ trunkId: string; count: number; failed: number; duration_ms: number }
+			{
+				trunkId: string;
+				count: number;
+				failed: number;
+				duration_ms: number;
+			}
 		>();
 
 		for (const session of sessions) {

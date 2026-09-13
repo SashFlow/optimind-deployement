@@ -55,7 +55,8 @@ const settingsLinkItems: NavItem[] = [
 	},
 ];
 
-const railPillClass = "rounded-3xl bg-sidebar shadow-sm ring-1 ring-black/5 ml-2";
+const railPillClass =
+	"rounded-3xl bg-sidebar shadow-sm ring-1 ring-black/5 ml-2";
 
 function isSettingsPath(pathname: string) {
 	return (

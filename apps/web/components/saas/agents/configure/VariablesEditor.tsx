@@ -11,6 +11,7 @@ import {
 } from "@repo/ui/select";
 import { Switch } from "@repo/ui/switch";
 import { PlusIcon, Trash2Icon } from "lucide-react";
+import { forwardRef, useImperativeHandle } from "react";
 import { useStableRowIds } from "@/components/saas/agents/configure/useStableRowIds";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
 
@@ -36,13 +37,20 @@ type VariablesEditorProps = {
 	variables: AgentVariableDefinition[];
 	onChange: (variables: AgentVariableDefinition[]) => void;
 	versionId?: string;
+	hideAddButton?: boolean;
 };
 
-export function VariablesEditor({
-	variables,
-	onChange,
-	versionId,
-}: VariablesEditorProps) {
+export type VariablesEditorHandle = {
+	add: () => void;
+};
+
+export const VariablesEditor = forwardRef<
+	VariablesEditorHandle,
+	VariablesEditorProps
+>(function VariablesEditor(
+	{ variables, onChange, versionId, hideAddButton = false },
+	ref,
+) {
 	const { rowIds, appendRowId, removeRowId } = useStableRowIds(
 		variables.length,
 		versionId,
@@ -69,6 +77,8 @@ export function VariablesEditor({
 		onChange(variables.filter((_, i) => i !== index));
 	}
 
+	useImperativeHandle(ref, () => ({ add: addVariable }));
+
 	if (variables.length === 0) {
 		return (
 			<div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-background px-4 py-6 text-center">
@@ -77,16 +87,18 @@ export function VariablesEditor({
 					Define variables available at runtime via{" "}
 					{"{{variable_name}}"} in prompts.
 				</p>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					className="mt-3"
-					onClick={addVariable}
-				>
-					<PlusIcon />
-					Add variable
-				</Button>
+				{hideAddButton ? null : (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="mt-3"
+						onClick={addVariable}
+					>
+						<PlusIcon />
+						Add variable
+					</Button>
+				)}
 			</div>
 		);
 	}
@@ -172,15 +184,17 @@ export function VariablesEditor({
 				</div>
 			</div>
 
-			<Button
-				type="button"
-				variant="outline"
-				size="sm"
-				onClick={addVariable}
-			>
-				<PlusIcon />
-				Add variable
-			</Button>
+			{hideAddButton ? null : (
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					onClick={addVariable}
+				>
+					<PlusIcon />
+					Add variable
+				</Button>
+			)}
 		</div>
 	);
-}
+});

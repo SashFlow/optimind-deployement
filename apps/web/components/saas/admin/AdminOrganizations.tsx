@@ -26,39 +26,25 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/select";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@repo/ui/table";
 import { clearCache } from "@shared/lib/cache";
 import { orpcClient } from "@shared/lib/orpc-client";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 import { MoreVerticalIcon, SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useConfirmationAlert } from "@/components/saas/shared/ConfirmationAlertProvider";
-import {
-	DataTableBody,
-	DataTableBulkBar,
-	DataTableHeaderRow,
-	DataTableShell,
-	dataTableRowClass,
-	RowCheckbox,
-	SelectColumnHead,
-} from "@/components/saas/shared/DataTable";
-import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { DataTableBulkBar } from "@/components/saas/shared/DataTable";
+import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
-import { useRowSelection } from "@/components/saas/shared/useRowSelection";
+import { DataTable } from "@/components/saas/shared/StandardDataTable";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
 import { useCreateOrganizationMutation } from "@/services/organization";
 import {
+	type AdminOrganization,
 	mapOrgToAdminOrganization,
 	TYPE_FILTER_ITEMS,
 	type TypeFilter,
@@ -78,8 +64,16 @@ export function AdminOrganizations() {
 				offset: 0,
 			},
 		}),
-		select: (data) =>
-			(data?.organizations ?? []).map(mapOrgToAdminOrganization),
+		select: (data): AdminOrganization[] => {
+			const payload = data as {
+				organizations?: Parameters<
+					typeof mapOrgToAdminOrganization
+				>[0][];
+			} | null;
+			return (payload?.organizations ?? []).map(
+				mapOrgToAdminOrganization,
+			);
+		},
 	});
 
 	const [createOpen, setCreateOpen] = useState(false);
@@ -88,7 +82,8 @@ export function AdminOrganizations() {
 	const [error, setError] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
 	const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-	const [currentPage, setCurrentPage] = useState(1);
+	const selectedOrgsRef = useRef<AdminOrganization[]>([]);
+	const clearSelectionRef = useRef<() => void>(() => {});
 
 	useSettingsPageAction(() => {
 		setError(null);
@@ -96,40 +91,25 @@ export function AdminOrganizations() {
 		setCreateOpen(true);
 	}, "Create");
 
-	const filtered = useMemo(() => {
-		const orgs = organizationsQuery.data ?? [];
+	const filtered = useMemo((): AdminOrganization[] => {
+		const orgs = (organizationsQuery.data ?? []) as AdminOrganization[];
 		const query = search.trim().toLowerCase();
 		return orgs.filter((organization) => {
-			if (typeFilter === "trial" && !organization.trial) return false;
-			if (typeFilter === "workspace" && organization.trial) return false;
-			if (!query) return true;
+			if (typeFilter === "trial" && !organization.trial) {
+				return false;
+			}
+			if (typeFilter === "workspace" && organization.trial) {
+				return false;
+			}
+			if (!query) {
+				return true;
+			}
 			return (
 				organization.name.toLowerCase().includes(query) ||
 				organization.id.toLowerCase().includes(query)
 			);
 		});
 	}, [organizationsQuery.data, search, typeFilter]);
-
-	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-
-	useEffect(() => {
-		setCurrentPage(1);
-	}, [search, typeFilter]);
-
-	useEffect(() => {
-		if (currentPage > pageCount) setCurrentPage(pageCount);
-	}, [currentPage, pageCount]);
-
-	const paged = useMemo(() => {
-		const start = (currentPage - 1) * PAGE_SIZE;
-		return filtered.slice(start, start + PAGE_SIZE);
-	}, [filtered, currentPage]);
-
-	const pageIds = useMemo(
-		() => paged.map((organization) => organization.id),
-		[paged],
-	);
-	const selection = useRowSelection(pageIds);
 
 	const handleCreateOpenChange = (open: boolean) => {
 		setCreateOpen(open);
@@ -190,7 +170,7 @@ export function AdminOrganizations() {
 					await queryClient.invalidateQueries({
 						queryKey: orpc.admin.organizations.list.key(),
 					});
-					selection.clear();
+					clearSelectionRef.current();
 					toast.success("Organization deleted");
 				} catch (cause) {
 					setError(
@@ -267,13 +247,7 @@ export function AdminOrganizations() {
 	};
 
 	const bulkDelete = () => {
-		if (selection.selectedCount === 0) return;
-		const byId = new Map(
-			(organizationsQuery.data ?? []).map((org) => [org.id, org]),
-		);
-		const targets = selection.selectedIds
-			.map((id) => byId.get(id))
-			.filter((org): org is NonNullable<typeof org> => Boolean(org));
+		const targets = selectedOrgsRef.current;
 		if (targets.length === 0) return;
 		confirm({
 			title: "Delete organizations",
@@ -295,7 +269,7 @@ export function AdminOrganizations() {
 					await queryClient.invalidateQueries({
 						queryKey: orpc.admin.organizations.list.key(),
 					});
-					selection.clear();
+					clearSelectionRef.current();
 					if (deleted === 0) {
 						setError("Unable to delete organizations.");
 						return;
@@ -317,14 +291,14 @@ export function AdminOrganizations() {
 	};
 
 	const filters = (
-		<div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center">
-			<div className="relative w-full min-w-0 sm:w-72">
+		<div className="ml-auto flex w-full min-w-0 items-center gap-2 sm:w-auto">
+			<div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
 				<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 				<Input
 					value={search}
 					onChange={(event) => setSearch(event.target.value)}
 					placeholder="Search by name or id..."
-					className="pl-9"
+					className="h-9 pl-9"
 				/>
 			</div>
 			<Select
@@ -333,7 +307,7 @@ export function AdminOrganizations() {
 					if (value) setTypeFilter(value as TypeFilter);
 				}}
 			>
-				<SelectTrigger className="w-full sm:w-40">
+				<SelectTrigger className="h-9 w-[9.5rem] shrink-0">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
@@ -347,26 +321,94 @@ export function AdminOrganizations() {
 		</div>
 	);
 
-	const bulkBar =
-		selection.selectedCount > 0 ? (
-			<DataTableBulkBar
-				count={selection.selectedCount}
-				onClear={selection.clear}
-			>
-				<Button
-					type="button"
-					size="sm"
-					variant="outline"
-					disabled={busy}
-					className="text-destructive"
-					onClick={() => {
-						void bulkDelete();
-					}}
-				>
-					Delete selected
-				</Button>
-			</DataTableBulkBar>
-		) : null;
+	const columns = useMemo<ColumnDef<AdminOrganization>[]>(
+		() => [
+			{
+				id: "name",
+				header: "Name",
+				cell: ({ row }) => row.original.name,
+			},
+			{
+				id: "created",
+				header: "Created",
+				cell: ({ row }) => (
+					<span className="text-muted-foreground">
+						{row.original.created_at
+							? new Date(
+									row.original.created_at,
+								).toLocaleDateString()
+							: "—"}
+					</span>
+				),
+			},
+			{
+				id: "actions",
+				header: () => <span className="sr-only">Actions</span>,
+				size: 48,
+				cell: ({ row }) => {
+					const organization = row.original;
+					return (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-8"
+									disabled={busy}
+									aria-label={`Actions for ${organization.name}`}
+								>
+									<MoreVerticalIcon className="size-4" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem
+									disabled={
+										!organization.slug ||
+										activeOrganization?.id ===
+											organization.id
+									}
+									onClick={() => {
+										void switchOrganization(organization);
+									}}
+								>
+									Switch
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => {
+										void fillDemoData(organization);
+									}}
+								>
+									Demo Data
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => {
+										router.push(
+											`/app/settings/organizations/${organization.id}`,
+										);
+									}}
+								>
+									Edit
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem
+									className="text-destructive focus:text-destructive"
+									onClick={() => {
+										void deleteOrganization(
+											organization.id,
+											organization.name,
+										);
+									}}
+								>
+									Delete
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					);
+				},
+			},
+		],
+		[activeOrganization?.id, busy, router],
+	);
 
 	return (
 		<section className="flex min-h-0 flex-1 flex-col">
@@ -376,170 +418,68 @@ export function AdminOrganizations() {
 				</p>
 			) : null}
 
-			<DataTableShell
-				toolbar={selection.selectedCount > 0 ? undefined : filters}
-				bulkBar={bulkBar}
-				footer={
-					!organizationsQuery.isPending &&
-						!organizationsQuery.isError &&
-						filtered.length > 0 ? (
-						<Pagination
-							totalItems={filtered.length}
-							itemsPerPage={PAGE_SIZE}
-							currentPage={currentPage}
-							onChangeCurrentPage={setCurrentPage}
-						/>
-					) : null
-				}
-			>
-				{organizationsQuery.isPending ? (
-					<DataTableBody>
+			{organizationsQuery.isPending ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
+					</div>
+					<div className="min-h-0 flex-1 overflow-x-auto">
 						<TableBodySkeleton
-							headers={["", "Name", "Type", "Created", "Actions"]}
+							headers={["", "Name", "Created", "Actions"]}
 							columns={[
 								{ type: "action" },
 								{ type: "lines", widths: ["w-40", "w-20"] },
-								{ type: "pill" },
 								{ type: "text", width: "w-24" },
 								{ type: "action" },
 							]}
 						/>
-					</DataTableBody>
-				) : organizationsQuery.isError ? (
-					<p
-						className="min-h-0 flex-1 p-6 text-sm text-destructive"
-						role="alert"
-					>
+					</div>
+				</div>
+			) : organizationsQuery.isError ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
+					</div>
+					<p className="py-6 text-sm text-destructive" role="alert">
 						Unable to load organizations.
 					</p>
-				) : filtered.length === 0 ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
-						No organizations found.
-					</p>
-				) : (
-					<DataTableBody>
-						<Table>
-							<TableHeader>
-								<DataTableHeaderRow>
-									<SelectColumnHead
-										allSelected={selection.allPageSelected}
-										someSelected={
-											selection.somePageSelected
-										}
-										onToggle={selection.togglePage}
-										disabled={busy}
-									/>
-									<TableHead>Name</TableHead>
-									<TableHead>Created</TableHead>
-									<TableHead className="w-12">
-										<span className="sr-only">Actions</span>
-									</TableHead>
-								</DataTableHeaderRow>
-							</TableHeader>
-							<TableBody>
-								{paged.map((organization) => {
-									const selected = selection.isSelected(
-										organization.id,
-									);
-									return (
-										<TableRow
-											key={organization.id}
-											className={dataTableRowClass(
-												selected,
-											)}
-										>
-											<TableCell className="w-10 px-3">
-												<RowCheckbox
-													checked={selected}
-													onToggle={() =>
-														selection.toggle(
-															organization.id,
-														)
-													}
-													label={`Select ${organization.name}`}
-												/>
-											</TableCell>
-											<TableCell>
-												{organization.name}
-											</TableCell>
-											<TableCell className="text-muted-foreground">
-												{organization.created_at
-													? new Date(
-														organization.created_at,
-													).toLocaleDateString()
-													: "—"}
-											</TableCell>
-											<TableCell>
-												<DropdownMenu>
-													<DropdownMenuTrigger
-														asChild
-													>
-														<Button
-															variant="ghost"
-															size="icon"
-															className="size-8"
-															disabled={busy}
-															aria-label={`Actions for ${organization.name}`}
-														>
-															<MoreVerticalIcon className="size-4" />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														<DropdownMenuItem
-															disabled={
-																!organization.slug ||
-																activeOrganization?.id ===
-																organization.id
-															}
-															onClick={() => {
-																void switchOrganization(
-																	organization,
-																);
-															}}
-														>
-															Switch
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onClick={() => {
-																void fillDemoData(
-																	organization,
-																);
-															}}
-														>
-															Demo Data
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onClick={() => {
-																router.push(
-																	`/app/settings/organizations/${organization.id}`,
-																);
-															}}
-														>
-															Edit
-														</DropdownMenuItem>
-														<DropdownMenuSeparator />
-														<DropdownMenuItem
-															className="text-destructive focus:text-destructive"
-															onClick={() => {
-																void deleteOrganization(
-																	organization.id,
-																	organization.name,
-																);
-															}}
-														>
-															Delete
-														</DropdownMenuItem>
-													</DropdownMenuContent>
-												</DropdownMenu>
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
-					</DataTableBody>
-				)}
-			</DataTableShell>
+				</div>
+			) : (
+				<DataTable
+					key={`${search}-${typeFilter}`}
+					columns={columns}
+					data={filtered}
+					toolbar={filters}
+					framed={false}
+					enableRowSelection
+					pageSize={PAGE_SIZE}
+					getRowId={(row) => row.id}
+					emptyMessage="No organizations found."
+					onSelectionChange={({ selectedRows, clearSelection }) => {
+						selectedOrgsRef.current = selectedRows;
+						clearSelectionRef.current = clearSelection;
+					}}
+					bulkBar={({ selectedCount, clearSelection }) => (
+						<DataTableBulkBar
+							count={selectedCount}
+							onClear={clearSelection}
+						>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								disabled={busy}
+								className="text-destructive"
+								onClick={() => {
+									void bulkDelete();
+								}}
+							>
+								Delete selected
+							</Button>
+						</DataTableBulkBar>
+					)}
+				/>
+			)}
 
 			<Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
 				<DialogContent>

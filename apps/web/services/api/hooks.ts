@@ -116,10 +116,7 @@ export function useDashboardLatencyQuery(
 	});
 }
 
-export function useAgentServerStatsQuery(
-	agentId?: string,
-	days = 30,
-) {
+export function useAgentServerStatsQuery(agentId?: string, days = 30) {
 	return useQuery({
 		...orpc.agents.stats.queryOptions({
 			input: { id: agentId ?? "", days },

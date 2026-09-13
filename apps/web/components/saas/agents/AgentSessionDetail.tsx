@@ -3,34 +3,32 @@
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@repo/ui/table";
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@repo/ui/dialog";
 import { cn } from "@repo/ui/utils";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-	ChevronDownIcon,
+	BracesIcon,
 	ClockIcon,
 	DownloadIcon,
 	ExternalLinkIcon,
 	FileAudioIcon,
 	FileVideoIcon,
-	HashIcon,
 	LoaderCircleIcon,
 	MessageSquareTextIcon,
 	RadioIcon,
 	VideoIcon,
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { MetricKpiCard } from "@/components/saas/app/dashboard/MetricKpiCard";
+import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
 import {
-	PAGE_SIZE,
-	Pagination,
-	useClientPagination,
-} from "@/components/saas/shared/Pagination";
+	DataTable,
+	DataTableTypeBadge,
+} from "@/components/saas/shared/StandardDataTable";
 import type { SessionDetail } from "./lib/hooks";
 import { AssistantTranscriptThread } from "./transcript/AssistantTranscriptThread";
 import { sessionSegmentsToThreadMessages } from "./transcript/mapTranscriptMessages";
@@ -229,92 +227,56 @@ export type EgressJobRow = {
 	metadata?: { audioOnly?: boolean } | null;
 };
 
-const WAVEFORM_BAR_HEIGHTS = [8, 14, 11, 20, 13, 22, 10, 18, 12, 21, 15, 9];
+function TranscriptStatusBadge({ status }: { status?: string }) {
+	const live = isLiveTranscriptStatus(status);
 
-function TranscriptWaveform({ animated }: { animated: boolean }) {
 	return (
-		<div aria-hidden className="flex h-7 items-end justify-end gap-0.5">
-			{WAVEFORM_BAR_HEIGHTS.map((height, index) => (
-				<span
-					key={`${height}-${index}`}
-					className={cn(
-						"w-1 rounded-full bg-primary/80",
-						animated && "origin-bottom animate-pulse",
-					)}
-					style={{
-						height: `${height}px`,
-						animationDelay: animated
-							? `${index * 70}ms`
-							: undefined,
-						opacity: animated ? undefined : 0.45,
-					}}
-				/>
-			))}
-		</div>
+		<span
+			className={cn(
+				"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+				live
+					? "bg-primary/10 text-primary"
+					: "bg-muted text-muted-foreground",
+			)}
+		>
+			<span
+				className={cn(
+					"size-1.5 rounded-full",
+					live
+						? "bg-primary animate-pulse"
+						: "bg-muted-foreground/60",
+				)}
+			/>
+			{transcriptStatusLabel(status)}
+		</span>
 	);
 }
 
 function TranscriptPanel({
 	segments,
 	fullText,
-	sessionStatus,
 }: {
 	segments: TranscriptSegmentRow[];
 	fullText: string | null;
-	sessionStatus?: string;
 }) {
-	const live = isLiveTranscriptStatus(sessionStatus);
-	const statusLabel = transcriptStatusLabel(sessionStatus);
-	const count = segments.length;
 	const messages = useMemo(
 		() => sessionSegmentsToThreadMessages(segments, fullText),
 		[segments, fullText],
 	);
 
 	return (
-		<div className="flex max-h-[32rem] min-h-[22rem] flex-col overflow-hidden rounded-2xl border border-border/70 bg-background">
-			<div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
-				<div className="flex items-center gap-2.5">
-					<span
-						className={cn(
-							"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-							live
-								? "bg-primary/10 text-primary"
-								: "bg-muted text-muted-foreground",
-						)}
-					>
-						<span
-							className={cn(
-								"size-1.5 rounded-full",
-								live
-									? "bg-primary animate-pulse"
-									: "bg-muted-foreground/60",
-							)}
-						/>
-						{statusLabel}
-					</span>
-					{count > 0 ? (
-						<span className="text-xs text-muted-foreground">
-							{count} {count === 1 ? "turn" : "turns"}
-						</span>
-					) : null}
+		<AssistantTranscriptThread
+			messages={messages}
+			className="max-h-[32rem] min-h-[22rem]"
+			emptyFallback={
+				<div className="flex min-h-[22rem] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 text-center">
+					<MessageSquareTextIcon className="size-8 text-muted-foreground/40" />
+					<p className="text-sm text-muted-foreground">
+						No transcript available yet.
+					</p>
 				</div>
-				<TranscriptWaveform animated={live} />
-			</div>
-
-			<AssistantTranscriptThread
-				messages={messages}
-				className="min-h-0 flex-1"
-				emptyFallback={
-					<div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-2 px-4 text-center">
-						<MessageSquareTextIcon className="size-8 text-muted-foreground/40" />
-						<p className="text-sm text-muted-foreground">
-							No transcript available yet.
-						</p>
-					</div>
-				}
-			/>
-		</div>
+			}
+		/>
 	);
 }
 
@@ -407,7 +369,7 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 		return (
 			<div className="flex min-h-[22rem] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 text-center">
 				<VideoIcon className="size-8 text-muted-foreground/40" />
-				<p className="text-sm text-muted-foreground">No egress jobs.</p>
+				<p className="text-sm text-muted-foreground">No recordings.</p>
 			</div>
 		);
 	}
@@ -476,7 +438,7 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 										</p>
 										<p className="text-xs text-muted-foreground">
 											Output will appear here when the
-											egress finishes.
+											recording finishes.
 										</p>
 									</div>
 								</div>
@@ -571,6 +533,10 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 }
 
 export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
+	const [selectedEvent, setSelectedEvent] = useState<SessionEventRow | null>(
+		null,
+	);
+
 	const sortedEvents = useMemo(
 		() =>
 			[...events].sort((a, b) => {
@@ -588,115 +554,117 @@ export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 		[events],
 	);
 
-	const { currentPage, setCurrentPage, pageItems, totalItems, itemsPerPage } =
-		useClientPagination(sortedEvents, PAGE_SIZE);
+	const columns = useMemo<ColumnDef<SessionEventRow>[]>(
+		() => [
+			{
+				id: "sequence",
+				header: "#",
+				size: 56,
+				cell: ({ row }) => (
+					<span className="tabular-nums text-muted-foreground">
+						{row.original.sequence ?? "—"}
+					</span>
+				),
+			},
+			{
+				id: "type",
+				header: "Type",
+				cell: ({ row }) => {
+					const type =
+						row.original.eventType ?? row.original.type ?? "event";
+					return (
+						<DataTableTypeBadge>
+							<span className="max-w-[220px] truncate">
+								{type}
+							</span>
+						</DataTableTypeBadge>
+					);
+				},
+			},
+			{
+				id: "actor",
+				header: "Actor",
+				cell: ({ row }) => (
+					<span className="capitalize text-muted-foreground">
+						{row.original.actor?.toLowerCase() ?? "—"}
+					</span>
+				),
+			},
+			{
+				id: "occurred",
+				header: "Occurred",
+				cell: ({ row }) => (
+					<span className="whitespace-nowrap text-muted-foreground">
+						{formatDateTime(
+							row.original.occurredAt ?? row.original.createdAt,
+						)}
+					</span>
+				),
+			},
+			{
+				id: "details",
+				header: "Details",
+				cell: ({ row }) => (
+					<span className="block max-w-[320px] truncate font-mono text-xs text-muted-foreground">
+						{formatPayloadPreview(row.original.payload)}
+					</span>
+				),
+			},
+			{
+				id: "actions",
+				header: "",
+				size: 48,
+				enableSorting: false,
+				cell: ({ row }) => (
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="size-8"
+						aria-label="View event payload"
+						onClick={() => setSelectedEvent(row.original)}
+					>
+						<BracesIcon className="size-4 text-muted-foreground" />
+					</Button>
+				),
+			},
+		],
+		[],
+	);
 
-	const [openItem, setOpenItem] = useState<string>("");
-
-	useEffect(() => {
-		setOpenItem("");
-	}, [currentPage]);
-
-	if (events.length === 0) {
-		return (
-			<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
-				No events.
-			</p>
-		);
-	}
+	const selectedType =
+		selectedEvent?.eventType ?? selectedEvent?.type ?? "event";
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card">
-			<div className="min-h-0 flex-1 overflow-auto scrollbar-none">
-				<Table>
-					<TableHeader>
-						<TableRow className="hover:bg-transparent">
-							<TableHead className="w-12">#</TableHead>
-							<TableHead>Type</TableHead>
-							<TableHead>Actor</TableHead>
-							<TableHead>Occurred</TableHead>
-							<TableHead>Details</TableHead>
-							<TableHead className="w-10" />
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{pageItems.map((event) => {
-							const type =
-								event.eventType ?? event.type ?? "event";
-							const actor = event.actor?.toLowerCase() ?? "—";
-							const occurred = formatDateTime(
-								event.occurredAt ?? event.createdAt,
-							);
-							const preview = formatPayloadPreview(event.payload);
-							const isOpen = openItem === event.id;
-
-							return (
-								<Fragment key={event.id}>
-									<TableRow
-										className="group/row cursor-pointer hover:bg-muted/50 data-[state=selected]:bg-primary/5"
-										data-state={
-											isOpen ? "selected" : undefined
-										}
-										onClick={() =>
-											setOpenItem(isOpen ? "" : event.id)
-										}
-									>
-										<TableCell className="tabular-nums text-muted-foreground">
-											{event.sequence ?? "—"}
-										</TableCell>
-										<TableCell className="max-w-[220px] truncate font-medium">
-											{type}
-										</TableCell>
-										<TableCell className="capitalize text-muted-foreground">
-											{actor}
-										</TableCell>
-										<TableCell className="whitespace-nowrap text-muted-foreground">
-											{occurred}
-										</TableCell>
-										<TableCell className="max-w-[320px] truncate font-mono text-xs text-muted-foreground">
-											{preview}
-										</TableCell>
-										<TableCell className="text-right">
-											<ChevronDownIcon
-												className={cn(
-													"ml-auto size-4 text-muted-foreground transition-transform",
-													isOpen && "rotate-180",
-												)}
-											/>
-										</TableCell>
-									</TableRow>
-									{isOpen ? (
-										<TableRow className="hover:bg-transparent">
-											<TableCell
-												colSpan={6}
-												className="bg-muted/20 py-3"
-											>
-												<pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground">
-													{formatPayloadJson(
-														event.payload,
-													)}
-												</pre>
-											</TableCell>
-										</TableRow>
-									) : null}
-								</Fragment>
-							);
-						})}
-					</TableBody>
-				</Table>
-			</div>
-
-			{totalItems > itemsPerPage ? (
-				<div className="shrink-0 border-t bg-card px-2 py-2">
-					<Pagination
-						currentPage={currentPage}
-						totalItems={totalItems}
-						itemsPerPage={itemsPerPage}
-						onChangeCurrentPage={setCurrentPage}
-					/>
-				</div>
-			) : null}
-		</div>
+		<>
+			<DataTable
+				columns={columns}
+				data={sortedEvents}
+				framed={false}
+				pageSize={PAGE_SIZE}
+				getRowId={(row) => row.id}
+				emptyMessage="No events."
+			/>
+			<Dialog
+				open={selectedEvent != null}
+				onOpenChange={(open) => {
+					if (!open) {
+						setSelectedEvent(null);
+					}
+				}}
+			>
+				<DialogContent className="max-w-2xl">
+					<DialogHeader>
+						<DialogTitle className="truncate">
+							{selectedType}
+						</DialogTitle>
+					</DialogHeader>
+					<pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed text-foreground">
+						{formatPayloadJson(selectedEvent?.payload)}
+					</pre>
+				</DialogContent>
+			</Dialog>
+		</>
 	);
 }
 
@@ -708,39 +676,36 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 
 	return (
 		<div className="mt-4 space-y-4">
-			<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+			<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
 				<MetricKpiCard
+					compact
 					title="Channel"
 					value={session.channel ?? "WEB"}
 					icon={RadioIcon}
-					valueClassName="text-xl"
+					valueClassName="text-base"
 				/>
 				<MetricKpiCard
+					compact
 					title="Started"
 					value={formatDateTime(session.startedAt)}
 					icon={ClockIcon}
-					valueClassName="text-xl"
+					valueClassName="text-base"
 				/>
 				<MetricKpiCard
+					compact
 					title="Ended"
 					value={formatDateTime(session.endedAt)}
 					icon={ClockIcon}
-					valueClassName="text-xl"
+					valueClassName="text-base"
 				/>
 				<MetricKpiCard
+					compact
 					title="Duration"
 					value={formatDuration(session.durationMs)}
 					icon={ClockIcon}
-					valueClassName="text-xl"
+					valueClassName="text-base"
 				/>
 			</div>
-
-			<MetricKpiCard
-				title="Room"
-				value={session.livekitRoomName}
-				icon={HashIcon}
-				valueClassName="truncate font-mono text-sm"
-			/>
 
 			<div className="grid gap-4 lg:grid-cols-2">
 				<Card className="flex min-h-0 flex-col overflow-hidden shadow-xs">
@@ -753,12 +718,22 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 								Transcript
 							</CardTitle>
 						</div>
+						<div className="flex items-center gap-2">
+							{transcriptSegments.length > 0 ? (
+								<span className="text-xs text-muted-foreground">
+									{transcriptSegments.length}{" "}
+									{transcriptSegments.length === 1
+										? "turn"
+										: "turns"}
+								</span>
+							) : null}
+							<TranscriptStatusBadge status={session.status} />
+						</div>
 					</CardHeader>
 					<CardContent className="p-4">
 						<TranscriptPanel
 							segments={transcriptSegments}
 							fullText={transcriptText}
-							sessionStatus={session.status}
 						/>
 					</CardContent>
 				</Card>
@@ -770,7 +745,7 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 								<VideoIcon className="size-4" />
 							</span>
 							<CardTitle className="text-base font-bold leading-none">
-								Egress
+								Recording
 							</CardTitle>
 						</div>
 						{egressJobs.length > 0 ? (

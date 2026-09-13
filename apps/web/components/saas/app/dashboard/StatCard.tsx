@@ -125,31 +125,51 @@ function StatMiniChart({
 	}
 
 	if (variant === "bars") {
+		const SEGMENTS = 6;
 		const max = Math.max(...sparkline.map((p) => p.value), 1);
-		const points =
-			sparkline.length > 10 ? sparkline.slice(-10) : sparkline;
+		const points = sparkline.length > 8 ? sparkline.slice(-8) : sparkline;
 
 		return (
-			<div className="flex h-[88px] w-full items-end justify-between gap-1.5 px-5">
+			<div className="flex h-[88px] w-full items-stretch justify-between gap-1.5">
 				{points.map((point, index) => {
-					const fillHeight = Math.max(
-						8,
-						Math.round((point.value / max) * 100),
+					const filled = Math.max(
+						0,
+						Math.min(
+							SEGMENTS,
+							Math.round((point.value / max) * SEGMENTS),
+						),
 					);
 					return (
 						<div
 							key={`${point.label ?? point.value}-${index}`}
-							className="flex h-full min-w-0 flex-1 items-end"
+							className="flex min-w-0 flex-1 flex-col justify-between gap-1"
+							title={
+								point.label
+									? `${point.label}: ${point.value}`
+									: String(point.value)
+							}
 						>
-							<div className="relative h-full w-full overflow-hidden rounded-full bg-muted">
-								<div
-									className="absolute inset-x-0 bottom-0 rounded-full"
-									style={{
-										height: `${fillHeight}%`,
-										backgroundColor: color,
-									}}
-								/>
-							</div>
+							{Array.from({ length: SEGMENTS }, (_, seg) => {
+								const isActive = seg < filled;
+								const t =
+									SEGMENTS <= 1 ? 0 : seg / (SEGMENTS - 1);
+								return (
+									<div
+										key={seg}
+										className={cn(
+											"h-full min-h-0 w-full rounded-full",
+											!isActive && "bg-muted",
+										)}
+										style={
+											isActive
+												? {
+														backgroundColor: `color-mix(in srgb, ${color} ${Math.round(100 - t * 82)}%, white ${Math.round(t * 82)}%)`,
+													}
+												: undefined
+										}
+									/>
+								);
+							})}
 						</div>
 					);
 				})}
@@ -324,9 +344,7 @@ export function StatCard({
 	const gradientId = `stat-spark-${title.replace(/\s+/g, "-").toLowerCase()}`;
 	const points = sparkline ?? [];
 	const isFullBleedChart =
-		variant === "line" ||
-		variant === "dotted-line" ||
-		variant === "area";
+		variant === "line" || variant === "dotted-line" || variant === "area";
 
 	return (
 		<Card className={cn("h-full overflow-hidden shadow-xs", className)}>

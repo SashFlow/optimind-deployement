@@ -1,7 +1,4 @@
-import {
-	scheduleCallback,
-	getAgentSessionById,
-} from "@repo/database";
+import { scheduleCallback, getAgentSessionById } from "@repo/database";
 import { ORPCError } from "@orpc/client";
 import { z } from "zod";
 import { workerProcedure } from "../sessions/lib/worker-procedure";
@@ -20,9 +17,7 @@ export const schedule = workerProcedure
 			phoneNumber: z.string().min(1),
 			campaignId: z.string().optional(),
 			contactMetadata: z.record(z.string(), z.unknown()).optional(),
-			source: z
-				.enum(["RESCHEDULE", "VOICEMAIL", "MANUAL"])
-				.optional(),
+			source: z.enum(["RESCHEDULE", "VOICEMAIL", "MANUAL"]).optional(),
 		}),
 	)
 	.handler(async ({ input }) => {

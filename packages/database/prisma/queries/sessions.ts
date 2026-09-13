@@ -604,9 +604,7 @@ export async function syncCampaignSessionFromAgentSession(
 					? (event.payload as Record<string, unknown>)
 					: {};
 			const category =
-				typeof payload.category === "string"
-					? payload.category
-					: null;
+				typeof payload.category === "string" ? payload.category : null;
 			if (category) outcome = `amd:${category}`;
 		}
 		if (event.eventType === "end_call") outcome = "completed";
@@ -639,8 +637,11 @@ export async function syncCampaignSessionFromAgentSession(
 			messages: messages ? toJson(messages) : undefined,
 			recordingUrl: recordingUrl ?? undefined,
 			egressId:
-				session.egressJobs[0]?.livekitEgressId ?? cs.egressId ?? undefined,
-			egressStatus: session.egressJobs[0]?.status ?? cs.egressStatus ?? undefined,
+				session.egressJobs[0]?.livekitEgressId ??
+				cs.egressId ??
+				undefined,
+			egressStatus:
+				session.egressJobs[0]?.status ?? cs.egressStatus ?? undefined,
 		},
 	});
 

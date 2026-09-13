@@ -36,18 +36,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/select";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@repo/ui/table";
 import { cn } from "@repo/ui/utils";
 import { orpcClient } from "@shared/lib/orpc-client";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
 import {
 	CheckIcon,
@@ -57,22 +50,16 @@ import {
 	PencilIcon,
 	SearchIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-	DataTableBody,
 	DataTableBulkBar,
-	DataTableHeaderRow,
-	DataTableShell,
-	dataTableRowClass,
 	IdentityCell,
-	RowCheckbox,
-	SelectColumnHead,
 	StatusBadge,
 } from "@/components/saas/shared/DataTable";
-import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
-import { useRowSelection } from "@/components/saas/shared/useRowSelection";
+import { DataTable } from "@/components/saas/shared/StandardDataTable";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
 import {
@@ -235,8 +222,9 @@ export function AdminUsers({
 
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-	const [currentPage, setCurrentPage] = useState(1);
 	const [busyId, setBusyId] = useState<string | null>(null);
+	const selectedUsersRef = useRef<MemberListItem[]>([]);
+	const clearSelectionRef = useRef<() => void>(() => {});
 
 	const [inviteOpen, setInviteOpen] = useState(false);
 	const [inviteEmail, setInviteEmail] = useState("");
@@ -293,34 +281,6 @@ export function AdminUsers({
 			);
 		});
 	}, [users, search, statusFilter]);
-
-	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-
-	useEffect(() => {
-		setCurrentPage(1);
-	}, [search, statusFilter]);
-
-	useEffect(() => {
-		if (currentPage > pageCount) setCurrentPage(pageCount);
-	}, [currentPage, pageCount]);
-
-	const paged = useMemo(() => {
-		const start = (currentPage - 1) * PAGE_SIZE;
-		return filtered.slice(start, start + PAGE_SIZE);
-	}, [filtered, currentPage]);
-
-	const pageIds = useMemo(() => paged.map((user) => user.id), [paged]);
-	const selection = useRowSelection(pageIds);
-
-	const selectedUsers = useMemo(() => {
-		const byId = new Map(users.map((u) => [u.id, u]));
-		return selection.selectedIds
-			.map((id) => byId.get(id))
-			.filter((user): user is MemberListItem => Boolean(user));
-	}, [selection.selectedIds, users]);
-
-	const selectedInvited = selectedUsers.filter((u) => u.invite_pending);
-	const selectedActive = selectedUsers.filter((u) => !u.invite_pending);
 
 	const resetInviteForm = () => {
 		setInviteEmail("");
@@ -486,9 +446,9 @@ export function AdminUsers({
 				role: user.pendingInvitationRole ?? "member",
 				...(isSuperAdmin
 					? {
-						platformRole:
-							user.pendingInvitationPlatformRole ?? "user",
-					}
+							platformRole:
+								user.pendingInvitationPlatformRole ?? "user",
+						}
 					: {}),
 			});
 			setInviteUrl(invite.inviteUrl);
@@ -592,7 +552,7 @@ export function AdminUsers({
 					throw new Error(error.message || "Unable to remove user.");
 			}
 			await invalidateUsers();
-			selection.clear();
+			clearSelectionRef.current();
 			setRemoveUser(null);
 			toast.success(revokeMode ? "Invite revoked" : "User removed");
 		} catch (cause) {
@@ -610,6 +570,9 @@ export function AdminUsers({
 	};
 
 	const bulkReinvite = async () => {
+		const selectedInvited = selectedUsersRef.current.filter(
+			(u) => u.invite_pending,
+		);
 		if (selectedInvited.length === 0 || !activeOrganizationId) return;
 		setBulkBusy(true);
 		let ok = 0;
@@ -621,10 +584,10 @@ export function AdminUsers({
 					role: user.pendingInvitationRole ?? "member",
 					...(isSuperAdmin
 						? {
-							platformRole:
-								user.pendingInvitationPlatformRole ??
-								"user",
-						}
+								platformRole:
+									user.pendingInvitationPlatformRole ??
+									"user",
+							}
 						: {}),
 				});
 				ok += 1;
@@ -634,13 +597,16 @@ export function AdminUsers({
 		}
 		await invalidateUsers();
 		setBulkBusy(false);
-		selection.clear();
+		clearSelectionRef.current();
 		toast.success(
 			`Reinvited ${ok} of ${selectedInvited.length} user${selectedInvited.length === 1 ? "" : "s"}`,
 		);
 	};
 
 	const bulkRevoke = async () => {
+		const selectedInvited = selectedUsersRef.current.filter(
+			(u) => u.invite_pending,
+		);
 		if (selectedInvited.length === 0 || !activeOrganizationId) return;
 		setBulkBusy(true);
 		let ok = 0;
@@ -657,13 +623,16 @@ export function AdminUsers({
 		}
 		await invalidateUsers();
 		setBulkBusy(false);
-		selection.clear();
+		clearSelectionRef.current();
 		toast.success(
 			`Revoked ${ok} of ${selectedInvited.length} invite${selectedInvited.length === 1 ? "" : "s"}`,
 		);
 	};
 
 	const bulkRemove = async () => {
+		const selectedActive = selectedUsersRef.current.filter(
+			(u) => !u.invite_pending,
+		);
 		if (selectedActive.length === 0) return;
 		setBulkBusy(true);
 		let ok = 0;
@@ -679,13 +648,14 @@ export function AdminUsers({
 		}
 		await invalidateUsers();
 		setBulkBusy(false);
-		selection.clear();
+		clearSelectionRef.current();
 		toast.success(
 			`Removed ${ok} of ${selectedActive.length} user${selectedActive.length === 1 ? "" : "s"}`,
 		);
 	};
 
 	const bulkSetRole = async () => {
+		const selectedUsers = selectedUsersRef.current;
 		if (selectedUsers.length === 0) return;
 		setBulkBusy(true);
 		let ok = 0;
@@ -720,21 +690,21 @@ export function AdminUsers({
 		await invalidateUsers();
 		setBulkBusy(false);
 		setBulkRoleOpen(false);
-		selection.clear();
+		clearSelectionRef.current();
 		toast.success(
 			`Updated roles for ${ok} of ${eligible.length} user${eligible.length === 1 ? "" : "s"}`,
 		);
 	};
 
 	const filters = (
-		<div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center">
-			<div className="relative w-full min-w-0 sm:w-72">
+		<div className="ml-auto flex w-full min-w-0 items-center gap-2 sm:w-auto">
+			<div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
 				<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 				<Input
 					value={search}
 					onChange={(event) => setSearch(event.target.value)}
 					placeholder="Search by name or email..."
-					className="pl-9"
+					className="h-9 pl-9"
 				/>
 			</div>
 			<Select
@@ -743,7 +713,7 @@ export function AdminUsers({
 					if (value) setStatusFilter(value as StatusFilter);
 				}}
 			>
-				<SelectTrigger className="w-full sm:w-40">
+				<SelectTrigger className="h-9 w-[9.5rem] shrink-0">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
@@ -757,96 +727,263 @@ export function AdminUsers({
 		</div>
 	);
 
-	const bulkBar =
-		selection.selectedCount > 0 ? (
-			<DataTableBulkBar
-				count={selection.selectedCount}
-				onClear={selection.clear}
-			>
-				<Button
-					type="button"
-					size="sm"
-					variant="outline"
-					disabled={bulkBusy}
-					onClick={() => {
-						setBulkRole("user");
-						setBulkOrgRole("member");
-						setBulkRoleOpen(true);
-					}}
-				>
-					Change role
-				</Button>
-				{selectedInvited.length > 0 ? (
-					<>
-						<Button
-							type="button"
-							size="sm"
-							variant="outline"
-							disabled={bulkBusy}
-							onClick={() => {
-								void bulkReinvite();
-							}}
-						>
-							Reinvite
-						</Button>
-						<Button
-							type="button"
-							size="sm"
-							variant="outline"
-							disabled={bulkBusy}
-							className="text-destructive"
-							onClick={() => {
-								void bulkRevoke();
-							}}
-						>
-							Revoke invite
-						</Button>
-					</>
-				) : null}
-				{selectedActive.length > 0 ? (
-					<Button
-						type="button"
-						size="sm"
-						variant="outline"
-						disabled={bulkBusy}
-						className="text-destructive"
-						onClick={() => {
-							void bulkRemove();
-						}}
-					>
-						Remove
-					</Button>
-				) : null}
-			</DataTableBulkBar>
-		) : null;
+	const columns = useMemo<ColumnDef<MemberListItem>[]>(() => {
+		const cols: ColumnDef<MemberListItem>[] = [
+			{
+				id: "name",
+				header: "Name",
+				cell: ({ row }) => (
+					<IdentityCell
+						name={row.original.name}
+						secondary={row.original.email}
+					/>
+				),
+			},
+			{
+				id: "joined",
+				header: "Joined",
+				cell: ({ row }) => (
+					<span className="text-muted-foreground">
+						{formatJoined(row.original.created_at)}
+					</span>
+				),
+			},
+			{
+				id: "lastActive",
+				header: "Last active",
+				cell: ({ row }) => (
+					<span className="text-muted-foreground">
+						{formatLastActive(row.original.last_login_at)}
+					</span>
+				),
+			},
+		];
+
+		if (isSuperAdmin) {
+			cols.push({
+				id: "platformRole",
+				header: "Platform role",
+				cell: ({ row }) => {
+					const user = row.original;
+					if (user.invite_pending) {
+						return (
+							<span className="text-sm font-medium">
+								{formatRole(user.role)}
+							</span>
+						);
+					}
+					return (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									disabled={busyId === user.id}
+									className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-sm font-medium hover:bg-muted"
+								>
+									{formatRole(user.role)}
+									<ChevronDownIcon className="size-3.5 text-muted-foreground" />
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="start">
+								{PLATFORM_ROLE_ITEMS.map((option) => (
+									<DropdownMenuItem
+										key={option.value}
+										onClick={() => {
+											void setUserRole(
+												user,
+												option.value,
+											);
+										}}
+									>
+										<span className="flex flex-1 items-center justify-between gap-4">
+											{option.label}
+											{user.role === option.value ? (
+												<CheckIcon className="size-4" />
+											) : null}
+										</span>
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					);
+				},
+			});
+		}
+
+		cols.push(
+			{
+				id: "orgRole",
+				header: "Org role",
+				cell: ({ row }) => {
+					const user = row.original;
+					const membership = membershipForOrganization(
+						user,
+						activeOrganizationId,
+					);
+					if (!membership || !activeOrganizationId) {
+						return (
+							<span className="text-sm text-muted-foreground">
+								—
+							</span>
+						);
+					}
+					return (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									disabled={busyId === user.id}
+									className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-sm font-medium hover:bg-muted"
+								>
+									{formatRole(membership.role)}
+									<ChevronDownIcon className="size-3.5 text-muted-foreground" />
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="start">
+								{ORGANIZATION_ROLE_ITEMS.map((option) => (
+									<DropdownMenuItem
+										key={option.value}
+										onClick={() => {
+											void setUserOrganizationRole(
+												user,
+												activeOrganizationId,
+												option.value,
+											);
+										}}
+									>
+										<span className="flex flex-1 items-center justify-between gap-4">
+											{option.label}
+											{membership.role ===
+											option.value ? (
+												<CheckIcon className="size-4" />
+											) : null}
+										</span>
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					);
+				},
+			},
+			{
+				id: "status",
+				header: "Status",
+				cell: ({ row }) => {
+					const status = userStatus(row.original);
+					return (
+						<StatusBadge
+							label={statusLabel(status)}
+							tone={status}
+						/>
+					);
+				},
+			},
+			{
+				id: "actions",
+				header: () => <span className="sr-only">Actions</span>,
+				size: 80,
+				cell: ({ row }) => {
+					const user = row.original;
+					const selected = row.getIsSelected();
+					return (
+						<div className="flex items-center justify-end gap-1">
+							{!user.invite_pending ? (
+								<Button
+									variant="ghost"
+									size="icon"
+									className={cn(
+										"size-8 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100",
+										selected && "opacity-100",
+									)}
+									disabled={busyId === user.id}
+									aria-label={`Edit ${user.name}`}
+									onClick={() => {
+										openRoleEditor(user);
+									}}
+								>
+									<PencilIcon className="size-4" />
+								</Button>
+							) : null}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="size-8"
+										disabled={busyId === user.id}
+										aria-label={`Actions for ${user.name}`}
+									>
+										<MoreVerticalIcon className="size-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									{user.invite_pending ? (
+										<>
+											<DropdownMenuItem
+												onClick={() => {
+													void reinviteUser(user);
+												}}
+											>
+												Reinvite
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												className="text-destructive focus:text-destructive"
+												onClick={() => {
+													setRevokeMode(true);
+													setRemoveUser(user);
+												}}
+											>
+												Revoke invite
+											</DropdownMenuItem>
+										</>
+									) : (
+										<>
+											<DropdownMenuItem
+												onClick={() => {
+													openRoleEditor(user);
+												}}
+											>
+												Change roles
+											</DropdownMenuItem>
+											<DropdownMenuSeparator />
+											<DropdownMenuItem
+												className="text-destructive focus:text-destructive"
+												onClick={() => {
+													setRevokeMode(false);
+													setRemoveUser(user);
+												}}
+											>
+												Remove
+											</DropdownMenuItem>
+										</>
+									)}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					);
+				},
+			},
+		);
+
+		return cols;
+	}, [activeOrganizationId, busyId, isSuperAdmin]);
+
+	const isLoading =
+		usersQuery.isPending ||
+		(Boolean(activeOrganizationId) && invitationsQuery.isPending);
 
 	return (
 		<section className="flex min-h-0 flex-1 flex-col">
-			<DataTableShell
-				toolbar={selection.selectedCount > 0 ? undefined : filters}
-				bulkBar={bulkBar}
-				footer={
-					!usersQuery.isPending &&
-						!invitationsQuery.isPending &&
-						!usersQuery.isError &&
-						filtered.length > 0 ? (
-						<Pagination
-							totalItems={filtered.length}
-							itemsPerPage={PAGE_SIZE}
-							currentPage={currentPage}
-							onChangeCurrentPage={setCurrentPage}
-						/>
-					) : null
-				}
-			>
-				{usersQuery.isPending ||
-					(Boolean(activeOrganizationId) &&
-						invitationsQuery.isPending) ? (
-					<DataTableBody>
+			{isLoading ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
+					</div>
+					<div className="min-h-0 flex-1 overflow-x-auto">
 						<TableBodySkeleton
 							headers={[
 								"",
-								"User",
+								"Name",
 								"Joined",
 								"Last active",
 								...(isSuperAdmin ? ["Platform role"] : []),
@@ -867,326 +1004,107 @@ export function AdminUsers({
 								{ type: "action" },
 							]}
 						/>
-					</DataTableBody>
-				) : usersQuery.isError ? (
-					<p
-						className="min-h-0 flex-1 p-6 text-sm text-destructive"
-						role="alert"
-					>
+					</div>
+				</div>
+			) : usersQuery.isError ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
+					</div>
+					<p className="py-6 text-sm text-destructive" role="alert">
 						Unable to load users.
 					</p>
-				) : filtered.length === 0 ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
-						No users found.
-					</p>
-				) : (
-					<DataTableBody>
-						<Table>
-							<TableHeader>
-								<DataTableHeaderRow>
-									<SelectColumnHead
-										allSelected={selection.allPageSelected}
-										someSelected={
-											selection.somePageSelected
-										}
-										onToggle={selection.togglePage}
-									/>
-									<TableHead>Name</TableHead>
-									<TableHead>Joined</TableHead>
-									<TableHead>Last active</TableHead>
-									{isSuperAdmin ? (
-										<TableHead>Platform role</TableHead>
-									) : null}
-									<TableHead>Org role</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead className="w-20">
-										<span className="sr-only">Actions</span>
-									</TableHead>
-								</DataTableHeaderRow>
-							</TableHeader>
-							<TableBody>
-								{paged.map((user) => {
-									const status = userStatus(user);
-									const selected = selection.isSelected(
-										user.id,
-									);
-									return (
-										<TableRow
-											key={user.id}
-											className={dataTableRowClass(
-												selected,
-											)}
+				</div>
+			) : (
+				<DataTable
+					key={`${search}-${statusFilter}`}
+					columns={columns}
+					data={filtered}
+					toolbar={filters}
+					framed={false}
+					enableRowSelection
+					pageSize={PAGE_SIZE}
+					getRowId={(row) => row.id}
+					emptyMessage="No users found."
+					onSelectionChange={({ selectedRows, clearSelection }) => {
+						selectedUsersRef.current = selectedRows;
+						clearSelectionRef.current = clearSelection;
+					}}
+					bulkBar={({
+						selectedRows,
+						selectedCount,
+						clearSelection,
+					}) => {
+						const selectedInvited = selectedRows.filter(
+							(u) => u.invite_pending,
+						);
+						const selectedActive = selectedRows.filter(
+							(u) => !u.invite_pending,
+						);
+						return (
+							<DataTableBulkBar
+								count={selectedCount}
+								onClear={clearSelection}
+							>
+								<Button
+									type="button"
+									size="sm"
+									variant="outline"
+									disabled={bulkBusy}
+									onClick={() => {
+										setBulkRole("user");
+										setBulkOrgRole("member");
+										setBulkRoleOpen(true);
+									}}
+								>
+									Change role
+								</Button>
+								{selectedInvited.length > 0 ? (
+									<>
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											disabled={bulkBusy}
+											onClick={() => {
+												void bulkReinvite();
+											}}
 										>
-											<TableCell className="w-10 px-3">
-												<RowCheckbox
-													checked={selected}
-													onToggle={() =>
-														selection.toggle(
-															user.id,
-														)
-													}
-													label={`Select ${user.name}`}
-												/>
-											</TableCell>
-											<TableCell>
-												<IdentityCell
-													name={user.name}
-													secondary={user.email}
-												/>
-											</TableCell>
-											<TableCell className="text-muted-foreground">
-												{formatJoined(user.created_at)}
-											</TableCell>
-											<TableCell className="text-muted-foreground">
-												{formatLastActive(
-													user.last_login_at,
-												)}
-											</TableCell>
-											{isSuperAdmin ? (
-												<TableCell>
-													{user.invite_pending ? (
-														<span className="text-sm font-medium">
-															{formatRole(
-																user.role,
-															)}
-														</span>
-													) : (
-														<DropdownMenu>
-															<DropdownMenuTrigger
-																asChild
-															>
-																<button
-																	type="button"
-																	disabled={
-																		busyId ===
-																		user.id
-																	}
-																	className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-sm font-medium hover:bg-muted"
-																>
-																	{formatRole(
-																		user.role,
-																	)}
-																	<ChevronDownIcon className="size-3.5 text-muted-foreground" />
-																</button>
-															</DropdownMenuTrigger>
-															<DropdownMenuContent align="start">
-																{PLATFORM_ROLE_ITEMS.map(
-																	(
-																		option,
-																	) => (
-																		<DropdownMenuItem
-																			key={
-																				option.value
-																			}
-																			onClick={() => {
-																				void setUserRole(
-																					user,
-																					option.value,
-																				);
-																			}}
-																		>
-																			<span className="flex flex-1 items-center justify-between gap-4">
-																				{
-																					option.label
-																				}
-																				{user.role ===
-																					option.value ? (
-																					<CheckIcon className="size-4" />
-																				) : null}
-																			</span>
-																		</DropdownMenuItem>
-																	),
-																)}
-															</DropdownMenuContent>
-														</DropdownMenu>
-													)}
-												</TableCell>
-											) : null}
-											<TableCell>
-												{(() => {
-													const membership =
-														membershipForOrganization(
-															user,
-															activeOrganizationId,
-														);
-													if (
-														!membership ||
-														!activeOrganizationId
-													) {
-														return (
-															<span className="text-sm text-muted-foreground">
-																—
-															</span>
-														);
-													}
-													return (
-														<DropdownMenu>
-															<DropdownMenuTrigger
-																asChild
-															>
-																<button
-																	type="button"
-																	disabled={
-																		busyId ===
-																		user.id
-																	}
-																	className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-sm font-medium hover:bg-muted"
-																>
-																	{formatRole(
-																		membership.role,
-																	)}
-																	<ChevronDownIcon className="size-3.5 text-muted-foreground" />
-																</button>
-															</DropdownMenuTrigger>
-															<DropdownMenuContent align="start">
-																{ORGANIZATION_ROLE_ITEMS.map(
-																	(
-																		option,
-																	) => (
-																		<DropdownMenuItem
-																			key={
-																				option.value
-																			}
-																			onClick={() => {
-																				void setUserOrganizationRole(
-																					user,
-																					activeOrganizationId,
-																					option.value,
-																				);
-																			}}
-																		>
-																			<span className="flex flex-1 items-center justify-between gap-4">
-																				{
-																					option.label
-																				}
-																				{membership.role ===
-																					option.value ? (
-																					<CheckIcon className="size-4" />
-																				) : null}
-																			</span>
-																		</DropdownMenuItem>
-																	),
-																)}
-															</DropdownMenuContent>
-														</DropdownMenu>
-													);
-												})()}
-											</TableCell>
-											<TableCell>
-												<StatusBadge
-													label={statusLabel(status)}
-													tone={status}
-												/>
-											</TableCell>
-											<TableCell>
-												<div className="flex items-center justify-end gap-1">
-													{!user.invite_pending ? (
-														<Button
-															variant="ghost"
-															size="icon"
-															className={cn(
-																"size-8 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100",
-																selected &&
-																"opacity-100",
-															)}
-															disabled={
-																busyId ===
-																user.id
-															}
-															aria-label={`Edit ${user.name}`}
-															onClick={() => {
-																openRoleEditor(
-																	user,
-																);
-															}}
-														>
-															<PencilIcon className="size-4" />
-														</Button>
-													) : null}
-													<DropdownMenu>
-														<DropdownMenuTrigger
-															asChild
-														>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="size-8"
-																disabled={
-																	busyId ===
-																	user.id
-																}
-																aria-label={`Actions for ${user.name}`}
-															>
-																<MoreVerticalIcon className="size-4" />
-															</Button>
-														</DropdownMenuTrigger>
-														<DropdownMenuContent align="end">
-															{user.invite_pending ? (
-																<>
-																	<DropdownMenuItem
-																		onClick={() => {
-																			void reinviteUser(
-																				user,
-																			);
-																		}}
-																	>
-																		Reinvite
-																	</DropdownMenuItem>
-																	<DropdownMenuItem
-																		className="text-destructive focus:text-destructive"
-																		onClick={() => {
-																			setRevokeMode(
-																				true,
-																			);
-																			setRemoveUser(
-																				user,
-																			);
-																		}}
-																	>
-																		Revoke
-																		invite
-																	</DropdownMenuItem>
-																</>
-															) : (
-																<>
-																	<DropdownMenuItem
-																		onClick={() => {
-																			openRoleEditor(
-																				user,
-																			);
-																		}}
-																	>
-																		Change
-																		roles
-																	</DropdownMenuItem>
-																	<DropdownMenuSeparator />
-																	<DropdownMenuItem
-																		className="text-destructive focus:text-destructive"
-																		onClick={() => {
-																			setRevokeMode(
-																				false,
-																			);
-																			setRemoveUser(
-																				user,
-																			);
-																		}}
-																	>
-																		Remove
-																	</DropdownMenuItem>
-																</>
-															)}
-														</DropdownMenuContent>
-													</DropdownMenu>
-												</div>
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
-					</DataTableBody>
-				)}
-			</DataTableShell>
+											Reinvite
+										</Button>
+										<Button
+											type="button"
+											size="sm"
+											variant="outline"
+											disabled={bulkBusy}
+											className="text-destructive"
+											onClick={() => {
+												void bulkRevoke();
+											}}
+										>
+											Revoke invite
+										</Button>
+									</>
+								) : null}
+								{selectedActive.length > 0 ? (
+									<Button
+										type="button"
+										size="sm"
+										variant="outline"
+										disabled={bulkBusy}
+										className="text-destructive"
+										onClick={() => {
+											void bulkRemove();
+										}}
+									>
+										Remove
+									</Button>
+								) : null}
+							</DataTableBulkBar>
+						);
+					}}
+				/>
+			)}
 
 			<Dialog open={inviteOpen} onOpenChange={handleInviteOpenChange}>
 				<DialogContent>
@@ -1480,8 +1398,8 @@ export function AdminUsers({
 						<DialogTitle>Change roles</DialogTitle>
 						<DialogDescription>
 							{isSuperAdmin
-								? `Set platform and organization roles for ${selection.selectedCount} selected user${selection.selectedCount === 1 ? "" : "s"}.`
-								: `Set organization roles for ${selection.selectedCount} selected user${selection.selectedCount === 1 ? "" : "s"}.`}
+								? `Set platform and organization roles for ${selectedUsersRef.current.length} selected user${selectedUsersRef.current.length === 1 ? "" : "s"}.`
+								: `Set organization roles for ${selectedUsersRef.current.length} selected user${selectedUsersRef.current.length === 1 ? "" : "s"}.`}
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4">

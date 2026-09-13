@@ -120,7 +120,8 @@ export function AgentsListPage() {
 						id: agent.id,
 						title: agent.name,
 						description: agent.description ?? "",
-						status: agent.status === "ACTIVE" ? "Active" : "Inactive",
+						status:
+							agent.status === "ACTIVE" ? "Active" : "Inactive",
 						meta: new Date(agent.updatedAt).toLocaleDateString(),
 						icon: <AudioWaveformIcon className="size-4" />,
 						href: `/app/agents/${agent.id}`,

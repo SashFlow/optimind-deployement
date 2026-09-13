@@ -1,33 +1,18 @@
 "use client";
 
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@repo/ui/collapsible";
-import { ChevronDownIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ActivityChartCard } from "@/components/saas/app/dashboard/ActivityChartCard";
 import { ChannelBreakdownCard } from "@/components/saas/app/dashboard/ChannelBreakdownCard";
-import {
-	DashboardLivekitAnalyticsSections,
-	DashboardTelephonySections,
-} from "@/components/saas/app/dashboard/DashboardAnalyticsSections";
-import { DashboardExtendedSections } from "@/components/saas/app/dashboard/DashboardExtendedSections";
+// import { DashboardExtendedSections } from "@/components/saas/app/dashboard/DashboardExtendedSections";
+import { GaugeBreakdownCard } from "@/components/saas/app/dashboard/GaugeBreakdownCard";
 import {
 	computeDeltaPct,
 	StatCard,
 } from "@/components/saas/app/dashboard/StatCard";
-import {
-	ChartCardSkeleton,
-	PageSectionSkeleton,
-} from "@/components/saas/shared/skeletons";
+import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSession } from "@/context/SessionProvider";
-import {
-	useDashboardAnalyticsQuery,
-	useDashboardStatsQuery,
-} from "@/services/api/hooks";
+import { useDashboardStatsQuery } from "@/services/api/hooks";
 import type { DashboardStats } from "@/services/api/types";
 
 function formatDuration(ms: number | null) {
@@ -52,10 +37,6 @@ function DashboardBody({
 	orgName: string;
 	organizationId: string;
 }) {
-	const [analyticsOpen, setAnalyticsOpen] = useState(false);
-	const analyticsQuery = useDashboardAnalyticsQuery(organizationId, 7, {
-		enabled: true,
-	});
 	const sparkline = stats.daily.map((d) => ({
 		value: d.count,
 		label: d.date.slice(5),
@@ -93,7 +74,11 @@ function DashboardBody({
 						Welcome Back!
 					</h1>
 					<p className="text-sm text-muted-foreground">
-						Here&apos;s what&apos;s happening across <span className="font-semibold text-primary">{orgName}</span>.
+						Here&apos;s what&apos;s happening across{" "}
+						<span className="font-semibold text-primary">
+							{orgName}
+						</span>
+						.
 					</p>
 				</div>
 			</div>
@@ -143,13 +128,24 @@ function DashboardBody({
 				</div>
 				<ChannelBreakdownCard byChannel={stats.by_channel} />
 			</div>
-
-			<DashboardExtendedSections
+			<div className="grid gap-4 lg:grid-cols-2">
+				<ChannelBreakdownCard
+					title="End reasons"
+					hint="How sessions ended"
+					byChannel={stats.by_end_reason ?? {}}
+				/>
+				<GaugeBreakdownCard
+					title="Direction"
+					hint="Inbound / outbound / web"
+					items={stats.by_direction ?? {}}
+				/>
+			</div>
+			{/* <DashboardExtendedSections
 				organizationId={organizationId}
 				stats={stats}
-			/>
-
-			{analyticsQuery.isLoading ? (
+			/> */}
+			{/* TODO: Add Livekit analytics section */}
+			{/* {analyticsQuery.isLoading ? (
 				<div className="space-y-4">
 					<ChartCardSkeleton />
 					<div className="grid gap-4 lg:grid-cols-2">
@@ -163,9 +159,9 @@ function DashboardBody({
 				</p>
 			) : analyticsQuery.data ? (
 				<DashboardTelephonySections analytics={analyticsQuery.data} />
-			) : null}
+			) : null} */}
 
-			<Collapsible
+			{/* <Collapsible
 				open={analyticsOpen}
 				onOpenChange={setAnalyticsOpen}
 				id="analytics"
@@ -213,7 +209,7 @@ function DashboardBody({
 						) : null}
 					</div>
 				</CollapsibleContent>
-			</Collapsible>
+			</Collapsible> */}
 		</section>
 	);
 }

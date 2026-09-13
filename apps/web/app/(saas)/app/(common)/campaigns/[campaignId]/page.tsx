@@ -2,6 +2,7 @@
 
 import {
 	FolderTabs,
+	FolderTabsBack,
 	FolderTabsBar,
 	FolderTabsContent,
 	FolderTabsList,
@@ -18,6 +19,7 @@ export default function CampaignDetailPage() {
 	return (
 		<FolderTabs defaultValue="dashboard" className="h-full">
 			<FolderTabsBar>
+				<FolderTabsBack href="/app/campaigns" />
 				<FolderTabsList>
 					<FolderTabsTrigger value="dashboard">
 						Dashboard
@@ -34,13 +36,17 @@ export default function CampaignDetailPage() {
 			<FolderTabsContent value="dashboard">
 				<CampaignDashboard campaignId={params.campaignId} />
 			</FolderTabsContent>
-			<FolderTabsContent value="workflow">
+			<FolderTabsContent
+				value="workflow"
+				scrollable={false}
+				className="p-0!"
+			>
 				<WorkflowEditor campaignId={params.campaignId} />
 			</FolderTabsContent>
-			<FolderTabsContent value="approvals">
+			<FolderTabsContent value="approvals" scrollable={false}>
 				<CampaignApprovals campaignId={params.campaignId} />
 			</FolderTabsContent>
-			<FolderTabsContent value="logs">
+			<FolderTabsContent value="logs" scrollable={false}>
 				<CampaignWorkflowLogs campaignId={params.campaignId} />
 			</FolderTabsContent>
 		</FolderTabs>

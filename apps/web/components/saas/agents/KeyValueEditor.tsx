@@ -4,7 +4,7 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { cn } from "@repo/ui/utils";
 import { EyeIcon, EyeOffIcon, PlusIcon, Trash2Icon } from "lucide-react";
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 
 type KeyValueRow = {
 	id: string;
@@ -33,23 +33,35 @@ function rowsToValues(rows: KeyValueRow[]): Record<string, string> {
 	return result;
 }
 
-export function KeyValueEditor({
-	label,
-	values,
-	onChange,
-	keyPlaceholder = "Key",
-	valuePlaceholder = "Value",
-	valueType = "text",
-	hint,
-}: {
-	label?: string;
-	values: Record<string, string>;
-	onChange: (values: Record<string, string>) => void;
-	keyPlaceholder?: string;
-	valuePlaceholder?: string;
-	valueType?: "text" | "secret";
-	hint?: string;
-}) {
+export type KeyValueEditorHandle = {
+	add: () => void;
+};
+
+export const KeyValueEditor = forwardRef<
+	KeyValueEditorHandle,
+	{
+		label?: string;
+		values: Record<string, string>;
+		onChange: (values: Record<string, string>) => void;
+		keyPlaceholder?: string;
+		valuePlaceholder?: string;
+		valueType?: "text" | "secret";
+		hint?: string;
+		hideAddButton?: boolean;
+	}
+>(function KeyValueEditor(
+	{
+		label,
+		values,
+		onChange,
+		keyPlaceholder = "Key",
+		valuePlaceholder = "Value",
+		valueType = "text",
+		hint,
+		hideAddButton = false,
+	},
+	ref,
+) {
 	const [rows, setRows] = useState<KeyValueRow[]>(() => valuesToRows(values));
 	const [showSecrets, setShowSecrets] = useState(false);
 
@@ -74,6 +86,8 @@ export function KeyValueEditor({
 		const nextRows = rows.filter((_, i) => i !== index);
 		commitRows(nextRows);
 	}
+
+	useImperativeHandle(ref, () => ({ add: addEntry }));
 
 	return (
 		<div className="space-y-3">
@@ -143,18 +157,20 @@ export function KeyValueEditor({
 					</div>
 				))}
 			</div>
-			<Button
-				type="button"
-				variant="outline"
-				size="sm"
-				onClick={addEntry}
-			>
-				<PlusIcon />
-				Add
-			</Button>
+			{hideAddButton ? null : (
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					onClick={addEntry}
+				>
+					<PlusIcon />
+					Add
+				</Button>
+			)}
 			{hint ? (
 				<p className={cn("text-xs text-muted-foreground")}>{hint}</p>
 			) : null}
 		</div>
 	);
-}
+});

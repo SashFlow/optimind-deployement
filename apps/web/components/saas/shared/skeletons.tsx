@@ -145,19 +145,22 @@ export function ResourceCardsSkeleton({
 			{Array.from({ length: count }).map((_, index) => (
 				<div
 					key={`resource-skeleton-${index}`}
-					className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-sm"
+					className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card p-5 shadow-sm"
 				>
-					<div className="flex items-start justify-between gap-3">
-						<Skeleton className="size-10 rounded-xl" />
-						<Skeleton className="size-8 rounded-md" />
+					<div className="flex items-start justify-between gap-4">
+						<div className="min-w-0 flex-1 space-y-2">
+							<Skeleton className="h-5 w-2/3" />
+							<Skeleton className="h-4 w-full" />
+							<Skeleton className="h-4 w-4/5" />
+						</div>
+						<Skeleton className="size-10 shrink-0 rounded-xl" />
 					</div>
-					<div className="space-y-2">
-						<Skeleton className="h-5 w-2/3" />
-						<Skeleton className="h-4 w-full" />
-						<Skeleton className="h-4 w-4/5" />
-					</div>
-					<div className="mt-auto pt-1">
-						<Skeleton className="h-6 w-16 rounded-lg" />
+					<div className="mt-auto flex items-center justify-between gap-3 pt-2">
+						<div className="flex items-center gap-3">
+							<Skeleton className="h-3 w-14" />
+							<Skeleton className="h-3 w-20" />
+						</div>
+						<Skeleton className="size-7 rounded-md" />
 					</div>
 				</div>
 			))}
@@ -179,7 +182,7 @@ export function PageSectionSkeleton({
 				role="status"
 				aria-label="Loading"
 				className={cn(
-					"mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6",
+					"mx-auto w-full max-w-[1600px] space-y-6",
 					className,
 				)}
 			>
@@ -216,7 +219,7 @@ export function PageSectionSkeleton({
 				role="status"
 				aria-label="Loading"
 				className={cn(
-					"mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6",
+					"mx-auto w-full max-w-[1600px] space-y-6",
 					className,
 				)}
 			>
@@ -253,7 +256,7 @@ export function PageSectionSkeleton({
 				role="status"
 				aria-label="Loading"
 				className={cn(
-					"mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 md:px-6",
+					"mx-auto w-full max-w-[1600px] space-y-6",
 					className,
 				)}
 			>

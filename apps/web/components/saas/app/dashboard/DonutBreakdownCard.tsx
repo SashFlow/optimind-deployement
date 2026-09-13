@@ -1,11 +1,6 @@
 "use client";
 
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@repo/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -76,7 +71,9 @@ export function DonutBreakdownCard({
 						Analytics unavailable
 					</p>
 				) : total <= 0 ? (
-					<p className="text-sm text-muted-foreground">No data yet.</p>
+					<p className="text-sm text-muted-foreground">
+						No data yet.
+					</p>
 				) : (
 					<div className="flex items-center gap-5">
 						<div className="relative shrink-0">
@@ -145,9 +142,7 @@ export function DonutBreakdownCard({
 												: entry.value.toFixed(1)}
 										</span>
 										<span className="w-12 shrink-0 text-right tabular-nums text-muted-foreground">
-											{mode === "minutes"
-												? "mins"
-												: "%"}
+											{mode === "minutes" ? "mins" : "%"}
 										</span>
 									</div>
 								</li>

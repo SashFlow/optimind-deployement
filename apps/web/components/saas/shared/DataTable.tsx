@@ -74,7 +74,7 @@ export function DataTableBulkBar({
 	children: ReactNode;
 }) {
 	return (
-		<div className="flex flex-wrap items-center gap-3">
+		<div className="flex w-full flex-wrap items-center gap-3">
 			<p className="text-sm font-medium">
 				{count} selected
 				<button

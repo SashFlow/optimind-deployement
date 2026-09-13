@@ -7,10 +7,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@repo/ui/dialog";
-import {
-	KpiCard,
-	type SparklinePoint,
-} from "@/components/saas/shared/KpiCard";
+import { KpiCard, type SparklinePoint } from "@/components/saas/shared/KpiCard";
 
 const PLACEHOLDER_SPARKLINE: SparklinePoint[] = Array.from(
 	{ length: 12 },

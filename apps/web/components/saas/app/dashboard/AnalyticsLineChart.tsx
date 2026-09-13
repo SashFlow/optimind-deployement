@@ -124,7 +124,9 @@ export function AnalyticsLineChart({
 						Analytics unavailable
 					</p>
 				) : chartData.length === 0 ? (
-					<p className="text-sm text-muted-foreground">No data yet.</p>
+					<p className="text-sm text-muted-foreground">
+						No data yet.
+					</p>
 				) : chartVariant === "bar" ? (
 					<ChartContainer
 						config={chartConfig}

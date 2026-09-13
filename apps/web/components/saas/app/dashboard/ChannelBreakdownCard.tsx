@@ -1,11 +1,6 @@
 "use client";
 
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@repo/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -114,7 +109,9 @@ export function ChannelBreakdownCard({
 							{entries.map((entry, index) => {
 								const pct =
 									total > 0
-										? Math.round((entry.count / total) * 100)
+										? Math.round(
+												(entry.count / total) * 100,
+											)
 										: 0;
 
 								return (

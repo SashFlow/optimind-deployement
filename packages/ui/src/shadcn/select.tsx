@@ -1,7 +1,6 @@
 "use client";
 
 import {
-	CaretSortIcon,
 	CheckIcon,
 	ChevronDownIcon,
 	ChevronUpIcon,
@@ -22,14 +21,14 @@ const SelectTrigger: React.FC<
 > = ({ className, children, ...props }) => (
 	<SelectPrimitive.Trigger
 		className={cn(
-			"border-input ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-9 w-full items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-left text-sm whitespace-nowrap shadow-2xs focus:ring-1 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 [&>span]:min-w-0 [&>span]:flex-1 [&>span]:text-left",
+			"border-border bg-background placeholder:text-muted-foreground flex h-10 w-full items-center justify-between gap-2 rounded-xl border px-3.5 py-2 text-left text-sm whitespace-nowrap shadow-none transition-colors focus:outline-hidden focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 [&>span]:min-w-0 [&>span]:flex-1 [&>span]:text-left",
 			className,
 		)}
 		{...props}
 	>
 		{children}
 		<SelectPrimitive.Icon asChild>
-			<CaretSortIcon className="h-4 w-4 shrink-0 opacity-50" />
+			<ChevronDownIcon className="text-muted-foreground h-4 w-4 shrink-0 opacity-60" />
 		</SelectPrimitive.Icon>
 	</SelectPrimitive.Trigger>
 );
@@ -72,7 +71,7 @@ const SelectContent: React.FC<
 	<SelectPrimitive.Portal>
 		<SelectPrimitive.Content
 			className={cn(
-				"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border shadow-md",
+				"bg-popover text-popover-foreground border-border data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-xl border shadow-lg",
 				position === "popper" &&
 					"data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
 				className,
@@ -83,7 +82,7 @@ const SelectContent: React.FC<
 			<SelectScrollUpButton />
 			<SelectPrimitive.Viewport
 				className={cn(
-					"p-1",
+					"p-1.5",
 					position === "popper" &&
 						"h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
 				)}
@@ -100,7 +99,10 @@ const SelectLabel: React.FC<
 	React.ComponentPropsWithRef<typeof SelectPrimitive.Label>
 > = ({ className, ...props }) => (
 	<SelectPrimitive.Label
-		className={cn("px-2 py-1.5 text-sm font-semibold", className)}
+		className={cn(
+			"text-muted-foreground px-3 py-2 text-xs font-medium",
+			className,
+		)}
 		{...props}
 	/>
 );
@@ -111,14 +113,14 @@ const SelectItem: React.FC<
 > = ({ className, children, ...props }) => (
 	<SelectPrimitive.Item
 		className={cn(
-			"focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center rounded-xs py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50",
+			"focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center rounded-lg py-2.5 pr-8 pl-3 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50",
 			className,
 		)}
 		{...props}
 	>
-		<span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+		<span className="absolute right-3 flex h-3.5 w-3.5 items-center justify-center">
 			<SelectPrimitive.ItemIndicator>
-				<CheckIcon className="h-4 w-4" />
+				<CheckIcon className="text-muted-foreground h-4 w-4" />
 			</SelectPrimitive.ItemIndicator>
 		</span>
 		<SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -130,7 +132,7 @@ const SelectSeparator: React.FC<
 	React.ComponentPropsWithRef<typeof SelectPrimitive.Separator>
 > = ({ className, ...props }) => (
 	<SelectPrimitive.Separator
-		className={cn("bg-muted -mx-1 my-1 h-px", className)}
+		className={cn("bg-border -mx-1 my-1.5 h-px", className)}
 		{...props}
 	/>
 );

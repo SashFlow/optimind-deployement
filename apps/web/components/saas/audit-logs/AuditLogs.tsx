@@ -7,27 +7,17 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/select";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@repo/ui/table";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import {
-	DataTableBody,
-	DataTableHeaderRow,
-	DataTableShell,
-} from "@/components/saas/shared/DataTable";
-import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import { DataTable } from "@/components/saas/shared/StandardDataTable";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
+import type { AuditLogRow } from "@/types/admin";
 
 type ActionFilter =
 	| "all"
@@ -102,12 +92,64 @@ function csvEscape(value: string) {
 	return value;
 }
 
+const columns: ColumnDef<AuditLogRow>[] = [
+	{
+		id: "when",
+		header: "When",
+		cell: ({ row }) => (
+			<span className="text-muted-foreground">
+				{new Date(row.original.occurred_at).toLocaleString()}
+			</span>
+		),
+	},
+	{
+		id: "action",
+		header: "Action",
+		cell: ({ row }) => (
+			<span className="font-medium">{row.original.action}</span>
+		),
+	},
+	{
+		id: "resource",
+		header: "Resource",
+		cell: ({ row }) => (
+			<>
+				<span className="text-muted-foreground">
+					{row.original.resource_type}
+				</span>
+				{row.original.resource_id ? (
+					<span className="ml-1 font-mono text-xs text-muted-foreground">
+						{row.original.resource_id.slice(0, 8)}
+					</span>
+				) : null}
+			</>
+		),
+	},
+	{
+		id: "actor",
+		header: "Actor",
+		cell: ({ row }) => (
+			<span className="font-mono text-xs text-muted-foreground">
+				{row.original.actor_account_id?.slice(0, 8) ?? "—"}
+			</span>
+		),
+	},
+	{
+		id: "ip",
+		header: "IP",
+		cell: ({ row }) => (
+			<span className="text-xs text-muted-foreground">
+				{row.original.ip ?? "—"}
+			</span>
+		),
+	},
+];
+
 export default function AuditLogsPageContent() {
 	const { activeOrganization } = useActiveOrganization();
 	const activeOrganizationId = activeOrganization?.id ?? null;
 	const [action, setAction] = useState<ActionFilter>("all");
 	const [resourceType, setResourceType] = useState<ResourceTypeFilter>("all");
-	const [currentPage, setCurrentPage] = useState(1);
 
 	const query = useQuery({
 		...orpc.audit.list.queryOptions({
@@ -122,20 +164,6 @@ export default function AuditLogsPageContent() {
 	});
 
 	const rows = query.data?.logs ?? [];
-	const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-
-	useEffect(() => {
-		setCurrentPage(1);
-	}, [action, resourceType]);
-
-	useEffect(() => {
-		if (currentPage > pageCount) setCurrentPage(pageCount);
-	}, [currentPage, pageCount]);
-
-	const paged = useMemo(() => {
-		const start = (currentPage - 1) * PAGE_SIZE;
-		return rows.slice(start, start + PAGE_SIZE);
-	}, [rows, currentPage]);
 
 	const exportCsv = useCallback(() => {
 		if (rows.length === 0) {
@@ -173,82 +201,64 @@ export default function AuditLogsPageContent() {
 
 	useSettingsPageAction(exportCsv, "Export CSV");
 
+	const filters = (
+		<div className="ml-auto flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
+			<Select
+				value={action}
+				onValueChange={(value) => {
+					if (value) setAction(value as ActionFilter);
+				}}
+			>
+				<SelectTrigger id="action" className="h-9 w-[9.5rem] shrink-0">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{ACTION_FILTER_ITEMS.map((option) => (
+						<SelectItem key={option.value} value={option.value}>
+							{option.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+			<Select
+				value={resourceType}
+				onValueChange={(value) => {
+					if (value) setResourceType(value as ResourceTypeFilter);
+				}}
+			>
+				<SelectTrigger id="resource" className="h-9 w-52 shrink-0">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{RESOURCE_TYPE_FILTER_ITEMS.map((option) => (
+						<SelectItem key={option.value} value={option.value}>
+							{option.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+		</div>
+	);
+
+	const isLoading = Boolean(activeOrganizationId) && query.isLoading;
+
 	return (
 		<section className="flex min-h-0 flex-1 flex-col">
-			<DataTableShell
-				toolbar={
-					<div className="ml-auto flex flex-col gap-2 sm:flex-row sm:items-center">
-						<Select
-							value={action}
-							onValueChange={(value) => {
-								if (value) setAction(value as ActionFilter);
-							}}
-						>
-							<SelectTrigger
-								id="action"
-								className="w-full sm:w-44"
-							>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{ACTION_FILTER_ITEMS.map((option) => (
-									<SelectItem
-										key={option.value}
-										value={option.value}
-									>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<Select
-							value={resourceType}
-							onValueChange={(value) => {
-								if (value)
-									setResourceType(
-										value as ResourceTypeFilter,
-									);
-							}}
-						>
-							<SelectTrigger
-								id="resource"
-								className="w-full sm:w-52"
-							>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{RESOURCE_TYPE_FILTER_ITEMS.map((option) => (
-									<SelectItem
-										key={option.value}
-										value={option.value}
-									>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+			{!activeOrganizationId ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
 					</div>
-				}
-				footer={
-					activeOrganizationId &&
-					!query.isLoading &&
-					!query.isError &&
-					rows.length > 0 ? (
-						<Pagination
-							totalItems={rows.length}
-							itemsPerPage={PAGE_SIZE}
-							currentPage={currentPage}
-							onChangeCurrentPage={setCurrentPage}
-						/>
-					) : null
-				}
-			>
-				{!activeOrganizationId ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
+					<p className="py-6 text-sm text-muted-foreground">
 						Select an organization to view audit events.
 					</p>
-				) : query.isLoading ? (
-					<DataTableBody>
+				</div>
+			) : isLoading ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
+					</div>
+					<div className="min-h-0 flex-1 overflow-x-auto">
 						<TableBodySkeleton
 							headers={[
 								"When",
@@ -265,70 +275,29 @@ export default function AuditLogsPageContent() {
 								{ type: "text", width: "w-20" },
 							]}
 						/>
-					</DataTableBody>
-				) : query.isError ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
+					</div>
+				</div>
+			) : query.isError ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
+					</div>
+					<p className="py-6 text-sm text-destructive">
 						Failed to load audit logs.
 					</p>
-				) : rows.length === 0 ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
-						No audit events.
-					</p>
-				) : (
-					<DataTableBody>
-						<Table>
-							<TableHeader>
-								<DataTableHeaderRow>
-									<TableHead>When</TableHead>
-									<TableHead>Action</TableHead>
-									<TableHead>Resource</TableHead>
-									<TableHead>Actor</TableHead>
-									<TableHead>IP</TableHead>
-								</DataTableHeaderRow>
-							</TableHeader>
-							<TableBody>
-								{paged.map((row) => (
-									<TableRow
-										key={row.id}
-										className="hover:bg-muted/50"
-									>
-										<TableCell className="text-muted-foreground">
-											{new Date(
-												row.occurred_at,
-											).toLocaleString()}
-										</TableCell>
-										<TableCell className="font-medium">
-											{row.action}
-										</TableCell>
-										<TableCell>
-											<span className="text-muted-foreground">
-												{row.resource_type}
-											</span>
-											{row.resource_id ? (
-												<span className="ml-1 font-mono text-xs text-muted-foreground">
-													{row.resource_id.slice(
-														0,
-														8,
-													)}
-												</span>
-											) : null}
-										</TableCell>
-										<TableCell className="font-mono text-xs text-muted-foreground">
-											{row.actor_account_id?.slice(
-												0,
-												8,
-											) ?? "—"}
-										</TableCell>
-										<TableCell className="text-xs text-muted-foreground">
-											{row.ip ?? "—"}
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					</DataTableBody>
-				)}
-			</DataTableShell>
+				</div>
+			) : (
+				<DataTable
+					key={`${action}-${resourceType}`}
+					columns={columns}
+					data={rows}
+					toolbar={filters}
+					framed={false}
+					pageSize={PAGE_SIZE}
+					getRowId={(row) => row.id}
+					emptyMessage="No audit events."
+				/>
+			)}
 		</section>
 	);
 }

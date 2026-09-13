@@ -80,7 +80,10 @@ export function AppUserMenu({
 					aria-label={showMeta ? undefined : `Account: ${name}`}
 				>
 					<Avatar className={showMeta ? "size-14!" : "size-full"}>
-						<AvatarImage src={user?.image ?? undefined} alt={name} />
+						<AvatarImage
+							src={user?.image ?? undefined}
+							alt={name}
+						/>
 						<AvatarFallback className="text-xs">
 							{initials}
 						</AvatarFallback>
@@ -125,7 +128,10 @@ export function AppUserMenu({
 				open={accountOpen}
 				onOpenChange={setAccountOpen}
 			/>
-			<HealthStatusDialog open={healthOpen} onOpenChange={setHealthOpen} />
+			<HealthStatusDialog
+				open={healthOpen}
+				onOpenChange={setHealthOpen}
+			/>
 		</>
 	);
 }

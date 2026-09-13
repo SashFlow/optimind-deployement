@@ -214,7 +214,9 @@ export function DashboardTelephonySections({
 						value={String(telephony.sip_sessions_total)}
 						icon={PhoneIcon}
 						detail="Selected period"
-						sparkline={sipChartData.map((d) => ({ value: d.count }))}
+						sparkline={sipChartData.map((d) => ({
+							value: d.count,
+						}))}
 						comparisonLabel="Daily trend"
 					/>
 				</div>

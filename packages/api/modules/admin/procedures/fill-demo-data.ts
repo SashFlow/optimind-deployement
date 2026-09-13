@@ -22,7 +22,9 @@ export const fillDemoData = adminProcedure
 			return result;
 		} catch (cause) {
 			const message =
-				cause instanceof Error ? cause.message : "Unable to fill demo data";
+				cause instanceof Error
+					? cause.message
+					: "Unable to fill demo data";
 			if (message === "Organization not found") {
 				throw new ORPCError("NOT_FOUND", { message });
 			}

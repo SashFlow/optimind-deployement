@@ -14,16 +14,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/select";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@repo/ui/table";
+import type { ColumnDef } from "@tanstack/react-table";
 import { MoreVerticalIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	useAdminBackgroundJobsQuery,
@@ -31,20 +24,15 @@ import {
 	useRetryBackgroundJobMutation,
 } from "@/components/saas/admin/lib/mock-hooks";
 import {
-	DataTableBody,
 	DataTableBulkBar,
-	DataTableHeaderRow,
-	DataTableShell,
-	RowCheckbox,
-	SelectColumnHead,
 	StatusBadge,
-	dataTableRowClass,
 } from "@/components/saas/shared/DataTable";
-import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
+import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
-import { useRowSelection } from "@/components/saas/shared/useRowSelection";
+import { DataTable } from "@/components/saas/shared/StandardDataTable";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsBulkActions } from "@/context/AdminSettingsActionsProvider";
+import type { BackgroundJobRow } from "@/types/admin";
 
 type StatusFilter =
 	| "all"
@@ -110,8 +98,9 @@ export default function BackgroundJobsPageContent() {
 	const organizationId = activeOrganization?.id ?? "";
 	const [status, setStatus] = useState<StatusFilter>("all");
 	const [jobType, setJobType] = useState<JobTypeFilter>("all");
-	const [currentPage, setCurrentPage] = useState(1);
 	const [bulkBusy, setBulkBusy] = useState(false);
+	const selectedJobsRef = useRef<BackgroundJobRow[]>([]);
+	const clearSelectionRef = useRef<() => void>(() => {});
 	const query = useAdminBackgroundJobsQuery({
 		status: status === "all" ? undefined : status,
 		job_type: jobType === "all" ? undefined : jobType,
@@ -120,39 +109,6 @@ export default function BackgroundJobsPageContent() {
 	const retryMutation = useRetryBackgroundJobMutation();
 
 	const jobs = query.data ?? [];
-	const pageCount = Math.max(1, Math.ceil(jobs.length / PAGE_SIZE));
-
-	useEffect(() => {
-		setCurrentPage(1);
-	}, [status, jobType]);
-
-	useEffect(() => {
-		if (currentPage > pageCount) {
-			setCurrentPage(pageCount);
-		}
-	}, [currentPage, pageCount]);
-
-	const paged = useMemo(() => {
-		const start = (currentPage - 1) * PAGE_SIZE;
-		return jobs.slice(start, start + PAGE_SIZE);
-	}, [jobs, currentPage]);
-
-	const pageIds = useMemo(() => paged.map((job) => job.id), [paged]);
-	const selection = useRowSelection(pageIds);
-
-	const selectedJobs = useMemo(() => {
-		const byId = new Map(jobs.map((job) => [job.id, job]));
-		return selection.selectedIds
-			.map((id) => byId.get(id))
-			.filter((job): job is NonNullable<typeof job> => Boolean(job));
-	}, [jobs, selection.selectedIds]);
-
-	const selectedCancellable = selectedJobs.filter((job) =>
-		canCancelStatus(job.status),
-	);
-	const selectedRetryable = selectedJobs.filter((job) =>
-		canRetryStatus(job.status),
-	);
 
 	async function cancelJob(id: string) {
 		if (!organizationId) {
@@ -257,6 +213,9 @@ export default function BackgroundJobsPageContent() {
 	});
 
 	const cancelSelected = async () => {
+		const selectedCancellable = selectedJobsRef.current.filter((job) =>
+			canCancelStatus(job.status),
+		);
 		if (selectedCancellable.length === 0) return;
 		if (!organizationId) {
 			toast.error("No active organization");
@@ -277,7 +236,7 @@ export default function BackgroundJobsPageContent() {
 		}
 		await query.refetch();
 		setBulkBusy(false);
-		selection.clear();
+		clearSelectionRef.current();
 		if (cancelled === 0) {
 			toast.error("Failed to cancel jobs");
 			return;
@@ -288,6 +247,9 @@ export default function BackgroundJobsPageContent() {
 	};
 
 	const retrySelected = async () => {
+		const selectedRetryable = selectedJobsRef.current.filter((job) =>
+			canRetryStatus(job.status),
+		);
 		if (selectedRetryable.length === 0) return;
 		if (!organizationId) {
 			toast.error("No active organization");
@@ -308,7 +270,7 @@ export default function BackgroundJobsPageContent() {
 		}
 		await query.refetch();
 		setBulkBusy(false);
-		selection.clear();
+		clearSelectionRef.current();
 		if (retried === 0) {
 			toast.error("Failed to retry jobs");
 			return;
@@ -317,16 +279,14 @@ export default function BackgroundJobsPageContent() {
 	};
 
 	const filters = (
-		<div className="ml-auto flex flex-col gap-2 sm:flex-row sm:items-center">
+		<div className="ml-auto flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
 			<Select
 				value={status}
 				onValueChange={(value) => {
-					if (value) {
-						setStatus(value as StatusFilter);
-					}
+					if (value) setStatus(value as StatusFilter);
 				}}
 			>
-				<SelectTrigger id="status" className="w-full sm:w-44">
+				<SelectTrigger id="status" className="h-9 w-[9.5rem] shrink-0">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
@@ -340,12 +300,10 @@ export default function BackgroundJobsPageContent() {
 			<Select
 				value={jobType}
 				onValueChange={(value) => {
-					if (value) {
-						setJobType(value as JobTypeFilter);
-					}
+					if (value) setJobType(value as JobTypeFilter);
 				}}
 			>
-				<SelectTrigger id="type" className="w-full sm:w-48">
+				<SelectTrigger id="type" className="h-9 w-48 shrink-0">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
@@ -359,66 +317,121 @@ export default function BackgroundJobsPageContent() {
 		</div>
 	);
 
-	const bulkBar =
-		selection.selectedCount > 0 ? (
-			<DataTableBulkBar
-				count={selection.selectedCount}
-				onClear={selection.clear}
-			>
-				{selectedCancellable.length > 0 ? (
-					<Button
-						type="button"
-						size="sm"
-						variant="outline"
-						disabled={bulkBusy}
-						onClick={() => {
-							void cancelSelected();
-						}}
-					>
-						Cancel selected
-					</Button>
-				) : null}
-				{selectedRetryable.length > 0 ? (
-					<Button
-						type="button"
-						size="sm"
-						variant="outline"
-						disabled={bulkBusy}
-						onClick={() => {
-							void retrySelected();
-						}}
-					>
-						Retry selected
-					</Button>
-				) : null}
-			</DataTableBulkBar>
-		) : null;
+	const columns = useMemo<ColumnDef<BackgroundJobRow>[]>(
+		() => [
+			{
+				id: "created",
+				header: "Created",
+				cell: ({ row }) => (
+					<span className="text-muted-foreground">
+						{row.original.created_at
+							? new Date(row.original.created_at).toLocaleString()
+							: "—"}
+					</span>
+				),
+			},
+			{
+				id: "type",
+				header: "Type",
+				cell: ({ row }) => (
+					<span className="font-medium">{row.original.job_type}</span>
+				),
+			},
+			{
+				id: "status",
+				header: "Status",
+				cell: ({ row }) => (
+					<StatusBadge
+						label={row.original.status}
+						tone={row.original.status}
+					/>
+				),
+			},
+			{
+				id: "resource",
+				header: "Resource",
+				cell: ({ row }) => (
+					<span className="font-mono text-xs text-muted-foreground">
+						{row.original.resource_type ?? "—"}
+						{row.original.resource_id
+							? `:${row.original.resource_id.slice(0, 8)}`
+							: ""}
+					</span>
+				),
+			},
+			{
+				id: "error",
+				header: "Error",
+				cell: ({ row }) => (
+					<span className="max-w-[200px] truncate text-xs text-destructive">
+						{row.original.error ?? ""}
+					</span>
+				),
+			},
+			{
+				id: "actions",
+				header: () => <span className="sr-only">Actions</span>,
+				size: 48,
+				cell: ({ row }) => {
+					const job = row.original;
+					const canCancel = canCancelStatus(job.status);
+					const canRetry = canRetryStatus(job.status);
+					if (!canCancel && !canRetry) return null;
+					return (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-8"
+									aria-label={`Actions for job ${job.id}`}
+								>
+									<MoreVerticalIcon className="size-4" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								{canCancel ? (
+									<DropdownMenuItem
+										onClick={() => void cancelJob(job.id)}
+									>
+										Cancel
+									</DropdownMenuItem>
+								) : null}
+								{canRetry ? (
+									<DropdownMenuItem
+										onClick={() => void retryJob(job.id)}
+									>
+										Retry
+									</DropdownMenuItem>
+								) : null}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					);
+				},
+			},
+		],
+		[organizationId, cancelMutation, retryMutation, query],
+	);
+
+	const isLoading = Boolean(organizationId) && query.isLoading;
 
 	return (
 		<section className="flex min-h-0 flex-1 flex-col">
-			<DataTableShell
-				toolbar={selection.selectedCount > 0 ? undefined : filters}
-				bulkBar={bulkBar}
-				footer={
-					organizationId &&
-					!query.isLoading &&
-					!query.isError &&
-					jobs.length > 0 ? (
-						<Pagination
-							totalItems={jobs.length}
-							itemsPerPage={PAGE_SIZE}
-							currentPage={currentPage}
-							onChangeCurrentPage={setCurrentPage}
-						/>
-					) : null
-				}
-			>
-				{!organizationId ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
+			{!organizationId ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
+					</div>
+					<p className="py-6 text-sm text-muted-foreground">
 						Select an organization to view background jobs.
 					</p>
-				) : query.isLoading ? (
-					<DataTableBody>
+				</div>
+			) : isLoading ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
+					</div>
+					<div className="min-h-0 flex-1 overflow-x-auto">
 						<TableBodySkeleton
 							headers={[
 								"",
@@ -439,138 +452,79 @@ export default function BackgroundJobsPageContent() {
 								{ type: "action" },
 							]}
 						/>
-					</DataTableBody>
-				) : query.isError ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-destructive">
+					</div>
+				</div>
+			) : query.isError ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<div className="flex h-16 shrink-0 items-center border-b border-border/60 px-1 sm:px-0">
+						{filters}
+					</div>
+					<p className="py-6 text-sm text-destructive">
 						Failed to load jobs.
 					</p>
-				) : jobs.length === 0 ? (
-					<p className="min-h-0 flex-1 p-6 text-sm text-muted-foreground">
-						No background jobs.
-					</p>
-				) : (
-					<DataTableBody>
-						<Table>
-							<TableHeader>
-								<DataTableHeaderRow>
-									<SelectColumnHead
-										allSelected={selection.allPageSelected}
-										someSelected={
-											selection.somePageSelected
-										}
-										onToggle={selection.togglePage}
+				</div>
+			) : (
+				<DataTable
+					key={`${status}-${jobType}`}
+					columns={columns}
+					data={jobs}
+					toolbar={filters}
+					framed={false}
+					enableRowSelection
+					pageSize={PAGE_SIZE}
+					getRowId={(row) => row.id}
+					emptyMessage="No background jobs."
+					onSelectionChange={({ selectedRows, clearSelection }) => {
+						selectedJobsRef.current = selectedRows;
+						clearSelectionRef.current = clearSelection;
+					}}
+					bulkBar={({
+						selectedRows,
+						selectedCount,
+						clearSelection,
+					}) => {
+						const selectedCancellable = selectedRows.filter((job) =>
+							canCancelStatus(job.status),
+						);
+						const selectedRetryable = selectedRows.filter((job) =>
+							canRetryStatus(job.status),
+						);
+						return (
+							<DataTableBulkBar
+								count={selectedCount}
+								onClear={clearSelection}
+							>
+								{selectedCancellable.length > 0 ? (
+									<Button
+										type="button"
+										size="sm"
+										variant="outline"
 										disabled={bulkBusy}
-									/>
-									<TableHead>Created</TableHead>
-									<TableHead>Type</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead>Resource</TableHead>
-									<TableHead>Error</TableHead>
-									<TableHead className="w-12">
-										<span className="sr-only">Actions</span>
-									</TableHead>
-								</DataTableHeaderRow>
-							</TableHeader>
-							<TableBody>
-								{paged.map((job) => {
-									const canCancel = canCancelStatus(
-										job.status,
-									);
-									const canRetry = canRetryStatus(job.status);
-									const selected = selection.isSelected(
-										job.id,
-									);
-									return (
-										<TableRow
-											key={job.id}
-											className={dataTableRowClass(
-												selected,
-											)}
-										>
-											<TableCell className="w-10 px-3">
-												<RowCheckbox
-													checked={selected}
-													onToggle={() =>
-														selection.toggle(job.id)
-													}
-													label={`Select job ${job.id}`}
-												/>
-											</TableCell>
-											<TableCell className="text-muted-foreground">
-												{job.created_at
-													? new Date(
-															job.created_at,
-														).toLocaleString()
-													: "—"}
-											</TableCell>
-											<TableCell className="font-medium">
-												{job.job_type}
-											</TableCell>
-											<TableCell>
-												<StatusBadge
-													label={job.status}
-													tone={job.status}
-												/>
-											</TableCell>
-											<TableCell className="font-mono text-xs text-muted-foreground">
-												{job.resource_type ?? "—"}
-												{job.resource_id
-													? `:${job.resource_id.slice(0, 8)}`
-													: ""}
-											</TableCell>
-											<TableCell className="max-w-[200px] truncate text-xs text-destructive">
-												{job.error ?? ""}
-											</TableCell>
-											<TableCell>
-												{canCancel || canRetry ? (
-													<DropdownMenu>
-														<DropdownMenuTrigger
-															asChild
-														>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="size-8"
-																aria-label={`Actions for job ${job.id}`}
-															>
-																<MoreVerticalIcon className="size-4" />
-															</Button>
-														</DropdownMenuTrigger>
-														<DropdownMenuContent align="end">
-															{canCancel ? (
-																<DropdownMenuItem
-																	onClick={() =>
-																		void cancelJob(
-																			job.id,
-																		)
-																	}
-																>
-																	Cancel
-																</DropdownMenuItem>
-															) : null}
-															{canRetry ? (
-																<DropdownMenuItem
-																	onClick={() =>
-																		void retryJob(
-																			job.id,
-																		)
-																	}
-																>
-																	Retry
-																</DropdownMenuItem>
-															) : null}
-														</DropdownMenuContent>
-													</DropdownMenu>
-												) : null}
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
-					</DataTableBody>
-				)}
-			</DataTableShell>
+										onClick={() => {
+											void cancelSelected();
+										}}
+									>
+										Cancel selected
+									</Button>
+								) : null}
+								{selectedRetryable.length > 0 ? (
+									<Button
+										type="button"
+										size="sm"
+										variant="outline"
+										disabled={bulkBusy}
+										onClick={() => {
+											void retrySelected();
+										}}
+									>
+										Retry selected
+									</Button>
+								) : null}
+							</DataTableBulkBar>
+						);
+					}}
+				/>
+			)}
 		</section>
 	);
 }

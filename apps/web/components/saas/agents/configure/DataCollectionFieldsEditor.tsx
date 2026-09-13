@@ -11,6 +11,7 @@ import {
 } from "@repo/ui/select";
 import { Switch } from "@repo/ui/switch";
 import { PlusIcon, Trash2Icon } from "lucide-react";
+import { forwardRef, useImperativeHandle } from "react";
 import { useStableRowIds } from "@/components/saas/agents/configure/useStableRowIds";
 import type { DataCollectionField } from "@/lib/agent-config";
 
@@ -39,13 +40,20 @@ type DataCollectionFieldsEditorProps = {
 	fields: DataCollectionField[];
 	onChange: (fields: DataCollectionField[]) => void;
 	versionId?: string;
+	hideAddButton?: boolean;
 };
 
-export function DataCollectionFieldsEditor({
-	fields,
-	onChange,
-	versionId,
-}: DataCollectionFieldsEditorProps) {
+export type DataCollectionFieldsEditorHandle = {
+	add: () => void;
+};
+
+export const DataCollectionFieldsEditor = forwardRef<
+	DataCollectionFieldsEditorHandle,
+	DataCollectionFieldsEditorProps
+>(function DataCollectionFieldsEditor(
+	{ fields, onChange, versionId, hideAddButton = false },
+	ref,
+) {
 	const { rowIds, appendRowId, removeRowId } = useStableRowIds(
 		fields.length,
 		versionId,
@@ -69,6 +77,8 @@ export function DataCollectionFieldsEditor({
 		onChange(fields.filter((_, i) => i !== index));
 	}
 
+	useImperativeHandle(ref, () => ({ add: addField }));
+
 	if (fields.length === 0) {
 		return (
 			<div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-background px-4 py-6 text-center">
@@ -76,16 +86,18 @@ export function DataCollectionFieldsEditor({
 				<p className="mt-1 text-xs text-muted-foreground">
 					Add fields the agent should extract during each call.
 				</p>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					className="mt-3"
-					onClick={addField}
-				>
-					<PlusIcon />
-					Add field
-				</Button>
+				{hideAddButton ? null : (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="mt-3"
+						onClick={addField}
+					>
+						<PlusIcon />
+						Add field
+					</Button>
+				)}
 			</div>
 		);
 	}
@@ -200,15 +212,17 @@ export function DataCollectionFieldsEditor({
 				))}
 			</div>
 
-			<Button
-				type="button"
-				variant="outline"
-				size="sm"
-				onClick={addField}
-			>
-				<PlusIcon />
-				Add field
-			</Button>
+			{hideAddButton ? null : (
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					onClick={addField}
+				>
+					<PlusIcon />
+					Add field
+				</Button>
+			)}
 		</div>
 	);
-}
+});

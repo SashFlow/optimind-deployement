@@ -20,11 +20,7 @@ function formatReason(value: string) {
 	return value.replaceAll("_", " ").toLowerCase();
 }
 
-export function FailuresActivityCard({
-	failures,
-}: {
-	failures: Failure[];
-}) {
+export function FailuresActivityCard({ failures }: { failures: Failure[] }) {
 	const [query, setQuery] = useState("");
 
 	const filtered = useMemo(() => {

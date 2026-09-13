@@ -3,11 +3,7 @@
 import { Card, CardContent } from "@repo/ui/card";
 import { type ChartConfig, ChartContainer } from "@repo/ui/chart";
 import { cn } from "@repo/ui/utils";
-import {
-	ArrowDownIcon,
-	ArrowUpIcon,
-	type LucideIcon,
-} from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, type LucideIcon } from "lucide-react";
 import { useId } from "react";
 import { Area, AreaChart } from "recharts";
 
@@ -15,11 +11,7 @@ export type MetricSparklinePoint = {
 	value: number;
 };
 
-export type MetricKpiTone =
-	| "primary"
-	| "secondary"
-	| "success"
-	| "destructive";
+export type MetricKpiTone = "primary" | "secondary" | "success" | "destructive";
 
 type MetricKpiCardProps = {
 	title: string;
@@ -156,14 +148,9 @@ export function MetricKpiCard({
 	sparkline,
 	progress,
 }: MetricKpiCardProps) {
-	const showDelta =
-		typeof deltaPct === "number" && Number.isFinite(deltaPct);
+	const showDelta = typeof deltaPct === "number" && Number.isFinite(deltaPct);
 	const rising = showDelta ? deltaPct! >= 0 : false;
-	const isFavorable = showDelta
-		? invertDelta
-			? !rising
-			: rising
-		: false;
+	const isFavorable = showDelta ? (invertDelta ? !rising : rising) : false;
 	const showSparkline = (sparkline?.length ?? 0) > 1;
 	const showProgress =
 		typeof progress === "number" && Number.isFinite(progress);

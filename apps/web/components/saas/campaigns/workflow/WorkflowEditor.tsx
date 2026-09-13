@@ -1,43 +1,44 @@
 "use client";
 
 import { Button } from "@repo/ui/button";
+import { ButtonGroup } from "@repo/ui/button-group";
 import {
-	Drawer,
-	DrawerContent,
-	DrawerDescription,
-	DrawerHeader,
-	DrawerTitle,
-} from "@repo/ui/drawer";
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@repo/ui/dropdown-menu";
 import {
+	addEdge,
 	Background,
 	BackgroundVariant,
+	type Connection,
+	type Edge,
 	MiniMap,
+	type Node,
 	ReactFlow,
 	ReactFlowProvider,
-	addEdge,
 	useEdgesState,
 	useNodesState,
 	useReactFlow,
-	type Connection,
-	type Edge,
-	type Node,
 	type Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDownIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { CatalogItem } from "./catalog";
 import { downloadWorkflowJson, organizeWorkflowNodes } from "./layout";
 import { WorkflowAddNodePanel } from "./WorkflowAddNodePanel";
 import {
-	WorkflowCanvasToolbar,
 	type CanvasInteractionMode,
+	WorkflowCanvasToolbar,
 } from "./WorkflowCanvasToolbar";
 import { WorkflowContextMenu } from "./WorkflowContextMenu";
 import { WorkflowFlowNode, type WorkflowNodeData } from "./WorkflowFlowNode";
-import { WorkflowInspector } from "./WorkflowInspector";
+import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
 
 const nodeTypes = { workflow: WorkflowFlowNode };
 
@@ -69,6 +70,7 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 		x: number;
 		y: number;
 	} | null>(null);
+	const toolbarRef = useRef<HTMLDivElement>(null);
 	const [dropFlowPos, setDropFlowPos] = useState<{
 		x: number;
 		y: number;
@@ -281,50 +283,99 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 	}, []);
 
 	const isHand = mode === "hand";
+	const actionsBusy =
+		saveMutation.isPending ||
+		testMutation.isPending ||
+		publishMutation.isPending;
 
 	return (
 		<div className="relative min-h-0 flex-1 overflow-hidden bg-[#F9FAFB]">
-			<div className="absolute right-3 top-3 z-20 flex flex-wrap gap-2">
-				<Button
-					size="sm"
-					variant="outline"
-					className="bg-white shadow-sm"
-					onClick={() => persist()}
-					disabled={saveMutation.isPending}
-				>
-					Save draft
-				</Button>
+			<div className="absolute right-3 top-3 z-20 flex flex-wrap items-center gap-2">
 				<Button
 					size="sm"
 					variant="outline"
 					className="bg-white shadow-sm"
 					onClick={() => persist({ test: true })}
-					disabled={testMutation.isPending}
+					disabled={actionsBusy}
 				>
-					Test Run
+					{testMutation.isPending ? "Running…" : "Test Run"}
 				</Button>
-				<Button
-					size="sm"
-					className="bg-blue-600 shadow-sm hover:bg-blue-700"
-					onClick={() => persist({ publish: true })}
-					disabled={publishMutation.isPending}
-				>
-					Publish
-				</Button>
+				<ButtonGroup className="h-8 shadow-sm">
+					<Button
+						size="sm"
+						disabled={actionsBusy}
+						onClick={() => persist({ publish: true })}
+						className="h-8"
+					>
+						{publishMutation.isPending
+							? "Publishing…"
+							: saveMutation.isPending
+								? "Saving…"
+								: "Publish"}
+					</Button>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								size="sm"
+								disabled={actionsBusy}
+								aria-label="More save options"
+								className="h-8 px-2"
+							>
+								<ChevronDownIcon className="size-3.5" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem
+								disabled={actionsBusy}
+								onClick={() => persist()}
+							>
+								Save draft
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								disabled={actionsBusy}
+								onClick={() => persist({ publish: true })}
+							>
+								Publish
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</ButtonGroup>
 			</div>
 
 			<WorkflowCanvasToolbar
+				ref={toolbarRef}
 				mode={mode}
 				onModeChange={setMode}
 				addNodeOpen={addPanelOpen}
 				onAddNode={() => {
-					const rect = document
+					if (addPanelOpen) {
+						setAddPanelOpen(false);
+						return;
+					}
+					const toolbarRect =
+						toolbarRef.current?.getBoundingClientRect();
+					const canvasRect = document
 						.querySelector(".workflow-canvas-root")
 						?.getBoundingClientRect();
-					openAddPanel({
-						x: (rect?.left ?? 0) + 64,
-						y: (rect?.top ?? 0) + (rect?.height ?? 400) / 2 - 120,
-					});
+					const panelWidth = 300;
+					const gap = 8;
+					openAddPanel(
+						{
+							x:
+								(toolbarRect?.left ?? 0) +
+								(toolbarRect?.width ?? panelWidth) / 2 -
+								panelWidth / 2,
+							y: (toolbarRect?.bottom ?? 0) + gap,
+						},
+						screenToFlowPosition({
+							x:
+								(canvasRect?.left ?? 0) +
+								(canvasRect?.width ?? 0) / 2,
+							y:
+								(canvasRect?.top ?? 0) +
+								(canvasRect?.height ?? 0) / 2,
+						}),
+					);
 				}}
 				onOrganize={organize}
 				onExport={exportWorkflow}
@@ -361,60 +412,45 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 					}}
 				>
 					<Background
+						id="workflow-dots"
 						variant={BackgroundVariant.Dots}
-						gap={20}
-						size={1}
-						color="#E5E7EB"
+						gap={18}
+						size={1.5}
+						color="#C4C9D2"
+						bgColor="#F9FAFB"
 					/>
 					<MiniMap
 						pannable
 						zoomable
-						className="!bottom-3 !right-3 !m-0 overflow-hidden rounded-lg border border-border bg-white/90 shadow-sm"
+						position="bottom-left"
+						className="!bottom-3 !left-3 !m-0 overflow-hidden rounded-lg border border-border bg-white/90 shadow-sm"
 					/>
 				</ReactFlow>
 			</div>
 
-			<Drawer
+			<WorkflowInspectorPanel
 				open={!!selected}
-				onOpenChange={(open) => {
-					if (!open) {
-						setNodes((nds) =>
-							nds.map((n) =>
-								n.selected ? { ...n, selected: false } : n,
-							),
-						);
+				title={selected?.data.label ?? "Node config"}
+				description={selected?.data.type}
+				selected={selected}
+				onChange={(data) => {
+					if (!selected) {
+						return;
 					}
+					setNodes((nds) =>
+						nds.map((n) =>
+							n.id === selected.id ? { ...n, data } : n,
+						),
+					);
 				}}
-				swipeDirection="right"
-				shouldScaleBackground={false}
-			>
-				<DrawerContent className="w-80 sm:max-w-sm">
-					<DrawerHeader>
-						<DrawerTitle>
-							{selected?.data.label ?? "Node config"}
-						</DrawerTitle>
-						{selected?.data.type ? (
-							<DrawerDescription>
-								{selected.data.type}
-							</DrawerDescription>
-						) : null}
-					</DrawerHeader>
-					{selected ? (
-						<WorkflowInspector
-							selected={selected}
-							onChange={(data) => {
-								setNodes((nds) =>
-									nds.map((n) =>
-										n.id === selected.id
-											? { ...n, data }
-											: n,
-									),
-								);
-							}}
-						/>
-					) : null}
-				</DrawerContent>
-			</Drawer>
+				onClose={() => {
+					setNodes((nds) =>
+						nds.map((n) =>
+							n.selected ? { ...n, selected: false } : n,
+						),
+					);
+				}}
+			/>
 
 			<WorkflowAddNodePanel
 				open={addPanelOpen}

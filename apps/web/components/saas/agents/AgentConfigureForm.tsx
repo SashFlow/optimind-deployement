@@ -2,7 +2,6 @@
 
 import { Button } from "@repo/ui/button";
 import { ButtonGroup } from "@repo/ui/button-group";
-import { Card, CardContent } from "@repo/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -42,7 +41,7 @@ import type { Agent } from "@/services/api/types";
 const SECTIONS = [
 	{ value: "preview", label: "Preview" },
 	{ value: "general", label: "General" },
-	{ value: "prompts", label: "Prompts" },
+	{ value: "prompts", label: "Persona" },
 	{ value: "voice", label: "Voice" },
 	{ value: "avatar", label: "Avatar" },
 	{ value: "call", label: "Call & Session" },
@@ -114,225 +113,197 @@ export function AgentConfigureForm({
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-			<Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0">
-				<Tabs
-					value={activeSection}
-					onValueChange={(value) =>
-						value && setActiveSection(value as SectionValue)
-					}
-					className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden"
-				>
-					<div className="flex shrink-0 items-center gap-3 border-b px-4 pt-3 pb-3 md:px-6">
-						<div className="min-w-0 flex-1">
-							<Select
-								value={activeSection}
-								onValueChange={(value) =>
-									value &&
-									setActiveSection(value as SectionValue)
-								}
+			<Tabs
+				value={activeSection}
+				onValueChange={(value) =>
+					value && setActiveSection(value as SectionValue)
+				}
+				className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
+			>
+				<div className="flex shrink-0 items-center gap-3">
+					<div className="min-w-0 flex-1">
+						<Select
+							value={activeSection}
+							onValueChange={(value) =>
+								value && setActiveSection(value as SectionValue)
+							}
+						>
+							<SelectTrigger
+								aria-label="Configure section"
+								className="h-9 w-full rounded-full bg-sidebar shadow-sm ring-1 ring-black/5 min-[1250px]:hidden"
 							>
-								<SelectTrigger
-									aria-label="Configure section"
-									className="h-9 w-full rounded-full bg-sidebar shadow-sm ring-1 ring-black/5 min-[1250px]:hidden"
-								>
-									<SelectValue placeholder="Select section" />
-								</SelectTrigger>
-								<SelectContent>
-									{SECTIONS.map((section) => (
-										<SelectItem
+								<SelectValue placeholder="Select section" />
+							</SelectTrigger>
+							<SelectContent>
+								{SECTIONS.map((section) => (
+									<SelectItem
+										key={section.value}
+										value={section.value}
+									>
+										{section.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+
+						<div className="scrollbar-none hidden min-w-0 overflow-x-auto min-[1250px]:block">
+							<TabsList className="h-9 w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
+								{SECTIONS.map((section) => {
+									const isActive =
+										activeSection === section.value;
+									return (
+										<TabsTrigger
 											key={section.value}
 											value={section.value}
+											className={cn(
+												"h-7 flex-none gap-2 rounded-full px-4 py-0 shadow-none transition-colors",
+												isActive
+													? "bg-secondary text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground"
+													: "text-muted-foreground hover:text-foreground",
+											)}
 										>
 											{section.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-
-							<div className="scrollbar-none hidden min-w-0 overflow-x-auto min-[1250px]:block">
-								<TabsList className="h-9 w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
-									{SECTIONS.map((section) => {
-										const isActive =
-											activeSection === section.value;
-										return (
-											<TabsTrigger
-												key={section.value}
-												value={section.value}
-												className={cn(
-													"h-7 flex-none gap-2 rounded-full px-4 py-0 shadow-none transition-colors",
-													isActive
-														? "bg-secondary text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground"
-														: "text-muted-foreground hover:text-foreground",
-												)}
-											>
-												{section.label}
-											</TabsTrigger>
-										);
-									})}
-								</TabsList>
-							</div>
+										</TabsTrigger>
+									);
+								})}
+							</TabsList>
 						</div>
-						<ButtonGroup className="h-9 shrink-0">
-							<Button
-								type="button"
-								disabled={actionsBusy || !onPublish}
-								onClick={() => void onPublish?.()}
-								className="h-9"
-							>
-								{isPublishing
-									? "Publishing…"
-									: isSaving
-										? "Saving…"
-										: "Publish"}
-							</Button>
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										type="button"
-										disabled={actionsBusy}
-										aria-label="More save options"
-										className="h-9 px-2"
-									>
-										<ChevronDownIcon className="size-3.5" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuItem
-										disabled={
-											!isDirty || actionsBusy || !onSave
-										}
-										onClick={() => void onSave?.()}
-									>
-										Save
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										disabled={actionsBusy || !onPublish}
-										onClick={() => void onPublish?.()}
-									>
-										Publish
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						</ButtonGroup>
 					</div>
-
-					<CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-0 md:px-6">
-						<TabsContent
-							value="general"
-							className={SECTION_TAB_CLASS}
+					<ButtonGroup className="h-9 shrink-0">
+						<Button
+							type="button"
+							disabled={actionsBusy || !onPublish}
+							onClick={() => void onPublish?.()}
+							className="h-9"
 						>
-							<div className={SECTION_SCROLL_CLASS}>
-								<GeneralSection
-									config={config}
-									onConfigChange={updateConfig}
-									providers={providers}
-									llmModels={llmModels}
-									realtimeModels={realtimeModels}
-									liveModels={liveModels}
-									sttModels={sttModels}
-									ttsModels={ttsModels}
-									voices={voices}
-									knowledgeBases={knowledgeBases}
-								/>
-							</div>
-						</TabsContent>
+							{isPublishing
+								? "Publishing…"
+								: isSaving
+									? "Saving…"
+									: "Publish"}
+						</Button>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									type="button"
+									disabled={actionsBusy}
+									aria-label="More save options"
+									className="h-9 px-2"
+								>
+									<ChevronDownIcon className="size-3.5" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem
+									disabled={
+										!isDirty || actionsBusy || !onSave
+									}
+									onClick={() => void onSave?.()}
+								>
+									Save
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									disabled={actionsBusy || !onPublish}
+									onClick={() => void onPublish?.()}
+								>
+									Publish
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</ButtonGroup>
+				</div>
 
-						<TabsContent
-							value="voice"
-							className={SECTION_TAB_CLASS}
-						>
-							<div className={SECTION_SCROLL_CLASS}>
-								<VoiceSection
-									config={config}
-									onConfigChange={updateConfig}
-								/>
-							</div>
-						</TabsContent>
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<TabsContent value="general" className={SECTION_TAB_CLASS}>
+						<div className={SECTION_SCROLL_CLASS}>
+							<GeneralSection
+								config={config}
+								onConfigChange={updateConfig}
+								providers={providers}
+								llmModels={llmModels}
+								realtimeModels={realtimeModels}
+								liveModels={liveModels}
+								sttModels={sttModels}
+								ttsModels={ttsModels}
+								voices={voices}
+								knowledgeBases={knowledgeBases}
+							/>
+						</div>
+					</TabsContent>
 
-						<TabsContent
-							value="avatar"
-							className={SECTION_TAB_CLASS}
-						>
-							<div className={SECTION_SCROLL_CLASS}>
-								<AvatarSection
-									config={config}
-									organizationId={organizationId}
-									onConfigChange={updateConfig}
-								/>
-							</div>
-						</TabsContent>
+					<TabsContent value="voice" className={SECTION_TAB_CLASS}>
+						<div className={SECTION_SCROLL_CLASS}>
+							<VoiceSection
+								config={config}
+								onConfigChange={updateConfig}
+							/>
+						</div>
+					</TabsContent>
 
-						<TabsContent
-							value="prompts"
-							className={SECTION_TAB_CLASS}
-						>
-							<div className={SECTION_SCROLL_CLASS}>
-								<PromptsSection
-									config={config}
-									onConfigChange={updateConfig}
-								/>
-							</div>
-						</TabsContent>
+					<TabsContent value="avatar" className={SECTION_TAB_CLASS}>
+						<div className={SECTION_SCROLL_CLASS}>
+							<AvatarSection
+								config={config}
+								organizationId={organizationId}
+								onConfigChange={updateConfig}
+							/>
+						</div>
+					</TabsContent>
 
-						<TabsContent value="call" className={SECTION_TAB_CLASS}>
-							<div className={SECTION_SCROLL_CLASS}>
-								<CallSessionSection
-									config={config}
-									onConfigChange={updateConfig}
-								/>
-							</div>
-						</TabsContent>
+					<TabsContent value="prompts" className={SECTION_TAB_CLASS}>
+						<div className={SECTION_SCROLL_CLASS}>
+							<PromptsSection
+								config={config}
+								onConfigChange={updateConfig}
+							/>
+						</div>
+					</TabsContent>
 
-						<TabsContent
-							value="tools"
-							className={SECTION_TAB_CLASS}
-						>
-							<div className={SECTION_SCROLL_CLASS}>
-								<ToolsSection
-									config={config}
-									orgTools={tools}
-									organizationId={organizationId}
-									onConfigChange={updateConfig}
-								/>
-							</div>
-						</TabsContent>
+					<TabsContent value="call" className={SECTION_TAB_CLASS}>
+						<div className={SECTION_SCROLL_CLASS}>
+							<CallSessionSection
+								config={config}
+								onConfigChange={updateConfig}
+							/>
+						</div>
+					</TabsContent>
 
-						<TabsContent
-							value="advanced"
-							className={SECTION_TAB_CLASS}
-						>
-							<div className={SECTION_SCROLL_CLASS}>
-								<AdvancedSection
-									config={config}
-									onConfigChange={updateConfig}
-									versionId={versionId}
-								/>
-							</div>
-						</TabsContent>
+					<TabsContent value="tools" className={SECTION_TAB_CLASS}>
+						<div className={SECTION_SCROLL_CLASS}>
+							<ToolsSection
+								config={config}
+								orgTools={tools}
+								organizationId={organizationId}
+								onConfigChange={updateConfig}
+							/>
+						</div>
+					</TabsContent>
 
-						<TabsContent
-							value="preview"
-							className={SECTION_TAB_CLASS}
-						>
-							<div className="flex min-h-0 flex-1 flex-col overflow-hidden py-3 md:py-4">
-								<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-muted/20">
-									<AgentConfigurePreview
-										agent={agent}
-										savedVariables={savedVariables}
-										hasUnsavedVariables={
-											hasUnsavedVariables
-										}
-										draftVersionId={versionId}
-										avatarEnabled={avatarEnabled}
-										avatarPreviewUrl={avatarPreviewUrl}
-										className="min-h-0 flex-1"
-									/>
-								</div>
-							</div>
-						</TabsContent>
-					</CardContent>
-				</Tabs>
-			</Card>
+					<TabsContent value="advanced" className={SECTION_TAB_CLASS}>
+						<div className={SECTION_SCROLL_CLASS}>
+							<AdvancedSection
+								config={config}
+								onConfigChange={updateConfig}
+								versionId={versionId}
+							/>
+						</div>
+					</TabsContent>
+
+					<TabsContent value="preview" className={SECTION_TAB_CLASS}>
+						<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+							<AgentConfigurePreview
+								agent={agent}
+								savedVariables={savedVariables}
+								hasUnsavedVariables={hasUnsavedVariables}
+								draftVersionId={versionId}
+								avatarEnabled={avatarEnabled}
+								avatarPreviewUrl={avatarPreviewUrl}
+								className="min-h-0 flex-1"
+							/>
+						</div>
+					</TabsContent>
+				</div>
+			</Tabs>
 		</div>
 	);
 }

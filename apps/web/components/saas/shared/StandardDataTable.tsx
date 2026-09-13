@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@repo/ui/button";
+import { Checkbox } from "@repo/ui/checkbox";
 import {
 	Table,
 	TableBody,
@@ -17,6 +18,7 @@ import {
 	getSortedRowModel,
 	useReactTable,
 	type ColumnDef,
+	type RowSelectionState,
 	type SortingState,
 } from "@tanstack/react-table";
 import {
@@ -25,42 +27,101 @@ import {
 	ChevronsLeftIcon,
 	ChevronsRightIcon,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+export type DataTableBulkBarContext<TData> = {
+	selectedRows: TData[];
+	selectedCount: number;
+	clearSelection: () => void;
+};
 
 export type StandardDataTableProps<TData, TValue = unknown> = {
 	columns: ColumnDef<TData, TValue>[];
 	data: TData[];
 	toolbar?: ReactNode;
+	/** Shown in place of toolbar when one or more rows are selected. */
+	bulkBar?: (ctx: DataTableBulkBarContext<TData>) => ReactNode;
+	/** Fires whenever the selected row set changes. */
+	onSelectionChange?: (ctx: DataTableBulkBarContext<TData>) => void;
 	emptyMessage?: string;
 	className?: string;
 	/** Initial rows per page. Defaults to 10. */
 	pageSize?: number;
 	enableRowSelection?: boolean;
 	getRowId?: (row: TData, index: number) => string;
+	showPagination?: boolean;
+	/**
+	 * When false, omit the card chrome so the table can sit on a parent
+	 * backdrop (e.g. FolderTabs muted panel). Defaults to true.
+	 */
+	framed?: boolean;
 };
+
+function createSelectionColumn<TData>(): ColumnDef<TData, unknown> {
+	return {
+		id: "select",
+		size: 40,
+		enableSorting: false,
+		header: ({ table }) => (
+			<Checkbox
+				checked={
+					table.getIsAllPageRowsSelected()
+						? true
+						: table.getIsSomePageRowsSelected()
+							? "indeterminate"
+							: false
+				}
+				onCheckedChange={(value) =>
+					table.toggleAllPageRowsSelected(value === true)
+				}
+				aria-label="Select all on page"
+			/>
+		),
+		cell: ({ row }) => (
+			<Checkbox
+				checked={row.getIsSelected()}
+				onCheckedChange={(value) => row.toggleSelected(value === true)}
+				aria-label="Select row"
+				onClick={(event) => event.stopPropagation()}
+			/>
+		),
+	};
+}
 
 export function StandardDataTable<TData, TValue = unknown>({
 	columns,
 	data,
 	toolbar,
+	bulkBar,
+	onSelectionChange,
 	emptyMessage = "No results.",
 	className,
 	pageSize: initialPageSize = 10,
 	enableRowSelection = false,
 	getRowId,
+	showPagination = true,
+	framed = true,
 }: StandardDataTableProps<TData, TValue>) {
 	"use no memo";
 
 	const [sorting, setSorting] = useState<SortingState>([]);
-	const [rowSelection, setRowSelection] = useState({});
+	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 	const [pagination, setPagination] = useState({
 		pageIndex: 0,
 		pageSize: initialPageSize,
 	});
 
+	const tableColumns = useMemo(() => {
+		if (!enableRowSelection) return columns;
+		return [createSelectionColumn<TData>(), ...columns] as ColumnDef<
+			TData,
+			TValue
+		>[];
+	}, [columns, enableRowSelection]);
+
 	const table = useReactTable({
 		data,
-		columns,
+		columns: tableColumns,
 		getRowId,
 		enableRowSelection,
 		getCoreRowModel: getCoreRowModel(),
@@ -76,20 +137,49 @@ export function StandardDataTable<TData, TValue = unknown>({
 		},
 	});
 
+	const selectedRows = table
+		.getSelectedRowModel()
+		.rows.map((row) => row.original);
+	const selectedCount = selectedRows.length;
+	const clearSelection = () => setRowSelection({});
+
+	useEffect(() => {
+		onSelectionChange?.({ selectedRows, selectedCount, clearSelection });
+	}, [rowSelection, data]);
+
+	const headerContent =
+		selectedCount > 0 && bulkBar
+			? bulkBar({ selectedRows, selectedCount, clearSelection })
+			: toolbar;
+
 	return (
 		<div
 			className={cn(
-				"flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs",
+				"flex min-h-0 flex-1 flex-col overflow-hidden",
+				framed &&
+					"rounded-2xl border border-border/70 bg-card shadow-xs",
 				className,
 			)}
 		>
-			{toolbar ? (
-				<div className="flex flex-col gap-3 border-b border-border/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-					{toolbar}
+			{headerContent ? (
+				<div
+					className={cn(
+						"flex min-h-16 shrink-0 items-center border-b border-border/60 px-1 py-3 sm:px-0",
+						selectedCount > 0 &&
+							bulkBar &&
+							(framed ? "bg-muted/40" : "bg-card/70"),
+					)}
+				>
+					{headerContent}
 				</div>
 			) : null}
 
-			<div className="overflow-x-auto px-2 pt-2 sm:px-3">
+			<div
+				className={cn(
+					"min-h-0 flex-1 overflow-x-auto",
+					framed && "px-2 pt-2 sm:px-3",
+				)}
+			>
 				<Table>
 					<TableHeader>
 						{table.getHeaderGroups().map((headerGroup) => (
@@ -102,13 +192,15 @@ export function StandardDataTable<TData, TValue = unknown>({
 										key={header.id}
 										colSpan={header.colSpan}
 										style={{
-											width: header.getSize() !== 150
-												? header.getSize()
-												: undefined,
+											width:
+												header.getSize() !== 150
+													? header.getSize()
+													: undefined,
 										}}
 										className={cn(
-											"h-10 bg-muted/70 px-3 first:rounded-tl-xl last:rounded-tr-xl first:pl-4 last:pr-4",
+											"h-10 px-3 first:rounded-tl-xl last:rounded-tr-xl first:pl-4 last:pr-4",
 											"text-xs font-medium text-muted-foreground",
+											framed ? "bg-muted/70" : "bg-card",
 										)}
 									>
 										{header.isPlaceholder
@@ -133,7 +225,11 @@ export function StandardDataTable<TData, TValue = unknown>({
 											? "selected"
 											: undefined
 									}
-									className="border-border/50"
+									className={cn(
+										"group/row border-border/50",
+										row.getIsSelected() &&
+											"bg-primary/5 hover:bg-primary/10",
+									)}
 								>
 									{row.getVisibleCells().map((cell) => (
 										<TableCell
@@ -151,7 +247,7 @@ export function StandardDataTable<TData, TValue = unknown>({
 						) : (
 							<TableRow className="hover:bg-transparent">
 								<TableCell
-									colSpan={columns.length}
+									colSpan={tableColumns.length}
 									className="h-24 text-center text-muted-foreground"
 								>
 									{emptyMessage}
@@ -162,55 +258,65 @@ export function StandardDataTable<TData, TValue = unknown>({
 				</Table>
 			</div>
 
-			<footer className="flex items-center justify-center border-t border-border/60 px-4 py-3">
-				<div className="flex items-center gap-1">
-					<Button
-						variant="outline"
-						size="icon"
-						className="size-8"
-						onClick={() => table.setPageIndex(0)}
-						disabled={!table.getCanPreviousPage()}
-						aria-label="First page"
-					>
-						<ChevronsLeftIcon className="size-4" />
-					</Button>
-					<Button
-						variant="outline"
-						size="icon"
-						className="size-8"
-						onClick={() => table.previousPage()}
-						disabled={!table.getCanPreviousPage()}
-						aria-label="Previous page"
-					>
-						<ChevronLeftIcon className="size-4" />
-					</Button>
-					<Button
-						variant="outline"
-						size="icon"
-						className="size-8"
-						onClick={() => table.nextPage()}
-						disabled={!table.getCanNextPage()}
-						aria-label="Next page"
-					>
-						<ChevronRightIcon className="size-4" />
-					</Button>
-					<Button
-						variant="outline"
-						size="icon"
-						className="size-8"
-						onClick={() =>
-							table.setPageIndex(table.getPageCount() - 1)
-						}
-						disabled={!table.getCanNextPage()}
-						aria-label="Last page"
-					>
-						<ChevronsRightIcon className="size-4" />
-					</Button>
-				</div>
-			</footer>
+			{showPagination ? (
+				<footer
+					className={cn(
+						"flex shrink-0 items-center justify-center border-t border-border/60 py-3",
+						framed && "px-4",
+					)}
+				>
+					<div className="flex items-center gap-1">
+						<Button
+							variant="outline"
+							size="icon"
+							className="size-8"
+							onClick={() => table.setPageIndex(0)}
+							disabled={!table.getCanPreviousPage()}
+							aria-label="First page"
+						>
+							<ChevronsLeftIcon className="size-4" />
+						</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							className="size-8"
+							onClick={() => table.previousPage()}
+							disabled={!table.getCanPreviousPage()}
+							aria-label="Previous page"
+						>
+							<ChevronLeftIcon className="size-4" />
+						</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							className="size-8"
+							onClick={() => table.nextPage()}
+							disabled={!table.getCanNextPage()}
+							aria-label="Next page"
+						>
+							<ChevronRightIcon className="size-4" />
+						</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							className="size-8"
+							onClick={() =>
+								table.setPageIndex(table.getPageCount() - 1)
+							}
+							disabled={!table.getCanNextPage()}
+							aria-label="Last page"
+						>
+							<ChevronsRightIcon className="size-4" />
+						</Button>
+					</div>
+				</footer>
+			) : null}
 		</div>
 	);
 }
+
+/** Alias matching the shared DataTable naming used across the app. */
+export const DataTable = StandardDataTable;
 
 /** Soft pill used for numeric / compact metric cells (matches reference table). */
 export function DataTableValuePill({

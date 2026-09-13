@@ -45,5 +45,11 @@ export {
 	type SourceProps,
 } from "./elements/sources.aui";
 export { MessageTiming } from "./elements/message-timing.aui";
+export {
+	VoiceOrb,
+	type VoiceOrbProps,
+	type VoiceOrbState,
+	type VoiceOrbVariant,
+} from "./elements/voice";
 export * from "../../hooks/use-attachment-src";
 export * from "../../hooks/use-copy-to-clipboard";

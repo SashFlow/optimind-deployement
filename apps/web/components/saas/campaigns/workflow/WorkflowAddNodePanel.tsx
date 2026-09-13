@@ -42,12 +42,16 @@ export function WorkflowAddNodePanel({
 			if (e.key === "Escape") onClose();
 		}
 		function onPointer(e: MouseEvent) {
+			const target = e.target as Node | null;
+			if (!target || !panelRef.current) return;
+			if (panelRef.current.contains(target)) return;
 			if (
-				panelRef.current &&
-				!panelRef.current.contains(e.target as Node)
+				target instanceof Element &&
+				target.closest("[data-workflow-add-trigger]")
 			) {
-				onClose();
+				return;
 			}
+			onClose();
 		}
 		window.addEventListener("keydown", onKey);
 		window.addEventListener("mousedown", onPointer);
@@ -59,13 +63,17 @@ export function WorkflowAddNodePanel({
 
 	if (!open || !anchor) return null;
 
-	const left = Math.min(anchor.x, window.innerWidth - 320);
-	const top = Math.min(anchor.y, window.innerHeight - 420);
+	const panelWidth = 300;
+	const left = Math.max(
+		8,
+		Math.min(anchor.x, window.innerWidth - panelWidth - 8),
+	);
+	const top = Math.max(8, Math.min(anchor.y, window.innerHeight - 420));
 
 	return (
 		<div
 			ref={panelRef}
-			className="fixed z-50 flex max-h-[70vh] w-[300px] flex-col overflow-hidden rounded-xl border border-border bg-white shadow-xl"
+			className="fixed z-50 flex max-h-[70vh] w-[300px] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl"
 			style={{ left, top }}
 		>
 			<div className="flex border-b border-border px-1">

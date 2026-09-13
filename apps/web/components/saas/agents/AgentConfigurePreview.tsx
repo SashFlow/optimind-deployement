@@ -1,28 +1,30 @@
 "use client";
 
 import { LiveKitRoom } from "@livekit/components-react";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "@repo/ui/accordion";
+import { VoiceOrb, type VoiceOrbState } from "@repo/ui/assistant-ui";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@repo/ui/select";
 import { Spinner } from "@repo/ui/spinner";
+import { Switch } from "@repo/ui/switch";
 import { cn } from "@repo/ui/utils";
 import {
-	CameraIcon,
 	MicIcon,
+	MicOffIcon,
 	PhoneIcon,
 	PlayIcon,
 	UploadIcon,
+	VideoIcon,
+	VideoOffIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { InlineSkeleton } from "@/components/saas/shared/skeletons";
 import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
@@ -34,7 +36,20 @@ import { PreviewSessionControls } from "./preview/PreviewSessionControls";
 
 type PreviewMedia = "web" | "phone";
 
-const NO_CAMERA_VALUE = "__none__";
+async function requestMediaPermission(
+	constraints: MediaStreamConstraints,
+): Promise<void> {
+	if (
+		typeof navigator === "undefined" ||
+		!navigator.mediaDevices?.getUserMedia
+	) {
+		throw new Error("Media devices are not available in this browser");
+	}
+	const stream = await navigator.mediaDevices.getUserMedia(constraints);
+	for (const track of stream.getTracks()) {
+		track.stop();
+	}
+}
 
 type AgentConfigurePreviewProps = {
 	agent: Agent;
@@ -187,11 +202,12 @@ export function AgentConfigurePreview({
 	const [media, setMedia] = useState<PreviewMedia>("web");
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [starting, setStarting] = useState(false);
-	const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-	const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
-	const [audioDeviceId, setAudioDeviceId] = useState("");
-	const [videoDeviceId, setVideoDeviceId] = useState(NO_CAMERA_VALUE);
-	const [devicesLoading, setDevicesLoading] = useState(false);
+	const [micEnabled, setMicEnabled] = useState(false);
+	const [cameraEnabled, setCameraEnabled] = useState(false);
+	const [mediaPermissionPending, setMediaPermissionPending] = useState<
+		"mic" | "camera" | null
+	>(null);
+	const mediaPermissionPendingRef = useRef(false);
 	const [phoneDispatch, setPhoneDispatch] = useState<{
 		roomName: string;
 		sessionId?: string;
@@ -204,75 +220,55 @@ export function AgentConfigurePreview({
 
 	const definedVariables = savedVariables.filter((v) => v.name.trim());
 
-	useEffect(() => {
-		if (media !== "web") return;
-		if (
-			typeof navigator === "undefined" ||
-			!navigator.mediaDevices?.enumerateDevices
-		) {
+	async function toggleMic() {
+		if (mediaPermissionPendingRef.current) return;
+		if (micEnabled) {
+			setMicEnabled(false);
 			return;
 		}
 
-		let cancelled = false;
+		mediaPermissionPendingRef.current = true;
+		setMediaPermissionPending("mic");
+		try {
+			await requestMediaPermission({ audio: true });
+			setMicEnabled(true);
+		} catch (error) {
+			setMicEnabled(false);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Microphone permission denied",
+			);
+		} finally {
+			mediaPermissionPendingRef.current = false;
+			setMediaPermissionPending(null);
+		}
+	}
 
-		async function loadDevices() {
-			setDevicesLoading(true);
-			try {
-				try {
-					const stream = await navigator.mediaDevices.getUserMedia({
-						audio: true,
-						video: true,
-					});
-					for (const track of stream.getTracks()) track.stop();
-				} catch {
-					const stream = await navigator.mediaDevices.getUserMedia({
-						audio: true,
-					});
-					for (const track of stream.getTracks()) track.stop();
-				}
-
-				const devices = await navigator.mediaDevices.enumerateDevices();
-				if (cancelled) return;
-
-				const mics = devices.filter(
-					(device) => device.kind === "audioinput" && device.deviceId,
-				);
-				const cams = devices.filter(
-					(device) => device.kind === "videoinput" && device.deviceId,
-				);
-				setAudioDevices(mics);
-				setVideoDevices(cams);
-				setAudioDeviceId((current) =>
-					current &&
-					mics.some((device) => device.deviceId === current)
-						? current
-						: (mics[0]?.deviceId ?? ""),
-				);
-				setVideoDeviceId((current) => {
-					if (current === NO_CAMERA_VALUE) return current;
-					if (cams.some((device) => device.deviceId === current)) {
-						return current;
-					}
-					return NO_CAMERA_VALUE;
-				});
-			} catch (error) {
-				if (!cancelled) {
-					toast.error(
-						error instanceof Error
-							? error.message
-							: "Could not access microphone or camera",
-					);
-				}
-			} finally {
-				if (!cancelled) setDevicesLoading(false);
-			}
+	async function toggleCamera() {
+		if (mediaPermissionPendingRef.current) return;
+		if (cameraEnabled) {
+			setCameraEnabled(false);
+			return;
 		}
 
-		void loadDevices();
-		return () => {
-			cancelled = true;
-		};
-	}, [media]);
+		mediaPermissionPendingRef.current = true;
+		setMediaPermissionPending("camera");
+		try {
+			await requestMediaPermission({ video: true });
+			setCameraEnabled(true);
+		} catch (error) {
+			setCameraEnabled(false);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Camera permission denied",
+			);
+		} finally {
+			mediaPermissionPendingRef.current = false;
+			setMediaPermissionPending(null);
+		}
+	}
 
 	function updateVariableValue(name: string, value: string) {
 		setVariableValues((current) => ({ ...current, [name]: value }));
@@ -388,11 +384,6 @@ export function AgentConfigurePreview({
 		const contactMetadata = buildContactMetadata();
 		if (!contactMetadata) return;
 
-		if (media === "web" && !audioDeviceId) {
-			toast.error("Select a microphone before starting");
-			return;
-		}
-
 		setStarting(true);
 		try {
 			if (media === "phone") {
@@ -419,20 +410,13 @@ export function AgentConfigurePreview({
 
 	const roomContent = useMemo(() => {
 		if (!sessionCredentials) return null;
-		const useCamera = videoDeviceId !== NO_CAMERA_VALUE;
 		return (
 			<LiveKitRoom
 				token={sessionCredentials.token}
 				serverUrl={sessionCredentials.serverUrl}
 				connect
-				audio={
-					audioDeviceId
-						? { deviceId: { exact: audioDeviceId } }
-						: true
-				}
-				video={
-					useCamera ? { deviceId: { exact: videoDeviceId } } : false
-				}
+				audio={micEnabled}
+				video={cameraEnabled}
 				className="flex min-h-0 flex-1 flex-col"
 			>
 				<PreviewSessionControls
@@ -447,12 +431,12 @@ export function AgentConfigurePreview({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		agent,
-		audioDeviceId,
 		avatarEnabled,
 		avatarPreviewUrl,
+		cameraEnabled,
+		micEnabled,
 		onCancel,
 		sessionCredentials,
-		videoDeviceId,
 	]);
 
 	if (sessionCredentials) {
@@ -492,50 +476,66 @@ export function AgentConfigurePreview({
 		);
 	}
 
+	const showAvatar = avatarEnabled && Boolean(avatarPreviewUrl);
+	const orbState: VoiceOrbState = starting ? "connecting" : "idle";
+
 	return (
 		<div className={cn("flex min-h-0 flex-1 flex-col", className)}>
 			<div className="flex min-h-0 flex-1 items-center justify-center bg-muted/20 p-4 sm:p-6">
-				<div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
-					{avatarEnabled && avatarPreviewUrl ? (
-						<div className="mb-5 flex justify-center">
-							<div className="relative aspect-[3/4] w-24 overflow-hidden rounded-xl border bg-muted">
+				<div className="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border bg-card shadow-sm md:max-w-2xl md:flex-row">
+					{/* Visual stage — hidden on small screens */}
+					<div className="relative hidden min-h-0 shrink-0 items-center justify-center bg-muted/40 md:flex md:w-[42%] md:self-stretch">
+						{showAvatar ? (
+							<div className="relative aspect-3/4 w-full max-w-[200px] overflow-hidden rounded-xl border bg-muted m-5">
 								{/* Dynamic avatar URL from config; next/image domains vary. */}
 								{/* eslint-disable-next-line @next/next/no-img-element */}
 								<img
-									src={avatarPreviewUrl}
+									src={avatarPreviewUrl ?? undefined}
 									alt="Selected avatar"
 									className="size-full object-cover"
 								/>
 							</div>
-						</div>
-					) : null}
+						) : (
+							<div className="flex flex-col items-center gap-3 p-6">
+								<VoiceOrb
+									state={orbState}
+									variant="blue"
+									className="size-52"
+								/>
+								<p className="text-xs text-muted-foreground">
+									{orbState === "connecting"
+										? "Connecting…"
+										: "Ready"}
+								</p>
+							</div>
+						)}
+					</div>
 
-					<div className="space-y-4">
-						<div className="space-y-1.5">
-							<Label className="text-xs text-muted-foreground">
-								Media
-							</Label>
-							<Select
-								value={media}
-								onValueChange={(value) => {
-									if (value === "web" || value === "phone") {
-										setMedia(value);
-									}
-								}}
+					{/* Controls */}
+					<div className="flex min-w-0 flex-1 flex-col gap-3 p-5 sm:p-6">
+						<div className="flex items-center justify-between gap-3">
+							<div className="min-w-0">
+								<Label
+									htmlFor="preview-media-phone"
+									className="text-sm font-medium"
+								>
+									Phone
+								</Label>
+								<p className="text-xs text-muted-foreground">
+									{media === "phone"
+										? "Telephony outbound call"
+										: "Web browser session"}
+								</p>
+							</div>
+							<Switch
+								id="preview-media-phone"
+								checked={media === "phone"}
+								onCheckedChange={(checked) =>
+									setMedia(checked ? "phone" : "web")
+								}
 								disabled={starting}
-							>
-								<SelectTrigger className="w-full bg-background">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="web">
-										Web (browser)
-									</SelectItem>
-									<SelectItem value="phone">
-										Phone (telephony)
-									</SelectItem>
-								</SelectContent>
-							</Select>
+								aria-label="Use phone instead of web"
+							/>
 						</div>
 
 						{media === "phone" ? (
@@ -558,201 +558,200 @@ export function AgentConfigurePreview({
 									disabled={starting}
 								/>
 							</div>
-						) : (
-							<>
-								<div className="space-y-1.5">
-									<Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-										<MicIcon className="size-3.5" />
-										Microphone
-									</Label>
-									{devicesLoading ? (
-										<InlineSkeleton className="h-9 rounded-md border bg-background px-3 py-2.5 [&>div]:h-3.5 [&>div]:w-36" />
-									) : (
-										<Select
-											value={audioDeviceId || undefined}
-											onValueChange={(value) => {
-												if (value)
-													setAudioDeviceId(value);
-											}}
-											disabled={
-												starting ||
-												audioDevices.length === 0
-											}
-										>
-											<SelectTrigger className="w-full bg-background">
-												<SelectValue placeholder="Select microphone" />
-											</SelectTrigger>
-											<SelectContent>
-												{audioDevices.map(
-													(device, index) => (
-														<SelectItem
-															key={
-																device.deviceId
-															}
-															value={
-																device.deviceId
-															}
-														>
-															{device.label ||
-																`Microphone ${index + 1}`}
-														</SelectItem>
-													),
-												)}
-											</SelectContent>
-										</Select>
-									)}
-								</div>
-								<div className="space-y-1.5">
-									<Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-										<CameraIcon className="size-3.5" />
-										Camera
-									</Label>
-									{devicesLoading ? (
-										<InlineSkeleton className="h-9 rounded-md border bg-background px-3 py-2.5 [&>div]:h-3.5 [&>div]:w-28" />
-									) : (
-										<Select
-											value={videoDeviceId}
-											onValueChange={(value) => {
-												if (value)
-													setVideoDeviceId(value);
-											}}
-											disabled={starting}
-										>
-											<SelectTrigger className="w-full bg-background">
-												<SelectValue placeholder="Select camera" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem
-													value={NO_CAMERA_VALUE}
-												>
-													Don't use camera
-												</SelectItem>
-												{videoDevices.map(
-													(device, index) => (
-														<SelectItem
-															key={
-																device.deviceId
-															}
-															value={
-																device.deviceId
-															}
-														>
-															{device.label ||
-																`Camera ${index + 1}`}
-														</SelectItem>
-													),
-												)}
-											</SelectContent>
-										</Select>
-									)}
-								</div>
-							</>
-						)}
+						) : null}
 
 						{definedVariables.length > 0 ? (
-							<div className="space-y-3 border-t pt-4">
-								<div>
-									<h3 className="text-sm font-medium text-balance">
-										Debug variables
-									</h3>
-									<p className="mt-1 text-xs text-pretty text-muted-foreground">
-										Values for session variables used in
-										this preview.
-									</p>
-									{hasUnsavedVariables ? (
-										<p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
-											Save draft to test new variables in
-											preview.
-										</p>
-									) : null}
-								</div>
-								<div className="max-h-48 space-y-3 overflow-y-auto pr-1">
-									{definedVariables.map((variable) => (
-										<div
-											key={variable.name}
-											className="space-y-1.5"
-										>
-											<Label
-												htmlFor={`preview-var-${variable.name}`}
-												className="text-xs text-muted-foreground"
-											>
-												{variable.name}
-												{variable.required ? (
-													<span className="text-destructive">
-														{" "}
-														*
-													</span>
-												) : null}
-												<span className="ml-1.5 font-normal">
-													({variable.variable_type})
-												</span>
-											</Label>
-											<VariableInput
-												variable={variable}
-												value={
-													variableValues[
-														variable.name
-													] ?? ""
-												}
-												onChange={(value) =>
-													updateVariableValue(
-														variable.name,
-														value,
-													)
-												}
-												onUpload={(file) =>
-													void handleUpload(
-														variable.name,
-														file,
-													)
-												}
-												uploading={
-													uploadingField ===
-													variable.name
-												}
-											/>
+							<Accordion
+								type="multiple"
+								defaultValue={[]}
+								className="w-full gap-0"
+							>
+								<AccordionItem
+									value="variables"
+									className="border-b-0"
+								>
+									<AccordionTrigger className="py-2.5 text-sm hover:no-underline [&>svg]:ml-2">
+										Variables
+									</AccordionTrigger>
+									<AccordionContent className="pb-3">
+										<div className="space-y-3">
+											<p className="text-xs text-pretty text-muted-foreground">
+												Values for session variables
+												used in this preview.
+											</p>
+											{hasUnsavedVariables ? (
+												<p className="text-xs text-amber-600 dark:text-amber-500">
+													Save draft to test new
+													variables in preview.
+												</p>
+											) : null}
+											<div className="max-h-48 space-y-3 overflow-y-auto pr-1">
+												{definedVariables.map(
+													(variable) => (
+														<div
+															key={variable.name}
+															className="space-y-1.5"
+														>
+															<Label
+																htmlFor={`preview-var-${variable.name}`}
+																className="text-xs text-muted-foreground"
+															>
+																{variable.name}
+																{variable.required ? (
+																	<span className="text-destructive">
+																		{" "}
+																		*
+																	</span>
+																) : null}
+																<span className="ml-1.5 font-normal">
+																	(
+																	{
+																		variable.variable_type
+																	}
+																	)
+																</span>
+															</Label>
+															<VariableInput
+																variable={
+																	variable
+																}
+																value={
+																	variableValues[
+																		variable
+																			.name
+																	] ?? ""
+																}
+																onChange={(
+																	value,
+																) =>
+																	updateVariableValue(
+																		variable.name,
+																		value,
+																	)
+																}
+																onUpload={(
+																	file,
+																) =>
+																	void handleUpload(
+																		variable.name,
+																		file,
+																	)
+																}
+																uploading={
+																	uploadingField ===
+																	variable.name
+																}
+															/>
+														</div>
+													),
+												)}
+											</div>
 										</div>
-									))}
-								</div>
-							</div>
+									</AccordionContent>
+								</AccordionItem>
+							</Accordion>
 						) : hasUnsavedVariables ? (
-							<p className="border-t pt-4 text-xs text-amber-600 dark:text-amber-500">
+							<p className="text-xs text-amber-600 dark:text-amber-500">
 								Save draft to test new variables in preview.
 							</p>
 						) : null}
 
-						<div className="flex flex-col gap-2 border-t pt-4">
-							<Button
-								type="button"
-								className="w-full gap-2"
-								loading={starting}
-								disabled={
-									starting ||
-									(media === "web" &&
-										(devicesLoading || !audioDeviceId))
-								}
-								onClick={() => void handleStartSession()}
-							>
-								{starting ? (
+						<div className="mt-auto flex flex-col gap-2 border-t pt-3">
+							<div className="flex items-center gap-2">
+								{media === "web" ? (
 									<>
-										<Spinner className="size-4" />
-										{media === "phone"
-											? "Placing call…"
-											: "Starting session…"}
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											aria-label={
+												micEnabled
+													? "Mute microphone"
+													: "Unmute microphone"
+											}
+											aria-pressed={micEnabled}
+											disabled={
+												starting ||
+												mediaPermissionPending !== null
+											}
+											className={cn(
+												"size-10 shrink-0 rounded-full",
+												micEnabled
+													? "border-transparent bg-primary text-primary-foreground hover:bg-primary/90"
+													: "text-muted-foreground",
+											)}
+											onClick={() => void toggleMic()}
+										>
+											{mediaPermissionPending ===
+											"mic" ? (
+												<Spinner className="size-4" />
+											) : micEnabled ? (
+												<MicIcon className="size-4" />
+											) : (
+												<MicOffIcon className="size-4" />
+											)}
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											aria-label={
+												cameraEnabled
+													? "Turn camera off"
+													: "Turn camera on"
+											}
+											aria-pressed={cameraEnabled}
+											disabled={
+												starting ||
+												mediaPermissionPending !== null
+											}
+											className={cn(
+												"size-10 shrink-0 rounded-full",
+												cameraEnabled
+													? "border-transparent bg-primary text-primary-foreground hover:bg-primary/90"
+													: "text-muted-foreground",
+											)}
+											onClick={() => void toggleCamera()}
+										>
+											{mediaPermissionPending ===
+											"camera" ? (
+												<Spinner className="size-4" />
+											) : cameraEnabled ? (
+												<VideoIcon className="size-4" />
+											) : (
+												<VideoOffIcon className="size-4" />
+											)}
+										</Button>
 									</>
-								) : (
-									<>
-										{media === "phone" ? (
-											<PhoneIcon className="size-4" />
-										) : (
-											<PlayIcon className="size-4" />
-										)}
-										{media === "phone"
-											? "Place call"
-											: "Start session"}
-									</>
-								)}
-							</Button>
+								) : null}
+								<Button
+									type="button"
+									className="min-w-0 flex-1 gap-2"
+									loading={starting}
+									disabled={starting}
+									onClick={() => void handleStartSession()}
+								>
+									{starting ? (
+										<>
+											<Spinner className="size-4" />
+											{media === "phone"
+												? "Placing call…"
+												: "Starting session…"}
+										</>
+									) : (
+										<>
+											{media === "phone" ? (
+												<PhoneIcon className="size-4" />
+											) : (
+												<PlayIcon className="size-4" />
+											)}
+											{media === "phone"
+												? "Place call"
+												: "Start session"}
+										</>
+									)}
+								</Button>
+							</div>
 							{onCancel ? (
 								<Button
 									type="button"

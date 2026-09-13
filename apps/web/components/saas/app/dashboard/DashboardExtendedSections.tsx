@@ -356,7 +356,9 @@ export function DashboardExtendedSections({
 					<StatCard
 						title="Input tokens"
 						subtitle="Last 30 days"
-						value={(usage?.totals.input_tokens ?? 0).toLocaleString()}
+						value={(
+							usage?.totals.input_tokens ?? 0
+						).toLocaleString()}
 						variant="line"
 						color="var(--chart-1)"
 						sparkline={(usage?.daily ?? []).map((d) => ({
@@ -400,9 +402,9 @@ export function DashboardExtendedSections({
 					<StatCard
 						title="Audio minutes"
 						subtitle="Billable audio"
-						value={(
-							(usage?.totals.audio_ms ?? 0) / 60_000
-						).toFixed(1)}
+						value={((usage?.totals.audio_ms ?? 0) / 60_000).toFixed(
+							1,
+						)}
 						variant="dotted-line"
 						color="var(--chart-4)"
 						sparkline={(usage?.daily ?? []).map((d) => ({

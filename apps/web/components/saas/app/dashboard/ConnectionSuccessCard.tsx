@@ -10,13 +10,9 @@ export function ConnectionSuccessCard({
 	unavailable?: boolean;
 }) {
 	const rate =
-		unavailable || pct == null
-			? 0
-			: Math.max(0, Math.min(100, pct)) / 100;
-	const display =
-		unavailable || pct == null ? "—" : `${pct.toFixed(1)}%`;
-	const donutLabel =
-		unavailable || pct == null ? "—" : `${pct.toFixed(0)}%`;
+		unavailable || pct == null ? 0 : Math.max(0, Math.min(100, pct)) / 100;
+	const display = unavailable || pct == null ? "—" : `${pct.toFixed(1)}%`;
+	const donutLabel = unavailable || pct == null ? "—" : `${pct.toFixed(0)}%`;
 
 	return (
 		<StatCard

@@ -1,8 +1,6 @@
 "use client";
 
 import {
-	type AgentState,
-	BarVisualizer,
 	RoomAudioRenderer,
 	type TrackReference,
 	TrackToggle,
@@ -11,9 +9,11 @@ import {
 	useParticipants,
 	useRoomContext,
 	useTracks,
+	useTrackVolume,
 	useVoiceAssistant,
 	VideoTrack,
 } from "@livekit/components-react";
+import { VoiceOrb, type VoiceOrbState } from "@repo/ui/assistant-ui";
 import { Button } from "@repo/ui/button";
 import {
 	Dialog,
@@ -55,6 +55,26 @@ function isUserParticipant(identity: string) {
 	);
 }
 
+function mapAgentStateToOrb(
+	agentState: ReturnType<typeof useVoiceAssistant>["state"],
+	hasAgent: boolean,
+): VoiceOrbState {
+	if (!hasAgent) return "connecting";
+	switch (agentState) {
+		case "speaking":
+			return "speaking";
+		case "listening":
+			return "listening";
+		case "thinking":
+			return "connecting";
+		case "connecting":
+		case "initializing":
+			return "connecting";
+		default:
+			return "idle";
+	}
+}
+
 function useLocalTrackRef(source: Track.Source) {
 	const tracks = useTracks([source], { onlySubscribed: false });
 	const { localParticipant } = useLocalParticipant();
@@ -66,30 +86,28 @@ function useLocalTrackRef(source: Track.Source) {
 	}, [localParticipant.identity, tracks]);
 }
 
-function AudioBars({
-	trackRef,
+function SessionVoiceOrb({
 	state,
-	barCount = 12,
-	className,
+	agentAudioTrack,
+	localMicTrack,
 }: {
-	trackRef?: TrackReference;
-	state?: AgentState;
-	barCount?: number;
-	className?: string;
+	state: VoiceOrbState;
+	agentAudioTrack?: TrackReference;
+	localMicTrack?: TrackReference;
 }) {
+	const agentVolume = useTrackVolume(agentAudioTrack);
+	const localVolume = useTrackVolume(localMicTrack);
+	// Prefer agent speech; fall back to local mic while listening.
+	const rawVolume =
+		state === "speaking" ? agentVolume : Math.max(agentVolume, localVolume);
+	const volume = Math.min(1, rawVolume * 2.75);
+
 	return (
-		<BarVisualizer
-			trackRef={trackRef}
+		<VoiceOrb
 			state={state}
-			barCount={barCount}
-			options={{ minHeight: 25, maxHeight: 100 }}
-			className={cn(
-				"flex items-end justify-center gap-1",
-				"[&_.lk-audio-bar]:w-1.5 [&_.lk-audio-bar]:rounded-full [&_.lk-audio-bar]:bg-muted-foreground/45 [&_.lk-audio-bar]:transition-colors",
-				"[&_.lk-audio-bar.lk-highlighted]:bg-primary",
-				"[&_.lk-audio-bar[data-lk-highlighted=true]]:bg-primary",
-				className,
-			)}
+			volume={volume}
+			variant="blue"
+			className="size-52 sm:size-64"
 		/>
 	);
 }
@@ -275,6 +293,7 @@ export function PreviewSessionControls({
 	const { state, audioTrack, videoTrack } = useVoiceAssistant();
 	const { isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
 	const cameraTrackRef = useLocalTrackRef(Track.Source.Camera);
+	const microphoneTrackRef = useLocalTrackRef(Track.Source.Microphone);
 	const [screenShareTrack] = useTracks([Track.Source.ScreenShare]);
 	const { messages, files, rpcCards } = usePreviewRoomData(
 		agent.name,
@@ -401,6 +420,7 @@ export function PreviewSessionControls({
 		(canSwapVideos && !avatarOnMain) ||
 		(Boolean(localStage) && !hasAvatarStage);
 	const showAudioOnlyMain = !hasAvatarStage && !localStage;
+	const orbState = mapAgentStateToOrb(state, hasAgent);
 
 	const mainContent = (() => {
 		if (canSwapVideos) {
@@ -409,15 +429,14 @@ export function PreviewSessionControls({
 		if (avatarMainStage) return avatarMainStage;
 		if (localStage) return localStage;
 		return (
-			<div className="flex size-full min-h-48 flex-col items-center justify-center gap-4 px-4">
-				<div className="flex size-28 items-center justify-center rounded-full border bg-background shadow-sm sm:size-36">
-					<AudioBars
-						trackRef={audioTrack}
-						state={hasAgent ? state : "connecting"}
-						barCount={16}
-						className="h-16 w-20 sm:h-20 sm:w-28"
-					/>
-				</div>
+			<div className="flex size-full min-h-56 flex-col items-center justify-center gap-5 px-4 sm:min-h-72">
+				<SessionVoiceOrb
+					state={orbState}
+					agentAudioTrack={audioTrack}
+					localMicTrack={
+						isMicrophoneEnabled ? microphoneTrackRef : undefined
+					}
+				/>
 				<p className="text-center text-sm text-muted-foreground">
 					{statusLabel}
 				</p>
@@ -449,7 +468,7 @@ export function PreviewSessionControls({
 									showPortraitMain && PORTRAIT_STAGE_CLASS,
 									showLandscapeMain && LANDSCAPE_STAGE_CLASS,
 									showAudioOnlyMain &&
-										"aspect-auto h-auto w-full max-w-sm bg-transparent shadow-none",
+										"aspect-auto h-auto w-full max-w-md bg-transparent shadow-none",
 								)}
 							>
 								{mainContent}

@@ -69,7 +69,14 @@ export async function aggregateSessionStats(opts: {
 	const byEndReason: Record<string, number> = {};
 	const byAgent = new Map<
 		string,
-		{ agentId: string; name: string; count: number; completed: number; failed: number; durationSum: number }
+		{
+			agentId: string;
+			name: string;
+			count: number;
+			completed: number;
+			failed: number;
+			durationSum: number;
+		}
 	>();
 
 	for (const session of sessions) {
@@ -123,9 +130,7 @@ export async function aggregateSessionStats(opts: {
 			failure_rate:
 				sessions.length > 0 ? failed.length / sessions.length : null,
 			success_rate:
-				sessions.length > 0
-					? completed.length / sessions.length
-					: null,
+				sessions.length > 0 ? completed.length / sessions.length : null,
 		},
 		by_channel: byChannel,
 		by_direction: byDirection,
@@ -273,10 +278,7 @@ export async function aggregateCost(opts: {
 		string,
 		{ modality: string; cost_micros: number }
 	>();
-	const byAgent = new Map<
-		string,
-		{ agentId: string; cost_micros: number }
-	>();
+	const byAgent = new Map<string, { agentId: string; cost_micros: number }>();
 
 	let totalMicros = 0;
 	for (const u of usages) {
@@ -417,9 +419,7 @@ export async function aggregateActions(opts: {
 		where: {
 			organizationId: opts.organizationId,
 			occurredAt: { gte: opts.since },
-			...(opts.agentId
-				? { session: { agentId: opts.agentId } }
-				: {}),
+			...(opts.agentId ? { session: { agentId: opts.agentId } } : {}),
 			eventType: {
 				in: [
 					"transfer_started",
@@ -437,9 +437,7 @@ export async function aggregateActions(opts: {
 		where: {
 			organizationId: opts.organizationId,
 			createdAt: { gte: opts.since },
-			...(opts.agentId
-				? { session: { agentId: opts.agentId } }
-				: {}),
+			...(opts.agentId ? { session: { agentId: opts.agentId } } : {}),
 		},
 	});
 
@@ -532,9 +530,7 @@ export async function aggregateLatency(opts: {
 			organizationId: opts.organizationId,
 			occurredAt: { gte: opts.since },
 			eventType: { startsWith: "agent.metric." },
-			...(opts.agentId
-				? { session: { agentId: opts.agentId } }
-				: {}),
+			...(opts.agentId ? { session: { agentId: opts.agentId } } : {}),
 		},
 		select: {
 			eventType: true,
@@ -562,7 +558,7 @@ export async function aggregateLatency(opts: {
 				? raw
 				: typeof raw === "string"
 					? Number(raw)
-					: NaN;
+					: Number.NaN;
 		if (!Number.isFinite(num)) continue;
 		const type = e.eventType.replace(/^agent\.metric\./, "");
 		const arr = byType.get(type) ?? [];
