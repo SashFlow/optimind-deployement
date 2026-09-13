@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { ActivityChartCard } from "@/components/saas/app/dashboard/ActivityChartCard";
 import { ChannelBreakdownCard } from "@/components/saas/app/dashboard/ChannelBreakdownCard";
 // import { DashboardExtendedSections } from "@/components/saas/app/dashboard/DashboardExtendedSections";
@@ -31,7 +30,6 @@ function formatDuration(ms: number | null) {
 function DashboardBody({
 	stats,
 	orgName,
-	organizationId,
 }: {
 	stats: DashboardStats;
 	orgName: string;
@@ -54,17 +52,6 @@ function DashboardBody({
 			? stats.completed_sessions / stats.total_sessions
 			: 0;
 	const completionPct = `${(completionRate * 100).toFixed(0)}%`;
-
-	useEffect(() => {
-		const syncFromHash = () => {
-			if (window.location.hash === "#analytics") {
-				setAnalyticsOpen(true);
-			}
-		};
-		syncFromHash();
-		window.addEventListener("hashchange", syncFromHash);
-		return () => window.removeEventListener("hashchange", syncFromHash);
-	}, []);
 
 	return (
 		<section className="mx-auto w-full max-w-[1600px] space-y-6">
