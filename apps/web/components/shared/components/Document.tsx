@@ -1,4 +1,4 @@
-import { headingFont, poppins } from "@app/fonts";
+import { nunito } from "@app/fonts";
 import { cn } from "@repo/ui/utils";
 import { ClientProviders } from "@shared/components/ClientProviders";
 import { ConsentProvider } from "@shared/components/ConsentProvider";
@@ -17,10 +17,11 @@ export async function Document({
 		<html
 			lang={locale}
 			suppressHydrationWarning
-			className={cn(poppins.variable, headingFont.variable)}
+			className={nunito.variable}
 		>
 			<body
 				className={cn(
+					nunito.className,
 					"min-h-screen bg-background text-foreground antialiased",
 				)}
 			>
