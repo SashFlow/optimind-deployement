@@ -89,11 +89,11 @@ function DashboardBody({
 		<section className="mx-auto w-full max-w-[1600px] space-y-6">
 			<div className="flex flex-col gap-4">
 				<div className="space-y-1">
-					<h1 className="text-2xl font-semibold tracking-tight">
+					<h1 className="text-2xl font-semibold tracking-tight text-primary">
 						Welcome Back!
 					</h1>
 					<p className="text-sm text-muted-foreground">
-						Here&apos;s what&apos;s happening across {orgName}.
+						Here&apos;s what&apos;s happening across <span className="font-semibold text-primary">{orgName}</span>.
 					</p>
 				</div>
 			</div>

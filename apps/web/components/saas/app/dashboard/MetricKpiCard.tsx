@@ -15,12 +15,22 @@ export type MetricSparklinePoint = {
 	value: number;
 };
 
+export type MetricKpiTone =
+	| "primary"
+	| "secondary"
+	| "success"
+	| "destructive";
+
 type MetricKpiCardProps = {
 	title: string;
 	value: string;
 	icon: LucideIcon;
 	className?: string;
 	valueClassName?: string;
+	/** Tighter padding and typography for side stacks. */
+	compact?: boolean;
+	/** Semantic color for icon wash, progress, and sparkline. */
+	tone?: MetricKpiTone;
 	deltaPct?: number | null;
 	/** When true, a drop is treated as positive (e.g. latency, cost). */
 	invertDelta?: boolean;
@@ -41,6 +51,27 @@ type MetricKpiCardProps = {
 	progress?: number | null;
 };
 
+const TONE_ICON: Record<MetricKpiTone, string> = {
+	primary: "bg-primary/10 text-primary",
+	secondary: "bg-secondary/10 text-secondary",
+	success: "bg-success/10 text-success",
+	destructive: "bg-destructive/10 text-destructive",
+};
+
+const TONE_PROGRESS: Record<MetricKpiTone, string> = {
+	primary: "bg-primary",
+	secondary: "bg-secondary",
+	success: "bg-success",
+	destructive: "bg-destructive",
+};
+
+const TONE_STROKE: Record<MetricKpiTone, string> = {
+	primary: "var(--primary)",
+	secondary: "var(--secondary)",
+	success: "var(--success)",
+	destructive: "var(--destructive)",
+};
+
 function formatDelta(deltaPct: number) {
 	const abs = Math.abs(deltaPct).toFixed(1);
 	return deltaPct >= 0 ? `+${abs}%` : `-${abs}%`;
@@ -48,14 +79,16 @@ function formatDelta(deltaPct: number) {
 
 function MiniSparkline({
 	data,
+	tone = "primary",
 	className,
 }: {
 	data: MetricSparklinePoint[];
+	tone?: MetricKpiTone;
 	className?: string;
 }) {
 	const reactId = useId();
 	const gradientId = `metric-kpi-${reactId.replace(/:/g, "")}`;
-	const stroke = "var(--chart-1)";
+	const stroke = TONE_STROKE[tone];
 	const config = {
 		value: { label: "Trend", color: stroke },
 	} satisfies ChartConfig;
@@ -112,6 +145,8 @@ export function MetricKpiCard({
 	icon: Icon,
 	className,
 	valueClassName,
+	compact = false,
+	tone = "primary",
 	deltaPct,
 	invertDelta = false,
 	detail,
@@ -143,10 +178,24 @@ export function MetricKpiCard({
 
 	return (
 		<Card className={cn("h-full shadow-xs", className)}>
-			<CardContent className="flex h-full flex-col gap-4 p-5">
+			<CardContent
+				className={cn(
+					"flex h-full flex-col",
+					compact ? "gap-2 p-3.5" : "gap-4 p-5",
+				)}
+			>
 				<div className="flex items-start gap-3">
-					<div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
-						<Icon className="size-4" aria-hidden />
+					<div
+						className={cn(
+							"flex shrink-0 items-center justify-center rounded-full",
+							compact ? "size-8" : "size-10",
+							TONE_ICON[tone],
+						)}
+					>
+						<Icon
+							className={compact ? "size-3.5" : "size-4"}
+							aria-hidden
+						/>
 					</div>
 					<div className="min-w-0 flex-1 space-y-1">
 						<p className="text-sm text-muted-foreground text-pretty">
@@ -155,7 +204,8 @@ export function MetricKpiCard({
 						<div className="flex flex-wrap items-center gap-2">
 							<p
 								className={cn(
-									"text-3xl font-semibold tracking-tight tabular-nums text-foreground",
+									"font-semibold tracking-tight tabular-nums text-foreground",
+									compact ? "text-2xl" : "text-3xl",
 									valueClassName,
 								)}
 							>
@@ -166,8 +216,8 @@ export function MetricKpiCard({
 									className={cn(
 										"inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
 										isFavorable
-											? "bg-foreground text-background"
-											: "bg-rose-500/10 text-rose-700 dark:text-rose-400",
+											? "bg-success/10 text-success"
+											: "bg-destructive/10 text-destructive",
 									)}
 								>
 									{rising ? (
@@ -214,7 +264,7 @@ export function MetricKpiCard({
 									className={cn(
 										"shrink-0 font-semibold tabular-nums",
 										footerStat.tone === "danger"
-											? "text-rose-600 dark:text-rose-400"
+											? "text-destructive"
 											: "text-foreground",
 									)}
 								>
@@ -232,7 +282,7 @@ export function MetricKpiCard({
 								) : (
 									<span />
 								)}
-								<MiniSparkline data={sparkline!} />
+								<MiniSparkline data={sparkline!} tone={tone} />
 							</div>
 						) : null}
 
@@ -245,7 +295,10 @@ export function MetricKpiCard({
 								aria-valuemax={100}
 							>
 								<div
-									className="h-full rounded-full bg-foreground"
+									className={cn(
+										"h-full rounded-full",
+										TONE_PROGRESS[tone],
+									)}
 									style={{ width: `${progressPct}%` }}
 								/>
 							</div>

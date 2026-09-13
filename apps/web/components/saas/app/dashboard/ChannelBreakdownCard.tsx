@@ -53,7 +53,7 @@ export function ChannelBreakdownCard({
 	) satisfies ChartConfig;
 
 	return (
-		<Card className="h-full shadow-xs">
+		<Card className="flex h-full flex-col shadow-xs">
 			<CardHeader className="pb-2">
 				{hint ? (
 					<MetricHelpTitle title={title} hint={hint} />
@@ -63,7 +63,7 @@ export function ChannelBreakdownCard({
 					</CardTitle>
 				)}
 			</CardHeader>
-			<CardContent>
+			<CardContent className="flex flex-1 flex-col justify-center">
 				{entries.length === 0 || total <= 0 ? (
 					<p className="text-sm text-muted-foreground">
 						No sessions yet.

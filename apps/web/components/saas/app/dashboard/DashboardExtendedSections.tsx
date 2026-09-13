@@ -3,16 +3,17 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import {
 	ArrowLeftRightIcon,
-	AudioLinesIcon,
 	CalendarClockIcon,
 	CheckCircle2Icon,
 	ClockIcon,
+	CpuIcon,
 	DollarSignIcon,
+	type LucideIcon,
 	MessageSquareTextIcon,
 	MicIcon,
 	PlugZapIcon,
-	SparklesIcon,
 	TypeIcon,
+	Volume2Icon,
 	WrenchIcon,
 	XCircleIcon,
 } from "lucide-react";
@@ -36,9 +37,24 @@ import { FailuresActivityCard } from "./FailuresActivityCard";
 import { formatDurationMs } from "./format";
 import { GaugeBreakdownCard } from "./GaugeBreakdownCard";
 import { MetricKpiCard } from "./MetricKpiCard";
+import { computeDeltaPct, StatCard } from "./StatCard";
 
 function formatUsd(micros: number) {
 	return `$${(micros / 1_000_000).toFixed(2)}`;
+}
+
+function modalityCostIcon(modality: string): LucideIcon {
+	switch (modality.toUpperCase()) {
+		case "LLM":
+		case "REALTIME":
+			return CpuIcon;
+		case "STT":
+			return MicIcon;
+		case "TTS":
+			return Volume2Icon;
+		default:
+			return DollarSignIcon;
+	}
 }
 
 function pct(value: number | null | undefined) {
@@ -268,12 +284,14 @@ export function DashboardExtendedSections({
 						title="Success rate"
 						value={pct(stats.success_rate)}
 						icon={CheckCircle2Icon}
+						tone="success"
 						footerText={`${stats.completed_sessions.toLocaleString()} completed · ${failedSessions.toLocaleString()} failed`}
 					/>
 					<MetricKpiCard
 						title="p95 duration"
 						value={formatDurationMs(stats.p95_duration_ms ?? null)}
 						icon={ClockIcon}
+						tone="primary"
 						footerStat={{
 							label: "Sessions (30d)",
 							value: stats.total_sessions.toLocaleString(),
@@ -283,6 +301,7 @@ export function DashboardExtendedSections({
 						title="Time to connect"
 						value={formatDurationMs(connectMs)}
 						icon={PlugZapIcon}
+						tone="secondary"
 						detail="Average connect latency"
 						progress={connectProgress}
 					/>
@@ -296,6 +315,7 @@ export function DashboardExtendedSections({
 									: "—"
 						}
 						icon={DollarSignIcon}
+						tone="destructive"
 						deltaPct={costTrend.deltaPct}
 						invertDelta
 						comparisonLabel="vs prior period"
@@ -333,72 +353,101 @@ export function DashboardExtendedSections({
 			<section className="space-y-3">
 				<h3 className="text-base font-semibold">Usage &amp; cost</h3>
 				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-					<MetricKpiCard
+					<StatCard
 						title="Input tokens"
+						subtitle="Last 30 days"
 						value={(usage?.totals.input_tokens ?? 0).toLocaleString()}
-						icon={SparklesIcon}
-						detail="Last 30 days"
+						variant="line"
+						color="var(--chart-1)"
 						sparkline={(usage?.daily ?? []).map((d) => ({
 							value: d.input_tokens,
+							label: d.date,
 						}))}
-						comparisonLabel="Daily trend"
+						deltaPct={computeDeltaPct(
+							(usage?.daily ?? []).map((d) => d.input_tokens),
+						)}
 					/>
-					<MetricKpiCard
+					<StatCard
 						title="Output tokens"
+						subtitle="Last 30 days"
 						value={(
 							usage?.totals.output_tokens ?? 0
 						).toLocaleString()}
-						icon={MessageSquareTextIcon}
-						detail="Last 30 days"
+						variant="dotted-line"
+						color="var(--chart-2)"
 						sparkline={(usage?.daily ?? []).map((d) => ({
 							value: d.output_tokens,
+							label: d.date,
 						}))}
-						comparisonLabel="Daily trend"
+						deltaPct={computeDeltaPct(
+							(usage?.daily ?? []).map((d) => d.output_tokens),
+						)}
 					/>
-					<MetricKpiCard
+					<StatCard
 						title="TTS characters"
+						subtitle="Synthesized speech"
 						value={(usage?.totals.characters ?? 0).toLocaleString()}
-						icon={TypeIcon}
-						detail="Synthesized speech"
+						variant="line"
+						color="var(--chart-3)"
+						sparkline={(usage?.daily ?? []).map((d) => ({
+							value: d.characters,
+							label: d.date,
+						}))}
+						deltaPct={computeDeltaPct(
+							(usage?.daily ?? []).map((d) => d.characters),
+						)}
 					/>
-					<MetricKpiCard
+					<StatCard
 						title="Audio minutes"
+						subtitle="Billable audio"
 						value={(
 							(usage?.totals.audio_ms ?? 0) / 60_000
 						).toFixed(1)}
-						icon={AudioLinesIcon}
-						detail="Billable audio"
+						variant="dotted-line"
+						color="var(--chart-4)"
+						sparkline={(usage?.daily ?? []).map((d) => ({
+							value: d.audio_ms / 60_000,
+							label: d.date,
+						}))}
+						deltaPct={computeDeltaPct(
+							(usage?.daily ?? []).map((d) => d.audio_ms),
+						)}
 					/>
 				</div>
-				{usage?.daily?.length ? (
-					<AnalyticsLineChart
-						title="Token burn"
-						hint="Daily input + output tokens"
-						data={usage.daily.map((d) => ({
-							date: d.date,
-							tokens: d.input_tokens + d.output_tokens,
-						}))}
-						series={[
-							{
-								key: "tokens",
-								label: "Tokens",
-								color: "var(--chart-1)",
-							},
-						]}
-						variant="bar"
-					/>
-				) : null}
-				{cost?.by_modality?.length ? (
-					<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-						{cost.by_modality.map((m) => (
-							<MetricKpiCard
-								key={m.modality}
-								title={m.modality}
-								value={formatUsd(m.cost_micros)}
-								icon={DollarSignIcon}
-								detail="Estimated cost"
+				{usage?.daily?.length || cost?.by_modality?.length ? (
+					<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] lg:items-start">
+						{usage?.daily?.length ? (
+							<AnalyticsLineChart
+								title="Token burn"
+								hint="Daily input + output tokens"
+								data={usage.daily.map((d) => ({
+									date: d.date,
+									tokens: d.input_tokens + d.output_tokens,
+								}))}
+								series={[
+									{
+										key: "tokens",
+										label: "Tokens",
+										color: "var(--chart-1)",
+									},
+								]}
+								variant="bar"
 							/>
-						))}
+						) : null}
+						{cost?.by_modality?.length ? (
+							<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+								{cost.by_modality.map((m) => (
+									<MetricKpiCard
+										key={m.modality}
+										title={m.modality}
+										value={formatUsd(m.cost_micros)}
+										icon={modalityCostIcon(m.modality)}
+										compact
+										detail="Estimated cost"
+									/>
+								))}
+							</div>
+						) : null}
 					</div>
 				) : null}
 			</section>
