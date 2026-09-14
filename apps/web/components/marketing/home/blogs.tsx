@@ -1,5 +1,6 @@
 import { Button } from "@repo/ui/button";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import React from "react";
 
 const posts = [
@@ -48,6 +49,8 @@ const posts = [
 ] as const;
 
 const Blogs = () => {
+	const router = useRouter();
+
 	return (
 		<section id="blogs" className="py-12 lg:py-20">
 			<div className="mx-auto flex max-w-7xl flex-col gap-12 px-5 lg:gap-16 lg:px-8">
@@ -68,6 +71,9 @@ const Blogs = () => {
 						type="button"
 						variant="secondary"
 						className="ml-auto hidden shrink-0 self-end lg:flex"
+						onClick={() => {
+							router.push("/blog");
+						}}
 					>
 						See all
 					</Button>
