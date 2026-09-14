@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type ComponentProps } from "react";
+import { type ComponentProps, useId } from "react";
 
 export type LogoProps = ComponentProps<"svg">;
 
@@ -63,4 +63,4 @@ function GeminiLogo(props: LogoProps) {
 	);
 }
 
-export { ClaudeLogo, OpenAILogo, GeminiLogo };
+export { ClaudeLogo, GeminiLogo, OpenAILogo };

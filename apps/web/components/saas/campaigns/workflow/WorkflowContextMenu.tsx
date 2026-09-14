@@ -23,9 +23,13 @@ export function WorkflowContextMenu({
 	const ref = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (!open) return;
+		if (!open) {
+			return;
+		}
 		function onKey(e: KeyboardEvent) {
-			if (e.key === "Escape") onClose();
+			if (e.key === "Escape") {
+				onClose();
+			}
 		}
 		function onPointer(e: MouseEvent) {
 			if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -40,7 +44,9 @@ export function WorkflowContextMenu({
 		};
 	}, [open, onClose]);
 
-	if (!open || !position) return null;
+	if (!open || !position) {
+		return null;
+	}
 
 	const left = Math.min(position.x, window.innerWidth - 220);
 	const top = Math.min(position.y, window.innerHeight - 200);

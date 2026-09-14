@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { mono, paper } from "./surfaces";
 import { pct, take } from "../utils/range";
+import { mono, paper } from "./surfaces";
 
 export type SpanStatus = "running" | "completed" | "failed";
 

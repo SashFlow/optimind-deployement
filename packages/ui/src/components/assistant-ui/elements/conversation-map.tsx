@@ -1,16 +1,16 @@
 "use client";
 
+import { PreviewCard } from "@base-ui/react/preview-card";
 import {
+	type ComponentProps,
+	type KeyboardEvent,
 	useCallback,
 	useRef,
 	useState,
-	type ComponentProps,
-	type KeyboardEvent,
 } from "react";
-import { PreviewCard } from "@base-ui/react/preview-card";
 import { cn } from "../../../utils";
-import { floating } from "./surfaces";
 import { clamp } from "../utils/range";
+import { floating } from "./surfaces";
 
 export interface ConversationMapEntry {
 	id: string;
@@ -53,13 +53,19 @@ export function ConversationMap({
 	const handleKeyDown = useCallback(
 		(event: KeyboardEvent<HTMLElement>) => {
 			onKeyDown?.(event);
-			if (event.defaultPrevented) return;
+			if (event.defaultPrevented) {
+				return;
+			}
 
 			const ticks = railRef.current?.querySelectorAll<HTMLElement>(TICK);
-			if (!ticks?.length) return;
+			if (!ticks?.length) {
+				return;
+			}
 
 			const current = Array.prototype.indexOf.call(ticks, event.target);
-			if (current === -1) return;
+			if (current === -1) {
+				return;
+			}
 
 			const next = {
 				ArrowUp: current - 1,
@@ -67,7 +73,9 @@ export function ConversationMap({
 				Home: 0,
 				End: ticks.length - 1,
 			}[event.key];
-			if (next === undefined) return;
+			if (next === undefined) {
+				return;
+			}
 
 			event.preventDefault();
 			ticks[clamp(next, 0, ticks.length - 1)]?.focus();

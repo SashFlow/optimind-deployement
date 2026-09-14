@@ -1,5 +1,5 @@
-import { IntegrationsHub } from "@/components/marketing/home/integrations-hub";
 import React from "react";
+import { IntegrationsHub } from "@/components/marketing/home/integrations-hub";
 
 const Product = () => {
 	return (

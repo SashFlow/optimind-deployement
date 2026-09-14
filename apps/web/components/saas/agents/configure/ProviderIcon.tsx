@@ -38,6 +38,7 @@ export function ProviderIcon({
 	return (
 		// Brand logos from public/images/providers (fetched from provider domains).
 		// eslint-disable-next-line @next/next/no-img-element
+		// biome-ignore lint/performance/noImgElement: provider brand logos
 		<img
 			src={src}
 			alt=""

@@ -1,6 +1,5 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import {
 	CheckIcon,
 	CopyIcon,
@@ -9,6 +8,7 @@ import {
 	ThumbsDownIcon,
 	ThumbsUpIcon,
 } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { ghostButton, iconSwap, iconSwapIn, iconSwapOut } from "./surfaces";
 

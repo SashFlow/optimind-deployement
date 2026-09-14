@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { Loader2Icon, PlayIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { codeScroll, codeSurface, ghostButton, mono, paper } from "./surfaces";
 

@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { SearchIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { field, mono, ShimmerLabel } from "./surfaces";
 import { take } from "../utils/range";
+import { field, mono, ShimmerLabel } from "./surfaces";
 
 export interface WebSearchResult {
 	title: string;

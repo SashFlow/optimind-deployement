@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, type ComponentProps } from "react";
 import { BookmarkIcon } from "lucide-react";
+import { type ComponentProps, useId } from "react";
 import { cn } from "../../../utils";
 import { field, mono, paper } from "./surfaces";
 
@@ -46,16 +46,22 @@ export function PromptLibrary({
 	const selected = matches.find((prompt) => prompt.id === selectedId);
 
 	const move = (delta: number) => {
-		if (matches.length === 0) return;
+		if (matches.length === 0) {
+			return;
+		}
 		const at = matches.findIndex((prompt) => prompt.id === selectedId);
 		// selectedId can be filtered out by the query; start from the edge the key implies
 		const from = at === -1 ? (delta > 0 ? -1 : 0) : at;
 		const next = matches[(from + delta + matches.length) % matches.length];
-		if (next) onSelect?.(next.id);
+		if (next) {
+			onSelect?.(next.id);
+		}
 	};
 
 	const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-		if (event.nativeEvent.isComposing) return;
+		if (event.nativeEvent.isComposing) {
+			return;
+		}
 		if (event.key === "ArrowDown") {
 			event.preventDefault();
 			move(1);

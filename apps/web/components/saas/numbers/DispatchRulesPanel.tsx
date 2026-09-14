@@ -40,10 +40,10 @@ import {
 	DataTableBulkBar,
 	DataTableHeaderRow,
 	DataTableShell,
+	dataTableRowClass,
 	IdentityCell,
 	RowCheckbox,
 	SelectColumnHead,
-	dataTableRowClass,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
@@ -166,7 +166,9 @@ export function DispatchRulesPanel({
 	}
 
 	async function bulkDelete() {
-		if (selection.selectedCount === 0) return;
+		if (selection.selectedCount === 0) {
+			return;
+		}
 		setBulkBusy(true);
 		let ok = 0;
 		const ids = selection.selectedIds;

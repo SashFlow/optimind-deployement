@@ -1,41 +1,41 @@
 "use client";
 
 import {
-	type PropsWithChildren,
-	useState,
-	type FC,
-	isValidElement,
-} from "react";
-import {
-	XIcon,
-	PlusIcon,
-	FileText,
-	Loader2Icon,
-	AlertCircleIcon,
-} from "lucide-react";
-import {
 	AttachmentPrimitive,
 	ComposerPrimitive,
 	MessagePrimitive,
-	useAuiState,
 	useAui,
+	useAuiState,
 } from "@assistant-ui/react";
+import {
+	AlertCircleIcon,
+	FileText,
+	Loader2Icon,
+	PlusIcon,
+	XIcon,
+} from "lucide-react";
+import {
+	type FC,
+	isValidElement,
+	type PropsWithChildren,
+	useState,
+} from "react";
+import { useAttachmentSrc } from "../../../hooks/use-attachment-src";
+import { Avatar, AvatarFallback, AvatarImage } from "../../../shadcn/avatar";
+import {
+	Dialog,
+	DialogContent,
+	DialogTitle,
+	DialogTrigger,
+} from "../../../shadcn/dialog";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "../../../shadcn/tooltip";
-import {
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogTrigger,
-} from "../../../shadcn/dialog";
-import { Avatar, AvatarImage, AvatarFallback } from "../../../shadcn/avatar";
-import { TooltipIconButton } from "./tooltip-icon-button";
-import { useAttachmentSrc } from "../../../hooks/use-attachment-src";
 import { cn } from "../../../utils";
+import { TooltipIconButton } from "./tooltip-icon-button";
 
 type AttachmentPreviewProps = {
 	src: string;
@@ -44,6 +44,7 @@ type AttachmentPreviewProps = {
 const AttachmentPreview: FC<AttachmentPreviewProps> = ({ src }) => {
 	const [isLoaded, setIsLoaded] = useState(false);
 	return (
+		// biome-ignore lint/performance/noImgElement: attachment blob/data URLs
 		<img
 			src={src}
 			alt="Attachment preview"
@@ -61,7 +62,9 @@ const AttachmentPreview: FC<AttachmentPreviewProps> = ({ src }) => {
 const AttachmentPreviewDialog: FC<PropsWithChildren> = ({ children }) => {
 	const src = useAttachmentSrc();
 
-	if (!src) return children;
+	if (!src) {
+		return children;
+	}
 
 	return (
 		<Dialog>
@@ -173,7 +176,9 @@ const AttachmentUI: FC = () => {
 									}
 								}}
 								onKeyUp={(e) => {
-									if (e.key === " ") e.currentTarget.click();
+									if (e.key === " ") {
+										e.currentTarget.click();
+									}
 								}}
 								aria-label={`${typeLabel} attachment${
 									isError

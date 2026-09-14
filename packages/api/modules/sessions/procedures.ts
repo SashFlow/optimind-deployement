@@ -6,8 +6,8 @@ import {
 	createSessionEvent,
 	createToolCallRecord,
 	getAgentById,
-	getAgentTrialByToken,
 	getAgentSessionById,
+	getAgentTrialByToken,
 	linkCampaignSessionToAgentSession,
 	listAgentSessions,
 	saveAgentSessionReport,
@@ -49,7 +49,9 @@ import { workerProcedure } from "./lib/worker-procedure";
 const AGENT_NAME = process.env.AGENT_NAME || "demo-agent";
 
 function configRecordingEnabled(config: unknown): boolean {
-	if (!config || typeof config !== "object") return false;
+	if (!config || typeof config !== "object") {
+		return false;
+	}
 	const c = config as {
 		recording_enabled?: boolean;
 		recordingEnabled?: boolean;
@@ -91,7 +93,9 @@ export const get = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		let session = await getAgentSessionById(input.id);
-		if (!session) throw new ORPCError("NOT_FOUND");
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(session.organizationId, context.user.id);
 
 		await reconcileOpenEgressJobs(session.egressJobs);
@@ -275,12 +279,18 @@ function trialUnavailableReason(trial: {
 	usageCount: number;
 	hasPublishedVersion: boolean;
 }): "disabled" | "expired" | "exhausted" | "unpublished" | null {
-	if (!trial.enabled) return "disabled";
+	if (!trial.enabled) {
+		return "disabled";
+	}
 	if (trial.expiresAt && trial.expiresAt.getTime() < Date.now()) {
 		return "expired";
 	}
-	if (trial.usageCount >= trial.usageLimit) return "exhausted";
-	if (!trial.hasPublishedVersion) return "unpublished";
+	if (trial.usageCount >= trial.usageLimit) {
+		return "exhausted";
+	}
+	if (!trial.hasPublishedVersion) {
+		return "unpublished";
+	}
 	return null;
 }
 
@@ -322,15 +332,21 @@ function normalizeTrialVariables(raw: unknown): Array<{
 
 function normalizeTrialPhoneNumber(raw: string): string | null {
 	const trimmed = raw.trim();
-	if (!trimmed) return null;
+	if (!trimmed) {
+		return null;
+	}
 	const digits = trimmed.replace(/[^\d+]/g, "");
 	if (digits.startsWith("+")) {
 		const rest = digits.slice(1).replace(/\D/g, "");
-		if (rest.length < 8 || rest.length > 15) return null;
+		if (rest.length < 8 || rest.length > 15) {
+			return null;
+		}
 		return `+${rest}`;
 	}
 	const onlyDigits = digits.replace(/\D/g, "");
-	if (onlyDigits.length === 10) return `+91${onlyDigits}`;
+	if (onlyDigits.length === 10) {
+		return `+91${onlyDigits}`;
+	}
 	if (onlyDigits.length === 12 && onlyDigits.startsWith("91")) {
 		return `+${onlyDigits}`;
 	}
@@ -606,7 +622,9 @@ export const startSessionEgress = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const session = await getAgentSessionById(input.id);
-		if (!session) throw new ORPCError("NOT_FOUND");
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(session.organizationId, context.user.id);
 		return startEgressForSession(session, input.audioOnly);
 	});
@@ -621,7 +639,9 @@ export const end = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const existing = await getAgentSessionById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 
 		if (existing.status === "COMPLETED" || existing.status === "FAILED") {
@@ -664,7 +684,9 @@ export const end = protectedProcedure
 			status: "CANCELLED",
 			endReason: "CANCELLED",
 		});
-		if (!session) throw new ORPCError("NOT_FOUND");
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
 
 		await createSessionEvent({
 			organizationId: session.organizationId,
@@ -719,7 +741,9 @@ export const patchLifecycle = workerProcedure
 	.handler(async ({ input }) => {
 		const { id, ...data } = input;
 		const session = await updateAgentSessionLifecycle(id, data);
-		if (!session) throw new ORPCError("NOT_FOUND");
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
 
 		if (
 			data.status === "COMPLETED" ||
@@ -764,7 +788,9 @@ export const postEvent = workerProcedure
 	)
 	.handler(async ({ input }) => {
 		const session = await getAgentSessionById(input.id);
-		if (!session) throw new ORPCError("NOT_FOUND");
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		const event = await createSessionEvent({
 			organizationId: session.organizationId,
 			sessionId: session.id,
@@ -799,7 +825,9 @@ export const postToolCall = workerProcedure
 	)
 	.handler(async ({ input }) => {
 		const session = await getAgentSessionById(input.id);
-		if (!session) throw new ORPCError("NOT_FOUND");
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		const result =
 			typeof input.result === "string"
 				? { text: input.result }
@@ -852,7 +880,9 @@ export const postReport = workerProcedure
 	)
 	.handler(async ({ input }) => {
 		const existing = await getAgentSessionById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 
 		const usageNormalized = Array.isArray(input.usage)
 			? { model_usage: input.usage }
@@ -863,7 +893,9 @@ export const postReport = workerProcedure
 			usage: usageNormalized,
 			mergeReport: true,
 		});
-		if (!session) throw new ORPCError("NOT_FOUND");
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
 
 		// Metrics-only stubs should not wipe transcript extraction; still
 		// append metric events via persistSessionArtifacts.
@@ -935,6 +967,8 @@ export const startEgressInternal = workerProcedure
 	)
 	.handler(async ({ input }) => {
 		const session = await getAgentSessionById(input.id);
-		if (!session) throw new ORPCError("NOT_FOUND");
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		return startEgressForSession(session, input.audioOnly);
 	});

@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { DatabaseIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { field, mono, paper, ShimmerLabel } from "./surfaces";
 import { announced, pct, take } from "../utils/range";
+import { field, mono, paper, ShimmerLabel } from "./surfaces";
 
 export interface RetrievalChunk {
 	id: string;

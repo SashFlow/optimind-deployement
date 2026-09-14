@@ -1,8 +1,8 @@
 "use client";
 
-import { memo, type FC } from "react";
 import { useAuiState } from "@assistant-ui/react";
 import type { SyntaxHighlighterProps } from "@assistant-ui/react-markdown";
+import { type FC, memo } from "react";
 import {
 	MermaidDiagram as MermaidDiagramBase,
 	MermaidZoom,

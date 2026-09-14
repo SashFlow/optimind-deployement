@@ -64,8 +64,12 @@ export const stats = protectedProcedure
 			const bucket = dailyMap.get(key);
 			if (bucket) {
 				bucket.count += 1;
-				if (session.status === "COMPLETED") bucket.completed += 1;
-				if (session.status === "FAILED") bucket.failed += 1;
+				if (session.status === "COMPLETED") {
+					bucket.completed += 1;
+				}
+				if (session.status === "FAILED") {
+					bucket.failed += 1;
+				}
 			}
 		}
 
@@ -200,12 +204,18 @@ export const analytics = protectedProcedure
 			if (session.channel === "SIP" || session.channel === "PHONE") {
 				sipTotal += 1;
 				attempted += 1;
-				if (session.connectedAt) connected += 1;
+				if (session.connectedAt) {
+					connected += 1;
+				}
 				const sipBucket = sipMap.get(date);
-				if (sipBucket) sipBucket.count += 1;
+				if (sipBucket) {
+					sipBucket.count += 1;
+				}
 
 				for (const num of [session.fromNumber, session.toNumber]) {
-					if (!num) continue;
+					if (!num) {
+						continue;
+					}
 					const n = numberStats.get(num) ?? {
 						number: num,
 						attempts: 0,
@@ -213,7 +223,9 @@ export const analytics = protectedProcedure
 						duration_ms: 0,
 					};
 					n.attempts += 1;
-					if (session.connectedAt) n.connects += 1;
+					if (session.connectedAt) {
+						n.connects += 1;
+					}
 					n.duration_ms += duration;
 					numberStats.set(num, n);
 				}
@@ -225,7 +237,9 @@ export const analytics = protectedProcedure
 						duration_ms: 0,
 					};
 					t.count += 1;
-					if (session.status === "FAILED") t.failed += 1;
+					if (session.status === "FAILED") {
+						t.failed += 1;
+					}
 					t.duration_ms += duration;
 					trunkStats.set(session.sipTrunkId, t);
 				}
@@ -257,13 +271,23 @@ export const analytics = protectedProcedure
 			const date = job.createdAt.toISOString().slice(0, 10);
 			const bucket = egressMap.get(date);
 			const type = String(job.type ?? "").toUpperCase();
-			if (type.includes("TRACK")) totalTrack += duration;
-			if (!bucket) continue;
-			if (type.includes("PARTICIPANT")) bucket.participant += 1;
-			else if (type.includes("ROOM")) bucket.room_composite += 1;
-			else if (type.includes("TRACK")) bucket.track += 1;
-			else if (type.includes("WEB")) bucket.web += 1;
-			else bucket.room_composite += 1;
+			if (type.includes("TRACK")) {
+				totalTrack += duration;
+			}
+			if (!bucket) {
+				continue;
+			}
+			if (type.includes("PARTICIPANT")) {
+				bucket.participant += 1;
+			} else if (type.includes("ROOM")) {
+				bucket.room_composite += 1;
+			} else if (type.includes("TRACK")) {
+				bucket.track += 1;
+			} else if (type.includes("WEB")) {
+				bucket.web += 1;
+			} else {
+				bucket.room_composite += 1;
+			}
 		}
 
 		return {

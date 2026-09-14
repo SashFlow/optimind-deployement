@@ -1,3 +1,4 @@
+import { db } from "../client";
 import type {
 	CallbackScheduleSource,
 	CallbackScheduleStatus,
@@ -6,7 +7,6 @@ import type {
 	UnitSource,
 	UsageModality,
 } from "../generated/client";
-import { db } from "../client";
 import { rescheduleCampaignContact } from "./campaigns";
 
 function toJson(value: unknown): Prisma.InputJsonValue {
@@ -318,7 +318,9 @@ export function estimateUsageCostMicros(
 				r.model != null &&
 				r.model.toLowerCase() === usage.model.toLowerCase(),
 		);
-		if (exact) return exact;
+		if (exact) {
+			return exact;
+		}
 		return rates.find(
 			(r) =>
 				r.modality === usage.modality &&

@@ -50,7 +50,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 					return () => {
 						isKilled = true;
-						if (tl) tl.kill();
+						if (tl) {
+							tl.kill();
+						}
 					};
 				}}
 				enter={(next) => {
@@ -99,7 +101,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 					return () => {
 						isKilled = true;
-						if (tl) tl.kill();
+						if (tl) {
+							tl.kill();
+						}
 					};
 				}}
 			>

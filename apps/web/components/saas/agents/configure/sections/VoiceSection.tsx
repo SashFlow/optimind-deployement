@@ -85,7 +85,9 @@ function AudioClipFields({
 				<Select
 					value={value.clip}
 					onValueChange={(clip) => {
-						if (!clip) return;
+						if (!clip) {
+							return;
+						}
 						onChange({
 							...value,
 							clip: clip as AudioClipId,

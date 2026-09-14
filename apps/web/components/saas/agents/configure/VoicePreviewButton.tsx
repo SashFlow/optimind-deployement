@@ -36,7 +36,9 @@ export function VoicePreviewButton({
 				size="icon"
 				aria-label="Play voice preview"
 				onClick={() => {
-					if (!audioRef.current) return;
+					if (!audioRef.current) {
+						return;
+					}
 					void audioRef.current.play();
 				}}
 			>

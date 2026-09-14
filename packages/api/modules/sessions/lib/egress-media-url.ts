@@ -25,12 +25,16 @@ function isHttpUrl(url: string) {
 
 function parseS3Url(url: string): { bucket: string; key: string } | null {
 	const match = /^s3:\/\/([^/]+)\/(.+)$/i.exec(url.trim());
-	if (!match) return null;
+	if (!match) {
+		return null;
+	}
 	return { bucket: match[1], key: match[2] };
 }
 
 function readDestination(value: unknown): EgressDestination | null {
-	if (!value || typeof value !== "object") return null;
+	if (!value || typeof value !== "object") {
+		return null;
+	}
 	const dest = value as EgressDestination;
 	return {
 		bucket: typeof dest.bucket === "string" ? dest.bucket : undefined,
@@ -56,16 +60,24 @@ function extensionOf(path: string): string {
 	const withoutQuery = path.split("?")[0]?.split("#")[0] ?? path;
 	const base = withoutQuery.split("/").pop() ?? withoutQuery;
 	const dot = base.lastIndexOf(".");
-	if (dot < 0) return "";
+	if (dot < 0) {
+		return "";
+	}
 	return base.slice(dot + 1).toLowerCase();
 }
 
 /** Whether this egress recording is audio-only (phone/SIP or explicit flag). */
 export function isEgressAudioOnly(job: EgressJobMediaSource): boolean {
 	const meta = asRecord(job.metadata);
-	if (typeof meta?.audioOnly === "boolean") return meta.audioOnly;
-	if (meta?.audioOnly === "true") return true;
-	if (meta?.audioOnly === "false") return false;
+	if (typeof meta?.audioOnly === "boolean") {
+		return meta.audioOnly;
+	}
+	if (meta?.audioOnly === "true") {
+		return true;
+	}
+	if (meta?.audioOnly === "false") {
+		return false;
+	}
 	return false;
 }
 
@@ -83,10 +95,18 @@ export function inferEgressContentType(
 	const ext = extensionOf(path);
 
 	if (audioOnly) {
-		if (ext === "ogg") return "audio/ogg";
-		if (ext === "mp3") return "audio/mpeg";
-		if (ext === "wav") return "audio/wav";
-		if (ext === "m4a" || ext === "aac") return "audio/mp4";
+		if (ext === "ogg") {
+			return "audio/ogg";
+		}
+		if (ext === "mp3") {
+			return "audio/mpeg";
+		}
+		if (ext === "wav") {
+			return "audio/wav";
+		}
+		if (ext === "m4a" || ext === "aac") {
+			return "audio/mp4";
+		}
 		return "audio/mp4";
 	}
 
@@ -125,12 +145,16 @@ function resolveObjectRef(
 
 	for (const candidate of candidates) {
 		const parsed = parseS3Url(candidate);
-		if (parsed) return parsed;
+		if (parsed) {
+			return parsed;
+		}
 	}
 
 	// Last resort: try to parse key from an http(s) URL path for re-signing.
 	for (const candidate of candidates) {
-		if (!isHttpUrl(candidate)) continue;
+		if (!isHttpUrl(candidate)) {
+			continue;
+		}
 		try {
 			const url = new URL(candidate);
 			const key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
@@ -155,7 +179,9 @@ function resolveObjectRef(
 
 function createRecordingsS3Client() {
 	const cfg = getEgressS3Config();
-	if (!cfg) return null;
+	if (!cfg) {
+		return null;
+	}
 
 	return new S3Client({
 		region: cfg.region,

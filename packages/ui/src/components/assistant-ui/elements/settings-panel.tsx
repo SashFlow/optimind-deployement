@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { field, mono, paper } from "./surfaces";
 import { clamp } from "../utils/range";
+import { field, mono, paper } from "./surfaces";
 
 export interface SettingToggle {
 	key: string;

@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { ghostButton, mono } from "./surfaces";
 
@@ -23,11 +23,15 @@ export function MessageBranches({
 	const hasNavigation = variants.length > 1;
 
 	const goPrevious = () => {
-		if (!hasNavigation) return;
+		if (!hasNavigation) {
+			return;
+		}
 		onIndexChange(index === 0 ? variants.length - 1 : index - 1);
 	};
 	const goNext = () => {
-		if (!hasNavigation) return;
+		if (!hasNavigation) {
+			return;
+		}
 		onIndexChange(index === variants.length - 1 ? 0 : index + 1);
 	};
 

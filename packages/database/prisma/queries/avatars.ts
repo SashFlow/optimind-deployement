@@ -1,5 +1,5 @@
-import type { Prisma } from "../generated/client";
 import { db } from "../client";
+import type { Prisma } from "../generated/client";
 
 export async function listAvatarProfiles(organizationId: string) {
 	return db.avatarProfile.findMany({

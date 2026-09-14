@@ -1,13 +1,13 @@
 "use client";
 
 import {
+	type ComponentProps,
+	type CSSProperties,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
 	useSyncExternalStore,
-	type ComponentProps,
-	type CSSProperties,
 } from "react";
 import { cn } from "../utils";
 
@@ -32,7 +32,9 @@ const readSupportsRoll = () =>
 		));
 
 const registerRollProperty = () => {
-	if (rollPropertyRegistered) return;
+	if (rollPropertyRegistered) {
+		return;
+	}
 	rollPropertyRegistered = true;
 	try {
 		CSS.registerProperty({
@@ -79,7 +81,9 @@ const toParts = (
 		| { kind: "symbol"; type: string; value: string };
 
 	const atoms: Atom[] = [];
-	if (prefix) atoms.push({ kind: "symbol", type: "prefix", value: prefix });
+	if (prefix) {
+		atoms.push({ kind: "symbol", type: "prefix", value: prefix });
+	}
 	for (const part of formatter.formatToParts(value)) {
 		if (part.type === "integer" || part.type === "fraction") {
 			for (const char of part.value) {
@@ -104,7 +108,9 @@ const toParts = (
 			atoms.push({ kind: "symbol", type, value: part.value });
 		}
 	}
-	if (suffix) atoms.push({ kind: "symbol", type: "suffix", value: suffix });
+	if (suffix) {
+		atoms.push({ kind: "symbol", type: "suffix", value: suffix });
+	}
 
 	const counts = new Map<string, number>();
 	const nextKey = (type: string) => {
@@ -116,7 +122,10 @@ const toParts = (
 	/* Integer digits and group separators are keyed right to left so the ones digit is always int:0. When the digit count changes (999 -> 1,000), the surviving places keep their identity and only the new leading parts enter, instead of every column being re-assigned a new meaning. */
 	const parts: Part[] = new Array(atoms.length);
 	for (let i = atoms.length - 1; i >= 0; i--) {
-		const atom = atoms[i]!;
+		const atom = atoms[i];
+		if (!atom) {
+			continue;
+		}
 		if (atom.kind === "integer") {
 			parts[i] = {
 				type: "digit",
@@ -132,7 +141,10 @@ const toParts = (
 		}
 	}
 	for (let i = 0; i < atoms.length; i++) {
-		const atom = atoms[i]!;
+		const atom = atoms[i];
+		if (!atom) {
+			continue;
+		}
 		if (atom.kind === "fraction") {
 			parts[i] = {
 				type: "digit",
@@ -156,8 +168,12 @@ const merge = (prev: RenderedPart[], next: Part[]): RenderedPart[] => {
 	const out: RenderedPart[] = [];
 	let i = 0;
 	const emitExited = (until: string | undefined) => {
-		while (i < prev.length && prev[i]!.key !== until) {
-			const old = prev[i++]!;
+		while (i < prev.length && prev[i]?.key !== until) {
+			const old = prev[i];
+			i++;
+			if (!old) {
+				continue;
+			}
 			if (!nextKeys.has(old.key)) {
 				out.push(old.exiting ? old : { ...old, exiting: true });
 			}
@@ -178,8 +194,12 @@ const merge = (prev: RenderedPart[], next: Part[]): RenderedPart[] => {
 
 const rollDelta = (from: number, to: number, dir: number) => {
 	const up = (((to - from) % 10) + 10) % 10;
-	if (dir > 0) return up;
-	if (dir < 0) return up - 10;
+	if (dir > 0) {
+		return up;
+	}
+	if (dir < 0) {
+		return up - 10;
+	}
 	return up > 5 ? up - 10 : up;
 };
 
@@ -290,7 +310,9 @@ function NumberRoll({
 	);
 
 	useEffect(() => {
-		if (enhanced) registerRollProperty();
+		if (enhanced) {
+			registerRollProperty();
+		}
 	}, [enhanced]);
 
 	const formatter = getFormatter(locales, format);
@@ -328,7 +350,9 @@ function NumberRoll({
 		const timers = exitTimers.current;
 		if (lastDuration.current !== duration) {
 			lastDuration.current = duration;
-			for (const timer of timers.values()) clearTimeout(timer);
+			for (const timer of timers.values()) {
+				clearTimeout(timer);
+			}
 			timers.clear();
 		}
 		const exiting = new Set(
@@ -343,7 +367,9 @@ function NumberRoll({
 			}
 		}
 		for (const key of exiting) {
-			if (timers.has(key)) continue;
+			if (timers.has(key)) {
+				continue;
+			}
 			timers.set(
 				key,
 				setTimeout(() => {
@@ -361,7 +387,9 @@ function NumberRoll({
 	useEffect(() => {
 		const timers = exitTimers.current;
 		return () => {
-			for (const timer of timers.values()) clearTimeout(timer);
+			for (const timer of timers.values()) {
+				clearTimeout(timer);
+			}
 			timers.clear();
 		};
 	}, []);

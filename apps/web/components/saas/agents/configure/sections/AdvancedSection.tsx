@@ -3,6 +3,7 @@
 import { Button } from "@repo/ui/button";
 import { PlusIcon } from "lucide-react";
 import { type ReactNode, useRef } from "react";
+import { ConfigureSectionToggle } from "@/components/saas/agents/configure/ConfigureSectionToggle";
 import {
 	DataCollectionFieldsEditor,
 	type DataCollectionFieldsEditorHandle,
@@ -12,7 +13,6 @@ import {
 	VariablesEditor,
 	type VariablesEditorHandle,
 } from "@/components/saas/agents/configure/VariablesEditor";
-import { ConfigureSectionToggle } from "@/components/saas/agents/configure/ConfigureSectionToggle";
 import {
 	KeyValueEditor,
 	type KeyValueEditorHandle,

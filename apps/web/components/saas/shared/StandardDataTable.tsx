@@ -12,14 +12,14 @@ import {
 } from "@repo/ui/table";
 import { cn } from "@repo/ui/utils";
 import {
+	type ColumnDef,
 	flexRender,
 	getCoreRowModel,
 	getPaginationRowModel,
 	getSortedRowModel,
-	useReactTable,
-	type ColumnDef,
 	type RowSelectionState,
 	type SortingState,
+	useReactTable,
 } from "@tanstack/react-table";
 import {
 	ChevronLeftIcon,
@@ -27,7 +27,7 @@ import {
 	ChevronsLeftIcon,
 	ChevronsRightIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 export type DataTableBulkBarContext<TData> = {
 	selectedRows: TData[];
@@ -115,7 +115,9 @@ export function StandardDataTable<TData, TValue = unknown>({
 	});
 
 	const tableColumns = useMemo(() => {
-		if (!enableRowSelection) return columns;
+		if (!enableRowSelection) {
+			return columns;
+		}
 		return [createSelectionColumn<TData>(), ...columns] as ColumnDef<
 			TData,
 			TValue

@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { mono, paper } from "./surfaces";
 import { announced, pct } from "../utils/range";
+import { mono, paper } from "./surfaces";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 
@@ -54,7 +54,9 @@ export function ContextBreakdown({
 			<div className="bg-foreground/[0.06] flex h-2 w-full overflow-hidden rounded-full">
 				{segments.map((segment) => {
 					const width = share(segment.tokens);
-					if (announced(width) === 0) return null;
+					if (announced(width) === 0) {
+						return null;
+					}
 					return (
 						<meter
 							key={segment.label}

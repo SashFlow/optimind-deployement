@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@repo/ui/utils";
-import { SearchIcon, PauseIcon, PlayIcon } from "lucide-react";
+import { PauseIcon, PlayIcon, SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Drop your demo mix at this path (wav/mp3). Timeline still animates without it. */

@@ -1,5 +1,7 @@
 "use client";
 
+import { useAppHeader } from "@components/shared/app-header-provider";
+import { TabViewTransition } from "@components/shared/view-transition";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -17,13 +19,11 @@ import {
 } from "@repo/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
-import { useAppHeader } from "@components/shared/app-header-provider";
-import { TabViewTransition } from "@components/shared/view-transition";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type PropsWithChildren } from "react";
+import { type PropsWithChildren, useEffect } from "react";
 
 const TABS = [
 	{

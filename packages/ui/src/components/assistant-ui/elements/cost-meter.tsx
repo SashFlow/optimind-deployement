@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { mono, paper } from "./surfaces";
 import { announced, pct } from "../utils/range";
+import { mono, paper } from "./surfaces";
 
 export interface CostLine {
 	model: string;
@@ -55,7 +55,9 @@ export function CostMeter({
 			<div className="bg-foreground/[0.06] flex h-1.5 w-full overflow-hidden rounded-full">
 				{lines.map((line, i) => {
 					const width = pct(line.share, 1);
-					if (announced(width) === 0) return null;
+					if (announced(width) === 0) {
+						return null;
+					}
 					return (
 						<meter
 							key={line.model}

@@ -40,7 +40,9 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function computeDeltaPct(values: number[]): number | null {
-	if (values.length < 4) return null;
+	if (values.length < 4) {
+		return null;
+	}
 	const mid = Math.floor(values.length / 2);
 	const first = values.slice(0, mid);
 	const second = values.slice(mid);
@@ -48,7 +50,9 @@ export function computeDeltaPct(values: number[]): number | null {
 		arr.reduce((sum, n) => sum + n, 0) / Math.max(arr.length, 1);
 	const a = avg(first);
 	const b = avg(second);
-	if (a === 0) return b === 0 ? 0 : 100;
+	if (a === 0) {
+		return b === 0 ? 0 : 100;
+	}
 	return ((b - a) / Math.abs(a)) * 100;
 }
 
@@ -340,7 +344,11 @@ export function StatCard({
 	donutCaption?: string;
 	className?: string;
 }) {
-	const showDelta = typeof deltaPct === "number" && Number.isFinite(deltaPct);
+	const delta =
+		typeof deltaPct === "number" && Number.isFinite(deltaPct)
+			? deltaPct
+			: null;
+	const showDelta = delta !== null;
 	const gradientId = `stat-spark-${title.replace(/\s+/g, "-").toLowerCase()}`;
 	const points = sparkline ?? [];
 	const isFullBleedChart =
@@ -383,7 +391,7 @@ export function StatCard({
 					</div>
 					{showDelta ? (
 						<span className="pb-1 text-sm font-medium tabular-nums text-muted-foreground">
-							{formatDelta(deltaPct!)}
+							{formatDelta(delta)}
 						</span>
 					) : null}
 				</div>

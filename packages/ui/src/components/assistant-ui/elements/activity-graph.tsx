@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import * as HeatGraph from "heat-graph";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { mono, paper } from "./surfaces";
 

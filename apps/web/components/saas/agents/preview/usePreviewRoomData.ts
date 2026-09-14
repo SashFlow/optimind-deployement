@@ -59,13 +59,25 @@ const RPC_METHODS = [
 ] as const;
 
 function guessMime(name: string, mimeType?: string) {
-	if (mimeType) return mimeType;
+	if (mimeType) {
+		return mimeType;
+	}
 	const lower = name.toLowerCase();
-	if (lower.endsWith(".png")) return "image/png";
-	if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-	if (lower.endsWith(".webp")) return "image/webp";
-	if (lower.endsWith(".gif")) return "image/gif";
-	if (lower.endsWith(".pdf")) return "application/pdf";
+	if (lower.endsWith(".png")) {
+		return "image/png";
+	}
+	if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+		return "image/jpeg";
+	}
+	if (lower.endsWith(".webp")) {
+		return "image/webp";
+	}
+	if (lower.endsWith(".gif")) {
+		return "image/gif";
+	}
+	if (lower.endsWith(".pdf")) {
+		return "application/pdf";
+	}
 	return "application/octet-stream";
 }
 
@@ -74,7 +86,9 @@ function normalizeRpcCard(
 	payload: Record<string, unknown>,
 ): PreviewRpcCard | null {
 	const action = typeof payload.action === "string" ? payload.action : "";
-	if (action === "clear") return null;
+	if (action === "clear") {
+		return null;
+	}
 
 	if (payload.widget && typeof payload.widget === "object") {
 		const widget = payload.widget as Record<string, unknown>;
@@ -165,7 +179,9 @@ function useAgentTextStreams(agentName: string, agentId: string) {
 			) => {
 				try {
 					const text = await reader.readAll();
-					if (!text.trim()) return;
+					if (!text.trim()) {
+						return;
+					}
 					setItems((prev) => {
 						const next = prev.filter(
 							(item) => item.id !== reader.info.id,
@@ -288,7 +304,9 @@ export function usePreviewRoomData(agentName: string, agentId: string) {
 			for (const topic of BYTE_STREAM_TOPICS) {
 				room.unregisterByteStreamHandler(topic);
 			}
-			for (const url of objectUrls) URL.revokeObjectURL(url);
+			for (const url of objectUrls) {
+				URL.revokeObjectURL(url);
+			}
 		};
 	}, [room]);
 
@@ -308,7 +326,9 @@ export function usePreviewRoomData(agentName: string, agentId: string) {
 						return "";
 					}
 					const card = normalizeRpcCard(method, payload);
-					if (!card) return "";
+					if (!card) {
+						return "";
+					}
 					setRpcCards((prev) => {
 						const without = prev.filter(
 							(item) => item.id !== card.id,

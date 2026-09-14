@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { PreviewCard } from "@base-ui/react/preview-card";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { floating, mono } from "./surfaces";
 

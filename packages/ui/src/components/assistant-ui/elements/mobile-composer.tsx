@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { ArrowUpIcon, MicIcon, PlusIcon, SquareIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { field, ghostButton, inkButton, mono } from "./surfaces";
 
@@ -101,10 +101,16 @@ export function MobileComposer({
 						}
 						onFocus={onFocus}
 						onKeyDown={(event) => {
-							if (event.key !== "Enter" || event.shiftKey) return;
-							if (event.nativeEvent.isComposing) return;
+							if (event.key !== "Enter" || event.shiftKey) {
+								return;
+							}
+							if (event.nativeEvent.isComposing) {
+								return;
+							}
 							event.preventDefault();
-							if (!running && value !== "") onSend?.();
+							if (!running && value !== "") {
+								onSend?.();
+							}
 						}}
 						placeholder="Message"
 						aria-label="Message"

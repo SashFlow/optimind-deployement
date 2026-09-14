@@ -27,11 +27,11 @@ import {
 	createSipParticipant,
 	deleteSipDispatchRule,
 	deleteSipTrunk,
+	getEgressS3Config,
 	getLiveKitConfig,
+	recordingFilepath,
 	startRoomCompositeEgress,
 	stopEgress,
-	getEgressS3Config,
-	recordingFilepath,
 } from "@repo/livekit";
 import {
 	assignNumberToTrunk,
@@ -107,7 +107,9 @@ export const assignNumber = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const existing = await getPhoneNumberById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const phoneNumber = await upsertPhoneNumber({
 			organizationId: existing.organizationId,
@@ -322,7 +324,9 @@ export const createDispatch = protectedProcedure
 		let trunkIds: string[] | undefined;
 		if (input.sipTrunkId) {
 			const trunk = await getSipTrunkById(input.sipTrunkId);
-			if (trunk?.livekitTrunkId) trunkIds = [trunk.livekitTrunkId];
+			if (trunk?.livekitTrunkId) {
+				trunkIds = [trunk.livekitTrunkId];
+			}
 		}
 
 		const remote = await createSipDispatchRule({
@@ -384,7 +388,9 @@ export const deleteRule = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const rule = await getDispatchRuleById(input.id);
-		if (!rule) throw new ORPCError("NOT_FOUND");
+		if (!rule) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(rule.organizationId, context.user.id);
 		if (rule.livekitDispatchRuleId) {
 			await deleteSipDispatchRule(rule.livekitDispatchRuleId);
@@ -594,7 +600,9 @@ export const stopEgressJob = protectedProcedure
 	.input(z.object({ id: z.string(), livekitEgressId: z.string() }))
 	.handler(async ({ input, context }) => {
 		const existing = await getEgressJobById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const remote = await stopEgress(input.livekitEgressId);
 		const job = await updateEgressJob(input.id, { status: "COMPLETE" });
@@ -624,7 +632,9 @@ export const deleteTrunk = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const trunk = await getSipTrunkById(input.id);
-		if (!trunk) throw new ORPCError("NOT_FOUND");
+		if (!trunk) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(trunk.organizationId, context.user.id);
 		if (trunk.livekitTrunkId) {
 			await deleteSipTrunk(trunk.livekitTrunkId);

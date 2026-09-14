@@ -44,7 +44,9 @@ export function buildS3Upload(
 	config?: EgressS3Config | null,
 ): S3Upload | undefined {
 	const cfg = config === undefined ? getEgressS3Config() : config;
-	if (!cfg) return undefined;
+	if (!cfg) {
+		return undefined;
+	}
 
 	return new S3Upload({
 		accessKey: cfg.accessKey,

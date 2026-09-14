@@ -102,6 +102,7 @@ function UseCaseVideoPlayer({
 					className="group absolute inset-0 cursor-pointer"
 				>
 					{/* eslint-disable-next-line @next/next/no-img-element -- YouTube CDN thumbnail */}
+					{/* biome-ignore lint/performance/noImgElement: YouTube CDN thumbnail */}
 					<img
 						src={`https://i.ytimg.com/vi/${youtubeId}/maxresdefault.jpg`}
 						alt=""
@@ -124,7 +125,9 @@ const Solutions = () => {
 	const youtubeId = active?.youtubeId || FALLBACK_YOUTUBE_ID;
 
 	useEffect(() => {
-		if (paused || useCases.length < 2) return;
+		if (paused || useCases.length < 2) {
+			return;
+		}
 
 		const timer = window.setInterval(() => {
 			setActiveIndex((index) => (index + 1) % useCases.length);

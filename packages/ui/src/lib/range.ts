@@ -1,5 +1,7 @@
 export function clamp(value: number, min: number, max: number) {
-	if (Number.isNaN(value)) return min;
+	if (Number.isNaN(value)) {
+		return min;
+	}
 	return Math.min(max, Math.max(min, value));
 }
 
@@ -15,13 +17,17 @@ export function indexIn<T>(items: readonly T[], index: number) {
 
 /** The item at `index`, for an `index` that may be out of range. */
 export function at<T>(items: readonly T[], index: number) {
-	if (items.length === 0) return undefined;
+	if (items.length === 0) {
+		return undefined;
+	}
 	return items[indexIn(items, index)];
 }
 
 /** `value` as a share of `total`, as a percentage in `0…100`. */
 export function pct(value: number, total: number) {
-	if (!(total > 0)) return 0;
+	if (!(total > 0)) {
+		return 0;
+	}
 	return clamp((value / total) * 100, 0, 100);
 }
 
@@ -36,6 +42,8 @@ export function announced(share: number) {
 
 /** A count of completed items out of `total`, in `0…total`. */
 export function progressOf(index: number, total: number) {
-	if (!(total > 0)) return 0;
+	if (!(total > 0)) {
+		return 0;
+	}
 	return Math.floor(clamp(index, 0, total));
 }

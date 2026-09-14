@@ -8,10 +8,10 @@ import { useIsClient } from "usehooks-ts";
 
 export function ColorModeToggle() {
 	const { resolvedTheme, setTheme, theme } = useTheme();
-	const [value, setValue] = useState<string>(theme ?? "system");
+	const [_value, setValue] = useState<string>(theme ?? "system");
 	const isClient = useIsClient();
 
-	const colorModeOptions = [
+	const _colorModeOptions = [
 		{
 			value: "light",
 			label: "Light",

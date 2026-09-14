@@ -8,9 +8,9 @@ import {
 	postEvent,
 	postReport,
 	postToolCall,
-	startTrialSession,
 	startEgressInternal,
 	startSessionEgress,
+	startTrialSession,
 } from "./procedures";
 
 export const sessionsRouter = {

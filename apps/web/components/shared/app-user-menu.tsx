@@ -25,13 +25,19 @@ function getInitials(name: string, email: string) {
 		.join("")
 		.slice(0, 2)
 		.toUpperCase();
-	if (fromName) return fromName;
+	if (fromName) {
+		return fromName;
+	}
 	return email.trim().slice(0, 2).toUpperCase() || "?";
 }
 
 function formatRole(role?: string | null) {
-	if (!role) return "Member";
-	if (role === "admin") return "Admin";
+	if (!role) {
+		return "Member";
+	}
+	if (role === "admin") {
+		return "Admin";
+	}
 	return role.charAt(0).toUpperCase() + role.slice(1);
 }
 

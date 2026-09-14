@@ -1,10 +1,10 @@
+import { db } from "../client";
 import type {
 	EgressJobStatus,
 	EgressJobType,
 	Prisma,
 	SipTrunkDirection,
 } from "../generated/client";
-import { db } from "../client";
 
 export async function listPhoneNumbers(organizationId: string) {
 	return db.phoneNumber.findMany({

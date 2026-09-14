@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import {
-	attachKnowledgeBaseToCampaign,
 	aggregateCampaignAnalytics,
+	attachKnowledgeBaseToCampaign,
 	createCampaign,
 	createCampaignAccessLink,
 	createCampaignContact,
@@ -11,8 +11,8 @@ import {
 	getCampaignContactById,
 	getRecallContext,
 	listCampaignContacts,
-	listCampaigns,
 	listCampaignSessions,
+	listCampaigns,
 	listQueuedContacts,
 	pauseCampaignContact,
 	rescheduleCampaignContact,
@@ -27,7 +27,9 @@ import { requireOrgMembership } from "../shared/require-org-membership";
 
 async function requireCampaign(id: string, userId: string) {
 	const campaign = await getCampaignById(id);
-	if (!campaign) throw new ORPCError("NOT_FOUND");
+	if (!campaign) {
+		throw new ORPCError("NOT_FOUND");
+	}
 	await requireOrgMembership(campaign.organizationId, userId);
 	return campaign;
 }
@@ -296,7 +298,9 @@ export const pauseContact = protectedProcedure
 	.input(z.object({ contactId: z.string() }))
 	.handler(async ({ input, context }) => {
 		const existing = await getCampaignContactById(input.contactId);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		return { contact: await pauseCampaignContact(input.contactId) };
 	});
@@ -316,7 +320,9 @@ export const rescheduleContact = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const existing = await getCampaignContactById(input.contactId);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const contact = await rescheduleCampaignContact(
 			input.contactId,
@@ -340,7 +346,9 @@ export const recallContext = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const data = await getRecallContext(input.contactId, input.limit);
-		if (!data) throw new ORPCError("NOT_FOUND");
+		if (!data) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(
 			data.contact.organizationId,
 			context.user.id,
@@ -453,11 +461,9 @@ export const updateSession = protectedProcedure
 			messages: messages as object | undefined,
 		});
 		await requireOrgMembership(session.organizationId, context.user.id);
-		if (memorySummary && (contactId || session.contactId)) {
-			await updateContactMemory(
-				contactId ?? session.contactId!,
-				memorySummary,
-			);
+		const resolvedContactId = contactId ?? session.contactId;
+		if (memorySummary && resolvedContactId) {
+			await updateContactMemory(resolvedContactId, memorySummary);
 		}
 		return { session };
 	});
@@ -551,6 +557,8 @@ export const analytics = protectedProcedure
 			organizationId: campaign.organizationId,
 			campaignId: campaign.id,
 		});
-		if (!analytics) throw new ORPCError("NOT_FOUND");
+		if (!analytics) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		return { analytics };
 	});

@@ -3,7 +3,7 @@
 import { Input } from "@repo/ui/input";
 import { cn } from "@repo/ui/utils";
 import { Eye, EyeOff } from "lucide-react";
-import { useState, type ComponentProps } from "react";
+import { type ComponentProps, useState } from "react";
 import { authInputClassName } from "./AuthCard";
 
 export function AuthPasswordInput({

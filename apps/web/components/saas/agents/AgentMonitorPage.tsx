@@ -4,15 +4,15 @@ import { Button } from "@repo/ui/button";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
+import { AgentActiveSessions } from "@/components/saas/agents/AgentActiveSessions";
 import {
 	AgentMonitorBody,
 	type AgentMonitorServerStats,
 } from "@/components/saas/agents/AgentMonitorStats";
-import { AgentActiveSessions } from "@/components/saas/agents/AgentActiveSessions";
 import { useAgentSessionsQuery } from "@/components/saas/agents/lib/hooks";
 import {
-	computeAgentStats,
 	type AgentStats,
+	computeAgentStats,
 } from "@/components/saas/agents/lib/types";
 import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
 import { useAgentServerStatsQuery } from "@/services/api/hooks";

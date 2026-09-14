@@ -1,5 +1,6 @@
 "use client";
 
+import { TabViewTransition } from "@components/shared/view-transition";
 import {
 	Select,
 	SelectContent,
@@ -9,7 +10,6 @@ import {
 } from "@repo/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
-import { TabViewTransition } from "@components/shared/view-transition";
 import {
 	Building2Icon,
 	ClipboardListIcon,
@@ -69,7 +69,9 @@ export function AdminSettingsNav({ children }: PropsWithChildren) {
 
 	function navigateToTab(value: string) {
 		const next = TABS.find((tab) => tab.value === value);
-		if (next) router.push(next.href);
+		if (next) {
+			router.push(next.href);
+		}
 	}
 
 	return (

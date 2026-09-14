@@ -1,19 +1,19 @@
 import { ORPCError } from "@orpc/client";
 import {
 	attachKnowledgeBaseToAgent,
+	createAgent,
 	createAgentTrial,
 	deleteAgentTrial,
-	createAgent,
 	detachKnowledgeBaseFromAgent,
 	getAgentById,
 	getAgentTrialById,
-	listAgentTrials,
 	listAgents,
+	listAgentTrials,
 	publishAgentVersion,
 	syncAgentKnowledgeBases,
-	updateAgentTrial,
 	updateAgent,
 	updateAgentDraftConfig,
+	updateAgentTrial,
 } from "@repo/database";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
@@ -45,7 +45,9 @@ export const get = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const agent = await getAgentById(input.id);
-		if (!agent) throw new ORPCError("NOT_FOUND");
+		if (!agent) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(agent.organizationId, context.user.id);
 		return { agent };
 	});
@@ -107,7 +109,9 @@ export const update = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const existing = await getAgentById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const { id, ...data } = input;
 		const agent = await updateAgent(id, data);
@@ -149,7 +153,9 @@ export const updateConfig = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const existing = await getAgentById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const version = await updateAgentDraftConfig(
 			input.id,
@@ -191,7 +197,9 @@ export const publish = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const existing = await getAgentById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const agent = await publishAgentVersion(input.id);
 		await recordAudit({
@@ -228,7 +236,9 @@ export const attachKnowledgeBase = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const existing = await getAgentById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const link = await attachKnowledgeBaseToAgent(
 			input.id,
@@ -261,7 +271,9 @@ export const detachKnowledgeBase = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const existing = await getAgentById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		await detachKnowledgeBaseFromAgent(input.id, input.knowledgeBaseId);
 		await recordAudit({
@@ -292,7 +304,9 @@ export const listTrialLinks = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const agent = await getAgentById(input.id);
-		if (!agent) throw new ORPCError("NOT_FOUND");
+		if (!agent) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(agent.organizationId, context.user.id);
 		const trials = await listAgentTrials(agent.id);
 		return { trials };
@@ -308,7 +322,9 @@ export const createTrialLink = protectedProcedure
 	.input(z.object({ id: z.string() }).merge(trialLinkInputSchema))
 	.handler(async ({ input, context }) => {
 		const agent = await getAgentById(input.id);
-		if (!agent) throw new ORPCError("NOT_FOUND");
+		if (!agent) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(agent.organizationId, context.user.id);
 
 		const trial = await createAgentTrial({
@@ -353,12 +369,15 @@ export const updateTrialLink = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const agent = await getAgentById(input.id);
-		if (!agent) throw new ORPCError("NOT_FOUND");
+		if (!agent) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(agent.organizationId, context.user.id);
 
 		const trial = await getAgentTrialById(input.trialId);
-		if (!trial || trial.agentId !== agent.id)
+		if (!trial || trial.agentId !== agent.id) {
 			throw new ORPCError("NOT_FOUND");
+		}
 
 		const updated = await updateAgentTrial(trial.id, {
 			label: input.label?.trim(),
@@ -404,12 +423,15 @@ export const deleteTrialLink = protectedProcedure
 	.input(z.object({ id: z.string(), trialId: z.string() }))
 	.handler(async ({ input, context }) => {
 		const agent = await getAgentById(input.id);
-		if (!agent) throw new ORPCError("NOT_FOUND");
+		if (!agent) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(agent.organizationId, context.user.id);
 
 		const trial = await getAgentTrialById(input.trialId);
-		if (!trial || trial.agentId !== agent.id)
+		if (!trial || trial.agentId !== agent.id) {
 			throw new ORPCError("NOT_FOUND");
+		}
 		await deleteAgentTrial(trial.id);
 		await recordAudit({
 			headers: context.headers,
@@ -441,7 +463,9 @@ export const stats = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const agent = await getAgentById(input.id);
-		if (!agent) throw new ORPCError("NOT_FOUND");
+		if (!agent) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(agent.organizationId, context.user.id);
 
 		const since = new Date();

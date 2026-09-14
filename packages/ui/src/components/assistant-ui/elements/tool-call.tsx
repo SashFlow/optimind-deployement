@@ -54,7 +54,7 @@ export function ToolCall({
 					>
 						{activeLabel}
 					</ShimmerLabel>
-					<>{label}</>
+					{label}
 				</SwapLabel>
 				<span
 					className={cn(

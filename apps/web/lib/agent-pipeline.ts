@@ -23,8 +23,12 @@ export function realtimeUsesExternalTts(
 	config: AgentConfigDocument,
 	realtimeModel?: ProviderModel | null,
 ): boolean {
-	if (!isRealtimePipeline(config)) return false;
-	if (!modelSupportsTextOutput(realtimeModel)) return false;
+	if (!isRealtimePipeline(config)) {
+		return false;
+	}
+	if (!modelSupportsTextOutput(realtimeModel)) {
+		return false;
+	}
 	return (config.realtime?.output_modality ?? "audio") === "text";
 }
 

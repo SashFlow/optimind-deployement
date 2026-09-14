@@ -10,7 +10,9 @@ import { requireOrgMembership } from "../shared/require-org-membership";
 let s3Client: S3Client | null = null;
 
 function getS3Client() {
-	if (s3Client) return s3Client;
+	if (s3Client) {
+		return s3Client;
+	}
 	const endpoint = process.env.S3_ENDPOINT;
 	const accessKeyId = process.env.S3_ACCESS_KEY_ID;
 	const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;

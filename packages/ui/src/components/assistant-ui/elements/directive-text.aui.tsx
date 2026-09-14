@@ -1,12 +1,14 @@
 "use client";
 
-import { memo } from "react";
-import type { TextMessagePartComponent } from "@assistant-ui/react";
-import type { Unstable_DirectiveFormatter } from "@assistant-ui/react";
+import type {
+	TextMessagePartComponent,
+	Unstable_DirectiveFormatter,
+} from "@assistant-ui/react";
 import { unstable_defaultDirectiveFormatter } from "@assistant-ui/react";
+import { memo } from "react";
 import {
-	createDirectiveText as createDirectiveTextBase,
 	type CreateDirectiveTextOptions,
+	createDirectiveText as createDirectiveTextBase,
 } from "./directive-text";
 
 export type {

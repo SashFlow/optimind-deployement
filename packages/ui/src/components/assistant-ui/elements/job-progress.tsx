@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { CheckIcon, Loader2Icon, XIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { ghostButton, mono, paper } from "./surfaces";
 import { announced, clamp, pct, progressOf, take } from "../utils/range";
+import { ghostButton, mono, paper } from "./surfaces";
 
 export interface JobStage {
 	name: string;

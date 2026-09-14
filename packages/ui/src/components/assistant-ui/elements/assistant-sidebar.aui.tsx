@@ -1,9 +1,9 @@
+import type { FC, PropsWithChildren } from "react";
 import {
 	ResizableHandle,
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "../../../shadcn/resizable";
-import type { FC, PropsWithChildren } from "react";
 
 import { Thread } from "./thread.aui";
 

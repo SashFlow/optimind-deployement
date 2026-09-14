@@ -1,9 +1,9 @@
 "use client";
 
-import { HeroDemo } from "@/components/marketing/home/hero-demo";
 import { Button } from "@repo/ui/button";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { HeroDemo } from "@/components/marketing/home/hero-demo";
 
 export const Hero = () => {
 	const router = useRouter();

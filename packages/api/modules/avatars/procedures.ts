@@ -68,7 +68,9 @@ export const update = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const existing = await getAvatarProfileById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		const { id, ...data } = input;
 		return { avatar: await updateAvatarProfile(id, data) };
@@ -84,7 +86,9 @@ export const remove = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const existing = await getAvatarProfileById(input.id);
-		if (!existing) throw new ORPCError("NOT_FOUND");
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
 		await deleteAvatarProfile(input.id);
 		return { success: true };
@@ -114,7 +118,9 @@ export const mintSessionToken = protectedProcedure
 
 		if (input.avatarProfileId) {
 			const profile = await getAvatarProfileById(input.avatarProfileId);
-			if (!profile) throw new ORPCError("NOT_FOUND");
+			if (!profile) {
+				throw new ORPCError("NOT_FOUND");
+			}
 			if (profile.anamPersonaId) {
 				const token = await createSessionToken({
 					personaConfig: { personaId: profile.anamPersonaId },

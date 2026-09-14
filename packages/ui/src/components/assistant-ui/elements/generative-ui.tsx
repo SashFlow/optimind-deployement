@@ -1,11 +1,14 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import type { GenerativeUILibrary } from "@assistant-ui/react-generative-ui";
 import { defaultGenerativeUILibrary } from "@assistant-ui/react-generative-ui";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-const markdownBase = defaultGenerativeUILibrary.Markdown!;
+const markdownBase = defaultGenerativeUILibrary.Markdown;
+if (!markdownBase) {
+	throw new Error("defaultGenerativeUILibrary.Markdown is missing");
+}
 
 /** `MarkdownTextPrimitive` cannot be reused here: it reads from message-part context, not a prop string. */
 export const styledGenerativeUILibrary: GenerativeUILibrary = {

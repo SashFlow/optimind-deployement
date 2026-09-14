@@ -13,8 +13,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
-import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { DataTable } from "@/components/saas/shared/StandardDataTable";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
 import type { AuditLogRow } from "@/types/admin";
@@ -206,7 +206,9 @@ export default function AuditLogsPageContent() {
 			<Select
 				value={action}
 				onValueChange={(value) => {
-					if (value) setAction(value as ActionFilter);
+					if (value) {
+						setAction(value as ActionFilter);
+					}
 				}}
 			>
 				<SelectTrigger id="action" className="h-9 w-[9.5rem] shrink-0">
@@ -223,7 +225,9 @@ export default function AuditLogsPageContent() {
 			<Select
 				value={resourceType}
 				onValueChange={(value) => {
-					if (value) setResourceType(value as ResourceTypeFilter);
+					if (value) {
+						setResourceType(value as ResourceTypeFilter);
+					}
 				}}
 			>
 				<SelectTrigger id="resource" className="h-9 w-52 shrink-0">

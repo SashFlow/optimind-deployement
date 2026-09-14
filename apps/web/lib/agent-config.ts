@@ -412,7 +412,9 @@ export function normalizeAgentConfig(
 	config: Record<string, unknown> | AgentConfigDocument | undefined,
 ): AgentConfigDocument {
 	const defaults = createDefaultAgentConfig();
-	if (!config) return defaults;
+	if (!config) {
+		return defaults;
+	}
 	const c = config as Partial<AgentConfigDocument> & {
 		prompts?: Partial<PromptSections> & { user_information?: string };
 	};
@@ -491,7 +493,13 @@ export function normalizeAgentConfig(
 		tools_by_phase: toolsByPhase,
 		knowledge_base_ids: c.knowledge_base_ids ?? defaults.knowledge_base_ids,
 		turn_detection: c.turn_detection
-			? { ...defaults.turn_detection!, ...c.turn_detection }
+			? {
+					...(defaults.turn_detection ?? {
+						mode: "vad" as const,
+						params: {},
+					}),
+					...c.turn_detection,
+				}
 			: defaults.turn_detection,
 		realtime: c.realtime
 			? { output_modality: "audio", ...c.realtime }

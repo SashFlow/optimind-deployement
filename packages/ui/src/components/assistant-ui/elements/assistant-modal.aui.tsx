@@ -1,9 +1,8 @@
 "use client";
 
-import { BotIcon, ChevronDownIcon } from "lucide-react";
-
-import { type FC, forwardRef } from "react";
 import { AssistantModalPrimitive } from "@assistant-ui/react";
+import { BotIcon, ChevronDownIcon } from "lucide-react";
+import { type FC, forwardRef } from "react";
 
 import { Thread } from "./thread.aui";
 import { TooltipIconButton } from "./tooltip-icon-button";

@@ -40,9 +40,9 @@ import {
 	DataTableBody,
 	DataTableHeaderRow,
 	DataTableShell,
+	dataTableRowClass,
 	IdentityCell,
 	StatusBadge,
-	dataTableRowClass,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";

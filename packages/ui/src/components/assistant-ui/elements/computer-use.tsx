@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { MousePointer2Icon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { field, mono, paper } from "./surfaces";
 import { at, indexIn } from "../utils/range";
+import { field, mono, paper } from "./surfaces";
 
 export interface ComputerStep {
 	id: string;

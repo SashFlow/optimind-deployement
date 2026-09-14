@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { CheckIcon, Loader2Icon, TerminalIcon, XIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { field, inkButton, paper } from "./surfaces";
 

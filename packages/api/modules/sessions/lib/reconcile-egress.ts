@@ -1,6 +1,6 @@
 import { EgressStatus } from "@livekit/protocol";
-import { listEgress, stopEgress } from "@repo/livekit";
 import { updateEgressJob } from "@repo/database";
+import { listEgress, stopEgress } from "@repo/livekit";
 import { logger } from "@repo/logs";
 
 export type EgressJobStatus =
@@ -39,7 +39,9 @@ function extractFileUrl(egressInfo: {
 	file?: { location?: string };
 	fileResults?: Array<{ location?: string }>;
 }): string | undefined {
-	if (egressInfo.file?.location) return egressInfo.file.location;
+	if (egressInfo.file?.location) {
+		return egressInfo.file.location;
+	}
 	const first = egressInfo.fileResults?.find((f) => f.location);
 	return first?.location;
 }
@@ -54,8 +56,12 @@ type EgressJobLike = {
 };
 
 export async function reconcileEgressJob(job: EgressJobLike) {
-	if (!OPEN_STATUSES.has(job.status)) return null;
-	if (!job.livekitEgressId && !job.roomName) return null;
+	if (!OPEN_STATUSES.has(job.status)) {
+		return null;
+	}
+	if (!job.livekitEgressId && !job.roomName) {
+		return null;
+	}
 
 	try {
 		const infos = await listEgress({
@@ -67,7 +73,9 @@ export async function reconcileEgressJob(job: EgressJobLike) {
 		const info = job.livekitEgressId
 			? infos.find((row) => row.egressId === job.livekitEgressId)
 			: infos[0];
-		if (!info) return null;
+		if (!info) {
+			return null;
+		}
 
 		const fileUrl =
 			extractFileUrl(info as never) ?? job.fileUrl ?? undefined;
@@ -97,7 +105,9 @@ export async function reconcileEgressJob(job: EgressJobLike) {
 
 export async function reconcileOpenEgressJobs(jobs: EgressJobLike[]) {
 	const open = jobs.filter((job) => OPEN_STATUSES.has(job.status));
-	if (open.length === 0) return jobs;
+	if (open.length === 0) {
+		return jobs;
+	}
 
 	await Promise.all(open.map((job) => reconcileEgressJob(job)));
 	return jobs;
@@ -107,7 +117,9 @@ export async function reconcileOpenEgressJobs(jobs: EgressJobLike[]) {
 export async function finalizeSessionEgressJobs(jobs: EgressJobLike[]) {
 	const open = jobs.filter((job) => OPEN_STATUSES.has(job.status));
 	for (const job of open) {
-		if (!job.livekitEgressId) continue;
+		if (!job.livekitEgressId) {
+			continue;
+		}
 		try {
 			await stopEgress(job.livekitEgressId);
 		} catch (error) {

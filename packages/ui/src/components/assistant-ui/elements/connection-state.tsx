@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { CheckIcon, CloudOffIcon, Loader2Icon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { mono, paper } from "./surfaces";
 
@@ -23,7 +23,9 @@ export function ConnectionState({
 	resumedTokens?: number;
 	onRetry?: () => void;
 }) {
-	if (phase === "online") return null;
+	if (phase === "online") {
+		return null;
+	}
 
 	return (
 		<div

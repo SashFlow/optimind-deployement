@@ -74,7 +74,9 @@ export function AgentNav({ agentId }: AgentNavProps) {
 
 	function navigateToTab(value: string | null) {
 		const next = tabs.find((tab) => tab.value === value);
-		if (next) router.push(next.href(agentId));
+		if (next) {
+			router.push(next.href(agentId));
+		}
 	}
 
 	return (

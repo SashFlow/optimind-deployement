@@ -5,8 +5,8 @@ import {
 	PutObjectCommand,
 	S3Client,
 } from "@aws-sdk/client-s3";
-import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 import { resolveTemplate, resolveValue } from "../lib/template";
+import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 
 type StorageOp = "read" | "write" | "list" | "delete";
 
@@ -32,7 +32,9 @@ function getS3ClientFromConfig(cfg: Record<string, unknown>) {
 async function streamToString(
 	body: { transformToString?: () => Promise<string> } | undefined,
 ): Promise<string> {
-	if (!body) return "";
+	if (!body) {
+		return "";
+	}
 	if (typeof body.transformToString === "function") {
 		return body.transformToString();
 	}
@@ -156,8 +158,9 @@ export async function handleStorageAzure(
 			process.env.AZURE_STORAGE_KEY ??
 			"",
 	);
-	if (!account || !container)
+	if (!account || !container) {
 		throw new Error("Azure storage requires accountName and container");
+	}
 
 	const base = `https://${account}.blob.core.windows.net/${container}/${encodeURIComponent(blob)}`;
 	const url = sasOrKey.startsWith("?")
@@ -186,7 +189,9 @@ export async function handleStorageAzure(
 			);
 		}
 		const res = await fetch(url, { method: "PUT", headers, body: content });
-		if (!res.ok) throw new Error(`Azure write failed: ${res.status}`);
+		if (!res.ok) {
+			throw new Error(`Azure write failed: ${res.status}`);
+		}
 		return {
 			kind: "success",
 			output: { operation: op, container, blob, bytes: content.length },
@@ -214,7 +219,9 @@ export async function handleStorageAzure(
 		}`;
 		const res = await fetch(listUrl);
 		const text = await res.text();
-		if (!res.ok) throw new Error(`Azure list failed: ${res.status}`);
+		if (!res.ok) {
+			throw new Error(`Azure list failed: ${res.status}`);
+		}
 		return {
 			kind: "success",
 			output: { operation: op, container, xml: text },
@@ -222,7 +229,9 @@ export async function handleStorageAzure(
 	}
 
 	const res = await fetch(url);
-	if (!res.ok) throw new Error(`Azure read failed: ${res.status}`);
+	if (!res.ok) {
+		throw new Error(`Azure read failed: ${res.status}`);
+	}
 	const content = await res.text();
 	return {
 		kind: "success",
@@ -256,10 +265,14 @@ export async function handleStorageGcp(
 	const accessToken = String(
 		cfg.accessToken ?? process.env.GCP_ACCESS_TOKEN ?? "",
 	);
-	if (!bucket) throw new Error("GCP storage requires bucket");
+	if (!bucket) {
+		throw new Error("GCP storage requires bucket");
+	}
 
 	const headers: Record<string, string> = {};
-	if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+	if (accessToken) {
+		headers.Authorization = `Bearer ${accessToken}`;
+	}
 
 	if (op === "list") {
 		const prefix = String(
@@ -268,7 +281,9 @@ export async function handleStorageGcp(
 		const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o?prefix=${encodeURIComponent(prefix)}`;
 		const res = await fetch(url, { headers });
 		const json = await res.json();
-		if (!res.ok) throw new Error(`GCS list failed: ${res.status}`);
+		if (!res.ok) {
+			throw new Error(`GCS list failed: ${res.status}`);
+		}
 		return {
 			kind: "success",
 			output: { operation: op, bucket, items: json.items ?? [] },
@@ -289,7 +304,9 @@ export async function handleStorageGcp(
 			},
 			body: content,
 		});
-		if (!res.ok) throw new Error(`GCS write failed: ${res.status}`);
+		if (!res.ok) {
+			throw new Error(`GCS write failed: ${res.status}`);
+		}
 		return {
 			kind: "success",
 			output: { operation: op, bucket, object, bytes: content.length },
@@ -310,7 +327,9 @@ export async function handleStorageGcp(
 
 	const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(object)}?alt=media`;
 	const res = await fetch(url, { headers });
-	if (!res.ok) throw new Error(`GCS read failed: ${res.status}`);
+	if (!res.ok) {
+		throw new Error(`GCS read failed: ${res.status}`);
+	}
 	const content = await res.text();
 	return {
 		kind: "success",

@@ -1,6 +1,47 @@
 "use client";
 
 import {
+	ActionBarMorePrimitive,
+	ActionBarPrimitive,
+	type AssistantState,
+	AuiIf,
+	BranchPickerPrimitive,
+	ComposerPrimitive,
+	ErrorPrimitive,
+	type FileMessagePartComponent,
+	groupPartByType,
+	type ImageMessagePartComponent,
+	MessagePrimitive,
+	SuggestionPrimitive,
+	ThreadPrimitive,
+	type ToolCallMessagePartComponent,
+	useAuiState,
+} from "@assistant-ui/react";
+import {
+	ArrowDownIcon,
+	ArrowUpIcon,
+	CheckIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	CopyIcon,
+	DownloadIcon,
+	MicIcon,
+	MoreHorizontalIcon,
+	PencilIcon,
+	RefreshCwIcon,
+	SquareIcon,
+} from "lucide-react";
+import {
+	type ComponentType,
+	createContext,
+	type FC,
+	type PropsWithChildren,
+	useContext,
+} from "react";
+import { Button } from "../../../shadcn/button";
+import { Skeleton } from "../../../shadcn/skeleton";
+import { cn } from "../../../utils";
+import {
 	ComposerAddAttachment,
 	ComposerAttachments,
 	UserMessageAttachments,
@@ -23,47 +64,6 @@ import {
 	ToolGroupTrigger,
 } from "./tool-group.aui";
 import { TooltipIconButton } from "./tooltip-icon-button";
-import { Button } from "../../../shadcn/button";
-import { Skeleton } from "../../../shadcn/skeleton";
-import { cn } from "../../../utils";
-import {
-	ActionBarMorePrimitive,
-	ActionBarPrimitive,
-	AuiIf,
-	type AssistantState,
-	BranchPickerPrimitive,
-	ComposerPrimitive,
-	ErrorPrimitive,
-	groupPartByType,
-	MessagePrimitive,
-	SuggestionPrimitive,
-	ThreadPrimitive,
-	type FileMessagePartComponent,
-	type ImageMessagePartComponent,
-	type ToolCallMessagePartComponent,
-	useAuiState,
-} from "@assistant-ui/react";
-import {
-	ArrowDownIcon,
-	ArrowUpIcon,
-	CheckIcon,
-	ChevronLeftIcon,
-	ChevronRightIcon,
-	CopyIcon,
-	DownloadIcon,
-	MicIcon,
-	MoreHorizontalIcon,
-	PencilIcon,
-	RefreshCwIcon,
-	SquareIcon,
-} from "lucide-react";
-import {
-	createContext,
-	useContext,
-	type ComponentType,
-	type FC,
-	type PropsWithChildren,
-} from "react";
 
 export type ThreadGroupPart = MessagePrimitive.GroupedParts.GroupPart;
 
@@ -216,8 +216,12 @@ const ThreadMessage: FC = () => {
 	const role = useAuiState((s) => s.message.role);
 	const isEditing = useAuiState((s) => s.message.composer.isEditing);
 
-	if (isEditing) return <EditComposer />;
-	if (role === "user") return <UserMessage />;
+	if (isEditing) {
+		return <EditComposer />;
+	}
+	if (role === "user") {
+		return <UserMessage />;
+	}
 	return <AssistantMessageComponent />;
 };
 

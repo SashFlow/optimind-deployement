@@ -1,4 +1,4 @@
-﻿import { plivoRequest, type PlivoConfig } from "./client";
+﻿import { type PlivoConfig, plivoRequest } from "./client";
 
 export async function listPhoneNumbers(config?: PlivoConfig) {
 	return plivoRequest<{

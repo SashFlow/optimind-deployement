@@ -22,9 +22,15 @@ export async function getPendingInvitationByEmail(email: string) {
 
 export async function getValidPendingInvitation(id: string) {
 	const invitation = await getInvitationById(id);
-	if (!invitation) return null;
-	if (invitation.status !== "pending") return null;
-	if (invitation.expiresAt.getTime() < Date.now()) return null;
+	if (!invitation) {
+		return null;
+	}
+	if (invitation.status !== "pending") {
+		return null;
+	}
+	if (invitation.expiresAt.getTime() < Date.now()) {
+		return null;
+	}
 	return invitation;
 }
 

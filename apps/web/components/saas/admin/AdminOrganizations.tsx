@@ -41,8 +41,8 @@ import {
 	StatusBadge,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
-import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { DataTable } from "@/components/saas/shared/StandardDataTable";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
 import { useCreateOrganizationMutation } from "@/services/organization";
@@ -126,7 +126,9 @@ export function AdminOrganizations() {
 		event: React.FormEvent<HTMLFormElement>,
 	) => {
 		event.preventDefault();
-		if (!name.trim()) return;
+		if (!name.trim()) {
+			return;
+		}
 		setBusy(true);
 		setError(null);
 		try {
@@ -251,7 +253,9 @@ export function AdminOrganizations() {
 
 	const bulkDelete = () => {
 		const targets = selectedOrgsRef.current;
-		if (targets.length === 0) return;
+		if (targets.length === 0) {
+			return;
+		}
 		confirm({
 			title: "Delete organizations",
 			message: `Delete ${targets.length} organization${targets.length === 1 ? "" : "s"}?`,
@@ -267,7 +271,9 @@ export function AdminOrganizations() {
 							await authClient.organization.delete({
 								organizationId: organization.id,
 							});
-						if (!deleteError) deleted += 1;
+						if (!deleteError) {
+							deleted += 1;
+						}
 					}
 					await queryClient.invalidateQueries({
 						queryKey: orpc.admin.organizations.list.key(),
@@ -307,7 +313,9 @@ export function AdminOrganizations() {
 			<Select
 				value={typeFilter}
 				onValueChange={(value) => {
-					if (value) setTypeFilter(value as TypeFilter);
+					if (value) {
+						setTypeFilter(value as TypeFilter);
+					}
 				}}
 			>
 				<SelectTrigger className="h-9 w-[9.5rem] shrink-0">

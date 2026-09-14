@@ -1,10 +1,10 @@
+import { db } from "../client";
 import type {
 	DocumentSourceType,
 	DocumentStatus,
 	KnowledgeBaseStatus,
 } from "../generated/client";
 import { Prisma } from "../generated/client";
-import { db } from "../client";
 
 export async function listKnowledgeBases(organizationId: string) {
 	return db.knowledgeBase.findMany({
@@ -144,18 +144,26 @@ export type ChunkSearchResult = {
 };
 
 function cosineDistance(a: number[], b: number[]): number {
-	if (a.length !== b.length || a.length === 0)
+	if (a.length !== b.length || a.length === 0) {
 		return Number.POSITIVE_INFINITY;
+	}
 	let dot = 0;
 	let normA = 0;
 	let normB = 0;
 	for (let i = 0; i < a.length; i++) {
-		dot += a[i]! * b[i]!;
-		normA += a[i]! * a[i]!;
-		normB += b[i]! * b[i]!;
+		const ai = a[i];
+		const bi = b[i];
+		if (ai === undefined || bi === undefined) {
+			continue;
+		}
+		dot += ai * bi;
+		normA += ai * ai;
+		normB += bi * bi;
 	}
 	const denom = Math.sqrt(normA) * Math.sqrt(normB);
-	if (denom === 0) return Number.POSITIVE_INFINITY;
+	if (denom === 0) {
+		return Number.POSITIVE_INFINITY;
+	}
 	return 1 - dot / denom;
 }
 
@@ -185,9 +193,13 @@ export async function searchChunks(
 	const scored: ChunkSearchResult[] = [];
 	for (const row of rows) {
 		const vec = row.embedding;
-		if (!Array.isArray(vec)) continue;
+		if (!Array.isArray(vec)) {
+			continue;
+		}
 		const numbers = vec.filter((v): v is number => typeof v === "number");
-		if (numbers.length === 0) continue;
+		if (numbers.length === 0) {
+			continue;
+		}
 		scored.push({
 			id: row.id,
 			documentId: row.documentId,

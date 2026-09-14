@@ -28,8 +28,8 @@ import {
 	StatusBadge,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
-import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { DataTable } from "@/components/saas/shared/StandardDataTable";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsBulkActions } from "@/context/AdminSettingsActionsProvider";
 import type { BackgroundJobRow } from "@/types/admin";
@@ -216,7 +216,9 @@ export default function BackgroundJobsPageContent() {
 		const selectedCancellable = selectedJobsRef.current.filter((job) =>
 			canCancelStatus(job.status),
 		);
-		if (selectedCancellable.length === 0) return;
+		if (selectedCancellable.length === 0) {
+			return;
+		}
 		if (!organizationId) {
 			toast.error("No active organization");
 			return;
@@ -250,7 +252,9 @@ export default function BackgroundJobsPageContent() {
 		const selectedRetryable = selectedJobsRef.current.filter((job) =>
 			canRetryStatus(job.status),
 		);
-		if (selectedRetryable.length === 0) return;
+		if (selectedRetryable.length === 0) {
+			return;
+		}
 		if (!organizationId) {
 			toast.error("No active organization");
 			return;
@@ -283,7 +287,9 @@ export default function BackgroundJobsPageContent() {
 			<Select
 				value={status}
 				onValueChange={(value) => {
-					if (value) setStatus(value as StatusFilter);
+					if (value) {
+						setStatus(value as StatusFilter);
+					}
 				}}
 			>
 				<SelectTrigger id="status" className="h-9 w-[9.5rem] shrink-0">
@@ -300,7 +306,9 @@ export default function BackgroundJobsPageContent() {
 			<Select
 				value={jobType}
 				onValueChange={(value) => {
-					if (value) setJobType(value as JobTypeFilter);
+					if (value) {
+						setJobType(value as JobTypeFilter);
+					}
 				}}
 			>
 				<SelectTrigger id="type" className="h-9 w-48 shrink-0">
@@ -376,7 +384,9 @@ export default function BackgroundJobsPageContent() {
 					const job = row.original;
 					const canCancel = canCancelStatus(job.status);
 					const canRetry = canRetryStatus(job.status);
-					if (!canCancel && !canRetry) return null;
+					if (!canCancel && !canRetry) {
+						return null;
+					}
 					return (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>

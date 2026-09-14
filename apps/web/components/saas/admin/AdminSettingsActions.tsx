@@ -63,7 +63,9 @@ export function AdminSettingsActionsProvider({
 
 	const runBulk = useCallback((key: BulkActionKey) => {
 		const handlers = bulkRef.current;
-		if (!handlers) return;
+		if (!handlers) {
+			return;
+		}
 		if (key === "cancel-failed") {
 			void handlers.cancelFailed?.();
 			return;

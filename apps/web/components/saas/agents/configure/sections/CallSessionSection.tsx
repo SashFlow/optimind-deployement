@@ -112,7 +112,9 @@ export function CallSessionSection({
 			.split(",")
 			.map((k) => k.trim())
 			.filter(Boolean);
-		if (newKeywords.length === 0) return;
+		if (newKeywords.length === 0) {
+			return;
+		}
 		onConfigChange({
 			keyword_boosting: {
 				keywords: [

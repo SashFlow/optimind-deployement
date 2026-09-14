@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { PencilLineIcon, QuoteIcon, SparklesIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { floating, mono } from "./surfaces";
 

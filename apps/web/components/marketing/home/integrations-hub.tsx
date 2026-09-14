@@ -8,10 +8,10 @@ import {
 	CalendarIcon,
 	HeadsetIcon,
 	HeartPulseIcon,
+	type LucideIcon,
 	MailIcon,
 	MessageCircleIcon,
 	PhoneIcon,
-	type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 

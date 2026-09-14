@@ -41,8 +41,8 @@ export function Stepper(props: {
 			const isDotsVariant = variant === "dots";
 
 			const labelClassName = cn({
-				["px-1.5 py-2 text-xs"]: !isNumberVariant,
-				["hidden"]: isDotsVariant,
+				"px-1.5 py-2 text-xs": !isNumberVariant,
+				hidden: isDotsVariant,
 			});
 
 			const { label, number } = getStepLabel(labelOrKey, index);
@@ -73,9 +73,9 @@ export function Stepper(props: {
 	}
 
 	const containerClassName = cn("w-full", {
-		["flex justify-between"]: variant === "numbers",
-		["flex space-x-0.5"]: variant === "default",
-		["flex gap-x-4 self-center"]: variant === "dots",
+		"flex justify-between": variant === "numbers",
+		"flex space-x-0.5": variant === "default",
+		"flex gap-x-4 self-center": variant === "dots",
 	});
 
 	return (
@@ -184,9 +184,9 @@ function StepDivider({
 	complete: boolean;
 }>) {
 	const spanClassName = cn("min-w-max text-sm font-medium", {
-		["text-muted-foreground hidden sm:flex"]: !selected,
-		["text-secondary-foreground"]: selected || complete,
-		["font-medium"]: selected,
+		"text-muted-foreground hidden sm:flex": !selected,
+		"text-secondary-foreground": selected || complete,
+		"font-medium": selected,
 	});
 
 	const className = cn(

@@ -1,4 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
+import { db } from "../client";
 import type {
 	Prisma,
 	WorkflowApprovalChannel,
@@ -9,7 +10,6 @@ import type {
 	WorkflowWaitKind,
 	WorkflowWaitStatus,
 } from "../generated/client";
-import { db } from "../client";
 
 export async function getOrCreateCampaignWorkflow(campaignId: string) {
 	const existing = await db.campaignWorkflow.findUnique({
@@ -21,13 +21,17 @@ export async function getOrCreateCampaignWorkflow(campaignId: string) {
 			},
 		},
 	});
-	if (existing) return existing;
+	if (existing) {
+		return existing;
+	}
 
 	const campaign = await db.campaign.findUnique({
 		where: { id: campaignId },
 		select: { id: true, organizationId: true },
 	});
-	if (!campaign) return null;
+	if (!campaign) {
+		return null;
+	}
 
 	return db.campaignWorkflow.create({
 		data: {
@@ -292,7 +296,9 @@ export async function claimRunnableWorkflowRuns(limit = 5) {
 				data: { startedAt: now },
 			});
 			const run = await getWorkflowRunById(c.id);
-			if (run) claimed.push(run);
+			if (run) {
+				claimed.push(run);
+			}
 		}
 	}
 	return claimed;
@@ -507,7 +513,9 @@ export async function decideWorkflowApproval(
 		where: { token },
 		include: { wait: true, step: true },
 	});
-	if (!approval || approval.decision !== "PENDING") return null;
+	if (!approval || approval.decision !== "PENDING") {
+		return null;
+	}
 
 	return db.workflowApproval.update({
 		where: { id: approval.id },

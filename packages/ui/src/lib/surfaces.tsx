@@ -91,7 +91,9 @@ export function SwapLabel({
 
 	useLayoutEffect(() => {
 		const target = layers[active]?.current;
-		if (!target) return undefined;
+		if (!target) {
+			return undefined;
+		}
 		const measure = () =>
 			setWidth(Math.ceil(target.getBoundingClientRect().width));
 		measure();

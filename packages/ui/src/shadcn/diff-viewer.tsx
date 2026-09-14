@@ -1,10 +1,10 @@
 "use client";
 
-import { type ComponentProps, useMemo } from "react";
 import type { SyntaxHighlighterProps } from "@assistant-ui/react-markdown";
 import { cva, type VariantProps } from "class-variance-authority";
 import { diffLines } from "diff";
 import parseDiff from "parse-diff";
+import { type ComponentProps, useMemo } from "react";
 
 import { cn } from "../utils";
 
@@ -112,19 +112,28 @@ function pairLinesForSplit(lines: ParsedLine[]): SplitLinePair[] {
 	let i = 0;
 
 	while (i < lines.length) {
-		const line = lines[i]!;
+		const line = lines[i];
+		if (!line) {
+			break;
+		}
 		if (line.type === "normal") {
 			pairs.push({ left: line, right: line });
 			i++;
 		} else if (line.type === "del") {
 			const deletions: ParsedLine[] = [];
-			while (i < lines.length && lines[i]!.type === "del") {
-				deletions.push(lines[i]!);
+			while (i < lines.length && lines[i]?.type === "del") {
+				const deletion = lines[i];
+				if (deletion) {
+					deletions.push(deletion);
+				}
 				i++;
 			}
 			const additions: ParsedLine[] = [];
-			while (i < lines.length && lines[i]!.type === "add") {
-				additions.push(lines[i]!);
+			while (i < lines.length && lines[i]?.type === "add") {
+				const addition = lines[i];
+				if (addition) {
+					additions.push(addition);
+				}
 				i++;
 			}
 			const maxLen = Math.max(deletions.length, additions.length);
@@ -195,13 +204,17 @@ const diffLineTextVariants = cva("", {
 
 function getFileExtension(filename?: string): string {
 	const ext = filename?.split(".").pop()?.toLowerCase();
-	if (!ext) return "";
+	if (!ext) {
+		return "";
+	}
 	return ext.toUpperCase();
 }
 
 function DiffViewerFileBadge({ filename }: { filename?: string | undefined }) {
 	const ext = getFileExtension(filename);
-	if (!ext) return null;
+	if (!ext) {
+		return null;
+	}
 
 	return (
 		<span
@@ -272,7 +285,9 @@ function DiffViewerHeader({
 	className,
 	...props
 }: DiffViewerHeaderProps) {
-	if (!oldName && !newName) return null;
+	if (!oldName && !newName) {
+		return null;
+	}
 
 	const displayName = newName || oldName;
 
@@ -487,7 +502,9 @@ function DiffViewer({
 	}, [diffPatch, oldContent, oldName, newContent, newName]);
 
 	const splitLinePairs = useMemo<SplitLinePair[][]>(() => {
-		if (viewMode !== "split") return [];
+		if (viewMode !== "split") {
+			return [];
+		}
 		return parsedFiles.map((file) => pairLinesForSplit(file.lines));
 	}, [parsedFiles, viewMode]);
 
@@ -557,20 +574,20 @@ function DiffViewer({
 
 DiffViewer.displayName = "DiffViewer";
 
-export type { ParsedLine, ParsedFile, SplitLinePair };
+export type { ParsedFile, ParsedLine, SplitLinePair };
 
 export {
+	computeDiff,
 	DiffViewer,
-	DiffViewerFile,
-	DiffViewerHeader,
 	DiffViewerContent,
+	DiffViewerFile,
+	DiffViewerFileBadge,
+	DiffViewerHeader,
 	DiffViewerLine,
 	DiffViewerSplitLine,
-	DiffViewerFileBadge,
 	DiffViewerStats,
-	diffViewerVariants,
-	diffLineVariants,
 	diffLineTextVariants,
+	diffLineVariants,
+	diffViewerVariants,
 	parsePatch,
-	computeDiff,
 };

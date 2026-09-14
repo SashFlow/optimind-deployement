@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-
 import { Image as ImageIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "../shadcn/button";
@@ -71,6 +70,7 @@ export function ImageUploader(
 		<div className={"flex items-center space-x-4"}>
 			<div className={"animate-in fade-in zoom-in-50 relative h-20 w-20"}>
 				{/* eslint-disable-next-line @next/next/no-img-element */}
+				{/* biome-ignore lint/performance/noImgElement: local upload preview blob URL */}
 				<img
 					decoding="async"
 					className={"h-20 w-20 rounded-full object-cover"}

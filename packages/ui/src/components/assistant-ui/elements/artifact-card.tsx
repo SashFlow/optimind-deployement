@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { ArrowUpRightIcon, FileTextIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { mono, paper, ShimmerLabel } from "./surfaces";
 

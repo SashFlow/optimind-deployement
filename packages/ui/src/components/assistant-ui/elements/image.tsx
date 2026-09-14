@@ -1,14 +1,9 @@
 "use client";
 
-import {
-	memo,
-	useState,
-	useEffect,
-	useCallback,
-	useRef,
-	type PropsWithChildren,
-} from "react";
-import { createPortal } from "react-dom";
+import type {
+	ImageMessagePart,
+	ImageMessagePartComponent,
+} from "@assistant-ui/react";
 import { cva, type VariantProps } from "class-variance-authority";
 import {
 	CopyIcon,
@@ -20,10 +15,15 @@ import {
 	ShieldAlertIcon,
 	XIcon,
 } from "lucide-react";
-import type {
-	ImageMessagePart,
-	ImageMessagePartComponent,
-} from "@assistant-ui/react";
+import {
+	memo,
+	type PropsWithChildren,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { cn } from "../../../utils";
 
 const extensionForMimeType = (mimeType?: string): string => {
@@ -63,7 +63,9 @@ const dataUriToBlob = (dataUri: string): Blob => {
 	}
 	const bytes = atob(data);
 	const arr = new Uint8Array(bytes.length);
-	for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+	for (let i = 0; i < bytes.length; i++) {
+		arr[i] = bytes.charCodeAt(i);
+	}
 	return new Blob([arr], { type: mime });
 };
 
@@ -73,7 +75,9 @@ const mimeFromImage = (image: string): string | undefined =>
 const downloadImagePart = (
 	part: Pick<ImageMessagePart, "image" | "filename">,
 ): void => {
-	if (typeof document === "undefined") return;
+	if (typeof document === "undefined") {
+		return;
+	}
 	const ext = extensionForMimeType(mimeFromImage(part.image));
 	const filename = part.filename ?? `image.${ext}`;
 	const isDataUri = /^data:/i.test(part.image);
@@ -88,7 +92,9 @@ const downloadImagePart = (
 	document.body.appendChild(a);
 	a.click();
 	document.body.removeChild(a);
-	if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 40_000);
+	if (objectUrl) {
+		setTimeout(() => URL.revokeObjectURL(objectUrl), 40_000);
+	}
 };
 
 const copyImagePart = async (
@@ -176,9 +182,14 @@ function ImagePreview({
 
 	useEffect(() => {
 		const image = imgRef.current;
-		if (typeof src !== "string" || !image?.complete) return;
-		if (image.naturalWidth > 0) setLoadedSrc(src);
-		else setErrorSrc(src);
+		if (typeof src !== "string" || !image?.complete) {
+			return;
+		}
+		if (image.naturalWidth > 0) {
+			setLoadedSrc(src);
+		} else {
+			setErrorSrc(src);
+		}
 	}, [src]);
 
 	return (
@@ -202,6 +213,7 @@ function ImagePreview({
 					<ImageOffIcon className="text-muted-foreground size-8" />
 				</div>
 			) : (
+				// biome-ignore lint/performance/noImgElement: assistant image preview URLs
 				<img
 					ref={imgRef}
 					src={src}
@@ -212,11 +224,15 @@ function ImagePreview({
 						className,
 					)}
 					onLoad={(e) => {
-						if (typeof src === "string") setLoadedSrc(src);
+						if (typeof src === "string") {
+							setLoadedSrc(src);
+						}
 						onLoad?.(e);
 					}}
 					onError={(e) => {
-						if (typeof src === "string") setErrorSrc(src);
+						if (typeof src === "string") {
+							setErrorSrc(src);
+						}
 						onError?.(e);
 					}}
 					{...props}
@@ -231,7 +247,9 @@ function ImageFilename({
 	children,
 	...props
 }: React.ComponentProps<"span">) {
-	if (!children) return null;
+	if (!children) {
+		return null;
+	}
 
 	return (
 		<span
@@ -265,20 +283,26 @@ function ImageZoom({ src, alt = "Image preview", children }: ImageZoomProps) {
 	}, []);
 
 	useEffect(() => {
-		if (!isOpen) return;
+		if (!isOpen) {
+			return;
+		}
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
 				handleClose();
 				return;
 			}
-			if (e.key !== "Tab") return;
+			if (e.key !== "Tab") {
+				return;
+			}
 			const focusables =
 				overlayRef.current?.querySelectorAll<HTMLElement>(
 					'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
 				);
 			const first = focusables?.[0];
 			const last = focusables?.[focusables.length - 1];
-			if (!first || !last) return;
+			if (!first || !last) {
+				return;
+			}
 			if (e.shiftKey && document.activeElement === first) {
 				e.preventDefault();
 				last.focus();
@@ -292,7 +316,9 @@ function ImageZoom({ src, alt = "Image preview", children }: ImageZoomProps) {
 	}, [isOpen, handleClose]);
 
 	useEffect(() => {
-		if (!isOpen) return;
+		if (!isOpen) {
+			return;
+		}
 		const originalOverflow = document.body.style.overflow;
 		document.body.style.overflow = "hidden";
 		return () => {
@@ -301,7 +327,9 @@ function ImageZoom({ src, alt = "Image preview", children }: ImageZoomProps) {
 	}, [isOpen]);
 
 	useEffect(() => {
-		if (isOpen) closeRef.current?.focus();
+		if (isOpen) {
+			closeRef.current?.focus();
+		}
 	}, [isOpen]);
 
 	return (
@@ -326,10 +354,13 @@ function ImageZoom({ src, alt = "Image preview", children }: ImageZoomProps) {
 						className="aui-image-zoom-overlay fade-in animate-in fixed inset-0 z-50 flex items-center justify-center bg-black/80 duration-200"
 						onClick={handleClose}
 						onKeyDown={(e) => {
-							if (e.key === "Escape") handleClose();
+							if (e.key === "Escape") {
+								handleClose();
+							}
 						}}
 						aria-label="Zoomed image"
 					>
+						{/* biome-ignore lint/performance/noImgElement: zoomed image preview */}
 						<img
 							data-slot="image-zoom-content"
 							src={src}
@@ -526,12 +557,12 @@ Image.ContentFilterError = ImageContentFilterError;
 
 export {
 	Image,
-	ImageRoot,
-	ImagePreview,
-	ImageFilename,
-	ImageZoom,
 	ImageActions,
-	ImageGenerating,
 	ImageContentFilterError,
+	ImageFilename,
+	ImageGenerating,
+	ImagePreview,
+	ImageRoot,
+	ImageZoom,
 	imageVariants,
 };

@@ -1,7 +1,7 @@
 "use client";
 
-import { useAuiState } from "@assistant-ui/react";
 import { useThreadTokenUsage } from "@assistant-ui/ai-sdk";
+import { useAuiState } from "@assistant-ui/react";
 import type { FC, ReactNode } from "react";
 import {
 	ContextDisplayBar as ContextDisplayBarBase,
@@ -116,10 +116,10 @@ ContextDisplay.Text = ContextDisplayText;
 
 export {
 	ContextDisplay,
-	ContextDisplayRoot,
-	ContextDisplayTrigger,
+	ContextDisplayBar,
 	ContextDisplayContent,
 	ContextDisplayRing,
-	ContextDisplayBar,
+	ContextDisplayRoot,
 	ContextDisplayText,
+	ContextDisplayTrigger,
 };

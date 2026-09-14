@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { inkButton, mono, paper } from "./surfaces";
 import { announced, pct } from "../utils/range";
+import { inkButton, mono, paper } from "./surfaces";
 
 export function QuotaBanner({
 	used,

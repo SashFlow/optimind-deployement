@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { CheckIcon, Loader2Icon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { mono, paper } from "./surfaces";
 import { pct } from "../utils/range";
+import { mono, paper } from "./surfaces";
 
 export interface SubagentItem {
 	name: string;

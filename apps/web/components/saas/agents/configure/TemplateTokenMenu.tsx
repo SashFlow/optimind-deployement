@@ -123,7 +123,9 @@ export function TemplateTokenMenu({
 		setAdjustedPosition({ top, left, placement });
 	}, [open, position, tokens.length, filter]);
 
-	if (!open) return null;
+	if (!open) {
+		return null;
+	}
 
 	const normalizedFilter = filter.toLowerCase();
 	const filtered = tokens.filter((token) =>

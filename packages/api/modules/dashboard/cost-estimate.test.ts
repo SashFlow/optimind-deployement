@@ -5,7 +5,9 @@
 import { estimateUsageCostMicros } from "@repo/database";
 
 function assert(cond: unknown, msg: string) {
-	if (!cond) throw new Error(msg);
+	if (!cond) {
+		throw new Error(msg);
+	}
 }
 
 const rates = [

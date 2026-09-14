@@ -1,5 +1,7 @@
 "use client";
 
+import { cva, type VariantProps } from "class-variance-authority";
+import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import {
 	createContext,
 	useCallback,
@@ -9,8 +11,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -79,7 +79,9 @@ function ReasoningRoot({
 
 	const prevStreamingRef = useRef(streaming);
 	useLayoutEffect(() => {
-		if (prevStreamingRef.current === streaming) return;
+		if (prevStreamingRef.current === streaming) {
+			return;
+		}
 		prevStreamingRef.current = streaming;
 		// A streaming transition only animates the panel when the resting state
 		// is collapsed; with `defaultOpen` the disclosure stays open across it.
@@ -247,10 +249,14 @@ function ReasoningText({
 	const contentRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (!isPreview) return;
+		if (!isPreview) {
+			return;
+		}
 		const scrollEl = scrollRef.current;
 		const contentEl = contentRef.current;
-		if (!scrollEl || !contentEl) return;
+		if (!scrollEl || !contentEl) {
+			return;
+		}
 
 		let pinned = true;
 		let lastScrollTop = scrollEl.scrollTop;
@@ -263,7 +269,9 @@ function ReasoningText({
 			) <= 1 || scrollEl.scrollHeight <= scrollEl.clientHeight;
 
 		const pin = () => {
-			if (!pinned) return;
+			if (!pinned) {
+				return;
+			}
 			scrollEl.scrollTop = scrollEl.scrollHeight;
 		};
 		// A pin's own scroll event can arrive after new content grew the scroll
@@ -325,10 +333,10 @@ function ReasoningText({
 }
 
 export {
-	ReasoningRoot,
-	ReasoningTrigger,
 	ReasoningContent,
-	ReasoningText,
 	ReasoningFade,
+	ReasoningRoot,
+	ReasoningText,
+	ReasoningTrigger,
 	reasoningVariants,
 };

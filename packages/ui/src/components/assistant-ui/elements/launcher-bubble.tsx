@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { MessageCircleIcon, XIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { field, floating, inkButton, mono } from "./surfaces";
 

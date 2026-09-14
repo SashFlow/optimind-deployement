@@ -1,3 +1,4 @@
+import { db } from "../client";
 import type {
 	AgentSessionChannel,
 	AgentSessionDirection,
@@ -11,17 +12,22 @@ import type {
 	UnitSource,
 	UsageModality,
 } from "../generated/client";
-import { db } from "../client";
 
 function toJson(value: unknown): Prisma.InputJsonValue {
 	return (value ?? {}) as Prisma.InputJsonValue;
 }
 
 function clampInt4(value: number | undefined): number | undefined {
-	if (value === undefined || !Number.isFinite(value)) return undefined;
+	if (value === undefined || !Number.isFinite(value)) {
+		return undefined;
+	}
 	const floored = Math.floor(value);
-	if (floored < 0) return 0;
-	if (floored > 2_147_483_647) return 2_147_483_647;
+	if (floored < 0) {
+		return 0;
+	}
+	if (floored > 2_147_483_647) {
+		return 2_147_483_647;
+	}
 	return floored;
 }
 
@@ -141,22 +147,30 @@ export async function updateAgentSessionLifecycle(
 	},
 ) {
 	const existing = await db.agentSession.findUnique({ where: { id } });
-	if (!existing) return null;
+	if (!existing) {
+		return null;
+	}
 
 	const now = new Date();
 	const patch: Prisma.AgentSessionUpdateInput = {
 		status: data.status,
 	};
 
-	if (data.livekitJobId !== undefined) patch.livekitJobId = data.livekitJobId;
+	if (data.livekitJobId !== undefined) {
+		patch.livekitJobId = data.livekitJobId;
+	}
 	if (data.livekitWorkerId !== undefined) {
 		patch.livekitWorkerId = data.livekitWorkerId;
 	}
 	if (data.livekitRoomSid !== undefined) {
 		patch.livekitRoomSid = data.livekitRoomSid;
 	}
-	if (data.endReason !== undefined) patch.endReason = data.endReason;
-	if (data.errorCode !== undefined) patch.errorCode = data.errorCode;
+	if (data.endReason !== undefined) {
+		patch.endReason = data.endReason;
+	}
+	if (data.errorCode !== undefined) {
+		patch.errorCode = data.errorCode;
+	}
 	if (data.errorMessage !== undefined) {
 		patch.errorMessage = data.errorMessage;
 	}
@@ -222,7 +236,9 @@ export async function createSessionEvent(data: {
 				error && typeof error === "object" && "code" in error
 					? String((error as { code?: unknown }).code)
 					: "";
-			if (code !== "P2002" || attempt === 4) throw error;
+			if (code !== "P2002" || attempt === 4) {
+				throw error;
+			}
 		}
 	}
 
@@ -430,7 +446,9 @@ export async function saveAgentSessionReport(
 	},
 ) {
 	const existing = await db.agentSession.findUnique({ where: { id } });
-	if (!existing) return null;
+	if (!existing) {
+		return null;
+	}
 
 	const metadata = toJson({
 		...((existing.metadata as Record<string, unknown>) ?? {}),
@@ -563,7 +581,9 @@ export async function syncCampaignSessionFromAgentSession(
 		},
 	});
 
-	if (!session?.campaignSession) return null;
+	if (!session?.campaignSession) {
+		return null;
+	}
 
 	const cs = session.campaignSession;
 	const durationSeconds =
@@ -577,9 +597,13 @@ export async function syncCampaignSessionFromAgentSession(
 		| "ABANDONED"
 		| "RESCHEDULED"
 		| "IN_PROGRESS" = "IN_PROGRESS";
-	if (session.status === "COMPLETED") campaignStatus = "COMPLETED";
-	else if (session.status === "FAILED") campaignStatus = "FAILED";
-	else if (session.status === "CANCELLED") campaignStatus = "ABANDONED";
+	if (session.status === "COMPLETED") {
+		campaignStatus = "COMPLETED";
+	} else if (session.status === "FAILED") {
+		campaignStatus = "FAILED";
+	} else if (session.status === "CANCELLED") {
+		campaignStatus = "ABANDONED";
+	}
 
 	let outcome =
 		session.endReason?.toLowerCase() ??
@@ -587,7 +611,9 @@ export async function syncCampaignSessionFromAgentSession(
 		null;
 
 	for (const event of session.events) {
-		if (event.eventType === "transfer_started") outcome = "transferred";
+		if (event.eventType === "transfer_started") {
+			outcome = "transferred";
+		}
 		if (event.eventType === "reschedule_requested") {
 			outcome = "rescheduled";
 			campaignStatus = "RESCHEDULED";
@@ -605,9 +631,13 @@ export async function syncCampaignSessionFromAgentSession(
 					: {};
 			const category =
 				typeof payload.category === "string" ? payload.category : null;
-			if (category) outcome = `amd:${category}`;
+			if (category) {
+				outcome = `amd:${category}`;
+			}
 		}
-		if (event.eventType === "end_call") outcome = "completed";
+		if (event.eventType === "end_call") {
+			outcome = "completed";
+		}
 	}
 
 	const recordingUrl =

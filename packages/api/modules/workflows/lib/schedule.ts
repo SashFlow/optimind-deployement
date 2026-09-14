@@ -1,7 +1,7 @@
 import { createWorkflowRun, db } from "@repo/database";
 import { logger } from "@repo/logs";
-import { envVarsToRecord, getNodeType, parseGraph } from "./template";
 import { processWorkflowRun } from "./runner";
+import { envVarsToRecord, getNodeType, parseGraph } from "./template";
 
 /** Supports standard 5-field cron, step minutes/hours, @hourly, @daily. */
 export function nextCronFire(cron: string, from = new Date()): Date | null {
@@ -19,7 +19,9 @@ export function nextCronFire(cron: string, from = new Date()): Date | null {
 		return d;
 	}
 	const parts = trimmed.split(/\s+/);
-	if (parts.length < 5) return null;
+	if (parts.length < 5) {
+		return null;
+	}
 	const [minPart, hourPart] = parts;
 	const d = new Date(from.getTime() + 60_000);
 	d.setSeconds(0, 0);
@@ -36,7 +38,9 @@ export function nextCronFire(cron: string, from = new Date()): Date | null {
 			hourPart === String(hour) ||
 			(hourPart.startsWith("*/") &&
 				hour % Number(hourPart.slice(2) || 1) === 0);
-		if (minOk && hourOk) return d;
+		if (minOk && hourOk) {
+			return d;
+		}
 		d.setMinutes(d.getMinutes() + 1);
 	}
 	return null;
@@ -44,11 +48,16 @@ export function nextCronFire(cron: string, from = new Date()): Date | null {
 
 function matchCronNow(cron: string, at = new Date()): boolean {
 	const trimmed = cron.trim();
-	if (trimmed === "@hourly") return at.getMinutes() === 0;
-	if (trimmed === "@daily")
+	if (trimmed === "@hourly") {
+		return at.getMinutes() === 0;
+	}
+	if (trimmed === "@daily") {
 		return at.getHours() === 0 && at.getMinutes() === 0;
+	}
 	const parts = trimmed.split(/\s+/);
-	if (parts.length < 5) return false;
+	if (parts.length < 5) {
+		return false;
+	}
 	const [minPart, hourPart] = parts;
 	const minute = at.getMinutes();
 	const hour = at.getHours();
@@ -87,7 +96,9 @@ export async function tickScheduledWorkflows() {
 
 	let started = 0;
 	for (const wf of workflows) {
-		if (!wf.publishedVersionId || !wf.publishedVersion) continue;
+		if (!wf.publishedVersionId || !wf.publishedVersion) {
+			continue;
+		}
 		const { nodes } = parseGraph(
 			wf.publishedVersion.nodes,
 			wf.publishedVersion.edges,
@@ -95,9 +106,13 @@ export async function tickScheduledWorkflows() {
 		const scheduled = nodes.find(
 			(n) => getNodeType(n) === "start.scheduled",
 		);
-		if (!scheduled) continue;
+		if (!scheduled) {
+			continue;
+		}
 		const cron = String(scheduled.data.config.cron ?? "0 * * * *");
-		if (!matchCronNow(cron, now)) continue;
+		if (!matchCronNow(cron, now)) {
+			continue;
+		}
 
 		const already = await db.workflowRun.findFirst({
 			where: {
@@ -107,7 +122,9 @@ export async function tickScheduledWorkflows() {
 			},
 			select: { id: true },
 		});
-		if (already) continue;
+		if (already) {
+			continue;
+		}
 
 		const env = envVarsToRecord(wf.envVars);
 		const trigger = {

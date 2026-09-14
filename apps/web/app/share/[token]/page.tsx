@@ -49,7 +49,9 @@ function validateVariableValues(
 		if (variable.required && !value) {
 			return `${variable.name} is required`;
 		}
-		if (!value) continue;
+		if (!value) {
+			continue;
+		}
 		if (
 			variable.variable_type === "number" &&
 			Number.isNaN(Number(value))
@@ -80,7 +82,9 @@ function buildContactMetadata(
 	const contactMetadata: Record<string, unknown> = {};
 	for (const variable of variables) {
 		const raw = values[variable.name]?.trim();
-		if (!raw) continue;
+		if (!raw) {
+			continue;
+		}
 		contactMetadata[variable.name] =
 			variable.variable_type === "number" ? Number(raw) : raw;
 	}
@@ -217,7 +221,9 @@ export default function SharedTrialPage() {
 			const stream = await navigator.mediaDevices.getUserMedia({
 				audio: true,
 			});
-			for (const track of stream.getTracks()) track.stop();
+			for (const track of stream.getTracks()) {
+				track.stop();
+			}
 
 			const devices = await navigator.mediaDevices.enumerateDevices();
 			const mics = devices.filter(
@@ -248,8 +254,12 @@ export default function SharedTrialPage() {
 	}, []);
 
 	useEffect(() => {
-		if (!trialQuery.data?.trial.available) return;
-		if (media !== "web") return;
+		if (!trialQuery.data?.trial.available) {
+			return;
+		}
+		if (media !== "web") {
+			return;
+		}
 		void loadDevices();
 	}, [trialQuery.data?.trial.available, media, loadDevices]);
 
@@ -258,7 +268,9 @@ export default function SharedTrialPage() {
 			(trialQuery.data?.agent.variables as AgentVariableDefinition[]) ??
 			[];
 		const contactMetadata = buildContactMetadata(variables, variableValues);
-		if (!contactMetadata) return;
+		if (!contactMetadata) {
+			return;
+		}
 
 		if (media === "phone") {
 			const normalized = normalizePhoneNumber(phoneNumber);

@@ -52,7 +52,7 @@ export function DataTable({
 						style={{ animationDelay: `${index * 80}ms` }}
 					>
 						<span className="bg-foreground/[0.06] text-foreground/45 flex size-5 shrink-0 items-center justify-center rounded-md text-[9px] font-medium">
-							{row.name[0]!}
+							{row.name.charAt(0)}
 						</span>
 						<span className="text-foreground/90 flex-1 truncate">
 							{row.name}

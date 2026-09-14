@@ -20,8 +20,8 @@ import {
 	StatusBadge,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
-import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { DataTable } from "@/components/saas/shared/StandardDataTable";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { useEndSessionMutation } from "./lib/hooks";
 import type { AgentSessionRow } from "./lib/types";
 
@@ -45,7 +45,9 @@ const STATUS_FILTER_ITEMS: { value: StatusFilter; label: string }[] = [
 ];
 
 function formatDuration(ms: number | null) {
-	if (!ms) return "—";
+	if (!ms) {
+		return "—";
+	}
 	const seconds = Math.floor(ms / 1000);
 	const mins = Math.floor(seconds / 60);
 	const secs = seconds % 60;
@@ -77,7 +79,9 @@ export function AgentSessionsTable({
 			if (statusFilter !== "all" && session.status !== statusFilter) {
 				return false;
 			}
-			if (!query) return true;
+			if (!query) {
+				return true;
+			}
 			return (
 				session.id.toLowerCase().includes(query) ||
 				session.livekitRoomName.toLowerCase().includes(query)
@@ -89,7 +93,9 @@ export function AgentSessionsTable({
 		const selectedEndable = selectedSessionsRef.current.filter((session) =>
 			ENDABLE_STATUSES.has(session.status),
 		);
-		if (selectedEndable.length === 0) return;
+		if (selectedEndable.length === 0) {
+			return;
+		}
 		setBulkBusy(true);
 		try {
 			for (const session of selectedEndable) {

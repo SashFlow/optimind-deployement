@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { ChevronDownIcon, ChevronUpIcon, SearchIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { field, ghostButton, mono, paper } from "./surfaces";
 

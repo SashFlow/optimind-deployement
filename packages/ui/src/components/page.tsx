@@ -221,23 +221,17 @@ function getSlotsFromPage(props: React.PropsWithChildren) {
 			}
 
 			if (child.type === PageNavigation) {
-				return {
-					...acc,
-					Navigation: child,
-				};
+				acc.Navigation = child;
+				return acc;
 			}
 
 			if (child.type === PageMobileNavigation) {
-				return {
-					...acc,
-					MobileNavigation: child,
-				};
+				acc.MobileNavigation = child;
+				return acc;
 			}
 
-			return {
-				...acc,
-				Children: child,
-			};
+			acc.Children = child;
+			return acc;
 		},
 		{
 			Children: null,

@@ -1,5 +1,5 @@
-import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 import { resolveTemplate, resolveValue } from "../lib/template";
+import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 
 export async function handleStartWebhook(
 	args: NodeHandlerArgs,
@@ -50,7 +50,9 @@ export async function handleHttpRequest(
 		resolveValue(cfg.method ?? "GET", args.context),
 	).toUpperCase();
 	const url = String(resolveTemplate(String(cfg.url ?? ""), args.context));
-	if (!url) throw new Error("HTTP node requires url");
+	if (!url) {
+		throw new Error("HTTP node requires url");
+	}
 
 	const headersRaw = resolveValue(cfg.headers ?? {}, args.context);
 	const headers: Record<string, string> = {};

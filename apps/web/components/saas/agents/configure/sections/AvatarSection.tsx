@@ -67,7 +67,9 @@ function buildAvatarOptions(orgAvatars: OrgAvatar[]): AvatarOption[] {
 
 function getSelectedAvatarKey(config: AgentConfigDocument): string | null {
 	const avatar = config.avatar;
-	if (!avatar) return null;
+	if (!avatar) {
+		return null;
+	}
 
 	if (avatar.org_avatar_id) {
 		return `org:${avatar.org_avatar_id}`;
@@ -105,6 +107,7 @@ function AvatarPreviewImage({
 	return (
 		// Dynamic avatar URLs; next/image domains vary by provider.
 		// eslint-disable-next-line @next/next/no-img-element
+		// biome-ignore lint/performance/noImgElement: dynamic avatar URLs
 		<img
 			src={src}
 			alt={alt}

@@ -117,7 +117,9 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 	const isDirty = currentName.trim() !== organization.name.trim();
 	const save = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		if (!currentName.trim() || !isDirty) return;
+		if (!currentName.trim() || !isDirty) {
+			return;
+		}
 		setBusy(true);
 		setError(null);
 		try {

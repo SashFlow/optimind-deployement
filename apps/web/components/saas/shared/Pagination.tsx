@@ -21,7 +21,9 @@ export function useClientPagination<T>(
 	const pageCount = Math.max(1, Math.ceil(items.length / itemsPerPage));
 
 	useEffect(() => {
-		if (currentPage > pageCount) setCurrentPage(pageCount);
+		if (currentPage > pageCount) {
+			setCurrentPage(pageCount);
+		}
 	}, [currentPage, pageCount]);
 
 	const pageItems = useMemo(() => {
@@ -65,7 +67,9 @@ export function useClientInfiniteScroll<T>(
 
 	useEffect(() => {
 		const node = sentinelRef.current;
-		if (!node || !hasMore) return;
+		if (!node || !hasMore) {
+			return;
+		}
 
 		const observer = new IntersectionObserver(
 			(entries) => {

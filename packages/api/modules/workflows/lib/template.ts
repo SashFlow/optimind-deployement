@@ -11,7 +11,9 @@ function getPath(obj: unknown, path: string): unknown {
 	const parts = path.split(".").filter(Boolean);
 	let cur: unknown = obj;
 	for (const part of parts) {
-		if (cur == null || typeof cur !== "object") return undefined;
+		if (cur == null || typeof cur !== "object") {
+			return undefined;
+		}
 		cur = (cur as Record<string, unknown>)[part];
 	}
 	return cur;
@@ -24,8 +26,12 @@ export function resolveTemplate(
 ): string {
 	return template.replace(TEMPLATE_RE, (_match, expr: string) => {
 		const value = getPath(context, expr.trim());
-		if (value === undefined || value === null) return "";
-		if (typeof value === "string") return value;
+		if (value === undefined || value === null) {
+			return "";
+		}
+		if (typeof value === "string") {
+			return value;
+		}
 		try {
 			return JSON.stringify(value);
 		} catch {
@@ -43,7 +49,9 @@ export function resolveValue(
 			const expr = value.replace(/^\{\{\s*|\s*\}\}$/g, "").trim();
 			return getPath(context, expr);
 		}
-		if (value.includes("{{")) return resolveTemplate(value, context);
+		if (value.includes("{{")) {
+			return resolveTemplate(value, context);
+		}
 		return value;
 	}
 	if (Array.isArray(value)) {
@@ -64,7 +72,9 @@ export function evaluateCondition(
 	context: WorkflowRuntimeContext,
 ): boolean {
 	const trimmed = expression.trim();
-	if (!trimmed) return false;
+	if (!trimmed) {
+		return false;
+	}
 
 	// Simple comparisons: {{path}} op value
 	const cmp = trimmed.match(
@@ -77,18 +87,22 @@ export function evaluateCondition(
 		const left = leftRaw.includes("{{")
 			? resolveValue(leftRaw, context)
 			: getPath(context, leftRaw.replace(/^\{\{|\}\}$/g, "").trim());
-		if (op === "exists")
+		if (op === "exists") {
 			return left !== undefined && left !== null && left !== "";
+		}
 		let right: unknown = rightRaw;
 		if (
 			(rightRaw.startsWith('"') && rightRaw.endsWith('"')) ||
 			(rightRaw.startsWith("'") && rightRaw.endsWith("'"))
 		) {
 			right = rightRaw.slice(1, -1);
-		} else if (rightRaw === "true") right = true;
-		else if (rightRaw === "false") right = false;
-		else if (rightRaw === "null") right = null;
-		else if (!Number.isNaN(Number(rightRaw)) && rightRaw !== "") {
+		} else if (rightRaw === "true") {
+			right = true;
+		} else if (rightRaw === "false") {
+			right = false;
+		} else if (rightRaw === "null") {
+			right = null;
+		} else if (!Number.isNaN(Number(rightRaw)) && rightRaw !== "") {
 			right = Number(rightRaw);
 		} else if (rightRaw.includes("{{") || rightRaw.includes(".")) {
 			right = resolveValue(
@@ -188,8 +202,12 @@ export function outgoing(
 	handle?: string | null,
 ): WorkflowGraphEdge[] {
 	return edges.filter((e) => {
-		if (e.source !== nodeId) return false;
-		if (handle == null || handle === "") return true;
+		if (e.source !== nodeId) {
+			return false;
+		}
+		if (handle == null || handle === "") {
+			return true;
+		}
 		return (e.sourceHandle ?? "default") === handle;
 	});
 }

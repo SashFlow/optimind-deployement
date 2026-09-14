@@ -2,7 +2,9 @@ import type { Edge, Node } from "@xyflow/react";
 
 /** Simple left-to-right layered layout from start nodes (BFS). */
 export function organizeWorkflowNodes(nodes: Node[], edges: Edge[]): Node[] {
-	if (nodes.length === 0) return nodes;
+	if (nodes.length === 0) {
+		return nodes;
+	}
 
 	const outgoing = new Map<string, string[]>();
 	const indegree = new Map<string, number>();
@@ -11,8 +13,10 @@ export function organizeWorkflowNodes(nodes: Node[], edges: Edge[]): Node[] {
 		indegree.set(n.id, 0);
 	}
 	for (const e of edges) {
-		if (!outgoing.has(e.source) || !indegree.has(e.target)) continue;
-		outgoing.get(e.source)!.push(e.target);
+		if (!outgoing.has(e.source) || !indegree.has(e.target)) {
+			continue;
+		}
+		outgoing.get(e.source)?.push(e.target);
 		indegree.set(e.target, (indegree.get(e.target) ?? 0) + 1);
 	}
 
@@ -22,10 +26,15 @@ export function organizeWorkflowNodes(nodes: Node[], edges: Edge[]): Node[] {
 	});
 	const queue = starts.map((n) => n.id);
 	const layer = new Map<string, number>();
-	for (const id of queue) layer.set(id, 0);
+	for (const id of queue) {
+		layer.set(id, 0);
+	}
 
 	while (queue.length) {
-		const id = queue.shift()!;
+		const id = queue.shift();
+		if (id === undefined) {
+			break;
+		}
 		const L = layer.get(id) ?? 0;
 		for (const next of outgoing.get(id) ?? []) {
 			const nextLayer = Math.max(layer.get(next) ?? 0, L + 1);
@@ -37,7 +46,9 @@ export function organizeWorkflowNodes(nodes: Node[], edges: Edge[]): Node[] {
 	}
 
 	for (const n of nodes) {
-		if (!layer.has(n.id)) layer.set(n.id, 0);
+		if (!layer.has(n.id)) {
+			layer.set(n.id, 0);
+		}
 	}
 
 	const byLayer = new Map<number, string[]>();

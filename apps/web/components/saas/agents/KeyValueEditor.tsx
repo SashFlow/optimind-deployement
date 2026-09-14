@@ -18,7 +18,9 @@ function createRow(key = "", value = ""): KeyValueRow {
 
 function valuesToRows(values: Record<string, string>): KeyValueRow[] {
 	const entries = Object.entries(values);
-	if (entries.length === 0) return [createRow()];
+	if (entries.length === 0) {
+		return [createRow()];
+	}
 	return entries.map(([key, value]) => createRow(key, value));
 }
 

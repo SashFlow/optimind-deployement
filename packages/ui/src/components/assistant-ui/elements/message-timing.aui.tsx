@@ -1,6 +1,7 @@
 "use client";
 
 import { useMessageTiming } from "@assistant-ui/react";
+import type { FC } from "react";
 import {
 	Tooltip,
 	TooltipContent,
@@ -8,11 +9,14 @@ import {
 	TooltipTrigger,
 } from "../../../shadcn/tooltip";
 import { cn } from "../../../utils";
-import type { FC } from "react";
 
 const formatTimingMs = (ms: number | undefined): string => {
-	if (ms === undefined) return "—";
-	if (ms < 1000) return `${Math.round(ms)}ms`;
+	if (ms === undefined) {
+		return "—";
+	}
+	if (ms < 1000) {
+		return `${Math.round(ms)}ms`;
+	}
 	return `${(ms / 1000).toFixed(2)}s`;
 };
 
@@ -41,7 +45,9 @@ export const MessageTiming: FC<{
 	side?: "top" | "right" | "bottom" | "left";
 }> = ({ className, side = "right" }) => {
 	const timing = useMessageTiming();
-	if (timing?.totalStreamTime === undefined) return null;
+	if (timing?.totalStreamTime === undefined) {
+		return null;
+	}
 
 	return (
 		<TooltipProvider>

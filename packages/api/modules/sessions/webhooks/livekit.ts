@@ -12,7 +12,9 @@ function extractFileUrl(egressInfo: {
 	file?: { location?: string };
 	fileResults?: Array<{ location?: string }>;
 }): string | undefined {
-	if (egressInfo.file?.location) return egressInfo.file.location;
+	if (egressInfo.file?.location) {
+		return egressInfo.file.location;
+	}
 	const first = egressInfo.fileResults?.find((f) => f.location);
 	return first?.location;
 }

@@ -1,6 +1,6 @@
 import {
-	attachKnowledgeBase,
 	analytics,
+	attachKnowledgeBase,
 	create,
 	createAccessLink,
 	createContact,

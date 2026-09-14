@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { PinIcon, SearchIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { field, mono, paper } from "./surfaces";
 
@@ -51,16 +51,22 @@ export function ThreadSearch({
 	];
 
 	const move = (delta: number) => {
-		if (ordered.length === 0) return;
+		if (ordered.length === 0) {
+			return;
+		}
 		const at = ordered.findIndex((thread) => thread.id === activeId);
 		// activeId can be filtered out by the query; start from the edge the key implies
 		const from = at === -1 ? (delta > 0 ? -1 : 0) : at;
 		const next = ordered[(from + delta + ordered.length) % ordered.length];
-		if (next) onSelect?.(next.id);
+		if (next) {
+			onSelect?.(next.id);
+		}
 	};
 
 	const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-		if (event.nativeEvent.isComposing) return;
+		if (event.nativeEvent.isComposing) {
+			return;
+		}
 		if (event.key === "ArrowDown") {
 			event.preventDefault();
 			move(1);

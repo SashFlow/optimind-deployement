@@ -7,7 +7,9 @@ export function AuthenticityToken() {
 }
 
 function useCsrfToken() {
-	if (typeof window === "undefined") return "";
+	if (typeof window === "undefined") {
+		return "";
+	}
 
 	return (
 		document

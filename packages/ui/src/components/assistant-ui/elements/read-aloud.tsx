@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { PauseIcon, PlayIcon, Volume2Icon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { field, ghostButton, mono, paper } from "./surfaces";
 import { announced, pct } from "../utils/range";
+import { field, ghostButton, mono, paper } from "./surfaces";
 
 export function ReadAloud({
 	words,

@@ -83,7 +83,9 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 
 	useEffect(() => {
 		const wf = defQuery.data?.workflow;
-		if (!wf || hydrated) return;
+		if (!wf || hydrated) {
+			return;
+		}
 		const draftNodes = Array.isArray(wf.draftNodes)
 			? (wf.draftNodes as unknown as Node[])
 			: [];
@@ -166,7 +168,9 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 
 	const selected = useMemo(() => {
 		const n = nodes.find((node) => node.selected);
-		if (!n) return null;
+		if (!n) {
+			return null;
+		}
 		return {
 			id: n.id,
 			data: n.data as WorkflowNodeData,
@@ -464,7 +468,9 @@ function WorkflowEditorInner({ campaignId }: { campaignId: string }) {
 				position={contextMenu}
 				onClose={() => setContextMenu(null)}
 				onAddNode={() => {
-					if (!contextMenu) return;
+					if (!contextMenu) {
+						return;
+					}
 					openAddPanel(
 						contextMenu,
 						screenToFlowPosition(contextMenu),

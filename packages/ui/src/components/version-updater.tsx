@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { RocketIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import {
 	AlertDialog,

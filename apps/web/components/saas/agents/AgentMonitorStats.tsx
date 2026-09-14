@@ -1,5 +1,6 @@
 "use client";
 
+import type { ColumnDef } from "@tanstack/react-table";
 import {
 	ActivityIcon,
 	CheckCircle2Icon,
@@ -8,6 +9,7 @@ import {
 	PhoneIcon,
 	XCircleIcon,
 } from "lucide-react";
+import { useMemo } from "react";
 import { ActivityChartCard } from "@/components/saas/app/dashboard/ActivityChartCard";
 import { ChannelBreakdownCard } from "@/components/saas/app/dashboard/ChannelBreakdownCard";
 import { formatDurationMs } from "@/components/saas/app/dashboard/format";
@@ -21,12 +23,12 @@ import {
 	DataTableValuePill,
 	StandardDataTable,
 } from "@/components/saas/shared/StandardDataTable";
-import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo } from "react";
 import type { AgentStats } from "./lib/types";
 
 function pct(value: number | null | undefined) {
-	if (value == null) return "—";
+	if (value == null) {
+		return "—";
+	}
 	return `${(value * 100).toFixed(1)}%`;
 }
 

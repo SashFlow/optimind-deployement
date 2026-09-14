@@ -1,9 +1,9 @@
+import { db } from "../client";
 import type {
 	Prisma,
 	UsageMetricCategory,
 	UsageMetricSource,
 } from "../generated/client";
-import { db } from "../client";
 
 export async function ingestUsageMetric(data: {
 	organizationId: string;

@@ -39,18 +39,28 @@ function str(value: unknown, fallback = ""): string {
 
 function mapRole(role: unknown): TranscriptRole {
 	const r = str(role).toLowerCase();
-	if (r === "assistant" || r === "agent" || r === "bot") return "ASSISTANT";
-	if (r === "system") return "SYSTEM";
-	if (r === "tool" || r === "function") return "TOOL";
+	if (r === "assistant" || r === "agent" || r === "bot") {
+		return "ASSISTANT";
+	}
+	if (r === "system") {
+		return "SYSTEM";
+	}
+	if (r === "tool" || r === "function") {
+		return "TOOL";
+	}
 	return "USER";
 }
 
 function flattenContent(value: unknown): string {
-	if (typeof value === "string") return value.trim();
+	if (typeof value === "string") {
+		return value.trim();
+	}
 	if (Array.isArray(value)) {
 		return value
 			.map((part) => {
-				if (typeof part === "string") return part;
+				if (typeof part === "string") {
+					return part;
+				}
 				const p = asRecord(part);
 				return str(p?.text) || str(p?.transcript) || "";
 			})
@@ -59,30 +69,46 @@ function flattenContent(value: unknown): string {
 			.trim();
 	}
 	const row = asRecord(value);
-	if (!row) return "";
+	if (!row) {
+		return "";
+	}
 	return flattenContent(row.text ?? row.content ?? row.transcript);
 }
 
 function toAbsoluteMs(value: unknown): number | undefined {
-	if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return undefined;
+	}
 	// Epoch ms (~1.7e12), epoch seconds (~1.7e9), or relative seconds.
-	if (value > 1e12) return Math.floor(value);
-	if (value > 1e9) return Math.floor(value * 1000);
+	if (value > 1e12) {
+		return Math.floor(value);
+	}
+	if (value > 1e9) {
+		return Math.floor(value * 1000);
+	}
 	return Math.floor(value * 1000);
 }
 
 /** Clamp to signed INT4 range used by Postgres `Int`. */
 function toInt4Ms(value: number | undefined): number | undefined {
-	if (value === undefined || !Number.isFinite(value)) return undefined;
+	if (value === undefined || !Number.isFinite(value)) {
+		return undefined;
+	}
 	const floored = Math.floor(value);
-	if (floored < 0) return 0;
-	if (floored > 2_147_483_647) return 2_147_483_647;
+	if (floored < 0) {
+		return 0;
+	}
+	if (floored > 2_147_483_647) {
+		return 2_147_483_647;
+	}
 	return floored;
 }
 
 function extractHistoryItems(report: unknown): unknown[] {
 	const root = asRecord(report);
-	if (!root) return [];
+	if (!root) {
+		return [];
+	}
 
 	const candidates = [
 		asRecord(root.chat_history)?.items,
@@ -94,17 +120,25 @@ function extractHistoryItems(report: unknown): unknown[] {
 	];
 
 	for (const candidate of candidates) {
-		if (Array.isArray(candidate)) return candidate;
+		if (Array.isArray(candidate)) {
+			return candidate;
+		}
 	}
 	return [];
 }
 
 export function isMetricsOnlyReport(report: unknown): boolean {
 	const root = asRecord(report);
-	if (!root) return true;
-	if (root.metrics_flush === true) return true;
+	if (!root) {
+		return true;
+	}
+	if (root.metrics_flush === true) {
+		return true;
+	}
 	const keys = Object.keys(root);
-	if (keys.length === 0) return true;
+	if (keys.length === 0) {
+		return true;
+	}
 	if (keys.every((k) => k === "metrics_flush" || k === "metrics")) {
 		return true;
 	}
@@ -166,7 +200,9 @@ export function transcriptSegmentsFromReport(
 
 	for (const item of items) {
 		const row = asRecord(item);
-		if (!row) continue;
+		if (!row) {
+			continue;
+		}
 
 		const itemType = str(row.type).toLowerCase();
 		if (
@@ -192,9 +228,13 @@ export function transcriptSegmentsFromReport(
 			flattenContent(row.text) ||
 			flattenContent(row.text_content);
 
-		if (!text && role !== "TOOL") continue;
+		if (!text && role !== "TOOL") {
+			continue;
+		}
 		// Skip empty system prompts that only carry instructions noise.
-		if (role === "SYSTEM" && !text) continue;
+		if (role === "SYSTEM" && !text) {
+			continue;
+		}
 
 		prepared.push({
 			row,
@@ -206,8 +246,12 @@ export function transcriptSegmentsFromReport(
 
 	// startMs/endMs are INT4 offsets within the session — never absolute epoch ms.
 	const originMs = prepared.reduce<number | undefined>((min, item) => {
-		if (item.absoluteMs === undefined) return min;
-		if (min === undefined) return item.absoluteMs;
+		if (item.absoluteMs === undefined) {
+			return min;
+		}
+		if (min === undefined) {
+			return item.absoluteMs;
+		}
 		return Math.min(min, item.absoluteMs);
 	}, undefined);
 
@@ -244,19 +288,40 @@ function mapModality(value: unknown): UsageModality {
 		m.includes("realtime") ||
 		m.includes("gptlive") ||
 		m.includes("gpt-live")
-	)
+	) {
 		return "REALTIME";
-	if (m.includes("stt") || m.includes("speech-to-text")) return "STT";
-	if (m.includes("tts") || m.includes("text-to-speech")) return "TTS";
-	if (m.includes("vad")) return "VAD";
-	if (m.includes("avatar")) return "AVATAR";
-	if (m.includes("sip")) return "SIP";
-	if (m.includes("egress")) return "EGRESS";
-	if (m.includes("room")) return "LIVEKIT_ROOM";
-	if (m.includes("llm") || m.includes("language")) return "LLM";
+	}
+	if (m.includes("stt") || m.includes("speech-to-text")) {
+		return "STT";
+	}
+	if (m.includes("tts") || m.includes("text-to-speech")) {
+		return "TTS";
+	}
+	if (m.includes("vad")) {
+		return "VAD";
+	}
+	if (m.includes("avatar")) {
+		return "AVATAR";
+	}
+	if (m.includes("sip")) {
+		return "SIP";
+	}
+	if (m.includes("egress")) {
+		return "EGRESS";
+	}
+	if (m.includes("room")) {
+		return "LIVEKIT_ROOM";
+	}
+	if (m.includes("llm") || m.includes("language")) {
+		return "LLM";
+	}
 	// Infer from typical class / type names in model dumps
-	if (m.includes("ttsm")) return "TTS";
-	if (m.includes("sttm")) return "STT";
+	if (m.includes("ttsm")) {
+		return "TTS";
+	}
+	if (m.includes("sttm")) {
+		return "STT";
+	}
 	return "LLM";
 }
 
@@ -283,14 +348,20 @@ type UsageRow = {
 };
 
 function usageListFromPayload(usage: unknown): unknown[] {
-	if (Array.isArray(usage)) return usage;
+	if (Array.isArray(usage)) {
+		return usage;
+	}
 
 	const root = asRecord(usage);
-	if (!root) return [];
+	if (!root) {
+		return [];
+	}
 
 	const modelUsage =
 		root.model_usage ?? root.modelUsage ?? root.models ?? null;
-	if (Array.isArray(modelUsage)) return modelUsage;
+	if (Array.isArray(modelUsage)) {
+		return modelUsage;
+	}
 	return [];
 }
 
@@ -300,7 +371,9 @@ function usageRowsFromPayload(usage: unknown): UsageRow[] {
 
 	for (const item of list) {
 		const row = asRecord(item);
-		if (!row) continue;
+		if (!row) {
+			continue;
+		}
 		const provider = str(row.provider, "unknown");
 		const model = str(row.model ?? row.model_name, "unknown");
 		const typeName = str(row.type ?? row.kind ?? row.__class__);
@@ -383,7 +456,9 @@ export function toolCallsFromReport(report: unknown): Array<{
 
 	for (const item of items) {
 		const row = asRecord(item);
-		if (!row) continue;
+		if (!row) {
+			continue;
+		}
 		const type = str(row.type).toLowerCase();
 
 		if (type === "function_call") {
@@ -505,12 +580,16 @@ export async function persistSessionArtifacts(opts: {
 		: [];
 	for (const event of reportEvents) {
 		const row = asRecord(event);
-		if (!row) continue;
+		if (!row) {
+			continue;
+		}
 		const eventType = str(
 			row.type ?? row.event_type ?? row.eventType,
 			"event",
 		);
-		if (eventType === "metrics_collected") continue;
+		if (eventType === "metrics_collected") {
+			continue;
+		}
 		events.push(
 			await createSessionEvent({
 				organizationId: opts.organizationId,

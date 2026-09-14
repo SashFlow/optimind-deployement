@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { ChevronDown } from "lucide-react";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-import { ChevronDown } from "lucide-react";
+import { useMemo } from "react";
 
 import {
 	DropdownMenu,

@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { CheckIcon, XIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { codeScroll, codeSurface, inkButton, mono, paper } from "./surfaces";
 import type { DiffLine } from "./code-diff";
+import { codeScroll, codeSurface, inkButton, mono, paper } from "./surfaces";
 
 export type HunkDecision = "pending" | "kept" | "discarded";
 

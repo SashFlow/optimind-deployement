@@ -1,5 +1,5 @@
-import { scheduleCallback, getAgentSessionById } from "@repo/database";
 import { ORPCError } from "@orpc/client";
+import { getAgentSessionById, scheduleCallback } from "@repo/database";
 import { z } from "zod";
 import { workerProcedure } from "../sessions/lib/worker-procedure";
 
@@ -22,7 +22,9 @@ export const schedule = workerProcedure
 	)
 	.handler(async ({ input }) => {
 		const session = await getAgentSessionById(input.sessionId);
-		if (!session) throw new ORPCError("NOT_FOUND");
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
 
 		const meta =
 			session.metadata &&

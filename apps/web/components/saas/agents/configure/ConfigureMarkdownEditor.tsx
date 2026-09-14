@@ -58,7 +58,9 @@ function canOpenSlashMenu(view: EditorView): boolean {
 
 function getMenuPosition(view: EditorView, head: number): MenuPosition | null {
 	const coords = view.coordsAtPos(head);
-	if (!coords) return null;
+	if (!coords) {
+		return null;
+	}
 	return {
 		top: coords.bottom + 4,
 		left: coords.left,
@@ -108,8 +110,12 @@ export function ConfigureMarkdownEditor({
 		(view: EditorView, fromSlash = false) => {
 			const head = view.state.selection.main.head;
 			if (fromSlash) {
-				if (tokens.length === 0) return;
-				if (!canOpenSlashMenu(view)) return;
+				if (tokens.length === 0) {
+					return;
+				}
+				if (!canOpenSlashMenu(view)) {
+					return;
+				}
 			}
 
 			setSlashStart(head);
@@ -128,7 +134,9 @@ export function ConfigureMarkdownEditor({
 
 	const updateMenuFilter = useCallback(
 		(view: EditorView) => {
-			if (slashStart === null) return;
+			if (slashStart === null) {
+				return;
+			}
 			const head = view.state.selection.main.head;
 			const from = slashStart;
 			if (head < from) {
@@ -148,7 +156,9 @@ export function ConfigureMarkdownEditor({
 	const insertToken = useCallback(
 		(token: TemplateToken) => {
 			const view = editorRef.current?.view;
-			if (!view || slashStart === null) return;
+			if (!view || slashStart === null) {
+				return;
+			}
 
 			const from = slashStart;
 			const to = view.state.selection.main.head;
@@ -178,7 +188,9 @@ export function ConfigureMarkdownEditor({
 			{
 				key: "Escape",
 				run: () => {
-					if (!menuOpen && !showEmptyMenu) return false;
+					if (!menuOpen && !showEmptyMenu) {
+						return false;
+					}
 					closeMenu();
 					return true;
 				},
@@ -191,7 +203,9 @@ export function ConfigureMarkdownEditor({
 			variableTokenTheme,
 			slashKeymap,
 			EditorView.updateListener.of((update) => {
-				if (!update.docChanged || slashStart === null) return;
+				if (!update.docChanged || slashStart === null) {
+					return;
+				}
 				updateMenuFilter(update.view);
 			}),
 			EditorView.theme({
@@ -233,7 +247,9 @@ export function ConfigureMarkdownEditor({
 
 	function handleInsertButtonClick() {
 		const view = editorRef.current?.view;
-		if (!view) return;
+		if (!view) {
+			return;
+		}
 		openMenuAtCursor(view, false);
 	}
 

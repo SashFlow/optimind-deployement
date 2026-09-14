@@ -2,20 +2,19 @@
 
 import "@assistant-ui/react-markdown/styles/dot.css";
 
+import type { TextMessagePartProps } from "@assistant-ui/react";
 import {
 	type CodeHeaderProps,
 	MarkdownTextPrimitive,
 	unstable_memoizeMarkdownComponents as memoizeMarkdownComponents,
 	useIsMarkdownCodeBlock,
 } from "@assistant-ui/react-markdown";
-import remarkGfm from "remark-gfm";
-import { type FC, memo, useMemo, useRef } from "react";
-import type { TextMessagePartProps } from "@assistant-ui/react";
 import { CheckIcon, CopyIcon } from "lucide-react";
-
-import { TooltipIconButton } from "./tooltip-icon-button";
+import { type FC, memo, useMemo, useRef } from "react";
+import remarkGfm from "remark-gfm";
 import { useCopyToClipboard } from "../../../hooks/use-copy-to-clipboard";
 import { cn } from "../../../utils";
+import { TooltipIconButton } from "./tooltip-icon-button";
 
 type MarkdownTextProps = Partial<TextMessagePartProps> & {
 	components?: Parameters<typeof memoizeMarkdownComponents>[0];
@@ -32,7 +31,9 @@ const useShallowStable = <T extends Record<string, unknown> | undefined>(
 			prev !== undefined &&
 			Object.keys(prev).length === Object.keys(value).length &&
 			Object.keys(value).every((key) => prev[key] === value[key]);
-		if (!stable) ref.current = value;
+		if (!stable) {
+			ref.current = value;
+		}
 	}
 	return ref.current;
 };
@@ -40,7 +41,9 @@ const useShallowStable = <T extends Record<string, unknown> | undefined>(
 const MarkdownTextImpl: FC<MarkdownTextProps> = ({ components }) => {
 	const stableComponents = useShallowStable(components);
 	const markdownComponents = useMemo(() => {
-		if (!stableComponents) return defaultComponents;
+		if (!stableComponents) {
+			return defaultComponents;
+		}
 		return {
 			...defaultComponents,
 			...memoizeMarkdownComponents(stableComponents),
@@ -62,7 +65,9 @@ export const MarkdownText = memo(MarkdownTextImpl);
 const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
 	const { isCopied, copyToClipboard } = useCopyToClipboard();
 	const onCopy = () => {
-		if (!code || isCopied) return;
+		if (!code || isCopied) {
+			return;
+		}
 		copyToClipboard(code);
 	};
 

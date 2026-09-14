@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDownIcon } from "lucide-react";
 import {
 	type ComponentProps,
 	useCallback,
@@ -7,7 +8,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ArrowDownIcon } from "lucide-react";
 import { cn } from "../../../utils";
 import { field, floating, paper } from "./surfaces";
 
@@ -39,10 +39,14 @@ export function ScrollAnchor({
 	const [seenCount, setSeenCount] = useState(INITIAL_COUNT);
 
 	useEffect(() => {
-		if (paused) return;
+		if (paused) {
+			return;
+		}
 		const id = setInterval(() => {
 			setCount((current) => {
-				if (current >= messages.length) return current;
+				if (current >= messages.length) {
+					return current;
+				}
 				return current + 1;
 			});
 		}, APPEND_MS);
@@ -50,7 +54,9 @@ export function ScrollAnchor({
 	}, [messages.length, paused]);
 
 	useEffect(() => {
-		if (count >= messages.length && pinned) onSettled?.();
+		if (count >= messages.length && pinned) {
+			onSettled?.();
+		}
 	}, [count, pinned, messages.length, onSettled]);
 
 	useEffect(() => {
@@ -61,14 +67,20 @@ export function ScrollAnchor({
 			setPinned(false);
 			setSeenCount(count);
 			const viewport = viewportRef.current;
-			if (viewport) viewport.scrollTo({ top: 0, behavior: "smooth" });
+			if (viewport) {
+				viewport.scrollTo({ top: 0, behavior: "smooth" });
+			}
 		}
 	}, [count]);
 
 	useEffect(() => {
-		if (!pinned) return;
+		if (!pinned) {
+			return;
+		}
 		const viewport = viewportRef.current;
-		if (viewport) viewport.scrollTo({ top: viewport.scrollHeight });
+		if (viewport) {
+			viewport.scrollTo({ top: viewport.scrollHeight });
+		}
 	}, [count, pinned]);
 
 	const jump = useCallback(() => {
@@ -84,7 +96,9 @@ export function ScrollAnchor({
 	}, [count]);
 
 	useEffect(() => {
-		if (paused || pinned || count - seenCount < 2) return;
+		if (paused || pinned || count - seenCount < 2) {
+			return;
+		}
 		const id = setTimeout(jump, 2400);
 		return () => clearTimeout(id);
 	}, [paused, pinned, count, seenCount, jump]);

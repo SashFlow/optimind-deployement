@@ -4,8 +4,8 @@ import { renderMermaidSVG } from "beautiful-mermaid";
 import { Maximize2, Minus, Plus, RotateCcw, X } from "lucide-react";
 import {
 	type FC,
-	type ReactNode,
 	memo,
+	type ReactNode,
 	useCallback,
 	useEffect,
 	useMemo,
@@ -62,20 +62,26 @@ function MermaidZoom({ svg, children }: MermaidZoomProps) {
 	}, []);
 
 	useEffect(() => {
-		if (!isOpen) return;
+		if (!isOpen) {
+			return;
+		}
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
 				handleClose();
 				return;
 			}
-			if (e.key !== "Tab") return;
+			if (e.key !== "Tab") {
+				return;
+			}
 			const focusables =
 				overlayRef.current?.querySelectorAll<HTMLElement>(
 					'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
 				);
 			const first = focusables?.[0];
 			const last = focusables?.[focusables.length - 1];
-			if (!first || !last) return;
+			if (!first || !last) {
+				return;
+			}
 			if (e.shiftKey && document.activeElement === first) {
 				e.preventDefault();
 				last.focus();
@@ -89,7 +95,9 @@ function MermaidZoom({ svg, children }: MermaidZoomProps) {
 	}, [isOpen, handleClose]);
 
 	useEffect(() => {
-		if (!isOpen) return;
+		if (!isOpen) {
+			return;
+		}
 		const originalOverflow = document.body.style.overflow;
 		document.body.style.overflow = "hidden";
 		return () => {
@@ -98,7 +106,9 @@ function MermaidZoom({ svg, children }: MermaidZoomProps) {
 	}, [isOpen]);
 
 	useEffect(() => {
-		if (isOpen) closeRef.current?.focus();
+		if (isOpen) {
+			closeRef.current?.focus();
+		}
 	}, [isOpen]);
 
 	const zoomBy = useCallback((factor: number, cx?: number, cy?: number) => {
@@ -126,7 +136,9 @@ function MermaidZoom({ svg, children }: MermaidZoomProps) {
 	const onWheel = useCallback(
 		(e: React.WheelEvent) => {
 			const viewport = viewportRef.current;
-			if (!viewport) return;
+			if (!viewport) {
+				return;
+			}
 			const rect = viewport.getBoundingClientRect();
 			zoomBy(
 				Math.exp(-e.deltaY * 0.0015),
@@ -150,7 +162,9 @@ function MermaidZoom({ svg, children }: MermaidZoomProps) {
 
 	const onPointerMove = useCallback((e: React.PointerEvent) => {
 		const d = drag.current;
-		if (!d) return;
+		if (!d) {
+			return;
+		}
 		setTransform((t) => ({
 			...t,
 			x: d.originX + e.clientX - d.startX,
@@ -260,7 +274,9 @@ const MermaidDiagramImpl: FC<MermaidDiagramProps> = ({
 	streaming = false,
 }) => {
 	const result = useMemo(() => {
-		if (streaming) return null;
+		if (streaming) {
+			return null;
+		}
 		try {
 			return {
 				svg: renderMermaidSVG(code, {

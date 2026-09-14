@@ -15,8 +15,8 @@ import { formatDurationMs } from "@/components/saas/app/dashboard/format";
 import { MetricKpiCard } from "@/components/saas/app/dashboard/MetricKpiCard";
 import {
 	computeDeltaPct,
-	StatCard,
 	type SparklinePoint,
+	StatCard,
 } from "@/components/saas/app/dashboard/StatCard";
 import { useCampaignAnalyticsQuery } from "@/services/api/hooks";
 
@@ -68,7 +68,9 @@ function withPlaceholder(
 }
 
 function pct(value: number | null | undefined) {
-	if (value == null) return "—";
+	if (value == null) {
+		return "—";
+	}
 	return `${(value * 100).toFixed(1)}%`;
 }
 

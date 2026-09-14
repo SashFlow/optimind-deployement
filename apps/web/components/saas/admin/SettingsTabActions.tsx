@@ -20,7 +20,9 @@ export function SettingsTabActions({
 	const { hasAction, actionLabel, runAction, hasBulk, runBulk } =
 		useAdminSettingsActions();
 
-	if (!hasAction && !hasBulk) return null;
+	if (!hasAction && !hasBulk) {
+		return null;
+	}
 
 	return (
 		<FolderTabsActions>

@@ -1,17 +1,17 @@
 "use client";
 
-import { memo, type FC } from "react";
+import type { FileMessagePartComponent } from "@assistant-ui/react";
 import { cva, type VariantProps } from "class-variance-authority";
 import {
+	BracesIcon,
+	DownloadIcon,
 	FileIcon,
 	FileTextIcon,
 	ImageIcon,
 	MusicIcon,
 	VideoIcon,
-	BracesIcon,
-	DownloadIcon,
 } from "lucide-react";
-import type { FileMessagePartComponent } from "@assistant-ui/react";
+import { type FC, memo } from "react";
 import { cn } from "../../../utils";
 
 const fileVariants = cva(
@@ -65,10 +65,18 @@ function getFileDataKind(
 	data: string,
 	sourceType?: "url" | "id",
 ): FileDataKind {
-	if (sourceType === "url" && /^data:/i.test(data)) return "data-uri";
-	if (sourceType) return sourceType;
-	if (/^data:/i.test(data)) return "data-uri";
-	if (/^https?:\/\//i.test(data)) return "url";
+	if (sourceType === "url" && /^data:/i.test(data)) {
+		return "data-uri";
+	}
+	if (sourceType) {
+		return sourceType;
+	}
+	if (/^data:/i.test(data)) {
+		return "data-uri";
+	}
+	if (/^https?:\/\//i.test(data)) {
+		return "url";
+	}
 	return "base64";
 }
 
@@ -184,10 +192,16 @@ function FileDownload({
 	children,
 	...props
 }: FileDownloadProps) {
-	if (typeof data !== "string") return null;
+	if (typeof data !== "string") {
+		return null;
+	}
 	const kind = getFileDataKind(data, sourceType);
-	if (kind === "id") return null;
-	if (kind === "url" && !/^(https?:\/\/|blob:)/i.test(data)) return null;
+	if (kind === "id") {
+		return null;
+	}
+	if (kind === "url" && !/^(https?:\/\/|blob:)/i.test(data)) {
+		return null;
+	}
 	const href = kind === "base64" ? `data:${mimeType};base64,${data}` : data;
 
 	return (
@@ -256,14 +270,14 @@ File.Download = FileDownload;
 
 export {
 	File,
-	FileRoot,
+	FileDownload,
 	FileIconDisplay,
 	FileName,
+	FileRoot,
 	FileSize,
-	FileDownload,
 	fileVariants,
-	getMimeTypeIcon,
-	getFileDataKind,
-	getBase64Size,
 	formatFileSize,
+	getBase64Size,
+	getFileDataKind,
+	getMimeTypeIcon,
 };

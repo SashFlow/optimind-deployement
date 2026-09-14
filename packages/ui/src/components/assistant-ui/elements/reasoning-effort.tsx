@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { field, mono } from "./surfaces";
 import { announced, pct } from "../utils/range";
+import { field, mono } from "./surfaces";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 

@@ -15,7 +15,9 @@ import { useDashboardStatsQuery } from "@/services/api/hooks";
 import type { DashboardStats } from "@/services/api/types";
 
 function formatDuration(ms: number | null) {
-	if (!ms) return "—";
+	if (!ms) {
+		return "—";
+	}
 	const seconds = Math.floor(ms / 1000);
 	const mins = Math.floor(seconds / 60);
 	const secs = seconds % 60;

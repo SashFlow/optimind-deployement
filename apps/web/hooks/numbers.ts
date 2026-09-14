@@ -108,7 +108,9 @@ export function useUpdatePhoneNumberMutation(
 			});
 		},
 		onSuccess: async () => {
-			if (!organizationId) return;
+			if (!organizationId) {
+				return;
+			}
 			await queryClient.invalidateQueries({
 				queryKey: orpc.telephony.listNumbers.key({
 					input: { organizationId },
@@ -128,15 +130,18 @@ export function useCreatePhoneNumberMutation(
 			assigned_agent_id?: string | null;
 			sip_trunk_id?: string | null;
 		}) => {
-			if (!organizationId)
+			if (!organizationId) {
 				throw new Error("Select an organization first");
+			}
 			await orpcClient.telephony.syncPlivoNumbers({ organizationId });
 			toast.message(
 				"Synced Plivo numbers. Manual register without Plivo is not available yet.",
 			);
 		},
 		onSuccess: async () => {
-			if (!organizationId) return;
+			if (!organizationId) {
+				return;
+			}
 			await queryClient.invalidateQueries({
 				queryKey: orpc.telephony.listNumbers.key({
 					input: { organizationId },
@@ -183,8 +188,9 @@ export function useCreateSipTrunkMutation(
 			sync_livekit?: boolean;
 			numbers?: string[];
 		}) => {
-			if (!organizationId)
+			if (!organizationId) {
 				throw new Error("Select an organization first");
+			}
 			const numbers = input.numbers?.length
 				? input.numbers
 				: ["+10000000000"];
@@ -208,7 +214,9 @@ export function useCreateSipTrunkMutation(
 			}
 		},
 		onSuccess: async () => {
-			if (!organizationId) return;
+			if (!organizationId) {
+				return;
+			}
 			await queryClient.invalidateQueries({
 				queryKey: orpc.telephony.listTrunks.key({
 					input: { organizationId },
@@ -240,7 +248,9 @@ export function useDeleteSipTrunkMutation(
 			await orpcClient.telephony.deleteTrunk({ id });
 		},
 		onSuccess: async () => {
-			if (!organizationId) return;
+			if (!organizationId) {
+				return;
+			}
 			await queryClient.invalidateQueries({
 				queryKey: orpc.telephony.listTrunks.key({
 					input: { organizationId },
@@ -265,8 +275,9 @@ export function useCreateDispatchRuleMutation(
 			is_enabled?: boolean;
 			name?: string;
 		}) => {
-			if (!organizationId)
+			if (!organizationId) {
 				throw new Error("Select an organization first");
+			}
 			await orpcClient.telephony.createDispatch({
 				organizationId,
 				name: input.name || input.room_prefix || "Dispatch rule",
@@ -276,7 +287,9 @@ export function useCreateDispatchRuleMutation(
 			});
 		},
 		onSuccess: async () => {
-			if (!organizationId) return;
+			if (!organizationId) {
+				return;
+			}
 			await queryClient.invalidateQueries({
 				queryKey: orpc.telephony.listRules.key({
 					input: { organizationId },
@@ -308,7 +321,9 @@ export function useDeleteDispatchRuleMutation(
 			await orpcClient.telephony.deleteRule({ id });
 		},
 		onSuccess: async () => {
-			if (!organizationId) return;
+			if (!organizationId) {
+				return;
+			}
 			await queryClient.invalidateQueries({
 				queryKey: orpc.telephony.listRules.key({
 					input: { organizationId },
@@ -354,7 +369,9 @@ export function usePlivoSearchQuery(
 		queryFn: async (): Promise<PlivoSearchResult[]> => {
 			await new Promise((resolve) => setTimeout(resolve, 250));
 			const q = pattern.trim().toLowerCase();
-			if (!q) return MOCK_PLIVO_SEARCH;
+			if (!q) {
+				return MOCK_PLIVO_SEARCH;
+			}
 			return MOCK_PLIVO_SEARCH.filter((row) =>
 				row.number.toLowerCase().includes(q),
 			);
@@ -393,15 +410,18 @@ export function useBuyPlivoNumberMutation(
 			sip_trunk_id?: string | null;
 			create_inbound_trunk?: boolean;
 		}) => {
-			if (!organizationId)
+			if (!organizationId) {
 				throw new Error("Select an organization first");
+			}
 			await orpcClient.telephony.syncPlivoNumbers({ organizationId });
 			toast.message(
 				"Buy flow is mocked — synced existing Plivo numbers instead.",
 			);
 		},
 		onSuccess: async () => {
-			if (!organizationId) return;
+			if (!organizationId) {
+				return;
+			}
 			await queryClient.invalidateQueries({
 				queryKey: orpc.telephony.listNumbers.key({
 					input: { organizationId },

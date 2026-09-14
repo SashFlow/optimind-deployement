@@ -10,6 +10,7 @@ import {
 	updateWorkflowStep,
 } from "@repo/database";
 import { logger } from "@repo/logs";
+import { executeNode, finalizeHumanApprovalWait } from "../nodes";
 import type {
 	WorkflowCursor,
 	WorkflowGraphEdge,
@@ -24,7 +25,6 @@ import {
 	parseGraph,
 	successors,
 } from "./template";
-import { executeNode, finalizeHumanApprovalWait } from "../nodes";
 
 function asCursor(raw: unknown): WorkflowCursor {
 	if (raw && typeof raw === "object") {
@@ -73,16 +73,22 @@ function initialFrontier(
 	triggerType: string,
 ): string[] {
 	const starts = findStartNodes(nodes);
-	if (!starts.length) return [];
+	if (!starts.length) {
+		return [];
+	}
 	if (triggerType === "SCHEDULE" || triggerType === "schedule") {
 		const scheduled = starts.find(
 			(n) => getNodeType(n) === "start.scheduled",
 		);
-		if (scheduled) return [scheduled.id];
+		if (scheduled) {
+			return [scheduled.id];
+		}
 	}
 	if (triggerType === "WEBHOOK" || triggerType === "webhook") {
 		const webhook = starts.find((n) => getNodeType(n) === "start.webhook");
-		if (webhook) return [webhook.id];
+		if (webhook) {
+			return [webhook.id];
+		}
 	}
 	const webhook = starts.find((n) => getNodeType(n) === "start.webhook");
 	return [(webhook ?? starts[0]).id];
@@ -99,10 +105,14 @@ async function advanceLoopAfterNode(
 	next?: string[];
 } | null> {
 	const loops = [...(cursor.loops ?? [])];
-	if (!loops.length) return null;
+	if (!loops.length) {
+		return null;
+	}
 
 	const frame = loops[loops.length - 1];
-	if (!frame) return null;
+	if (!frame) {
+		return null;
+	}
 
 	const backEdges = edges.filter(
 		(e) => e.source === completedNodeId && e.target === frame.nodeId,
@@ -144,7 +154,9 @@ async function advanceLoopAfterNode(
 
 export async function processWorkflowRun(runId: string) {
 	const run = await getWorkflowRunById(runId);
-	if (!run || !run.workflowVersion) return;
+	if (!run || !run.workflowVersion) {
+		return;
+	}
 	if (
 		run.status === "SUCCEEDED" ||
 		run.status === "FAILED" ||
@@ -476,15 +488,21 @@ export async function tickDueWaits() {
 export async function resumeAgentSessionWait(sessionId: string) {
 	const { findPendingWaitByExternalId } = await import("@repo/database");
 	const wait = await findPendingWaitByExternalId("AGENT_SESSION", sessionId);
-	if (!wait) return null;
+	if (!wait) {
+		return null;
+	}
 
 	const session = await getAgentSessionById(sessionId);
-	if (!session) return null;
+	if (!session) {
+		return null;
+	}
 
 	const terminal = ["COMPLETED", "FAILED", "CANCELLED"].includes(
 		session.status,
 	);
-	if (!terminal) return null;
+	if (!terminal) {
+		return null;
+	}
 
 	const egress = session.egressJobs?.[0];
 	const playable =

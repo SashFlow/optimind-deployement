@@ -267,7 +267,9 @@ export const agentConfigSchema = z
 	})
 	.passthrough()
 	.superRefine((value, ctx) => {
-		if (value.pipeline_mode !== "live") return;
+		if (value.pipeline_mode !== "live") {
+			return;
+		}
 
 		const liveModelId =
 			value.live?.provider_model_id?.trim() ||
@@ -292,7 +294,9 @@ export const agentConfigSchema = z
 				path: ["llm", "provider_model_id"],
 			});
 		}
-		if (!liveModelId || !reasoningModelId) return;
+		if (!liveModelId || !reasoningModelId) {
+			return;
+		}
 
 		const liveModel = CATALOG_MODELS.find(
 			(model) => model.id === liveModelId && model.kind === "live",

@@ -1,7 +1,6 @@
-import React from "react";
-
 import type { Button } from "@kit/ui/button";
 import { cn } from "@kit/ui/utils";
+import React from "react";
 
 import { CtaButton } from "./cta-button";
 import { GradientSecondaryText } from "./gradient-secondary-text";
@@ -102,8 +101,8 @@ ComingSoonLogo.displayName = "ComingSoonLogo";
 
 export {
 	ComingSoon,
-	ComingSoonHeading,
-	ComingSoonText,
 	ComingSoonButton,
+	ComingSoonHeading,
 	ComingSoonLogo,
+	ComingSoonText,
 };

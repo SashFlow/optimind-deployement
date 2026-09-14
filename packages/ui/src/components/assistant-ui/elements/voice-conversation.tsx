@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { MicIcon, MicOffIcon, PhoneOffIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { ghostButton, mono, paper } from "./surfaces";
 import { clamp } from "../utils/range";
+import { ghostButton, mono, paper } from "./surfaces";
 
 export type VoiceMode = "connecting" | "listening" | "thinking" | "speaking";
 

@@ -46,7 +46,9 @@ export const getAppConfig = cache(
 					};
 
 					for (const [key, entry] of Object.entries(remoteConfig)) {
-						if (entry === null) continue;
+						if (entry === null) {
+							continue;
+						}
 						// Only include app config entries that are declared in defaults and, if set,
 						// share the same primitive type as the default value.
 						if (
@@ -105,10 +107,11 @@ export function getStyles(appConfig: AppConfig) {
  */
 export function getSandboxTokenSource(appConfig: AppConfig) {
 	return TokenSource.custom(async () => {
-		const url = new URL(
-			process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT!,
-			window.location.origin,
-		);
+		const endpoint = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT;
+		if (!endpoint) {
+			throw new Error("NEXT_PUBLIC_CONN_DETAILS_ENDPOINT is not set");
+		}
+		const url = new URL(endpoint, window.location.origin);
 		const sandboxId = appConfig.sandboxId ?? "";
 		const roomConfig = appConfig.agentName
 			? {

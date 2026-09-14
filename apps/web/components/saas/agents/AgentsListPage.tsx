@@ -96,7 +96,9 @@ export function AgentsListPage() {
 				</button>
 			}
 			onCreate={async (name, description) => {
-				if (!organizationId) return;
+				if (!organizationId) {
+					return;
+				}
 				await createMutation.mutateAsync({
 					organizationId,
 					name,

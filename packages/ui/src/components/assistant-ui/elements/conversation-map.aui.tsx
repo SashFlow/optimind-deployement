@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAuiState, useThreadViewport } from "@assistant-ui/react";
 import type { ThreadMessage } from "@assistant-ui/react";
+import { useAuiState, useThreadViewport } from "@assistant-ui/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../../../utils";
 import { ConversationMap, type ConversationMapEntry } from "./conversation-map";
 
@@ -16,9 +16,13 @@ const PREVIEW_LENGTH = 240;
 const TOP_TOLERANCE = 1;
 
 const sameIds = (a: readonly string[], b: readonly string[]): boolean => {
-	if (a.length !== b.length) return false;
+	if (a.length !== b.length) {
+		return false;
+	}
 	for (let i = 0; i < a.length; i++) {
-		if (a[i] !== b[i]) return false;
+		if (a[i] !== b[i]) {
+			return false;
+		}
 	}
 	return true;
 };
@@ -33,7 +37,9 @@ const sameIds = (a: readonly string[], b: readonly string[]): boolean => {
 const readingLine = (viewport: HTMLElement) => {
 	const rect = viewport.getBoundingClientRect();
 	const height = viewport.clientHeight;
-	if (height <= 0) return rect.top + TOP_TOLERANCE;
+	if (height <= 0) {
+		return rect.top + TOP_TOLERANCE;
+	}
 
 	const remaining = viewport.scrollHeight - height - viewport.scrollTop;
 	const descent = Math.min(1, Math.max(0, (height - remaining) / height));
@@ -53,22 +59,36 @@ const labelOf = (message: ThreadMessage) => {
 	const tools = parts.flatMap((part) =>
 		part.type === "tool-call" ? [part.toolName] : [],
 	);
-	if (tools.length === 1) return tools[0]!;
-	if (tools.length > 1) return `${tools.length} tool calls`;
-	if (parts.some((part) => part.type === "reasoning")) return "Reasoning";
+	if (tools.length === 1) {
+		return tools[0] ?? "Tool call";
+	}
+	if (tools.length > 1) {
+		return `${tools.length} tool calls`;
+	}
+	if (parts.some((part) => part.type === "reasoning")) {
+		return "Reasoning";
+	}
 
 	// A composer submission carries its files in `attachments` and leaves
 	// `content` empty, so both places decide an attachment-only turn's label.
 	const carriers = [...parts, ...(message.attachments ?? [])];
-	if (carriers.some((carrier) => carrier.type === "image")) return "Image";
-	if (carriers.some((carrier) => carrier.type === "file")) return "File";
-	if (carriers.length > 0) return "Attachment";
+	if (carriers.some((carrier) => carrier.type === "image")) {
+		return "Image";
+	}
+	if (carriers.some((carrier) => carrier.type === "file")) {
+		return "File";
+	}
+	if (carriers.length > 0) {
+		return "Attachment";
+	}
 	return message.role === "user" ? "Message" : "Response";
 };
 
 /** Cuts on a word boundary so a title never splits a word. */
 const cutAtWord = (text: string, limit: number) => {
-	if (text.length <= limit) return text;
+	if (text.length <= limit) {
+		return text;
+	}
 	const head = text.slice(0, limit);
 	const boundary = head.lastIndexOf(" ");
 	return boundary > limit / 2 ? head.slice(0, boundary) : head;
@@ -90,7 +110,9 @@ const groupIntoTurns = (messages: readonly ThreadMessage[]) => {
 	const turns: Turn[] = [];
 
 	for (const message of messages) {
-		if (message.role !== "user" && message.role !== "assistant") continue;
+		if (message.role !== "user" && message.role !== "assistant") {
+			continue;
+		}
 
 		const current = turns.at(-1);
 		if (message.role === "user" || !current) {
@@ -147,8 +169,9 @@ export function ConversationMapAui({
 	const turnOf = useMemo(() => {
 		const owners = new Map<string, string>();
 		for (const turn of turns) {
-			for (const member of turn.members)
+			for (const member of turn.members) {
 				owners.set(member.id, turn.head.id);
+			}
 		}
 		return owners;
 	}, [turns]);
@@ -161,7 +184,9 @@ export function ConversationMapAui({
 	});
 
 	useEffect(() => {
-		if (!viewport) return undefined;
+		if (!viewport) {
+			return undefined;
+		}
 
 		let frame = 0;
 		const measure = () => {
@@ -178,13 +203,19 @@ export function ConversationMapAui({
 				"[data-message-id]",
 			)) {
 				const box = element.getBoundingClientRect();
-				if (box.top >= view.bottom) break;
+				if (box.top >= view.bottom) {
+					break;
+				}
 
-				const id = element.dataset["messageId"];
+				const id = element.dataset.messageId;
 				const head = id === undefined ? undefined : owners.get(id);
-				if (head === undefined) continue;
+				if (head === undefined) {
+					continue;
+				}
 
-				if (box.top <= line) current = head;
+				if (box.top <= line) {
+					current = head;
+				}
 				if (box.bottom > view.top && !onScreen.includes(head)) {
 					onScreen.push(head);
 				}
@@ -196,7 +227,9 @@ export function ConversationMapAui({
 			);
 		};
 		const schedule = () => {
-			if (frame) return;
+			if (frame) {
+				return;
+			}
 			frame = requestAnimationFrame(measure);
 		};
 
@@ -208,7 +241,9 @@ export function ConversationMapAui({
 
 		return () => {
 			scheduleRef.current = undefined;
-			if (frame) cancelAnimationFrame(frame);
+			if (frame) {
+				cancelAnimationFrame(frame);
+			}
 			viewport.removeEventListener("scroll", schedule);
 			observer.disconnect();
 		};
@@ -220,11 +255,15 @@ export function ConversationMapAui({
 
 	const select = useCallback(
 		(id: string) => {
-			if (!viewport) return;
+			if (!viewport) {
+				return;
+			}
 			for (const element of viewport.querySelectorAll<HTMLElement>(
 				"[data-message-id]",
 			)) {
-				if (element.dataset["messageId"] !== id) continue;
+				if (element.dataset.messageId !== id) {
+					continue;
+				}
 
 				// `scrollIntoView` aligns every scrollable ancestor, which drags the
 				// page a thread is embedded in; only this viewport should move.

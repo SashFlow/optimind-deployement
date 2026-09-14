@@ -1,6 +1,15 @@
 "use client";
 
-import { memo, useCallback, useRef, useState } from "react";
+import {
+	type ToolApprovalOption,
+	type ToolCallMessagePart,
+	type ToolCallMessagePartComponent,
+	type ToolCallMessagePartProps,
+	type ToolCallMessagePartStatus,
+	toolApprovalAcceptsText,
+	useScrollLock,
+	useToolCallElapsed,
+} from "@assistant-ui/react";
 import {
 	AlertCircleIcon,
 	CheckIcon,
@@ -8,24 +17,15 @@ import {
 	LoaderIcon,
 	XCircleIcon,
 } from "lucide-react";
-import {
-	toolApprovalAcceptsText,
-	useScrollLock,
-	useToolCallElapsed,
-	type ToolApprovalOption,
-	type ToolCallMessagePart,
-	type ToolCallMessagePartProps,
-	type ToolCallMessagePartStatus,
-	type ToolCallMessagePartComponent,
-} from "@assistant-ui/react";
+import { memo, useCallback, useRef, useState } from "react";
+import { Button } from "../../../shadcn/button";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../../../shadcn/collapsible";
-import { cn } from "../../../utils";
-import { Button } from "../../../shadcn/button";
 import { Textarea } from "../../../shadcn/textarea";
+import { cn } from "../../../utils";
 
 const ANIMATION_DURATION = 200;
 
@@ -98,10 +98,16 @@ const statusIconMap: Record<ToolStatus, React.ElementType> = {
 };
 
 const formatToolDuration = (ms: number) => {
-	if (ms < 1000) return "<1s";
+	if (ms < 1000) {
+		return "<1s";
+	}
 	const seconds = ms / 1000;
-	if (seconds < 10) return `${(Math.floor(seconds * 10) / 10).toFixed(1)}s`;
-	if (seconds < 60) return `${Math.floor(seconds)}s`;
+	if (seconds < 10) {
+		return `${(Math.floor(seconds * 10) / 10).toFixed(1)}s`;
+	}
+	if (seconds < 60) {
+		return `${Math.floor(seconds)}s`;
+	}
 	return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
 };
 
@@ -110,7 +116,9 @@ function ToolFallbackDuration({
 	...props
 }: React.ComponentProps<"span">) {
 	const elapsedMs = useToolCallElapsed();
-	if (elapsedMs === undefined) return null;
+	if (elapsedMs === undefined) {
+		return null;
+	}
 
 	return (
 		<span
@@ -226,7 +234,9 @@ function ToolFallbackArgs({
 }: React.ComponentProps<"div"> & {
 	argsText?: string;
 }) {
-	if (!argsText) return null;
+	if (!argsText) {
+		return null;
+	}
 
 	return (
 		<div
@@ -242,13 +252,19 @@ function ToolFallbackArgs({
 }
 
 const formatUnknownValue = (value: unknown, space?: number): string => {
-	if (typeof value === "string") return value;
+	if (typeof value === "string") {
+		return value;
+	}
 
 	try {
-		if (value instanceof Error) return String(value);
+		if (value instanceof Error) {
+			return String(value);
+		}
 
 		const json = JSON.stringify(value, null, space);
-		if (json !== undefined) return json;
+		if (json !== undefined) {
+			return json;
+		}
 	} catch {}
 
 	try {
@@ -265,7 +281,9 @@ function ToolFallbackResult({
 }: React.ComponentProps<"div"> & {
 	result?: unknown;
 }) {
-	if (result === undefined) return null;
+	if (result === undefined) {
+		return null;
+	}
 
 	return (
 		<div
@@ -290,7 +308,9 @@ function ToolFallbackError({
 }: React.ComponentProps<"div"> & {
 	status?: ToolCallMessagePartStatus;
 }) {
-	if (status?.type !== "incomplete") return null;
+	if (status?.type !== "incomplete") {
+		return null;
+	}
 
 	const error = status.error;
 	const errorText =
@@ -298,7 +318,9 @@ function ToolFallbackError({
 			? null
 			: formatUnknownValue(error);
 
-	if (!errorText) return null;
+	if (!errorText) {
+		return null;
+	}
 
 	const isCancelled = status.reason === "cancelled";
 	const headerText = isCancelled ? "Cancelled reason:" : "Error:";
@@ -386,10 +408,13 @@ function ToolFallbackApproval({
 	if (
 		approval != null &&
 		(approval.approved !== undefined || approval.resolution !== undefined)
-	)
+	) {
 		return null;
+	}
 
-	if (!offersInterruptAction(status, approval, interrupt)) return null;
+	if (!offersInterruptAction(status, approval, interrupt)) {
+		return null;
+	}
 
 	// A declared option list is a host constraint: the kit never adds an
 	// approval path beyond it, and preserves a refusal path only where the
@@ -420,7 +445,9 @@ function ToolFallbackApproval({
 	};
 
 	const respond = (approved: boolean) => {
-		if (submitted) return;
+		if (submitted) {
+			return;
+		}
 		if (
 			approval != null &&
 			approval.approved === undefined &&
@@ -442,7 +469,9 @@ function ToolFallbackApproval({
 	};
 
 	const respondWithOption = (option: ToolApprovalOption) => {
-		if (submitted) return;
+		if (submitted) {
+			return;
+		}
 		setConfirmingId(null);
 		// A custom kind has no decision class for the runtime to derive, and
 		// responding without one throws; picking a declared option is an answer,
@@ -459,7 +488,9 @@ function ToolFallbackApproval({
 	const typedAnswer = () => (answer.trim() ? { text: answer } : {});
 
 	const submitAnswer = () => {
-		if (submitted || !answer.trim()) return;
+		if (submitted || !answer.trim()) {
+			return;
+		}
 		submit(() => respondToApproval?.({ text: answer }));
 	};
 
@@ -709,7 +740,9 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
 		useState(isRequiresAction);
 	if (isRequiresAction !== prevRequiresAction) {
 		setPrevRequiresAction(isRequiresAction);
-		if (isRequiresAction) setOpen(true);
+		if (isRequiresAction) {
+			setOpen(true);
+		}
 	}
 
 	return (
@@ -760,11 +793,11 @@ ToolFallback.Approval = ToolFallbackApproval;
 
 export {
 	ToolFallback,
+	ToolFallbackApproval,
+	ToolFallbackArgs,
+	ToolFallbackContent,
+	ToolFallbackError,
+	ToolFallbackResult,
 	ToolFallbackRoot,
 	ToolFallbackTrigger,
-	ToolFallbackContent,
-	ToolFallbackArgs,
-	ToolFallbackResult,
-	ToolFallbackError,
-	ToolFallbackApproval,
 };

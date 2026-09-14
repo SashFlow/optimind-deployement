@@ -16,13 +16,15 @@ import {
 	buildDispatchMetadata,
 	serializeDispatchMetadata,
 } from "../../sessions/lib/dispatch-metadata";
-import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 import { resolveTemplate, resolveValue } from "../lib/template";
+import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 
 const AGENT_NAME = process.env.AGENT_NAME || "demo-agent";
 
 function configRecordingEnabled(config: unknown): boolean {
-	if (!config || typeof config !== "object") return false;
+	if (!config || typeof config !== "object") {
+		return false;
+	}
 	const c = config as {
 		recording_enabled?: boolean;
 		recordingEnabled?: boolean;
@@ -37,7 +39,9 @@ export async function handleKnowledgeRetrieve(
 	const query = String(
 		resolveTemplate(String(cfg.query ?? ""), args.context),
 	);
-	if (!query) throw new Error("Knowledge node requires query");
+	if (!query) {
+		throw new Error("Knowledge node requires query");
+	}
 
 	const campaign = await getCampaignById(args.run.campaignId);
 	const kbIds: string[] = Array.isArray(cfg.knowledgeBaseIds)
@@ -86,11 +90,15 @@ export async function handleLlm(
 		: undefined;
 	const model = String(cfg.model ?? "gpt-4o-mini");
 	const apiKey = process.env.OPENAI_API_KEY;
-	if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
+	if (!apiKey) {
+		throw new Error("OPENAI_API_KEY is not configured");
+	}
 
 	const openai = new OpenAI({ apiKey });
 	const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-	if (system) messages.push({ role: "system", content: system });
+	if (system) {
+		messages.push({ role: "system", content: system });
+	}
 	messages.push({ role: "user", content: prompt });
 
 	const completion = await openai.chat.completions.create({
@@ -114,7 +122,9 @@ export async function handleAgent(
 ): Promise<NodeHandlerResult> {
 	const cfg = args.node.data.config;
 	const campaign = await getCampaignById(args.run.campaignId);
-	if (!campaign) throw new Error("Campaign not found");
+	if (!campaign) {
+		throw new Error("Campaign not found");
+	}
 
 	const agentId = String(cfg.agentId ?? campaign.agentId);
 	const agent = await getAgentById(agentId);

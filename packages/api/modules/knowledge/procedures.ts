@@ -26,14 +26,18 @@ import { createKnowledgeSignedUploadUrl, getKnowledgeBucket } from "./lib/s3";
 
 async function requireKb(id: string, userId: string) {
 	const kb = await getKnowledgeBaseById(id);
-	if (!kb) throw new ORPCError("NOT_FOUND");
+	if (!kb) {
+		throw new ORPCError("NOT_FOUND");
+	}
 	await requireOrgMembership(kb.organizationId, userId);
 	return kb;
 }
 
 async function requireDocument(documentId: string, userId: string) {
 	const document = await getDocumentById(documentId);
-	if (!document) throw new ORPCError("NOT_FOUND");
+	if (!document) {
+		throw new ORPCError("NOT_FOUND");
+	}
 	await requireOrgMembership(document.knowledgeBase.organizationId, userId);
 	return document;
 }

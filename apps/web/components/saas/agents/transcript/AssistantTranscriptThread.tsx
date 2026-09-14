@@ -2,12 +2,12 @@
 
 import {
 	AssistantRuntimeProvider,
-	useExternalStoreRuntime,
 	type ThreadMessageLike,
+	useExternalStoreRuntime,
 } from "@assistant-ui/react";
 import { ReadOnlyThread } from "@repo/ui/assistant-ui";
 import { cn } from "@repo/ui/utils";
-import { useCallback, type ReactNode } from "react";
+import { type ReactNode, useCallback } from "react";
 
 type AssistantTranscriptThreadProps = {
 	messages: ThreadMessageLike[];

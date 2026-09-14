@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useId, type ComponentProps } from "react";
 import { SearchIcon } from "lucide-react";
+import { type ComponentProps, useEffect, useId } from "react";
 import { cn } from "../../../utils";
 import { field, floating, mono } from "./surfaces";
 
@@ -50,12 +50,16 @@ export function CommandPalette({
 	);
 
 	const move = (delta: number) => {
-		if (ordered.length === 0) return;
+		if (ordered.length === 0) {
+			return;
+		}
 		const at = ordered.findIndex((command) => command.id === activeId);
 		// activeId can be filtered out by the query; start from the edge the key implies
 		const from = at === -1 ? (delta > 0 ? -1 : 0) : at;
 		const next = ordered[(from + delta + ordered.length) % ordered.length];
-		if (next) onActiveChange?.(next.id);
+		if (next) {
+			onActiveChange?.(next.id);
+		}
 	};
 
 	// aria-activedescendant moves the highlight without moving focus, and only
@@ -67,7 +71,9 @@ export function CommandPalette({
 	}, [activeId, listId]);
 
 	const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-		if (event.nativeEvent.isComposing) return;
+		if (event.nativeEvent.isComposing) {
+			return;
+		}
 		if (event.key === "ArrowDown") {
 			event.preventDefault();
 			move(1);
@@ -77,7 +83,9 @@ export function CommandPalette({
 		} else if (event.key === "Enter") {
 			event.preventDefault();
 			const active = ordered.find((command) => command.id === activeId);
-			if (active) onRun?.(active.id);
+			if (active) {
+				onRun?.(active.id);
+			}
 		}
 	};
 

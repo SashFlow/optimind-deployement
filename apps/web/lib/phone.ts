@@ -4,13 +4,17 @@
  */
 export function normalizePhoneNumber(raw: string): string | null {
 	const trimmed = raw.trim();
-	if (!trimmed) return null;
+	if (!trimmed) {
+		return null;
+	}
 
 	const digits = trimmed.replace(/[^\d+]/g, "");
 
 	if (digits.startsWith("+")) {
 		const rest = digits.slice(1).replace(/\D/g, "");
-		if (rest.length < 8 || rest.length > 15) return null;
+		if (rest.length < 8 || rest.length > 15) {
+			return null;
+		}
 		return `+${rest}`;
 	}
 

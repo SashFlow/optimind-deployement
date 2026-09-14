@@ -1,11 +1,11 @@
 import {
-	readFileSync,
-	writeFileSync,
-	readdirSync,
-	statSync,
 	existsSync,
+	readdirSync,
+	readFileSync,
+	statSync,
+	writeFileSync,
 } from "node:fs";
-import { join, dirname, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const pkgRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -14,8 +14,11 @@ const srcRoot = join(pkgRoot, "src");
 function walk(dir, out = []) {
 	for (const entry of readdirSync(dir, { withFileTypes: true })) {
 		const p = join(dir, entry.name);
-		if (entry.isDirectory()) walk(p, out);
-		else if (/\.(tsx?|jsx?)$/.test(entry.name)) out.push(p);
+		if (entry.isDirectory()) {
+			walk(p, out);
+		} else if (/\.(tsx?|jsx?)$/.test(entry.name)) {
+			out.push(p);
+		}
 	}
 	return out;
 }
@@ -26,7 +29,9 @@ function toPosix(p) {
 
 function relImport(fromFile, absTarget) {
 	let rel = toPosix(relative(dirname(fromFile), absTarget));
-	if (!rel.startsWith(".")) rel = `./${rel}`;
+	if (!rel.startsWith(".")) {
+		rel = `./${rel}`;
+	}
 	return rel.replace(/\.tsx?$/, "");
 }
 
@@ -69,9 +74,14 @@ const targets = [
 
 const files = [];
 for (const target of targets) {
-	if (!existsSync(target)) continue;
-	if (statSync(target).isFile()) files.push(target);
-	else files.push(...walk(target));
+	if (!existsSync(target)) {
+		continue;
+	}
+	if (statSync(target).isFile()) {
+		files.push(target);
+	} else {
+		files.push(...walk(target));
+	}
 }
 
 let changed = 0;
@@ -82,7 +92,9 @@ for (const file of files) {
 	next = next.replace(/from\s+["']([^"']+)["']/g, (full, spec) => {
 		for (const [re, toAbs] of aliasMap) {
 			const match = spec.match(re);
-			if (!match) continue;
+			if (!match) {
+				continue;
+			}
 			const abs = toAbs(match[1] ?? "");
 			const rel = relImport(file, abs);
 			return `from "${rel}"`;

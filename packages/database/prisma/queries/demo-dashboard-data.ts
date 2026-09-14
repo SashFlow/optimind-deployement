@@ -1,4 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
+import { db } from "../client";
 import type {
 	AgentSessionChannel,
 	AgentSessionDirection,
@@ -8,7 +9,6 @@ import type {
 	SessionEndReason,
 	TranscriptRole,
 } from "../generated/client";
-import { db } from "../client";
 import { createAgent } from "./agents";
 
 const DEMO_FILL_KEY = "demoFill";

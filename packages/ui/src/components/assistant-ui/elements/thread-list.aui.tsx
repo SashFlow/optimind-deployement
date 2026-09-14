@@ -1,9 +1,5 @@
 "use client";
 
-import { Button } from "../../../shadcn/button";
-import { Input } from "../../../shadcn/input";
-import { Skeleton } from "../../../shadcn/skeleton";
-import { cn } from "../../../utils";
 import {
 	AuiIf,
 	ThreadListItemMorePrimitive,
@@ -22,15 +18,19 @@ import {
 	TrashIcon,
 } from "lucide-react";
 import {
-	forwardRef,
+	type ComponentPropsWithoutRef,
+	type FC,
 	Fragment,
+	forwardRef,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	type ComponentPropsWithoutRef,
-	type FC,
 } from "react";
+import { Button } from "../../../shadcn/button";
+import { Input } from "../../../shadcn/input";
+import { Skeleton } from "../../../shadcn/skeleton";
+import { cn } from "../../../utils";
 
 export const ThreadList: FC = () => {
 	const [search, setSearch] = useState("");
@@ -116,8 +116,12 @@ const dateGroupLabel = (
 	date: Date | undefined,
 	startOfToday: number,
 ): string => {
-	if (!date || date.getTime() >= startOfToday) return "Today";
-	if (date.getTime() >= startOfToday - DAY_IN_MS) return "Yesterday";
+	if (!date || date.getTime() >= startOfToday) {
+		return "Today";
+	}
+	if (date.getTime() >= startOfToday - DAY_IN_MS) {
+		return "Yesterday";
+	}
 	return "Earlier";
 };
 
@@ -287,7 +291,9 @@ export const ThreadListItem: FC = () => {
 	const restoreFocusRef = useRef(false);
 
 	useEffect(() => {
-		if (isRenaming || !restoreFocusRef.current) return;
+		if (isRenaming || !restoreFocusRef.current) {
+			return;
+		}
 		restoreFocusRef.current = false;
 		triggerRef.current?.focus();
 	}, [isRenaming]);
@@ -345,7 +351,9 @@ const ThreadListItemRename: FC<{
 	}, []);
 
 	const commit = (restoreFocus: boolean) => {
-		if (settledRef.current) return;
+		if (settledRef.current) {
+			return;
+		}
 		settledRef.current = true;
 
 		const next = value.trim();
@@ -361,13 +369,17 @@ const ThreadListItemRename: FC<{
 				() => onDone(restoreFocus),
 				() => {
 					settledRef.current = false;
-					if (restoreFocus) inputRef.current?.focus();
+					if (restoreFocus) {
+						inputRef.current?.focus();
+					}
 				},
 			);
 	};
 
 	const cancel = () => {
-		if (settledRef.current) return;
+		if (settledRef.current) {
+			return;
+		}
 		settledRef.current = true;
 		onDone(true);
 	};

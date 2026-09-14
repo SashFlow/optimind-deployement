@@ -8,10 +8,10 @@ import {
 	type Variants,
 } from "motion/react";
 import {
-	useEffect,
-	useRef,
 	type PropsWithChildren,
 	type ReactNode,
+	useEffect,
+	useRef,
 } from "react";
 
 const TRANSITION: Transition = {

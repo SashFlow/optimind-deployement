@@ -7,8 +7,8 @@ import {
 	CollapsibleTrigger,
 } from "../../../shadcn/collapsible";
 import { cn } from "../../../utils";
-import { collapsePanel, ShimmerLabel, SwapLabel } from "./surfaces";
 import { take } from "../utils/range";
+import { collapsePanel, ShimmerLabel, SwapLabel } from "./surfaces";
 
 export interface TimelineStep {
 	verb: string;
@@ -64,7 +64,7 @@ export function ToolTimeline({
 					>
 						{activeLabel}
 					</ShimmerLabel>
-					<>{restingLabel}</>
+					{restingLabel}
 				</SwapLabel>
 			</CollapsibleTrigger>
 			<CollapsibleContent className={cn(collapsePanel, "outline-none")}>

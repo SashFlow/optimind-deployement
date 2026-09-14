@@ -160,8 +160,9 @@ export async function POST(req: Request) {
 			});
 
 			roomConfig.metadata = `${interactionMode}-${slug}`;
+			const metadata = agentMetadata;
 			roomConfig.agents = (roomConfig.agents ?? []).map((agent) => {
-				agent.metadata = agentMetadata!;
+				agent.metadata = metadata;
 				return agent;
 			});
 		}

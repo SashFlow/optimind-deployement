@@ -1,22 +1,22 @@
 "use client";
 
-import { memo, useCallback, useRef } from "react";
 import {
-	useScrollLock,
-	useAuiState,
-	type ReasoningMessagePartComponent,
 	type ReasoningGroupComponent,
+	type ReasoningMessagePartComponent,
+	useAuiState,
+	useScrollLock,
 } from "@assistant-ui/react";
+import { memo, useCallback, useRef } from "react";
 import { MarkdownText } from "./markdown-text";
 import {
 	ANIMATION_DURATION,
-	ReasoningRoot as ReasoningRootBase,
-	ReasoningTrigger,
 	ReasoningContent,
-	ReasoningText,
 	ReasoningFade,
-	reasoningVariants,
+	ReasoningRoot as ReasoningRootBase,
 	type ReasoningRootProps,
+	ReasoningText,
+	ReasoningTrigger,
+	reasoningVariants,
 } from "./reasoning";
 
 export type { ReasoningRootProps } from "./reasoning";
@@ -64,9 +64,13 @@ const ReasoningGroupImpl: ReasoningGroupComponent = ({
 	endIndex,
 }) => {
 	const isReasoningStreaming = useAuiState((s) => {
-		if (s.message.status?.type !== "running") return false;
+		if (s.message.status?.type !== "running") {
+			return false;
+		}
 		for (let index = startIndex; index <= endIndex; index++) {
-			if (s.message.parts[index]?.status.type === "running") return true;
+			if (s.message.parts[index]?.status.type === "running") {
+				return true;
+			}
 		}
 		return false;
 	});
@@ -110,11 +114,11 @@ ReasoningGroup.displayName = "ReasoningGroup";
 
 export {
 	Reasoning,
+	ReasoningContent,
+	ReasoningFade,
 	ReasoningGroup,
 	ReasoningRoot,
-	ReasoningTrigger,
-	ReasoningContent,
 	ReasoningText,
-	ReasoningFade,
+	ReasoningTrigger,
 	reasoningVariants,
 };

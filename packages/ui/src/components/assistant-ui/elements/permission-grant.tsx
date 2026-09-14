@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { KeyRoundIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
 import { field, inkButton, mono, paper } from "./surfaces";
 

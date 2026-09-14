@@ -55,7 +55,9 @@ const EMPTY_PROMPT_SECTIONS: Record<string, string> = {
 };
 
 function formatValue(value: unknown): string {
-	if (value === null || value === undefined) return "";
+	if (value === null || value === undefined) {
+		return "";
+	}
 	return String(value);
 }
 
@@ -103,11 +105,17 @@ function asString(value: unknown): string {
 function variableNames(config: Record<string, unknown>): Set<string> {
 	const names = new Set<string>();
 	const variables = config.variables;
-	if (!Array.isArray(variables)) return names;
+	if (!Array.isArray(variables)) {
+		return names;
+	}
 	for (const variable of variables) {
-		if (!variable || typeof variable !== "object") continue;
+		if (!variable || typeof variable !== "object") {
+			continue;
+		}
 		const name = asString((variable as { name?: unknown }).name).trim();
-		if (name) names.add(name);
+		if (name) {
+			names.add(name);
+		}
 	}
 	return names;
 }
@@ -181,20 +189,28 @@ function readPromptField(
 		return asString(config.instructions);
 	}
 	const primary = asString(prompts[field]).trim();
-	if (primary) return asString(prompts[field]);
+	if (primary) {
+		return asString(prompts[field]);
+	}
 	if (aliases) {
 		for (const alias of aliases) {
 			const value = asString(prompts[alias]);
-			if (value.trim()) return value;
+			if (value.trim()) {
+				return value;
+			}
 		}
 	}
 	return "";
 }
 
 function greetingSection(greeting: Record<string, unknown>): string | null {
-	if (greeting.enabled === false) return null;
+	if (greeting.enabled === false) {
+		return null;
+	}
 	const text = asString(greeting.text).trim();
-	if (!text) return null;
+	if (!text) {
+		return null;
+	}
 
 	const trigger = asString(greeting.trigger) || "on_join";
 	if (trigger === "manual") {
@@ -221,7 +237,9 @@ function greetingSection(greeting: Record<string, unknown>): string | null {
 }
 
 function callEndingSection(callEnding: Record<string, unknown>): string | null {
-	if (callEnding.enabled === false) return null;
+	if (callEnding.enabled === false) {
+		return null;
+	}
 
 	const parts: string[] = [];
 	const farewell = asString(callEnding.farewell_message).trim();
@@ -256,13 +274,17 @@ function callEndingSection(callEnding: Record<string, unknown>): string | null {
 		);
 	}
 
-	if (parts.length === 0) return null;
+	if (parts.length === 0) {
+		return null;
+	}
 	return parts.join("\n\n");
 }
 
 function transferSection(config: Record<string, unknown>): string | null {
 	const toolsConfig = asRecord(config.tools_config);
-	if (!toolsConfig.transfer_call) return null;
+	if (!toolsConfig.transfer_call) {
+		return null;
+	}
 
 	const transferCall = asRecord(config.transfer_call);
 	const transferNumber = asString(transferCall.transfer_number).trim();

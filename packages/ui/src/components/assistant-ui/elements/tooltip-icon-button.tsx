@@ -1,15 +1,14 @@
 "use client";
 
-import { type ComponentPropsWithRef, forwardRef } from "react";
 import { Slot } from "radix-ui";
-
+import { type ComponentPropsWithRef, forwardRef } from "react";
+import { Button } from "../../../shadcn/button";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "../../../shadcn/tooltip";
-import { Button } from "../../../shadcn/button";
 import { cn } from "../../../utils";
 
 export type TooltipIconButtonProps = ComponentPropsWithRef<typeof Button> & {

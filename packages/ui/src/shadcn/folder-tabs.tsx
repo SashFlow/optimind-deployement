@@ -59,7 +59,9 @@ const FolderTabsBack = React.forwardRef<
 			)}
 			onClick={(event) => {
 				onClick?.(event);
-				if (event.defaultPrevented) return;
+				if (event.defaultPrevented) {
+					return;
+				}
 				if (href) {
 					router.push(href);
 				} else {

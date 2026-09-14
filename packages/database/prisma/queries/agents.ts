@@ -1,11 +1,11 @@
 import { createId } from "@paralleldrive/cuid2";
+import { db } from "../client";
 import type {
-	AgentTrial,
 	AgentStatus,
+	AgentTrial,
 	AgentVersionStatus,
 	Prisma,
 } from "../generated/client";
-import { db } from "../client";
 
 export async function listAgents(organizationId: string) {
 	return db.agent.findMany({
@@ -285,11 +285,18 @@ export async function consumeAgentTrialToken(
 		const trial = await tx.agentTrial.findUnique({
 			where: { token },
 		});
-		if (!trial) return null;
-		if (!trial.enabled) return null;
-		if (trial.expiresAt && trial.expiresAt.getTime() < Date.now())
+		if (!trial) {
 			return null;
-		if (trial.usageCount >= trial.usageLimit) return null;
+		}
+		if (!trial.enabled) {
+			return null;
+		}
+		if (trial.expiresAt && trial.expiresAt.getTime() < Date.now()) {
+			return null;
+		}
+		if (trial.usageCount >= trial.usageLimit) {
+			return null;
+		}
 
 		return tx.agentTrial.update({
 			where: { id: trial.id },

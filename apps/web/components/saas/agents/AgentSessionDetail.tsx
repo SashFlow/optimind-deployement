@@ -34,9 +34,13 @@ import { AssistantTranscriptThread } from "./transcript/AssistantTranscriptThrea
 import { sessionSegmentsToThreadMessages } from "./transcript/mapTranscriptMessages";
 
 function formatDateTime(value: string | Date | null | undefined) {
-	if (!value) return "—";
+	if (!value) {
+		return "—";
+	}
 	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return String(value);
+	if (Number.isNaN(date.getTime())) {
+		return String(value);
+	}
 	return new Intl.DateTimeFormat(undefined, {
 		dateStyle: "medium",
 		timeStyle: "medium",
@@ -44,13 +48,19 @@ function formatDateTime(value: string | Date | null | undefined) {
 }
 
 function formatDuration(ms: number | null | undefined) {
-	if (ms == null || ms < 0) return "—";
+	if (ms == null || ms < 0) {
+		return "—";
+	}
 	const totalSeconds = Math.round(ms / 1000);
 	const hours = Math.floor(totalSeconds / 3600);
 	const minutes = Math.floor((totalSeconds % 3600) / 60);
 	const seconds = totalSeconds % 60;
-	if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-	if (minutes > 0) return `${minutes}m ${seconds}s`;
+	if (hours > 0) {
+		return `${hours}h ${minutes}m ${seconds}s`;
+	}
+	if (minutes > 0) {
+		return `${minutes}m ${seconds}s`;
+	}
 	return `${seconds}s`;
 }
 
@@ -69,8 +79,12 @@ function isAudioRecording(job: {
 	outputUrls?: string[] | null;
 	playableUrl?: string | null;
 }) {
-	if (job.audioOnly === true) return true;
-	if (job.playableContentType?.startsWith("audio/")) return true;
+	if (job.audioOnly === true) {
+		return true;
+	}
+	if (job.playableContentType?.startsWith("audio/")) {
+		return true;
+	}
 	const candidates = [
 		job.playableUrl,
 		job.fileUrl,
@@ -88,7 +102,9 @@ function pickPlayableUrl(job: {
 	fileUrl?: string | null;
 	outputUrls?: string[] | null;
 }) {
-	if (job.playableUrl && isHttpUrl(job.playableUrl)) return job.playableUrl;
+	if (job.playableUrl && isHttpUrl(job.playableUrl)) {
+		return job.playableUrl;
+	}
 	const candidates = [job.fileUrl, ...(job.outputUrls ?? [])].filter(
 		(url): url is string => Boolean(url),
 	);
@@ -96,8 +112,12 @@ function pickPlayableUrl(job: {
 }
 
 function formatBytes(bytes: number | null | undefined) {
-	if (bytes == null || bytes < 0) return null;
-	if (bytes < 1024) return `${bytes} B`;
+	if (bytes == null || bytes < 0) {
+		return null;
+	}
+	if (bytes < 1024) {
+		return `${bytes} B`;
+	}
 	const units = ["KB", "MB", "GB", "TB"];
 	let value = bytes / 1024;
 	let unitIndex = 0;
@@ -131,7 +151,9 @@ function filenameFromJob(job: {
 		return parts[parts.length - 1] || filepath;
 	}
 	const candidate = job.fileUrl ?? job.outputUrls?.[0];
-	if (candidate) return filenameFromUrl(candidate);
+	if (candidate) {
+		return filenameFromUrl(candidate);
+	}
 	return `${job.livekitEgressId ?? job.id}.mp4`;
 }
 
@@ -155,11 +177,17 @@ function isLiveTranscriptStatus(status: string | undefined) {
 }
 
 function formatPayloadPreview(payload: unknown) {
-	if (payload == null) return "—";
-	if (typeof payload === "string") return payload || "—";
+	if (payload == null) {
+		return "—";
+	}
+	if (typeof payload === "string") {
+		return payload || "—";
+	}
 	try {
 		const text = JSON.stringify(payload);
-		if (!text || text === "{}" || text === "[]") return "—";
+		if (!text || text === "{}" || text === "[]") {
+			return "—";
+		}
 		return text.length > 120 ? `${text.slice(0, 117)}…` : text;
 	} catch {
 		return "—";
@@ -167,10 +195,14 @@ function formatPayloadPreview(payload: unknown) {
 }
 
 function formatPayloadJson(payload: unknown): string {
-	if (payload == null) return "null";
+	if (payload == null) {
+		return "null";
+	}
 	if (typeof payload === "string") {
 		const trimmed = payload.trim();
-		if (!trimmed) return '""';
+		if (!trimmed) {
+			return '""';
+		}
 		try {
 			return JSON.stringify(JSON.parse(trimmed), null, 2);
 		} catch {
@@ -542,7 +574,9 @@ export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 			[...events].sort((a, b) => {
 				const aSeq = a.sequence ?? Number.MAX_SAFE_INTEGER;
 				const bSeq = b.sequence ?? Number.MAX_SAFE_INTEGER;
-				if (aSeq !== bSeq) return aSeq - bSeq;
+				if (aSeq !== bSeq) {
+					return aSeq - bSeq;
+				}
 				const aTime = new Date(
 					a.occurredAt ?? a.createdAt ?? 0,
 				).getTime();

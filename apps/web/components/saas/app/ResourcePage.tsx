@@ -1,5 +1,5 @@
-/** biome-ignore-all lint/style/useBlockStatements: <explanation> */
-/** biome-ignore-all lint/a11y/noStaticElementInteractions: <explanation> */
+/** biome-ignore-all lint/style/useBlockStatements: compact early returns in table helpers */
+/** biome-ignore-all lint/a11y/noStaticElementInteractions: row click handlers for selection */
 "use client";
 
 import {

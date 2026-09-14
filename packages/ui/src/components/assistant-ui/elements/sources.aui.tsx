@@ -1,11 +1,11 @@
 "use client";
 
-import { memo, useState, type ComponentProps } from "react";
-import { FileTextIcon } from "lucide-react";
-import { cva, type VariantProps } from "class-variance-authority";
 import type { SourceMessagePartComponent } from "@assistant-ui/react";
-import { cn } from "../../../utils";
+import { cva, type VariantProps } from "class-variance-authority";
+import { FileTextIcon } from "lucide-react";
+import { type ComponentProps, memo, useState } from "react";
 import { Badge } from "../../../shadcn/badge";
+import { cn } from "../../../utils";
 
 const sourceVariants = cva(
 	"inline-flex items-center justify-center gap-1 rounded-md text-xs font-medium transition-colors [&_svg]:size-3 [&_svg]:shrink-0",
@@ -80,6 +80,7 @@ function SourceIcon({
 	}
 
 	return (
+		// biome-ignore lint/performance/noImgElement: external favicon/source icons
 		<img
 			data-slot="source-icon"
 			src={src}
@@ -89,7 +90,9 @@ function SourceIcon({
 			{...(props as ComponentProps<"img">)}
 			// A server-rendered image that fails before hydration never fires onError.
 			ref={(el) => {
-				if (el?.complete && el.naturalWidth === 0) setErrorSrc(src);
+				if (el?.complete && el.naturalWidth === 0) {
+					setErrorSrc(src);
+				}
 			}}
 		/>
 	);
@@ -190,4 +193,4 @@ Sources.Root = Source;
 Sources.Icon = SourceIcon;
 Sources.Title = SourceTitle;
 
-export { Sources, Source, SourceIcon, SourceTitle, sourceVariants };
+export { Source, SourceIcon, Sources, SourceTitle, sourceVariants };

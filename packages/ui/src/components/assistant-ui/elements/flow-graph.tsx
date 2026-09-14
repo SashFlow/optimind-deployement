@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { mono, paper } from "./surfaces";
 import { take } from "../utils/range";
+import { mono, paper } from "./surfaces";
 
 export type FlowNodeState = "done" | "active" | "pending";
 
@@ -77,7 +77,9 @@ export function FlowGraph({
 							(node) => node.id === edge.from,
 						);
 						const to = nodes.find((node) => node.id === edge.to);
-						if (!from || !to) return null;
+						if (!from || !to) {
+							return null;
+						}
 						const live =
 							shownIds.has(edge.from) && shownIds.has(edge.to);
 						const a = center(from);

@@ -1,7 +1,7 @@
 "use client";
 
-import { AuiIf, useAuiState, ThreadPrimitive } from "@assistant-ui/react";
-import { useCallback, useEffect, useRef, useState, type FC } from "react";
+import { AuiIf, ThreadPrimitive, useAuiState } from "@assistant-ui/react";
+import { type FC, useCallback, useEffect, useRef, useState } from "react";
 
 const FollowupSuggestionsRow: FC = () => {
 	const suggestions = useAuiState((s) => s.thread.suggestions);
@@ -11,7 +11,9 @@ const FollowupSuggestionsRow: FC = () => {
 
 	const updateFades = useCallback(() => {
 		const el = scrollRef.current;
-		if (!el) return;
+		if (!el) {
+			return;
+		}
 		const maxScroll = el.scrollWidth - el.clientWidth;
 		// scrollLeft runs 0..-max in RTL; normalize to hidden width per physical edge.
 		const fromStart = Math.abs(el.scrollLeft);
@@ -34,7 +36,9 @@ const FollowupSuggestionsRow: FC = () => {
 	useEffect(() => {
 		updateFades();
 		const el = scrollRef.current;
-		if (!el?.firstElementChild) return undefined;
+		if (!el?.firstElementChild) {
+			return undefined;
+		}
 		const observer = new ResizeObserver(updateFades);
 		observer.observe(el);
 		observer.observe(el.firstElementChild);

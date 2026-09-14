@@ -1,4 +1,5 @@
-﻿import {
+﻿import { type RoomConfiguration, SIPTransport } from "@livekit/protocol";
+import {
 	AccessToken,
 	type AccessTokenOptions,
 	AgentDispatchClient,
@@ -6,25 +7,24 @@
 	EncodedFileOutput,
 	EncodedFileType,
 	RoomServiceClient,
-	SipClient,
 	S3Upload,
+	SipClient,
 	type VideoGrant,
 	WebhookReceiver,
 } from "livekit-server-sdk";
-import { SIPTransport, type RoomConfiguration } from "@livekit/protocol";
 import {
 	getLiveKitConfig,
-	livekitHttpHost,
 	type LiveKitConfig,
+	livekitHttpHost,
 } from "./config";
 import { buildS3Upload, type EgressS3Config } from "./egress-s3";
 
+export type { EgressS3Config } from "./egress-s3";
 export {
 	buildS3Upload,
 	getEgressS3Config,
 	recordingFilepath,
 } from "./egress-s3";
-export type { EgressS3Config } from "./egress-s3";
 
 function clients(config?: LiveKitConfig) {
 	const cfg = config ?? getLiveKitConfig();

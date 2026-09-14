@@ -1,4 +1,4 @@
-import { writeAuditLog, type WriteAuditLogInput } from "@repo/database";
+import { type WriteAuditLogInput, writeAuditLog } from "@repo/database";
 import { logger } from "@repo/logs";
 
 export type AuditActionType = WriteAuditLogInput["actionType"];
@@ -19,7 +19,9 @@ export type AuditResourceType =
 	| "session";
 
 function firstHeaderValue(value: string | null): string | undefined {
-	if (!value) return undefined;
+	if (!value) {
+		return undefined;
+	}
 	return value.split(",")[0]?.trim() || undefined;
 }
 

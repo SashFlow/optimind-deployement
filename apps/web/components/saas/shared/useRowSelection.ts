@@ -18,8 +18,11 @@ export function useRowSelection(pageIds: string[]) {
 	const toggle = useCallback((id: string) => {
 		setSelected((prev) => {
 			const next = new Set(prev);
-			if (next.has(id)) next.delete(id);
-			else next.add(id);
+			if (next.has(id)) {
+				next.delete(id);
+			} else {
+				next.add(id);
+			}
 			return next;
 		});
 	}, []);
@@ -29,8 +32,11 @@ export function useRowSelection(pageIds: string[]) {
 			setSelected((prev) => {
 				const next = new Set(prev);
 				for (const id of pageIds) {
-					if (checked) next.add(id);
-					else next.delete(id);
+					if (checked) {
+						next.add(id);
+					} else {
+						next.delete(id);
+					}
 				}
 				return next;
 			});

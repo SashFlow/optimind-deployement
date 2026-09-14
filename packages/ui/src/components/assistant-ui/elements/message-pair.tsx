@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import { CopyIcon, RefreshCwIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { ghostButton, paper } from "./surfaces";
 import { take } from "../utils/range";
+import { ghostButton, paper } from "./surfaces";
 
 export interface MessagePairProps
 	extends Omit<ComponentProps<"div">, "children"> {

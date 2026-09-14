@@ -1,5 +1,5 @@
-import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 import { evaluateCondition, resolveValue, successors } from "../lib/template";
+import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 
 export async function handleIf(
 	args: NodeHandlerArgs,
@@ -96,7 +96,9 @@ export async function handleCodeJs(
 	args: NodeHandlerArgs,
 ): Promise<NodeHandlerResult> {
 	const code = String(args.node.data.config.code ?? "");
-	if (!code.trim()) throw new Error("Code node requires code");
+	if (!code.trim()) {
+		throw new Error("Code node requires code");
+	}
 
 	const context = {
 		env: args.context.env,

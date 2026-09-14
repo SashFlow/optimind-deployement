@@ -42,7 +42,9 @@ export async function continueAfterWait(params: {
 }) {
 	await resumeWorkflowWait(params.waitId, params.resumePayload);
 	const run = await getWorkflowRunById(params.runId);
-	if (!run?.workflowVersion) return;
+	if (!run?.workflowVersion) {
+		return;
+	}
 
 	const output =
 		params.resumePayload &&

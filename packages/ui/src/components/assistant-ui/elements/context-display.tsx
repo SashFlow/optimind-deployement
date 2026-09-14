@@ -1,20 +1,20 @@
 "use client";
 
 import {
+	createContext,
+	type FC,
+	type ReactNode,
+	useContext,
+	useMemo,
+	useState,
+} from "react";
+import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "../../../shadcn/tooltip";
 import { cn } from "../../../utils";
-import {
-	createContext,
-	useContext,
-	useMemo,
-	useState,
-	type FC,
-	type ReactNode,
-} from "react";
 
 export type TokenUsage = {
 	totalTokens?: number | undefined;
@@ -25,10 +25,12 @@ export type TokenUsage = {
 };
 
 const formatTokenCount = (tokens: number): string => {
-	if (tokens >= 1_000_000)
+	if (tokens >= 1_000_000) {
 		return `${(tokens / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-	if (tokens >= 1_000)
+	}
+	if (tokens >= 1_000) {
 		return `${(tokens / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+	}
 	return `${tokens}`;
 };
 
@@ -36,36 +38,54 @@ const getUsagePercent = (
 	totalTokens: number | undefined,
 	modelContextWindow: number,
 ): number => {
-	if (!totalTokens) return 0;
+	if (!totalTokens) {
+		return 0;
+	}
 	return Math.min((totalTokens / modelContextWindow) * 100, 100);
 };
 
 type UsageSeverity = "normal" | "warning" | "critical";
 
 const getUsageSeverity = (percent: number): UsageSeverity => {
-	if (percent > 85) return "critical";
-	if (percent >= 65) return "warning";
+	if (percent > 85) {
+		return "critical";
+	}
+	if (percent >= 65) {
+		return "warning";
+	}
 	return "normal";
 };
 
 const getStrokeColor = (percent: number): string => {
 	const severity = getUsageSeverity(percent);
-	if (severity === "critical") return "stroke-red-500";
-	if (severity === "warning") return "stroke-amber-500";
+	if (severity === "critical") {
+		return "stroke-red-500";
+	}
+	if (severity === "warning") {
+		return "stroke-amber-500";
+	}
 	return "stroke-foreground";
 };
 
 const getBarColor = (percent: number): string => {
 	const severity = getUsageSeverity(percent);
-	if (severity === "critical") return "bg-red-500";
-	if (severity === "warning") return "bg-amber-500";
+	if (severity === "critical") {
+		return "bg-red-500";
+	}
+	if (severity === "warning") {
+		return "bg-amber-500";
+	}
 	return "bg-foreground";
 };
 
 const getPercentColor = (percent: number): string => {
 	const severity = getUsageSeverity(percent);
-	if (severity === "critical") return "text-red-500";
-	if (severity === "warning") return "text-amber-500";
+	if (severity === "critical") {
+		return "text-red-500";
+	}
+	if (severity === "warning") {
+		return "text-amber-500";
+	}
 	return "text-muted-foreground";
 };
 type ContextDisplayContextValue = {
@@ -157,7 +177,9 @@ function ContextDisplayRoot({
 		[current.usage, totalTokens, percent, modelContextWindow],
 	);
 
-	if (!hasUsage) return null;
+	if (!hasUsage) {
+		return null;
+	}
 
 	return (
 		<ContextDisplayContext.Provider value={contextValue}>
@@ -204,7 +226,9 @@ type ContextSegment = {
 const getContextSegments = (
 	usage: TokenUsage | undefined,
 ): ContextSegment[] => {
-	if (!usage) return [];
+	if (!usage) {
+		return [];
+	}
 	return [
 		{ label: "Input", tokens: usage.inputTokens ?? 0 },
 		{ label: "Cached input", tokens: usage.cachedInputTokens ?? 0 },
@@ -455,10 +479,10 @@ ContextDisplay.Text = ContextDisplayText;
 
 export {
 	ContextDisplay,
-	ContextDisplayRoot,
-	ContextDisplayTrigger,
+	ContextDisplayBar,
 	ContextDisplayContent,
 	ContextDisplayRing,
-	ContextDisplayBar,
+	ContextDisplayRoot,
 	ContextDisplayText,
+	ContextDisplayTrigger,
 };

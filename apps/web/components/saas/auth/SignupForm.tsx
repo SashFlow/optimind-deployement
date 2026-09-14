@@ -83,7 +83,9 @@ export function SignupForm({
 					name,
 					callbackURL: redirectTo ?? config.auth.redirectAfterSignIn,
 				});
-				if (error) throw error;
+				if (error) {
+					throw error;
+				}
 				return;
 			}
 
@@ -97,7 +99,9 @@ export function SignupForm({
 				email: result.email,
 				password,
 			});
-			if (signInError) throw signInError;
+			if (signInError) {
+				throw signInError;
+			}
 
 			router.push(config.auth.redirectAfterSignIn);
 		} catch (e) {

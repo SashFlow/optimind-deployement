@@ -1,14 +1,14 @@
 "use client";
 
-import { memo, useRef, type ComponentPropsWithoutRef, type FC } from "react";
 import {
 	ComposerPrimitive,
-	unstable_defaultDirectiveFormatter,
-	unstable_useTriggerPopoverScopeContext,
 	type Unstable_DirectiveFormatter,
 	type Unstable_TriggerItem,
+	unstable_defaultDirectiveFormatter,
+	unstable_useTriggerPopoverScopeContext,
 } from "@assistant-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon, SparklesIcon } from "lucide-react";
+import { type ComponentPropsWithoutRef, type FC, memo, useRef } from "react";
 import { cn } from "../../../utils";
 
 type IconComponent = FC<{ className?: string }>;
@@ -69,7 +69,9 @@ function resolveIcon(
 	iconMap: Record<string, IconComponent> | undefined,
 	fallback: IconComponent,
 ): IconComponent {
-	if (iconKey && iconMap?.[iconKey]) return iconMap[iconKey]!;
+	if (iconKey && iconMap?.[iconKey]) {
+		return iconMap[iconKey] ?? fallback;
+	}
 	return fallback;
 }
 

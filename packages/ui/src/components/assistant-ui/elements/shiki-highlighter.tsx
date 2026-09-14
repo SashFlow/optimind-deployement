@@ -1,7 +1,7 @@
 "use client";
 
 import type { FC } from "react";
-import { useShikiHighlighter, type ShikiHighlighterProps } from "react-shiki";
+import { type ShikiHighlighterProps, useShikiHighlighter } from "react-shiki";
 import { cn } from "../../../utils";
 
 /**

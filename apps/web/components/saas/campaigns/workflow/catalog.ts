@@ -254,7 +254,9 @@ export function filterCatalog(tab: CatalogTab, query: string): CatalogGroup[] {
 			return { ...group, items: [] };
 		}
 		const items = group.items.filter((item) => {
-			if (!q) return true;
+			if (!q) {
+				return true;
+			}
 			return (
 				item.label.toLowerCase().includes(q) ||
 				item.type.toLowerCase().includes(q) ||

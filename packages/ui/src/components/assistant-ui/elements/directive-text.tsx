@@ -37,7 +37,7 @@ export function createDirectiveText(
 	const Component: FC<{ text: string }> = ({ text }) => {
 		const segments = formatter.parse(text);
 
-		if (segments.length === 1 && segments[0]!.kind === "text") {
+		if (segments.length === 1 && segments[0]?.kind === "text") {
 			return <>{text}</>;
 		}
 

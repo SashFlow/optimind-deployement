@@ -20,8 +20,12 @@ export type PreviewTranscriptItem = {
 
 function roleFromSession(role?: string): ThreadMessageLike["role"] {
 	const normalized = role?.toUpperCase() ?? "";
-	if (normalized === "USER" || normalized === "CALLER") return "user";
-	if (normalized === "SYSTEM") return "system";
+	if (normalized === "USER" || normalized === "CALLER") {
+		return "user";
+	}
+	if (normalized === "SYSTEM") {
+		return "system";
+	}
 	return "assistant";
 }
 
@@ -52,7 +56,9 @@ export function sessionSegmentsToThreadMessages(
 	}
 
 	const fallback = fullText?.trim();
-	if (!fallback) return [];
+	if (!fallback) {
+		return [];
+	}
 
 	return [
 		{

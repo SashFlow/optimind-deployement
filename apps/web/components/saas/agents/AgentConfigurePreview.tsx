@@ -80,7 +80,9 @@ function validateVariableValues(
 		if (variable.required && !value) {
 			return `${variable.name} is required`;
 		}
-		if (!value) continue;
+		if (!value) {
+			continue;
+		}
 		if (
 			variable.variable_type === "number" &&
 			Number.isNaN(Number(value))
@@ -161,7 +163,9 @@ function VariableInput({
 						className="hidden"
 						onChange={(e) => {
 							const file = e.target.files?.[0];
-							if (file) onUpload(file);
+							if (file) {
+								onUpload(file);
+							}
 							e.target.value = "";
 						}}
 					/>
@@ -221,7 +225,9 @@ export function AgentConfigurePreview({
 	const definedVariables = savedVariables.filter((v) => v.name.trim());
 
 	async function toggleMic() {
-		if (mediaPermissionPendingRef.current) return;
+		if (mediaPermissionPendingRef.current) {
+			return;
+		}
 		if (micEnabled) {
 			setMicEnabled(false);
 			return;
@@ -246,7 +252,9 @@ export function AgentConfigurePreview({
 	}
 
 	async function toggleCamera() {
-		if (mediaPermissionPendingRef.current) return;
+		if (mediaPermissionPendingRef.current) {
+			return;
+		}
 		if (cameraEnabled) {
 			setCameraEnabled(false);
 			return;
@@ -287,7 +295,9 @@ export function AgentConfigurePreview({
 		const contactMetadata: Record<string, unknown> = {};
 		for (const variable of definedVariables) {
 			const raw = variableValues[variable.name]?.trim();
-			if (!raw) continue;
+			if (!raw) {
+				continue;
+			}
 			contactMetadata[variable.name] =
 				variable.variable_type === "number" ? Number(raw) : raw;
 		}
@@ -295,7 +305,9 @@ export function AgentConfigurePreview({
 	}
 
 	async function handleUpload(name: string, file: File) {
-		if (!activeOrganizationId) return;
+		if (!activeOrganizationId) {
+			return;
+		}
 		setUploadingField(name);
 		try {
 			const response = await uploadPreviewAsset(
@@ -382,7 +394,9 @@ export function AgentConfigurePreview({
 
 	async function handleStartSession() {
 		const contactMetadata = buildContactMetadata();
-		if (!contactMetadata) return;
+		if (!contactMetadata) {
+			return;
+		}
 
 		setStarting(true);
 		try {
@@ -409,7 +423,9 @@ export function AgentConfigurePreview({
 	}
 
 	const roomContent = useMemo(() => {
-		if (!sessionCredentials) return null;
+		if (!sessionCredentials) {
+			return null;
+		}
 		return (
 			<LiveKitRoom
 				token={sessionCredentials.token}
@@ -489,6 +505,7 @@ export function AgentConfigurePreview({
 							<div className="relative aspect-3/4 w-full max-w-[200px] overflow-hidden rounded-xl border bg-muted m-5">
 								{/* Dynamic avatar URL from config; next/image domains vary. */}
 								{/* eslint-disable-next-line @next/next/no-img-element */}
+								{/* biome-ignore lint/performance/noImgElement: dynamic avatar URLs */}
 								<img
 									src={avatarPreviewUrl ?? undefined}
 									alt="Selected avatar"

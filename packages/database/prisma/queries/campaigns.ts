@@ -1,4 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
+import { db } from "../client";
 import type {
 	CampaignChannel,
 	CampaignContactStatus,
@@ -9,7 +10,6 @@ import type {
 	CampaignStatus,
 	Prisma,
 } from "../generated/client";
-import { db } from "../client";
 
 export async function listCampaigns(organizationId: string) {
 	return db.campaign.findMany({
@@ -202,7 +202,9 @@ export async function getRecallContext(contactId: string, limit = 5) {
 	const contact = await db.campaignContact.findUnique({
 		where: { id: contactId },
 	});
-	if (!contact) return null;
+	if (!contact) {
+		return null;
+	}
 
 	const priorSessions = await db.campaignSession.findMany({
 		where: {

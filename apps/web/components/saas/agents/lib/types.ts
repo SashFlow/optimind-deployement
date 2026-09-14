@@ -85,10 +85,16 @@ export function computeAgentStats(
 	for (const session of sessions) {
 		const key = session.createdAt.slice(0, 10);
 		const bucket = dailyMap.get(key);
-		if (!bucket) continue;
+		if (!bucket) {
+			continue;
+		}
 		bucket.count += 1;
-		if (session.status === "COMPLETED") bucket.completed += 1;
-		if (session.status === "FAILED") bucket.failed += 1;
+		if (session.status === "COMPLETED") {
+			bucket.completed += 1;
+		}
+		if (session.status === "FAILED") {
+			bucket.failed += 1;
+		}
 	}
 
 	return {

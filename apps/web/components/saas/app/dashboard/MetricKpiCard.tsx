@@ -148,14 +148,23 @@ export function MetricKpiCard({
 	sparkline,
 	progress,
 }: MetricKpiCardProps) {
-	const showDelta = typeof deltaPct === "number" && Number.isFinite(deltaPct);
-	const rising = showDelta ? deltaPct! >= 0 : false;
+	const delta =
+		typeof deltaPct === "number" && Number.isFinite(deltaPct)
+			? deltaPct
+			: null;
+	const showDelta = delta !== null;
+	const rising = showDelta ? delta >= 0 : false;
 	const isFavorable = showDelta ? (invertDelta ? !rising : rising) : false;
-	const showSparkline = (sparkline?.length ?? 0) > 1;
-	const showProgress =
-		typeof progress === "number" && Number.isFinite(progress);
+	const sparklineData =
+		sparkline && sparkline.length > 1 ? sparkline : null;
+	const showSparkline = sparklineData !== null;
+	const progressValue =
+		typeof progress === "number" && Number.isFinite(progress)
+			? progress
+			: null;
+	const showProgress = progressValue !== null;
 	const progressPct = showProgress
-		? Math.max(0, Math.min(100, progress! * 100))
+		? Math.max(0, Math.min(100, progressValue * 100))
 		: 0;
 	const hasFooter =
 		Boolean(footerText) ||
@@ -218,7 +227,7 @@ export function MetricKpiCard({
 											aria-hidden
 										/>
 									)}
-									{formatDelta(deltaPct!)}
+									{formatDelta(delta)}
 								</span>
 							) : null}
 						</div>
@@ -269,7 +278,7 @@ export function MetricKpiCard({
 								) : (
 									<span />
 								)}
-								<MiniSparkline data={sparkline!} tone={tone} />
+								<MiniSparkline data={sparklineData} tone={tone} />
 							</div>
 						) : null}
 

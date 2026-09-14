@@ -2,8 +2,8 @@
 
 import type { ComponentProps } from "react";
 import { cn } from "../../../utils";
-import { mono, paper } from "./surfaces";
 import { announced, pct, take } from "../utils/range";
+import { mono, paper } from "./surfaces";
 
 export interface ScoreCriterion {
 	label: string;

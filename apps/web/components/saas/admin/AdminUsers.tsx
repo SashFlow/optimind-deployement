@@ -58,8 +58,8 @@ import {
 	StatusBadge,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
-import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { DataTable } from "@/components/saas/shared/StandardDataTable";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
 import {
@@ -87,27 +87,43 @@ const STATUS_FILTER_ITEMS: { value: StatusFilter; label: string }[] = [
 ];
 
 function userStatus(user: Account): "active" | "invited" | "inactive" {
-	if (!user.is_active) return "inactive";
-	if (user.invite_pending) return "invited";
+	if (!user.is_active) {
+		return "inactive";
+	}
+	if (user.invite_pending) {
+		return "invited";
+	}
 	return "active";
 }
 
 function statusLabel(status: "active" | "invited" | "inactive") {
-	if (status === "invited") return "Invited";
-	if (status === "inactive") return "Inactive";
+	if (status === "invited") {
+		return "Invited";
+	}
+	if (status === "inactive") {
+		return "Inactive";
+	}
 	return "Active";
 }
 
 function formatJoined(value: string | null | undefined) {
-	if (!value) return "—";
+	if (!value) {
+		return "—";
+	}
 	return format(new Date(value), "MMM d, yyyy");
 }
 
 function formatLastActive(value: string | null | undefined) {
-	if (!value) return "—";
+	if (!value) {
+		return "—";
+	}
 	const date = new Date(value);
-	if (isToday(date)) return "Today";
-	if (isYesterday(date)) return "Yesterday";
+	if (isToday(date)) {
+		return "Today";
+	}
+	if (isYesterday(date)) {
+		return "Yesterday";
+	}
 	return formatDistanceToNow(date, { addSuffix: true });
 }
 
@@ -129,7 +145,9 @@ function membershipForOrganization(
 	user: Account,
 	organizationId: string | null | undefined,
 ): AccountMembership | null {
-	if (!organizationId) return null;
+	if (!organizationId) {
+		return null;
+	}
 	return (
 		user.memberships.find(
 			(membership) => membership.organizationId === organizationId,
@@ -273,8 +291,12 @@ export function AdminUsers({
 		const q = search.trim().toLowerCase();
 		return users.filter((user) => {
 			const status = userStatus(user);
-			if (statusFilter !== "all" && status !== statusFilter) return false;
-			if (!q) return true;
+			if (statusFilter !== "all" && status !== statusFilter) {
+				return false;
+			}
+			if (!q) {
+				return true;
+			}
 			return (
 				user.name.toLowerCase().includes(q) ||
 				user.email.toLowerCase().includes(q)
@@ -302,7 +324,9 @@ export function AdminUsers({
 
 	const handleInviteOpenChange = (open: boolean) => {
 		setInviteOpen(open);
-		if (!open) resetInviteForm();
+		if (!open) {
+			resetInviteForm();
+		}
 	};
 
 	useSettingsPageAction(() => {
@@ -342,7 +366,9 @@ export function AdminUsers({
 
 	const inviteUser = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		if (!inviteEmail.trim()) return;
+		if (!inviteEmail.trim()) {
+			return;
+		}
 		if (!activeOrganizationId) {
 			setInviteError("No active organization selected.");
 			return;
@@ -380,16 +406,21 @@ export function AdminUsers({
 	};
 
 	const setUserRole = async (user: Account, role: Role) => {
-		if (!isSuperAdmin || user.invite_pending || user.role === role) return;
-		if (user.id.startsWith("invite:")) return;
+		if (!isSuperAdmin || user.invite_pending || user.role === role) {
+			return;
+		}
+		if (user.id.startsWith("invite:")) {
+			return;
+		}
 		setBusyId(user.id);
 		try {
 			const { error } = await authClient.admin.setRole({
 				userId: user.id,
 				role,
 			});
-			if (error)
+			if (error) {
 				throw new Error(error.message || "Unable to update role.");
+			}
 			await invalidateUsers();
 			toast.success("Platform role updated");
 		} catch (cause) {
@@ -411,7 +442,9 @@ export function AdminUsers({
 		const membership = user.memberships.find(
 			(item) => item.organizationId === organizationId,
 		);
-		if (membership?.role === role) return;
+		if (membership?.role === role) {
+			return;
+		}
 		setBusyId(user.id);
 		try {
 			await setOrganizationMembership({
@@ -475,7 +508,9 @@ export function AdminUsers({
 	};
 
 	const saveRole = async () => {
-		if (!roleUser) return;
+		if (!roleUser) {
+			return;
+		}
 		if (roleUser.invite_pending || roleUser.id.startsWith("invite:")) {
 			toast.error(
 				"Pending invites cannot change roles yet. Revoke and reinvite with the desired roles.",
@@ -500,8 +535,9 @@ export function AdminUsers({
 					userId: roleUser.id,
 					role: nextRole,
 				});
-				if (error)
+				if (error) {
 					throw new Error(error.message || "Unable to update role.");
+				}
 			}
 
 			if (orgChanged) {
@@ -528,7 +564,9 @@ export function AdminUsers({
 	};
 
 	const confirmRemove = async () => {
-		if (!removeUser) return;
+		if (!removeUser) {
+			return;
+		}
 		setRemoveBusy(true);
 		try {
 			if (revokeMode) {
@@ -548,8 +586,9 @@ export function AdminUsers({
 				const { error } = await authClient.admin.removeUser({
 					userId: removeUser.id,
 				});
-				if (error)
+				if (error) {
 					throw new Error(error.message || "Unable to remove user.");
+				}
 			}
 			await invalidateUsers();
 			clearSelectionRef.current();
@@ -573,7 +612,9 @@ export function AdminUsers({
 		const selectedInvited = selectedUsersRef.current.filter(
 			(u) => u.invite_pending,
 		);
-		if (selectedInvited.length === 0 || !activeOrganizationId) return;
+		if (selectedInvited.length === 0 || !activeOrganizationId) {
+			return;
+		}
 		setBulkBusy(true);
 		let ok = 0;
 		for (const user of selectedInvited) {
@@ -607,7 +648,9 @@ export function AdminUsers({
 		const selectedInvited = selectedUsersRef.current.filter(
 			(u) => u.invite_pending,
 		);
-		if (selectedInvited.length === 0 || !activeOrganizationId) return;
+		if (selectedInvited.length === 0 || !activeOrganizationId) {
+			return;
+		}
 		setBulkBusy(true);
 		let ok = 0;
 		for (const user of selectedInvited) {
@@ -633,7 +676,9 @@ export function AdminUsers({
 		const selectedActive = selectedUsersRef.current.filter(
 			(u) => !u.invite_pending,
 		);
-		if (selectedActive.length === 0) return;
+		if (selectedActive.length === 0) {
+			return;
+		}
 		setBulkBusy(true);
 		let ok = 0;
 		for (const user of selectedActive) {
@@ -641,7 +686,9 @@ export function AdminUsers({
 				const { error } = await authClient.admin.removeUser({
 					userId: user.id,
 				});
-				if (!error) ok += 1;
+				if (!error) {
+					ok += 1;
+				}
 			} catch {
 				// continue
 			}
@@ -656,7 +703,9 @@ export function AdminUsers({
 
 	const bulkSetRole = async () => {
 		const selectedUsers = selectedUsersRef.current;
-		if (selectedUsers.length === 0) return;
+		if (selectedUsers.length === 0) {
+			return;
+		}
 		setBulkBusy(true);
 		let ok = 0;
 		const eligible = selectedUsers.filter((user) => !user.invite_pending);
@@ -667,7 +716,9 @@ export function AdminUsers({
 						userId: user.id,
 						role: bulkRole,
 					});
-					if (error) continue;
+					if (error) {
+						continue;
+					}
 				}
 
 				if (activeOrganizationId) {
@@ -710,7 +761,9 @@ export function AdminUsers({
 			<Select
 				value={statusFilter}
 				onValueChange={(value) => {
-					if (value) setStatusFilter(value as StatusFilter);
+					if (value) {
+						setStatusFilter(value as StatusFilter);
+					}
 				}}
 			>
 				<SelectTrigger className="h-9 w-[9.5rem] shrink-0">
@@ -1282,7 +1335,9 @@ export function AdminUsers({
 			<Dialog
 				open={roleUser !== null}
 				onOpenChange={(open) => {
-					if (!open) setRoleUser(null);
+					if (!open) {
+						setRoleUser(null);
+					}
 				}}
 			>
 				<DialogContent>
@@ -1303,7 +1358,9 @@ export function AdminUsers({
 								<Select
 									value={nextRole}
 									onValueChange={(value) => {
-										if (value) setNextRole(value as Role);
+										if (value) {
+											setNextRole(value as Role);
+										}
 									}}
 									disabled={roleBusy}
 								>
@@ -1409,7 +1466,9 @@ export function AdminUsers({
 								<Select
 									value={bulkRole}
 									onValueChange={(value) => {
-										if (value) setBulkRole(value as Role);
+										if (value) {
+											setBulkRole(value as Role);
+										}
 									}}
 									disabled={bulkBusy}
 								>

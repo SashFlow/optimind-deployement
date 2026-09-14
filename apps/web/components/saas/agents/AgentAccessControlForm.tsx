@@ -24,8 +24,8 @@ import {
 	StatusBadge,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
-import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { DataTable } from "@/components/saas/shared/StandardDataTable";
+import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 
 type TrialLink = {
 	id: string;
@@ -50,9 +50,13 @@ const EMPTY_FORM: TrialFormState = {
 };
 
 function formatExpiry(value: string | null) {
-	if (!value) return "Never";
+	if (!value) {
+		return "Never";
+	}
 	const date = new Date(`${value}T00:00:00`);
-	if (Number.isNaN(date.getTime())) return value;
+	if (Number.isNaN(date.getTime())) {
+		return value;
+	}
 	return date.toLocaleDateString(undefined, {
 		year: "numeric",
 		month: "short",
@@ -61,7 +65,9 @@ function formatExpiry(value: string | null) {
 }
 
 function absoluteShareUrl(path: string) {
-	if (typeof window === "undefined") return path;
+	if (typeof window === "undefined") {
+		return path;
+	}
 	try {
 		return new URL(path, window.location.origin).toString();
 	} catch {
@@ -71,7 +77,9 @@ function absoluteShareUrl(path: string) {
 
 function trialStatus(trial: TrialLink) {
 	const remaining = Math.max(0, trial.sessions - trial.used);
-	if (!trial.enabled) return { label: "Disabled", remaining };
+	if (!trial.enabled) {
+		return { label: "Disabled", remaining };
+	}
 	if (trial.expiresAt) {
 		const expiresAt = new Date(`${trial.expiresAt}T00:00:00`);
 		if (
@@ -81,7 +89,9 @@ function trialStatus(trial: TrialLink) {
 			return { label: "Expired", remaining };
 		}
 	}
-	if (remaining <= 0) return { label: "Exhausted", remaining };
+	if (remaining <= 0) {
+		return { label: "Exhausted", remaining };
+	}
 	return { label: "Active", remaining };
 }
 
@@ -163,7 +173,9 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 		sessionsValue > 0;
 
 	useEffect(() => {
-		if (!dialogOpen) return;
+		if (!dialogOpen) {
+			return;
+		}
 		if (editingTrial) {
 			setForm({
 				label: editingTrial.label,
@@ -196,7 +208,9 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 
 	async function handleSubmit(event: React.FormEvent) {
 		event.preventDefault();
-		if (!canSubmit) return;
+		if (!canSubmit) {
+			return;
+		}
 
 		const nextSessions = sessionsValue;
 		const nextExpiry = form.expiresAt.trim();
@@ -235,7 +249,9 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 
 	async function bulkDelete() {
 		const selected = selectedTrialsRef.current;
-		if (selected.length === 0) return;
+		if (selected.length === 0) {
+			return;
+		}
 		setBulkBusy(true);
 		try {
 			for (const trial of selected) {

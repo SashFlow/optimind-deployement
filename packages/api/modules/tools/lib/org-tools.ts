@@ -18,7 +18,9 @@ type OrgMetadata = {
 };
 
 function parseMetadata(raw: string | null | undefined): OrgMetadata {
-	if (!raw) return {};
+	if (!raw) {
+		return {};
+	}
 	try {
 		const parsed = JSON.parse(raw) as unknown;
 		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
@@ -34,9 +36,13 @@ export async function listOrgTools(
 	organizationId: string,
 ): Promise<ToolDefinition[]> {
 	const organization = await getOrganizationById(organizationId);
-	if (!organization) return [];
+	if (!organization) {
+		return [];
+	}
 	const metadata = parseMetadata(organization.metadata);
-	if (!Array.isArray(metadata.optimind_tools)) return [];
+	if (!Array.isArray(metadata.optimind_tools)) {
+		return [];
+	}
 	return metadata.optimind_tools.filter(
 		(tool) => toolDefinitionSchema.safeParse(tool).success,
 	);
@@ -50,7 +56,9 @@ export async function resolveOrgToolsByIds(
 	const uniqueIds = [
 		...new Set(toolIds.map((id) => id.trim()).filter(Boolean)),
 	];
-	if (uniqueIds.length === 0) return [];
+	if (uniqueIds.length === 0) {
+		return [];
+	}
 
 	const allTools = await listOrgTools(organizationId);
 	const byId = new Map(allTools.map((tool) => [tool.id, tool]));
@@ -58,7 +66,9 @@ export async function resolveOrgToolsByIds(
 	const resolved: ToolDefinition[] = [];
 	for (const id of uniqueIds) {
 		const tool = byId.get(id);
-		if (tool) resolved.push(tool);
+		if (tool) {
+			resolved.push(tool);
+		}
 	}
 	return resolved;
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "../../../utils";
 import { type FC, memo, useCallback, useEffect, useRef, useState } from "react";
+import { cn } from "../../../utils";
 
 export type VoiceOrbState =
 	| "idle"
@@ -226,7 +226,9 @@ function createShader(
 	source: string,
 ): WebGLShader | null {
 	const shader = gl.createShader(type);
-	if (!shader) return null;
+	if (!shader) {
+		return null;
+	}
 	gl.shaderSource(shader, source);
 	gl.compileShader(shader);
 	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
@@ -242,17 +244,26 @@ function initWebGL(canvas: HTMLCanvasElement) {
 		premultipliedAlpha: false,
 		antialias: true,
 	});
-	if (!gl) return null;
+	if (!gl) {
+		return null;
+	}
 
 	const vs = createShader(gl, gl.VERTEX_SHADER, VERT_SRC);
 	const fs = createShader(gl, gl.FRAGMENT_SHADER, FRAG_SRC);
-	if (!vs || !fs) return null;
+	if (!vs || !fs) {
+		return null;
+	}
 
-	const program = gl.createProgram()!;
+	const program = gl.createProgram();
+	if (!program) {
+		return null;
+	}
 	gl.attachShader(program, vs);
 	gl.attachShader(program, fs);
 	gl.linkProgram(program);
-	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+		return null;
+	}
 	const setProgram = gl.useProgram.bind(gl);
 	setProgram(program);
 
@@ -326,10 +337,14 @@ export const VoiceOrb: FC<VoiceOrbProps> = memo(
 
 		const render = useCallback(() => {
 			const ctx = glRef.current;
-			if (!ctx) return;
+			if (!ctx) {
+				return;
+			}
 			const { gl, uniforms } = ctx;
 			const canvas = canvasRef.current;
-			if (!canvas) return;
+			if (!canvas) {
+				return;
+			}
 
 			const p = currentParams.current;
 			const tp = targetParams.current;
@@ -365,9 +380,15 @@ export const VoiceOrb: FC<VoiceOrbProps> = memo(
 			gl.uniform1f(uniforms.u_brightness, p.brightness);
 			gl.uniform1f(uniforms.u_pulse, p.pulse);
 			gl.uniform1f(uniforms.u_saturation, p.saturation);
-			gl.uniform3fv(uniforms.u_color0, colors[0]!);
-			gl.uniform3fv(uniforms.u_color1, colors[1]!);
-			gl.uniform3fv(uniforms.u_color2, colors[2]!);
+			const color0 = colors[0];
+			const color1 = colors[1];
+			const color2 = colors[2];
+			if (!color0 || !color1 || !color2) {
+				return;
+			}
+			gl.uniform3fv(uniforms.u_color0, color0);
+			gl.uniform3fv(uniforms.u_color1, color1);
+			gl.uniform3fv(uniforms.u_color2, color2);
 			gl.uniform1f(uniforms.u_dpr, dpr);
 
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -376,12 +397,18 @@ export const VoiceOrb: FC<VoiceOrbProps> = memo(
 		}, [colors]);
 
 		useEffect(() => {
-			if (!ready) return;
+			if (!ready) {
+				return;
+			}
 			const canvas = canvasRef.current;
-			if (!canvas) return;
+			if (!canvas) {
+				return;
+			}
 
 			glRef.current = initWebGL(canvas);
-			if (!glRef.current) return;
+			if (!glRef.current) {
+				return;
+			}
 
 			animRef.current = requestAnimationFrame(render);
 

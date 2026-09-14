@@ -1,9 +1,9 @@
+import { db } from "../client";
 import type {
 	AuditActionType,
 	AuditActorType,
 	Prisma,
 } from "../generated/client";
-import { db } from "../client";
 
 export type WriteAuditLogInput = {
 	organizationId: string;

@@ -1,58 +1,57 @@
 "use client";
 
-import { memo, useEffect } from "react";
 import { useAui } from "@assistant-ui/react";
+import { memo, useEffect } from "react";
 import {
-	ModelSelectorRoot,
-	ModelSelectorTrigger,
-	ModelSelectorValue,
 	ModelSelectorContent,
-	ModelSelectorSearch,
-	ModelSelectorFocusAnchor,
-	ModelSelectorList,
-	ModelSelectorEmpty,
-	ModelSelectorGroup,
-	ModelSelectorSeparator,
-	ModelSelectorItem,
 	ModelSelectorEffort,
-	useModelSelectorContext,
+	ModelSelectorEmpty,
+	ModelSelectorFocusAnchor,
+	ModelSelectorGroup,
+	ModelSelectorItem,
+	ModelSelectorList,
 	type ModelSelectorProps,
-} from "./model-selector";
-
-export {
-	DEFAULT_EFFORT_OPTIONS,
-	modelSelectorTriggerVariants,
-	resolveModelEffort,
-	useModelSelectorEfforts,
 	ModelSelectorRoot,
+	ModelSelectorSearch,
+	ModelSelectorSeparator,
 	ModelSelectorTrigger,
 	ModelSelectorValue,
-	ModelSelectorContent,
-	ModelSelectorSearch,
-	ModelSelectorFocusAnchor,
-	ModelSelectorList,
-	ModelSelectorEmpty,
-	ModelSelectorGroup,
-	ModelSelectorSeparator,
-	ModelSelectorItem,
-	ModelSelectorEffort,
+	useModelSelectorContext,
 } from "./model-selector";
 
 export type {
 	ModelOption,
-	ModelSelectorEffortOption,
-	ModelSelectorProps,
-	ModelSelectorRootProps,
-	ModelSelectorTriggerProps,
-	ModelSelectorValueProps,
 	ModelSelectorContentProps,
-	ModelSelectorSearchProps,
-	ModelSelectorListProps,
+	ModelSelectorEffortOption,
+	ModelSelectorEffortProps,
 	ModelSelectorEmptyProps,
 	ModelSelectorGroupProps,
-	ModelSelectorSeparatorProps,
 	ModelSelectorItemProps,
-	ModelSelectorEffortProps,
+	ModelSelectorListProps,
+	ModelSelectorProps,
+	ModelSelectorRootProps,
+	ModelSelectorSearchProps,
+	ModelSelectorSeparatorProps,
+	ModelSelectorTriggerProps,
+	ModelSelectorValueProps,
+} from "./model-selector";
+export {
+	DEFAULT_EFFORT_OPTIONS,
+	ModelSelectorContent,
+	ModelSelectorEffort,
+	ModelSelectorEmpty,
+	ModelSelectorFocusAnchor,
+	ModelSelectorGroup,
+	ModelSelectorItem,
+	ModelSelectorList,
+	ModelSelectorRoot,
+	ModelSelectorSearch,
+	ModelSelectorSeparator,
+	ModelSelectorTrigger,
+	ModelSelectorValue,
+	modelSelectorTriggerVariants,
+	resolveModelEffort,
+	useModelSelectorEfforts,
 } from "./model-selector";
 
 /** Registers the selection with assistant-ui's ModelContext system. The
@@ -62,7 +61,9 @@ function ModelSelectorModelContext() {
 	const api = useAui();
 
 	useEffect(() => {
-		if (value === undefined) return;
+		if (value === undefined) {
+			return;
+		}
 		const config = {
 			config: {
 				modelName: value,

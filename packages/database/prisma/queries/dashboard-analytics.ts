@@ -5,7 +5,9 @@ import {
 } from "./analytics";
 
 function percentile(sorted: number[], p: number): number | null {
-	if (sorted.length === 0) return null;
+	if (sorted.length === 0) {
+		return null;
+	}
 	const idx = Math.min(
 		sorted.length - 1,
 		Math.max(0, Math.ceil((p / 100) * sorted.length) - 1),
@@ -58,7 +60,9 @@ export async function aggregateSessionStats(opts: {
 		.sort((a, b) => a - b);
 	const connectTimes = sessions
 		.map((s) => {
-			if (!s.startedAt || !s.connectedAt) return null;
+			if (!s.startedAt || !s.connectedAt) {
+				return null;
+			}
 			return s.connectedAt.getTime() - s.startedAt.getTime();
 		})
 		.filter((ms): ms is number => typeof ms === "number" && ms >= 0)
@@ -96,8 +100,12 @@ export async function aggregateSessionStats(opts: {
 			durationSum: 0,
 		};
 		agentBucket.count += 1;
-		if (session.status === "COMPLETED") agentBucket.completed += 1;
-		if (session.status === "FAILED") agentBucket.failed += 1;
+		if (session.status === "COMPLETED") {
+			agentBucket.completed += 1;
+		}
+		if (session.status === "FAILED") {
+			agentBucket.failed += 1;
+		}
 		agentBucket.durationSum += session.durationMs ?? 0;
 		byAgent.set(session.agentId, agentBucket);
 	}
@@ -353,15 +361,25 @@ export async function aggregateQuality(opts: {
 		statusMix[t.status] = (statusMix[t.status] ?? 0) + 1;
 		for (const seg of t.segments) {
 			totalTurns += 1;
-			if (seg.role === "USER") userTurns += 1;
-			if (seg.role === "ASSISTANT") assistantTurns += 1;
+			if (seg.role === "USER") {
+				userTurns += 1;
+			}
+			if (seg.role === "ASSISTANT") {
+				assistantTurns += 1;
+			}
 			const dur =
 				seg.startMs != null && seg.endMs != null
 					? Math.max(0, seg.endMs - seg.startMs)
 					: 0;
-			if (seg.role === "USER") userMs += dur;
-			if (seg.role === "ASSISTANT") assistantMs += dur;
-			if (seg.interrupted) interrupted += 1;
+			if (seg.role === "USER") {
+				userMs += dur;
+			}
+			if (seg.role === "ASSISTANT") {
+				assistantMs += dur;
+			}
+			if (seg.interrupted) {
+				interrupted += 1;
+			}
 			if (typeof seg.confidence === "number") {
 				confidenceSum += seg.confidence;
 				confidenceCount += 1;
@@ -460,7 +478,9 @@ export async function aggregateActions(opts: {
 			latency_count: 0,
 		};
 		row.count += 1;
-		if (tc.status === "FAILED") row.failed += 1;
+		if (tc.status === "FAILED") {
+			row.failed += 1;
+		}
 		if (tc.startedAt && tc.completedAt) {
 			row.latency_sum_ms +=
 				tc.completedAt.getTime() - tc.startedAt.getTime();
@@ -475,10 +495,18 @@ export async function aggregateActions(opts: {
 	let voicemails = 0;
 	let endCalls = 0;
 	for (const e of events) {
-		if (e.eventType === "transfer_started") transfers += 1;
-		if (e.eventType === "reschedule_requested") reschedules += 1;
-		if (e.eventType === "voicemail_retry_scheduled") voicemails += 1;
-		if (e.eventType === "end_call") endCalls += 1;
+		if (e.eventType === "transfer_started") {
+			transfers += 1;
+		}
+		if (e.eventType === "reschedule_requested") {
+			reschedules += 1;
+		}
+		if (e.eventType === "voicemail_retry_scheduled") {
+			voicemails += 1;
+		}
+		if (e.eventType === "end_call") {
+			endCalls += 1;
+		}
 		if (e.eventType === "amd_result") {
 			const payload =
 				e.payload &&
@@ -559,7 +587,9 @@ export async function aggregateLatency(opts: {
 				: typeof raw === "string"
 					? Number(raw)
 					: Number.NaN;
-		if (!Number.isFinite(num)) continue;
+		if (!Number.isFinite(num)) {
+			continue;
+		}
 		const type = e.eventType.replace(/^agent\.metric\./, "");
 		const arr = byType.get(type) ?? [];
 		arr.push(num);
@@ -593,7 +623,9 @@ export async function aggregateCampaignAnalytics(opts: {
 			},
 		},
 	});
-	if (!campaign) return null;
+	if (!campaign) {
+		return null;
+	}
 
 	const contacts = await db.campaignContact.groupBy({
 		by: ["status"],

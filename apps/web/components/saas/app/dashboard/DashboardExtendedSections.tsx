@@ -18,7 +18,11 @@ import {
 	XCircleIcon,
 } from "lucide-react";
 import { useMemo } from "react";
-import type { DashboardStats } from "@/services/api/types";
+import {
+	DataTableTypeBadge,
+	DataTableValuePill,
+	StandardDataTable,
+} from "@/components/saas/shared/StandardDataTable";
 import {
 	useDashboardActionsQuery,
 	useDashboardCostQuery,
@@ -26,11 +30,7 @@ import {
 	useDashboardQualityQuery,
 	useDashboardUsageQuery,
 } from "@/services/api/hooks";
-import {
-	DataTableTypeBadge,
-	DataTableValuePill,
-	StandardDataTable,
-} from "@/components/saas/shared/StandardDataTable";
+import type { DashboardStats } from "@/services/api/types";
 import { AnalyticsLineChart } from "./AnalyticsLineChart";
 import { ChannelBreakdownCard } from "./ChannelBreakdownCard";
 import { FailuresActivityCard } from "./FailuresActivityCard";
@@ -58,7 +58,9 @@ function modalityCostIcon(modality: string): LucideIcon {
 }
 
 function pct(value: number | null | undefined) {
-	if (value == null) return "—";
+	if (value == null) {
+		return "—";
+	}
 	return `${(value * 100).toFixed(1)}%`;
 }
 
@@ -66,7 +68,9 @@ function halfWindowSum(values: number[]): {
 	prior: number | null;
 	deltaPct: number | null;
 } {
-	if (values.length < 4) return { prior: null, deltaPct: null };
+	if (values.length < 4) {
+		return { prior: null, deltaPct: null };
+	}
 	const mid = Math.floor(values.length / 2);
 	const prior = values.slice(0, mid).reduce((sum, n) => sum + n, 0);
 	const recent = values.slice(mid).reduce((sum, n) => sum + n, 0);

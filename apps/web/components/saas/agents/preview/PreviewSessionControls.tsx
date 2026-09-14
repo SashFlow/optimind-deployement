@@ -59,7 +59,9 @@ function mapAgentStateToOrb(
 	agentState: ReturnType<typeof useVoiceAssistant>["state"],
 	hasAgent: boolean,
 ): VoiceOrbState {
-	if (!hasAgent) return "connecting";
+	if (!hasAgent) {
+		return "connecting";
+	}
 	switch (agentState) {
 		case "speaking":
 			return "speaking";
@@ -138,7 +140,9 @@ function MessageList({
 }
 
 function FileList({ files }: { files: PreviewFileItem[] }) {
-	if (files.length === 0) return null;
+	if (files.length === 0) {
+		return null;
+	}
 
 	return (
 		<div className="space-y-2">
@@ -152,6 +156,7 @@ function FileList({ files }: { files: PreviewFileItem[] }) {
 						{isImage ? (
 							// Object URL from LiveKit byte stream; next/image is not suitable.
 							// eslint-disable-next-line @next/next/no-img-element
+							// biome-ignore lint/performance/noImgElement: LiveKit object URL
 							<img
 								src={file.url}
 								alt={file.name}
@@ -179,7 +184,9 @@ function FileList({ files }: { files: PreviewFileItem[] }) {
 }
 
 function RpcCardList({ cards }: { cards: PreviewRpcCard[] }) {
-	if (cards.length === 0) return null;
+	if (cards.length === 0) {
+		return null;
+	}
 
 	return (
 		<div className="space-y-2">
@@ -338,7 +345,9 @@ export function PreviewSessionControls({
 	}
 
 	useEffect(() => {
-		if (!shouldWaitForAgent) return;
+		if (!shouldWaitForAgent) {
+			return;
+		}
 		const timer = window.setTimeout(
 			() => setAgentWaitTimedOut(true),
 			15_000,
@@ -368,11 +377,19 @@ export function PreviewSessionControls({
 	}, [avatarOnMain, canSwapVideos]);
 
 	const statusLabel = (() => {
-		if (!isConnected) return "Connecting…";
+		if (!isConnected) {
+			return "Connecting…";
+		}
 		if (hasAgent) {
-			if (state === "listening") return `Listening · ${agent.name}`;
-			if (state === "thinking") return `Thinking · ${agent.name}`;
-			if (state === "speaking") return `Speaking · ${agent.name}`;
+			if (state === "listening") {
+				return `Listening · ${agent.name}`;
+			}
+			if (state === "thinking") {
+				return `Thinking · ${agent.name}`;
+			}
+			if (state === "speaking") {
+				return `Speaking · ${agent.name}`;
+			}
 			return `Live with ${agent.name}`;
 		}
 		if (agentWaitTimedOut) {
@@ -387,6 +404,7 @@ export function PreviewSessionControls({
 		<>
 			{/* Dynamic avatar URL from config; next/image domains vary. */}
 			{/* eslint-disable-next-line @next/next/no-img-element */}
+			{/* biome-ignore lint/performance/noImgElement: dynamic avatar URLs */}
 			<img
 				src={avatarPreviewUrl ?? undefined}
 				alt="Avatar preview"
@@ -426,8 +444,12 @@ export function PreviewSessionControls({
 		if (canSwapVideos) {
 			return avatarOnMain ? avatarMainStage : localStage;
 		}
-		if (avatarMainStage) return avatarMainStage;
-		if (localStage) return localStage;
+		if (avatarMainStage) {
+			return avatarMainStage;
+		}
+		if (localStage) {
+			return localStage;
+		}
 		return (
 			<div className="flex size-full min-h-56 flex-col items-center justify-center gap-5 px-4 sm:min-h-72">
 				<SessionVoiceOrb

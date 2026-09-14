@@ -20,7 +20,9 @@ export const STOCK_AVATARS: StockAvatar[] = [
 export function getAvatarPreviewUrl(
 	externalAvatarId: string | null | undefined,
 ): string | null {
-	if (!externalAvatarId) return null;
+	if (!externalAvatarId) {
+		return null;
+	}
 	return (
 		STOCK_AVATARS.find((avatar) => avatar.id === externalAvatarId)
 			?.previewUrl ?? null

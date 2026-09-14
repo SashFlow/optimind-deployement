@@ -41,11 +41,11 @@ import {
 	DataTableBulkBar,
 	DataTableHeaderRow,
 	DataTableShell,
+	dataTableRowClass,
 	IdentityCell,
 	RowCheckbox,
 	SelectColumnHead,
 	StatusBadge,
-	dataTableRowClass,
 } from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE, Pagination } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
@@ -81,7 +81,9 @@ function sourceLabel(sourceType: KnowledgeDocument["sourceType"]) {
 }
 
 function documentSecondary(doc: KnowledgeDocument) {
-	if (doc.sourceUrl) return doc.sourceUrl;
+	if (doc.sourceUrl) {
+		return doc.sourceUrl;
+	}
 	return sourceLabel(doc.sourceType);
 }
 
@@ -132,7 +134,9 @@ export function KnowledgeDocumentsTable({
 	}, [search, statusFilter]);
 
 	useEffect(() => {
-		if (currentPage > pageCount) setCurrentPage(pageCount);
+		if (currentPage > pageCount) {
+			setCurrentPage(pageCount);
+		}
 	}, [currentPage, pageCount]);
 
 	const pageItems = useMemo(() => {
@@ -153,7 +157,9 @@ export function KnowledgeDocumentsTable({
 	}
 
 	async function bulkDelete() {
-		if (selection.selectedIds.length === 0) return;
+		if (selection.selectedIds.length === 0) {
+			return;
+		}
 		setBulkBusy(true);
 		try {
 			for (const id of selection.selectedIds) {

@@ -4,7 +4,7 @@ import { Input } from "@repo/ui/input";
 import { cn } from "@repo/ui/utils";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { filterCatalog, type CatalogItem, type CatalogTab } from "./catalog";
+import { type CatalogItem, type CatalogTab, filterCatalog } from "./catalog";
 
 const TABS: CatalogTab[] = ["Nodes", "Start", "AI", "Tools"];
 
@@ -29,7 +29,9 @@ export function WorkflowAddNodePanel({
 	const groups = useMemo(() => filterCatalog(tab, query), [tab, query]);
 
 	useEffect(() => {
-		if (!open) return;
+		if (!open) {
+			return;
+		}
 		setQuery("");
 		setTab("Nodes");
 		const t = window.setTimeout(() => inputRef.current?.focus(), 50);
@@ -37,14 +39,22 @@ export function WorkflowAddNodePanel({
 	}, [open]);
 
 	useEffect(() => {
-		if (!open) return;
+		if (!open) {
+			return;
+		}
 		function onKey(e: KeyboardEvent) {
-			if (e.key === "Escape") onClose();
+			if (e.key === "Escape") {
+				onClose();
+			}
 		}
 		function onPointer(e: MouseEvent) {
 			const target = e.target as Node | null;
-			if (!target || !panelRef.current) return;
-			if (panelRef.current.contains(target)) return;
+			if (!target || !panelRef.current) {
+				return;
+			}
+			if (panelRef.current.contains(target)) {
+				return;
+			}
 			if (
 				target instanceof Element &&
 				target.closest("[data-workflow-add-trigger]")
@@ -61,7 +71,9 @@ export function WorkflowAddNodePanel({
 		};
 	}, [open, onClose]);
 
-	if (!open || !anchor) return null;
+	if (!open || !anchor) {
+		return null;
+	}
 
 	const panelWidth = 300;
 	const left = Math.max(

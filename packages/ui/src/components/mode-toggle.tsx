@@ -127,6 +127,7 @@ export function SubMenuModeToggle() {
 }
 
 function setCookeTheme(theme: string) {
+	// biome-ignore lint/suspicious/noDocumentCookie: persist theme preference for SSR
 	document.cookie = `theme=${theme}; path=/; max-age=31536000`;
 }
 

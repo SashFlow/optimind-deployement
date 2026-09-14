@@ -1,6 +1,5 @@
-import type * as React from "react";
 import { MessagesSquare } from "lucide-react";
-import { GitHubIcon } from "../../icons/github";
+import type * as React from "react";
 import {
 	Sidebar,
 	SidebarContent,
@@ -11,6 +10,7 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from "../../../shadcn/sidebar";
+import { GitHubIcon } from "../../icons/github";
 import { ThreadList } from "./thread-list.aui";
 
 export function ThreadListSidebar({

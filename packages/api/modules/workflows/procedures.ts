@@ -18,7 +18,6 @@ import {
 import { z } from "zod";
 import { protectedProcedure, publicProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
-import { envVarsToRecord } from "./lib/template";
 import { continueAfterWait } from "./lib/continue-wait";
 import {
 	processWorkflowRun,
@@ -27,14 +26,17 @@ import {
 	tickWorkflowRunner,
 } from "./lib/runner";
 import { tickScheduledWorkflows } from "./lib/schedule";
+import { envVarsToRecord } from "./lib/template";
 import { workflowEnvVarSchema } from "./types";
 
 // re-export for internal callers
-export { resumeAgentSessionWait, tickWorkflowRunner, tickDueWaits };
+export { resumeAgentSessionWait, tickDueWaits, tickWorkflowRunner };
 
 async function requireCampaignAccess(campaignId: string, userId: string) {
 	const campaign = await getCampaignById(campaignId);
-	if (!campaign) throw new ORPCError("NOT_FOUND");
+	if (!campaign) {
+		throw new ORPCError("NOT_FOUND");
+	}
 	await requireOrgMembership(campaign.organizationId, userId);
 	return campaign;
 }
@@ -50,7 +52,9 @@ export const getDefinition = protectedProcedure
 	.handler(async ({ input, context }) => {
 		await requireCampaignAccess(input.campaignId, context.user.id);
 		const workflow = await getOrCreateCampaignWorkflow(input.campaignId);
-		if (!workflow) throw new ORPCError("NOT_FOUND");
+		if (!workflow) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		return { workflow };
 	});
 
@@ -73,7 +77,9 @@ export const saveDraft = protectedProcedure
 	.handler(async ({ input, context }) => {
 		await requireCampaignAccess(input.campaignId, context.user.id);
 		const workflow = await getOrCreateCampaignWorkflow(input.campaignId);
-		if (!workflow) throw new ORPCError("NOT_FOUND");
+		if (!workflow) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		const updated = await saveWorkflowDraft(workflow.id, {
 			nodes: input.nodes,
 			edges: input.edges,
@@ -99,7 +105,9 @@ export const updateEnvVars = protectedProcedure
 	.handler(async ({ input, context }) => {
 		await requireCampaignAccess(input.campaignId, context.user.id);
 		const workflow = await getOrCreateCampaignWorkflow(input.campaignId);
-		if (!workflow) throw new ORPCError("NOT_FOUND");
+		if (!workflow) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		const updated = await saveWorkflowDraft(workflow.id, {
 			envVars: input.envVars,
 		});
@@ -122,7 +130,9 @@ export const publish = protectedProcedure
 	.handler(async ({ input, context }) => {
 		await requireCampaignAccess(input.campaignId, context.user.id);
 		const workflow = await getOrCreateCampaignWorkflow(input.campaignId);
-		if (!workflow) throw new ORPCError("NOT_FOUND");
+		if (!workflow) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		const version = await publishWorkflowVersion(workflow.id, input.label);
 		const refreshed = await getCampaignWorkflowByCampaignId(
 			input.campaignId,
@@ -141,7 +151,9 @@ export const listVersions = protectedProcedure
 	.handler(async ({ input, context }) => {
 		await requireCampaignAccess(input.campaignId, context.user.id);
 		const workflow = await getOrCreateCampaignWorkflow(input.campaignId);
-		if (!workflow) throw new ORPCError("NOT_FOUND");
+		if (!workflow) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		const versions = await listWorkflowVersions(workflow.id);
 		return { versions };
 	});
@@ -190,7 +202,9 @@ export const getRun = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const run = await getWorkflowRunById(input.id);
-		if (!run) throw new ORPCError("NOT_FOUND");
+		if (!run) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(run.organizationId, context.user.id);
 		return { run };
 	});
@@ -205,7 +219,9 @@ export const cancelRun = protectedProcedure
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
 		const run = await getWorkflowRunById(input.id);
-		if (!run) throw new ORPCError("NOT_FOUND");
+		if (!run) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await requireOrgMembership(run.organizationId, context.user.id);
 		const cancelled = await cancelWorkflowRun(run.id);
 		return { run: cancelled };
@@ -231,7 +247,9 @@ export const triggerTestRun = protectedProcedure
 			context.user.id,
 		);
 		const workflow = await getOrCreateCampaignWorkflow(input.campaignId);
-		if (!workflow) throw new ORPCError("NOT_FOUND");
+		if (!workflow) {
+			throw new ORPCError("NOT_FOUND");
+		}
 
 		let versionId = workflow.publishedVersionId;
 		if (input.useDraft || !versionId) {
@@ -286,7 +304,9 @@ export const tickRunner = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		// Any authenticated user can tick; in production gate to admin/cron secret
-		if (!context.user?.id) throw new ORPCError("UNAUTHORIZED");
+		if (!context.user?.id) {
+			throw new ORPCError("UNAUTHORIZED");
+		}
 		const due = await tickDueWaits();
 		const scheduled = await tickScheduledWorkflows();
 		const result = await tickWorkflowRunner(input?.limit ?? 5);
@@ -343,7 +363,9 @@ export const getApproval = publicProcedure
 	.input(z.object({ token: z.string() }))
 	.handler(async ({ input }) => {
 		const approval = await getWorkflowApprovalByToken(input.token);
-		if (!approval) throw new ORPCError("NOT_FOUND");
+		if (!approval) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		return {
 			approval: {
 				token: approval.token,
@@ -377,7 +399,9 @@ export const decideApproval = publicProcedure
 			input.decision,
 			input.decidedBy,
 		);
-		if (!approval) throw new ORPCError("NOT_FOUND");
+		if (!approval) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		await continueAfterWait({
 			waitId: approval.waitId,
 			runId: approval.runId,

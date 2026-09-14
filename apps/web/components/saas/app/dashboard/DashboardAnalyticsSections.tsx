@@ -5,9 +5,9 @@ import {
 	ArrowUpFromLineIcon,
 	ClockIcon,
 	HardDriveIcon,
+	PhoneIcon,
 	PhoneIncomingIcon,
 	PhoneOutgoingIcon,
-	PhoneIcon,
 	VideoIcon,
 } from "lucide-react";
 import type { DashboardAnalytics } from "@/services/api/types";
@@ -15,9 +15,9 @@ import type { DashboardAnalytics } from "@/services/api/types";
 import { AnalyticsLineChart } from "./AnalyticsLineChart";
 import { ConnectionSuccessCard } from "./ConnectionSuccessCard";
 import { DonutBreakdownCard } from "./DonutBreakdownCard";
+import { formatBytes, formatDurationMs, formatMinutes } from "./format";
 import { MetricKpiCard } from "./MetricKpiCard";
 import { TopCountriesCard } from "./TopCountriesCard";
-import { formatBytes, formatDurationMs, formatMinutes } from "./format";
 
 /** LiveKit Cloud analytics — gated behind the Analytics expand control. */
 export function DashboardLivekitAnalyticsSections({

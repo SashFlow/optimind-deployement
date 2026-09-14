@@ -6,8 +6,8 @@ import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
 import {
 	listOrgTools,
-	toolDefinitionSchema,
 	type ToolDefinition,
+	toolDefinitionSchema,
 } from "./lib/org-tools";
 
 type OrgMetadata = {
@@ -16,7 +16,9 @@ type OrgMetadata = {
 };
 
 function parseMetadata(raw: string | null | undefined): OrgMetadata {
-	if (!raw) return {};
+	if (!raw) {
+		return {};
+	}
 	try {
 		const parsed = JSON.parse(raw) as unknown;
 		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
@@ -30,7 +32,9 @@ function parseMetadata(raw: string | null | undefined): OrgMetadata {
 
 async function writeTools(organizationId: string, tools: ToolDefinition[]) {
 	const organization = await getOrganizationById(organizationId);
-	if (!organization) throw new ORPCError("NOT_FOUND");
+	if (!organization) {
+		throw new ORPCError("NOT_FOUND");
+	}
 	const metadata = parseMetadata(organization.metadata);
 	metadata.optimind_tools = tools;
 	await updateOrganization({
@@ -50,7 +54,9 @@ export const list = protectedProcedure
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
 		const organization = await getOrganizationById(input.organizationId);
-		if (!organization) throw new ORPCError("NOT_FOUND");
+		if (!organization) {
+			throw new ORPCError("NOT_FOUND");
+		}
 		return { tools: await listOrgTools(input.organizationId) };
 	});
 

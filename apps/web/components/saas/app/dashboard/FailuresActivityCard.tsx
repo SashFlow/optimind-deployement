@@ -1,18 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { formatDistanceToNow } from "date-fns";
 import { AlertTriangleIcon, SearchIcon } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { DashboardStats } from "@/services/api/types";
 
 type Failure = NonNullable<DashboardStats["failures"]>[number];
 
 function initials(name: string) {
 	const parts = name.trim().split(/\s+/).filter(Boolean);
-	if (parts.length === 0) return "?";
-	if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+	if (parts.length === 0) {
+		return "?";
+	}
+	if (parts.length === 1) {
+		return parts[0].slice(0, 2).toUpperCase();
+	}
 	return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
 }
 
@@ -27,7 +31,9 @@ export function FailuresActivityCard({ failures }: { failures: Failure[] }) {
 		const q = query.trim().toLowerCase();
 		return failures
 			.filter((f) => {
-				if (!q) return true;
+				if (!q) {
+					return true;
+				}
 				const haystack = [
 					f.agentName,
 					f.endReason,

@@ -56,7 +56,9 @@ export function VoiceSelect({
 			<Select
 				value={selectValue}
 				onValueChange={(next) => {
-					if (!next) return;
+					if (!next) {
+						return;
+					}
 					if (next === CUSTOM_VALUE) {
 						setCustomMode(true);
 						onValueChange(customDraft);

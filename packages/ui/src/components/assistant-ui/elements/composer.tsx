@@ -1,6 +1,5 @@
 "use client";
 
-import { type ComponentProps, useMemo } from "react";
 import {
 	ArrowUpIcon,
 	CheckIcon,
@@ -9,13 +8,15 @@ import {
 	FileImageIcon,
 	FileTextIcon,
 	Loader2Icon,
+	type LucideIcon,
 	MicIcon,
 	PlusIcon,
 	SquareIcon,
 	XIcon,
-	type LucideIcon,
 } from "lucide-react";
+import { type ComponentProps, useMemo } from "react";
 import { cn } from "../../../utils";
+import { clamp, pct } from "../utils/range";
 import {
 	field,
 	floating,
@@ -28,7 +29,6 @@ import {
 	paper,
 	ShimmerLabel,
 } from "./surfaces";
-import { clamp, pct } from "../utils/range";
 
 export interface ComposerAttachment {
 	name: string;
@@ -82,7 +82,9 @@ export function useSlashMatches(
 	commands: readonly ComposerCommand[] | undefined,
 ): ComposerCommand[] {
 	return useMemo(() => {
-		if (!commands || !value.startsWith("/")) return [];
+		if (!commands || !value.startsWith("/")) {
+			return [];
+		}
 		const query = value.slice(1).toLowerCase();
 		return commands.filter((command) => command.name.startsWith(query));
 	}, [commands, value]);
@@ -94,9 +96,13 @@ export function useMentionMatches(
 	people: readonly ComposerPerson[] | undefined,
 ): ComposerPerson[] {
 	return useMemo(() => {
-		if (!people) return [];
+		if (!people) {
+			return [];
+		}
 		const match = /@([\w]*)$/.exec(value);
-		if (!match) return [];
+		if (!match) {
+			return [];
+		}
 		const query = match[1]?.toLowerCase() ?? "";
 		return people.filter((person) =>
 			person.name.toLowerCase().startsWith(query),
@@ -321,9 +327,12 @@ export function ComposerInput({
 			data-slot="composer-input"
 			onKeyDown={(event) => {
 				onKeyDown?.(event);
-				if (event.defaultPrevented) return;
-				if (event.key !== "Enter" || event.nativeEvent.isComposing)
+				if (event.defaultPrevented) {
 					return;
+				}
+				if (event.key !== "Enter" || event.nativeEvent.isComposing) {
+					return;
+				}
 				onSubmit?.();
 			}}
 			className={cn(

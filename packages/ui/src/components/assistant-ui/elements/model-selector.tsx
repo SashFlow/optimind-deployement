@@ -1,24 +1,19 @@
 "use client";
 
+import { cva, type VariantProps } from "class-variance-authority";
+import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
 import {
+	type ComponentPropsWithoutRef,
+	createContext,
+	type ReactNode,
 	useCallback,
+	useContext,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	createContext,
-	useContext,
-	type ComponentPropsWithoutRef,
-	type ReactNode,
 } from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
-import { cn } from "../../../utils";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "../../../shadcn/popover";
 import {
 	Command,
 	CommandEmpty,
@@ -28,7 +23,12 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "../../../shadcn/command";
-import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "../../../shadcn/popover";
+import { cn } from "../../../utils";
 
 export type ModelSelectorEffortOption = {
 	id: string;
@@ -60,7 +60,9 @@ export type ModelOption = {
 function getModelEfforts(
 	model: ModelOption | undefined,
 ): readonly ModelSelectorEffortOption[] | undefined {
-	if (!model?.efforts) return undefined;
+	if (!model?.efforts) {
+		return undefined;
+	}
 	return model.efforts === true ? DEFAULT_EFFORT_OPTIONS : model.efforts;
 }
 
@@ -68,7 +70,9 @@ function resolveEffort(
 	efforts: readonly ModelSelectorEffortOption[] | undefined,
 	effort: string | undefined,
 ): string | undefined {
-	if (effort === undefined) return undefined;
+	if (effort === undefined) {
+		return undefined;
+	}
 	return efforts?.some((e) => e.id === effort) ? effort : undefined;
 }
 
@@ -108,7 +112,9 @@ function useControllableState<T>({
 	});
 	const setValue = useCallback(
 		(next: T) => {
-			if (!isControlled) setInternal(next);
+			if (!isControlled) {
+				setInternal(next);
+			}
 			onChangeRef.current?.(next);
 		},
 		[isControlled],
@@ -288,7 +294,9 @@ function ModelSelectorTrigger({
 			)}
 			onKeyDown={(e) => {
 				onKeyDown?.(e);
-				if (e.defaultPrevented) return;
+				if (e.defaultPrevented) {
+					return;
+				}
 				// ARIA combobox: arrows open the listbox from a focused trigger.
 				// Popover leaves this to the consumer.
 				if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -401,8 +409,9 @@ function useLazyFlipSide(): {
 		}
 		const sync = () => {
 			const rendered = node.getAttribute("data-side");
-			if (rendered)
+			if (rendered) {
 				setSide(rendered as ModelSelectorContentProps["side"]);
+			}
 		};
 		sync();
 		const observer = new MutationObserver(sync);
@@ -624,7 +633,9 @@ function ModelSelectorEffort({
 }: ModelSelectorEffortProps) {
 	const { efforts, effort, setEffort } = useModelSelectorEfforts();
 
-	if (!efforts?.length) return null;
+	if (!efforts?.length) {
+		return null;
+	}
 
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: cmdk row wrapper for effort radiogroup
@@ -637,10 +648,14 @@ function ModelSelectorEffort({
 			)}
 			onKeyDown={(e) => {
 				onKeyDown?.(e);
-				if (e.defaultPrevented) return;
+				if (e.defaultPrevented) {
+					return;
+				}
 				// cmdk's Command root claims Home/End to jump the model list; stop
 				// them here so only the radiogroup reacts.
-				if (e.key === "Home" || e.key === "End") e.stopPropagation();
+				if (e.key === "Home" || e.key === "End") {
+					e.stopPropagation();
+				}
 				// Vertical arrows refocus cmdk's input before the event bubbles to
 				// the Command root: the same keypress then moves the list highlight,
 				// and Enter selects again (cmdk's Enter is inert while a radio has
@@ -693,16 +708,16 @@ export type ModelSelectorProps = Omit<ModelSelectorRootProps, "children"> &
 	};
 
 export {
+	ModelSelectorContent,
+	ModelSelectorEffort,
+	ModelSelectorEmpty,
+	ModelSelectorFocusAnchor,
+	ModelSelectorGroup,
+	ModelSelectorItem,
+	ModelSelectorList,
 	ModelSelectorRoot,
+	ModelSelectorSearch,
+	ModelSelectorSeparator,
 	ModelSelectorTrigger,
 	ModelSelectorValue,
-	ModelSelectorContent,
-	ModelSelectorSearch,
-	ModelSelectorFocusAnchor,
-	ModelSelectorList,
-	ModelSelectorEmpty,
-	ModelSelectorGroup,
-	ModelSelectorSeparator,
-	ModelSelectorItem,
-	ModelSelectorEffort,
 };

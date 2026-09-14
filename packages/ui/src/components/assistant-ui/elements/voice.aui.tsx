@@ -1,8 +1,5 @@
 "use client";
 
-import { TooltipIconButton } from "./tooltip-icon-button";
-import { Button } from "../../../shadcn/button";
-import { cn } from "../../../utils";
 import {
 	AuiIf,
 	useVoiceControls,
@@ -11,6 +8,9 @@ import {
 } from "@assistant-ui/react";
 import { MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon } from "lucide-react";
 import { type FC, memo } from "react";
+import { Button } from "../../../shadcn/button";
+import { cn } from "../../../utils";
+import { TooltipIconButton } from "./tooltip-icon-button";
 import {
 	VoiceOrb as VoiceOrbBase,
 	type VoiceOrbState,
@@ -28,11 +28,21 @@ export type VoiceOrbProps = {
 export function deriveVoiceOrbState(
 	voiceState: ReturnType<typeof useVoiceState>,
 ): VoiceOrbState {
-	if (!voiceState) return "idle";
-	if (voiceState.status.type === "starting") return "connecting";
-	if (voiceState.status.type === "ended") return "idle";
-	if (voiceState.isMuted) return "muted";
-	if (voiceState.mode === "speaking") return "speaking";
+	if (!voiceState) {
+		return "idle";
+	}
+	if (voiceState.status.type === "starting") {
+		return "connecting";
+	}
+	if (voiceState.status.type === "ended") {
+		return "idle";
+	}
+	if (voiceState.isMuted) {
+		return "muted";
+	}
+	if (voiceState.mode === "speaking") {
+		return "speaking";
+	}
 	return "listening";
 }
 export const VoiceOrb: FC<VoiceOrbProps> = memo(

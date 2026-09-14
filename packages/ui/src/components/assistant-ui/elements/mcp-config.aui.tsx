@@ -1,13 +1,12 @@
 "use client";
 
-import { type FC, type ReactNode, useState } from "react";
-import { useAuiState } from "@assistant-ui/store";
 import {
+	type MCPConnectionState,
 	McpAddFormPrimitive,
 	McpManagerPrimitive,
 	McpServerPrimitive,
-	type MCPConnectionState,
 } from "@assistant-ui/react-mcp";
+import { useAuiState } from "@assistant-ui/store";
 import {
 	Loader2Icon,
 	PlugIcon,
@@ -18,6 +17,7 @@ import {
 	Trash2Icon,
 	XIcon,
 } from "lucide-react";
+import { type FC, type ReactNode, useState } from "react";
 
 import { Badge } from "../../../shadcn/badge";
 import { Button, buttonVariants } from "../../../shadcn/button";
@@ -174,6 +174,7 @@ const ServerAvatar: FC = () => {
 	return (
 		<div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border">
 			{icon ? (
+				// biome-ignore lint/performance/noImgElement: MCP server icon URL
 				<img src={icon} alt={name} className="size-full object-cover" />
 			) : (
 				<ServerIcon className="size-4" />
@@ -221,7 +222,9 @@ const StatusLine: FC = () => {
 
 const ServerError: FC = () => {
 	const message = useAuiState((s) => s.mcpServer.lastError?.message ?? null);
-	if (!message) return null;
+	if (!message) {
+		return null;
+	}
 	return (
 		<div className="border-destructive/40 bg-destructive/5 text-destructive flex items-start gap-2 rounded-md border px-2 py-1.5 text-xs">
 			<ShieldAlertIcon className="mt-0.5 size-3.5 shrink-0" />
