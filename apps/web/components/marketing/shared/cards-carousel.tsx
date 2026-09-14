@@ -13,7 +13,7 @@ import React, {
 } from "react";
 
 interface CarouselProps {
-	items: JSX.Element[];
+	items: React.ReactElement[];
 	initialScroll?: number;
 }
 
@@ -89,7 +89,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
 		>
 			<div className="relative w-full">
 				<div
-					className="flex w-full overflow-x-scroll overscroll-x-auto scroll-smooth py-10 [scrollbar-width:none] md:py-20"
+					className="flex w-full overflow-x-scroll overscroll-x-auto scroll-smooth py-4 [scrollbar-width:none] md:py-8"
 					ref={carouselRef}
 					onScroll={checkScrollability}
 				>
@@ -131,19 +131,21 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
 				<div className="mr-10 flex justify-center gap-2">
 					<button
 						type="button"
-						className="relative z-40 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 disabled:opacity-50"
+						className="bg-muted text-muted-foreground relative z-40 flex h-10 w-10 items-center justify-center rounded-full disabled:opacity-50"
 						onClick={scrollLeft}
 						disabled={!canScrollLeft}
+						aria-label="Scroll use cases left"
 					>
-						<ArrowLeft className="h-6 w-6 text-gray-500" />
+						<ArrowLeft className="h-6 w-6" />
 					</button>
 					<button
 						type="button"
-						className="relative z-40 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 disabled:opacity-50"
+						className="bg-muted text-muted-foreground relative z-40 flex h-10 w-10 items-center justify-center rounded-full disabled:opacity-50"
 						onClick={scrollRight}
 						disabled={!canScrollRight}
+						aria-label="Scroll use cases right"
 					>
-						<ArrowRight className="h-6 w-6 text-gray-500" />
+						<ArrowRight className="h-6 w-6" />
 					</button>
 				</div>
 			</div>
@@ -211,14 +213,15 @@ export const Card = ({
 							exit={{ opacity: 0 }}
 							ref={containerRef}
 							layoutId={layout ? `card-${card.title}` : undefined}
-							className="relative z-[60] mx-auto my-10 h-fit max-w-5xl rounded-3xl bg-white p-4 font-sans md:p-10 dark:bg-neutral-900"
+							className="bg-background relative z-[60] mx-auto my-10 h-fit max-w-5xl rounded-3xl p-4 font-sans md:p-10"
 						>
 							<button
 								type="button"
-								className="sticky top-4 right-0 ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-black dark:bg-white"
+								className="bg-foreground text-background sticky top-4 right-0 ml-auto flex h-8 w-8 items-center justify-center rounded-full"
 								onClick={handleClose}
+								aria-label="Close use case"
 							>
-								<Cross className="h-6 w-6 text-neutral-100 dark:text-neutral-900" />
+								<Cross className="h-6 w-6" />
 							</button>
 							<motion.p
 								layoutId={
@@ -226,7 +229,7 @@ export const Card = ({
 										? `category-${card.title}`
 										: undefined
 								}
-								className="text-base font-medium text-black dark:text-white"
+								className="text-primary text-base font-medium"
 							>
 								{card.category}
 							</motion.p>
@@ -234,7 +237,7 @@ export const Card = ({
 								layoutId={
 									layout ? `title-${card.title}` : undefined
 								}
-								className="mt-4 text-2xl font-semibold text-neutral-700 md:text-5xl dark:text-white"
+								className="text-foreground mt-4 text-2xl font-semibold tracking-tight md:text-5xl"
 							>
 								{card.title}
 							</motion.p>
@@ -246,7 +249,7 @@ export const Card = ({
 			<motion.button
 				layoutId={layout ? `card-${card.title}` : undefined}
 				onClick={handleOpen}
-				className="relative z-10 flex h-80 w-56 flex-col items-start justify-start overflow-hidden rounded-3xl bg-gray-100 md:h-[40rem] md:w-96 dark:bg-neutral-900"
+				className="bg-muted relative z-10 flex h-80 w-56 flex-col items-start justify-start overflow-hidden rounded-3xl md:h-[40rem] md:w-96"
 			>
 				<div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-full bg-gradient-to-b from-black/50 via-transparent to-transparent" />
 				<div className="relative z-40 p-8">

@@ -4,8 +4,11 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation } from "@tanstack/react-query";
 import { MailIcon, MapPinIcon, PhoneIcon } from "lucide-react";
-import React from "react";
+import React, { useId, useRef } from "react";
+import { toast } from "sonner";
 
 const contactDetails: {
 	icon: typeof MailIcon;
@@ -31,7 +34,39 @@ const contactDetails: {
 		value: "1302, Alliance Bhaskar, Navy Colony, Mamlatdar Wadi, Malad (W), Mumbai, India - 400064",
 	},
 ];
+
 const Contact = () => {
+	const formId = useId();
+	const formRef = useRef<HTMLFormElement>(null);
+
+	const submitMutation = useMutation(
+		orpc.contact.submit.mutationOptions({
+			onSuccess: () => {
+				toast.success("Message sent — we'll get back to you soon.");
+				formRef.current?.reset();
+			},
+			onError: () => {
+				toast.error("Couldn't send your message. Please try again.");
+			},
+		}),
+	);
+
+	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		const formData = new FormData(event.currentTarget);
+		const name = String(formData.get("name") ?? "").trim();
+		const email = String(formData.get("email") ?? "").trim();
+		const company = String(formData.get("company") ?? "").trim();
+		const message = String(formData.get("message") ?? "").trim();
+
+		submitMutation.mutate({
+			name,
+			email,
+			message,
+			...(company ? { company } : {}),
+		});
+	};
+
 	return (
 		<section id="contact" className="py-12 lg:py-20">
 			<div className="mx-auto flex max-w-7xl flex-col gap-12 px-5 lg:gap-16 lg:px-8">
@@ -84,54 +119,67 @@ const Contact = () => {
 					</div>
 
 					<form
+						ref={formRef}
 						className="bg-card flex flex-col gap-5 rounded-xl border p-5 lg:p-9"
-						onSubmit={(event) => event.preventDefault()}
+						onSubmit={handleSubmit}
 					>
 						<div className="grid gap-5 sm:grid-cols-2">
 							<div className="flex flex-col gap-2">
-								<Label htmlFor="contact-name">Name</Label>
+								<Label htmlFor={`${formId}-name`}>Name</Label>
 								<Input
-									id="contact-name"
+									id={`${formId}-name`}
 									name="name"
 									placeholder="Jane Doe"
 									autoComplete="name"
 									required
+									minLength={3}
+									disabled={submitMutation.isPending}
 								/>
 							</div>
 							<div className="flex flex-col gap-2">
-								<Label htmlFor="contact-email">Email</Label>
+								<Label htmlFor={`${formId}-email`}>Email</Label>
 								<Input
-									id="contact-email"
+									id={`${formId}-email`}
 									name="email"
 									type="email"
 									placeholder="jane@company.com"
 									autoComplete="email"
 									required
+									disabled={submitMutation.isPending}
 								/>
 							</div>
 						</div>
 						<div className="flex flex-col gap-2">
-							<Label htmlFor="contact-company">Company</Label>
+							<Label htmlFor={`${formId}-company`}>Company</Label>
 							<Input
-								id="contact-company"
+								id={`${formId}-company`}
 								name="company"
 								placeholder="Acme Inc."
 								autoComplete="organization"
+								disabled={submitMutation.isPending}
 							/>
 						</div>
 						<div className="flex flex-col gap-2">
-							<Label htmlFor="contact-message">Message</Label>
+							<Label htmlFor={`${formId}-message`}>Message</Label>
 							<Textarea
-								id="contact-message"
+								id={`${formId}-message`}
 								name="message"
 								placeholder="Tell us a bit about what you're looking for..."
 								className="min-h-32 rounded-xl resize-none border border-muted-background"
 								required
+								minLength={10}
+								disabled={submitMutation.isPending}
 							/>
 						</div>
 						<div className="flex justify-end">
-							<Button type="submit" className="w-full sm:w-fit">
-								Send message
+							<Button
+								type="submit"
+								className="w-full sm:w-fit"
+								disabled={submitMutation.isPending}
+							>
+								{submitMutation.isPending
+									? "Sending..."
+									: "Send message"}
 							</Button>
 						</div>
 					</form>

@@ -8,38 +8,39 @@ import {
 	UserIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import React from "react";
 
 const faqs = [
 	{
 		icon: SparklesIcon,
-		question: "What is Acme AI?",
-		answer: "Acme AI is a personal AI workspace that helps individuals and teams cut context switching, gain clarity, and complete projects faster.",
+		question: "What is Optimind by Sashflow?",
+		answer: "Optimind by Sashflow is a voice AI platform for insurance and healthcare organisations in India. It turns complex workflows—like MER calls, claims updates, health-report explanations, patient intake, and post-discharge follow-ups—into natural voice conversations that scale with demand.",
 	},
 	{
 		icon: UserIcon,
-		question: "Who is Acme AI for?",
-		answer: "It's built for creators, teams, and businesses of all sizes who want to streamline their workflow and make smarter decisions.",
+		question: "Who is Optimind built for?",
+		answer: "Insurers, TPAs, hospitals, and healthcare teams that need consistent, high-volume voice conversations—policy clarification, claims status, medical-exam reminders, appointment scheduling, feedback calls, hospital navigation, and chronic-care check-ins—without growing call teams linearly.",
 	},
 	{
 		icon: DollarSignIcon,
-		question: "How much does it cost?",
-		answer: "We offer flexible one-time plans starting at 199 USD. See our pricing section for details.",
+		question: "How does pricing work?",
+		answer: "Optimind uses a pay-as-you-go model so you can scale calling capacity during application peaks, claim surges, or seasonal demand—without permanently staffing for your highest-volume period. Talk to us for a plan sized to your use case and call volumes.",
 	},
 	{
 		icon: CodeXmlIcon,
-		question: "Do I need technical skills to use Acme AI?",
-		answer: "Not at all. Acme AI is designed to work out of the box with minimal setup, and integrates with the tools you already use.",
+		question: "Is this a generic chatbot that speaks?",
+		answer: "No. Each Optimind agent is configured around your approved information, terminology, conversation flows, escalation rules, and communication standards. Models can be tuned with representative recordings so the experience reflects how Indian policyholders and patients actually ask questions and respond.",
 	},
 	{
 		icon: Hand,
-		question: "Can I try it before I buy?",
-		answer: "Yes — we offer a demo so you can see how Acme AI fits into your workflow.",
+		question: "What happens when a call needs a human?",
+		answer: "Optimind handles routine conversations at scale and hands off when the configured workflow calls for it—sensitive cases, exceptions, underwriting decisions, or clinical attention. AI covers the repetitive work; your teams focus on what needs people.",
 	},
 	{
 		icon: LockIcon,
-		question: "How does Acme AI handle my data?",
-		answer: "Your privacy and security are our top priority. All data is encrypted and never shared with third parties.",
+		question: "How is our data and compliance handled?",
+		answer: "Optimind agents are designed around your organisation’s approved content and workflows—not open-ended answers. Conversations follow your escalation paths and communication standards, so members and patients get consistent, controlled information aligned with how your insurance or healthcare operations already work.",
 	},
 ] as const;
 
@@ -50,6 +51,7 @@ const avatars = [
 ] as const;
 
 const Faq = () => {
+	const router = useRouter();
 	return (
 		<section id="faq" className="py-12 lg:py-20">
 			<div className="mx-auto flex max-w-7xl flex-col gap-12 px-5 lg:gap-16 lg:px-8">
@@ -109,7 +111,12 @@ const Faq = () => {
 							need.
 						</p>
 					</div>
-					<Button className="max-sm:w-full">Get in touch</Button>
+					<Button
+						className="max-sm:w-full"
+						onClick={() => router.push("#contact")}
+					>
+						Get in touch
+					</Button>
 				</div>
 			</div>
 		</section>

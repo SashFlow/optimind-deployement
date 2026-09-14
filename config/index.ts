@@ -117,7 +117,7 @@ export const config = {
 		// whether the contact form should be enabled
 		enabled: true,
 		// the email to which the contact form messages should be sent
-		to: "info@sashflow.com",
+		to: "growth@sashflow.com",
 		// the subject of the email
 		subject: "Contact form message",
 	},

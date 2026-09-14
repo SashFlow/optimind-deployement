@@ -16,13 +16,20 @@ export const submitContactForm = publicProcedure
 	.input(contactFormSchema)
 	.use(localeMiddleware)
 	.handler(
-		async ({ input: { email, name, message }, context: { locale } }) => {
+		async ({
+			input: { email, name, company, message },
+			context: { locale },
+		}) => {
 			try {
+				const companyLine = company?.trim()
+					? `\n\nCompany: ${company.trim()}`
+					: "";
+
 				await sendEmail({
 					to: config.contactForm.to,
 					locale,
 					subject: config.contactForm.subject,
-					text: `Name: ${name}\n\nEmail: ${email}\n\nMessage: ${message}`,
+					text: `Name: ${name}\n\nEmail: ${email}${companyLine}\n\nMessage: ${message}`,
 				});
 			} catch (error) {
 				logger.error(error);

@@ -4,42 +4,45 @@ import React from "react";
 
 const posts = [
 	{
-		title: "5 Ways AI Helps Teams Stay in Flow",
+		title: "See every voice conversation in one dashboard",
 		description:
-			"Discover simple ways to cut distractions and keep your team focused on meaningful work.",
-		category: "Productivity",
-		readTime: "8 min read",
-		image: "https://tweakcn.com/examples/marketing/blog-1.webp",
+			"Track active calls, completion rates, and failures so insurance and healthcare teams know what’s working in real time.",
+		category: "Analytics",
+		readTime: "6 min read",
+		image: "/images/platform/dashboard.webp",
+		imagePosition: "object-top",
 		author: {
-			name: "Sophie Tan",
-			avatar: "https://tweakcn.com/examples/avatars/person-1.webp",
-			date: "4 Sept, 2025",
+			name: "Sahil",
+			avatar: "/images/sahil.jpg",
+			date: "4 Sept, 2026",
 		},
 	},
 	{
-		title: "The End of Context Switching",
+		title: "Outbound voice AI that places the call for you",
 		description:
-			"How AI keeps your focus where it matters and removes the friction between your tools.",
-		category: "Workflow",
-		readTime: "7 min read",
-		image: "https://tweakcn.com/examples/marketing/blog-2.webp",
+			"Automate reminders, claim updates, and follow-ups—Optimind dials, speaks, and escalates when a human is needed.",
+		category: "Voice AI",
+		readTime: "5 min read",
+		image: "/images/platform/voice.webp",
+		imagePosition: "object-center",
 		author: {
-			name: "Hanna Lee",
-			avatar: "https://tweakcn.com/examples/avatars/person-6.webp",
-			date: "4 Sept, 2025",
+			name: "Sai Yalla",
+			avatar: "/images/sai.jpeg",
+			date: "4 Sept, 2026",
 		},
 	},
 	{
-		title: "Why Small Teams Win Big with AI",
+		title: "Build voice workflows with human approval in the loop",
 		description:
-			"Lean setups, smarter workflows, and faster delivery for teams that punch above their weight.",
-		category: "Startups",
-		readTime: "3 min read",
-		image: "https://tweakcn.com/examples/marketing/blog-3.webp",
+			"Chain knowledge retrieval, loops, and handoffs so every agent follows your process—not a generic script.",
+		category: "Workflows",
+		readTime: "4 min read",
+		image: "/images/platform/workflow.webp",
+		imagePosition: "object-top",
 		author: {
-			name: "Alex Morgan",
-			avatar: "https://tweakcn.com/examples/avatars/person-2.webp",
-			date: "4 Sept, 2025",
+			name: "Sandip Patel",
+			avatar: "/images/sandip.jpeg",
+			date: "4 Sept, 2026",
 		},
 	},
 ] as const;
@@ -54,11 +57,11 @@ const Blogs = () => {
 							Blog
 						</span>
 						<h2 className="text-3xl font-medium tracking-tight text-balance lg:text-4xl">
-							Acme Inc. Insights
+							Optimind Insights
 						</h2>
 						<p className="text-muted-foreground max-w-2xl text-base text-pretty">
-							Insights, tips, and stories to help you work smarter
-							and finish faster.
+							Practical notes on voice AI for insurance and
+							healthcare operations.
 						</p>
 					</div>
 					<Button
@@ -75,11 +78,12 @@ const Blogs = () => {
 							key={post.title}
 							className="group/insight-card flex flex-col"
 						>
-							<div className="bg-muted relative aspect-3/2 w-full overflow-hidden rounded-xl">
+							<div className="bg-muted relative aspect-video w-full overflow-hidden rounded-xl ring-1 ring-black/5">
 								<Image
 									alt={post.title}
-									className="object-cover transition group-hover/insight-card:opacity-90"
+									className={`object-cover ${post.imagePosition} transition group-hover/insight-card:opacity-90`}
 									src={post.image}
+									sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
 									fill
 								/>
 							</div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { LinkedInLogoIcon, TwitterLogoIcon } from "@radix-ui/react-icons";
+import { LinkedInLogoIcon, } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { Logo } from "@/components/shared/components/Logo";
 
@@ -125,7 +125,7 @@ export function Footer() {
 									)
 								}
 							/>
-							<TwitterLogoIcon
+							{/* <TwitterLogoIcon
 								className="size-4 text-primary"
 								onClick={() =>
 									window.open(
@@ -133,7 +133,7 @@ export function Footer() {
 										"_blank",
 									)
 								}
-							/>
+							/> */}
 						</div>
 					</div>
 				</div>
