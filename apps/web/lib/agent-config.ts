@@ -202,19 +202,66 @@ export type AgentConfigDocument = {
 
 export const defaultPromptSections: PromptSections = {
 	identity: "",
-	output_rules: "",
-	tools: "",
+	output_rules: `You are interacting with the user via voice, and must apply the following rules to ensure your output sounds natural in a text-to-speech system:
+- Respond in plain text only. Never use JSON, markdown, lists, tables, code, emojis, or other complex formatting.
+- Keep replies brief by default: one to three sentences. Ask one question at a time.
+- Spell out numbers, phone numbers, or email addresses.
+- Omit \`https://\` and other formatting if listing a web URL.
+- Avoid acronyms and words with unclear pronunciation, when possible.`,
+	tools: `- Use available tools as needed, or upon user request.
+- Collect required inputs first. Perform actions silently if the runtime expects it.
+- Speak outcomes clearly. If an action fails, say so once, propose a fallback, or ask how to proceed.
+- When tools return structured data, summarize it to the user in a way that is easy to understand, and don't directly recite identifiers or other technical details.`,
 	goal: "",
-	guardrails: "",
+	guardrails: `- Stay within safe, lawful, and appropriate use; decline harmful or out-of-scope requests.
+- For medical, legal, or financial topics, provide general information only and suggest consulting a qualified professional.
+- MUST call end_call exactly once when closing the call. Never call end_call twice.
+- MUST call end_call when the current step is closing.
+- When speaking a number out loud (a rating, a time), say it the way a person would say it, not as a digit.`,
 	script_steps: "",
-	pauses_and_filler_words: `After every standalone "um", insert <break time="300ms"/> immediately and follow up with "so."`,
-	self_corrections:
-		"When a better phrasing comes to mind mid-sentence, drop the first version and restart.",
-	emotion:
-		"Default to a calm, peaceful baseline. Use stronger emotions sparingly.",
-	non_verbal_sounds: "Use these sparingly, no more than one per turn.",
-	personality: "You carry a steady, positive energy. Relaxed, not syrupy.",
-	phrase_variation: `Don't open consecutive turns with the same word or acknowledgment.`,
+	pauses_and_filler_words: `After every standalone "um", insert <break time="100ms"/> immediately and follow up with "so."
+
+Examples:
+- Bad: "I can definitely handle that for you."
+- Good: "Yeah, um <break time="100ms"/> so, I can do that."
+- Bad: "Let me check that for you."
+- Good: "Hmm <break time="200ms"/> let me check that for you."`,
+	self_corrections: `When a better phrasing comes to mind mid-sentence, drop the first version and restart. Don't apologize for the correction.
+
+Examples:
+- Bad: "Let me check the order number first."
+- Good: "I can pull that up — well, <break time="100ms"/> actually, let me check the order number first."
+- Bad: "We can ship Tuesday, since Monday's a holiday."
+- Good: "We can ship Monday, <break time="100ms"/> or, actually Tuesday, since Monday's a holiday."`,
+	emotion: `- Default to a calm, peaceful baseline.
+- Use stronger emotions sparingly, only in moments that warrant them: a genuine apology, a brief celebration of a successful task, or a confused recovery.
+- Don't switch emotions mid-sentence.`,
+	non_verbal_sounds: `Use these sparingly, no more than one per turn:
+- After a self-deprecating remark from the user, lead with a brief [chuckles].
+- Before delivering bad news, [sighs] softly.
+- After a longer silence, start with [exhales] before continuing.`,
+	personality: `You carry a steady, positive energy. Relaxed, not syrupy.
+- Feel free to start sentences with "And", "But", or "So".
+- Use "like" naturally, the way a real person does.
+- Reference earlier context loosely — "about that other thing you mentioned" — rather than quoting back verbatim.
+- When confused, say: "Sorry, <break time="300ms"/> I think I missed that, what did you say?"
+- When closing, wish the user a good rest of their day.`,
+	phrase_variation: `Don't open consecutive turns with the same word or acknowledgment. Rotate through different short phrases and avoid reusing the same one back to back.
+
+Examples:
+- Turn 1: "Yeah, um <break time="100ms"/> so, I can do that."
+- Turn 2: "Mhm, <break time="100ms"/> let me pull that up."
+- Turn 3: "Okay. One sec."
+- Turn 4: "Right, <break time="100ms"/> here's what I'm seeing."`,
+};
+
+const DEFAULT_FIRST_MESSAGE =
+	"Open the conversation naturally by introducing yourself. If Memory is Provided continue the conversation from the Memory context only.";
+
+const DEFAULT_CALLER_NAME_VARIABLE: AgentVariableDefinition = {
+	name: "caller_name",
+	variable_type: "text",
+	required: true,
 };
 
 export function syncToolsFromPhases(
@@ -234,16 +281,26 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 		instructions: "",
 		greeting: {
 			enabled: true,
-			text: "",
+			text: DEFAULT_FIRST_MESSAGE,
 			trigger: "on_join",
 			interruptible: false,
 		},
 		pipeline_mode: "cascaded",
-		llm: null,
+		llm: {
+			provider_model_id: "gemini-3.1-flash-lite",
+			params: {},
+		},
 		realtime: null,
 		live: null,
-		stt: null,
-		tts: null,
+		stt: {
+			provider_model_id: "gemini-3.5-transcribe-live",
+			params: {},
+		},
+		tts: {
+			provider_model_id: "gemini-3.1-flash-tts-preview",
+			voice_id: "Charon",
+			params: {},
+		},
 		avatar: { enabled: false, params: {} },
 		turn_detection: { mode: "vad", params: {} },
 		language: { primary: null, secondary: null },
@@ -270,7 +327,7 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 		},
 		tools_by_phase: { pre_call: [], on_call: [], post_call: [] },
 		knowledge_base_ids: [],
-		variables: [],
+		variables: [{ ...DEFAULT_CALLER_NAME_VARIABLE }],
 		environment_variables: {},
 		prompts: { ...defaultPromptSections },
 		background_audio: {
@@ -459,7 +516,10 @@ export function normalizeAgentConfig(
 				null,
 			params: c.avatar?.params ?? defaults.avatar?.params ?? {},
 		},
-		variables: normalizeVariables(c.variables),
+		variables:
+			c.variables === undefined
+				? defaults.variables
+				: normalizeVariables(c.variables),
 		environment_variables:
 			c.environment_variables ?? defaults.environment_variables,
 		data_collection_fields:

@@ -16,6 +16,7 @@ import { AudioWaveformIcon, PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
+import { createDefaultAgentConfig } from "@/lib/agent-config";
 
 export function AgentsListPage() {
 	const router = useRouter();
@@ -100,6 +101,7 @@ export function AgentsListPage() {
 					organizationId,
 					name,
 					description: description || undefined,
+					config: createDefaultAgentConfig(),
 				});
 			}}
 		/>
