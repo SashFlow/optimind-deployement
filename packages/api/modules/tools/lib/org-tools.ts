@@ -1,8 +1,9 @@
-import { getOrganizationById } from "@repo/database";
+import { getOrganizationById, updateOrganization } from "@repo/database";
 import { z } from "zod";
 
 export const toolDefinitionSchema = z.object({
 	id: z.string(),
+	agent_id: z.string().min(1),
 	name: z.string(),
 	description: z.string(),
 	tool_type: z.enum(["http", "python"]),
@@ -13,7 +14,7 @@ export const toolDefinitionSchema = z.object({
 export type ToolDefinition = z.infer<typeof toolDefinitionSchema>;
 
 type OrgMetadata = {
-	optimind_tools?: ToolDefinition[];
+	optimind_tools?: unknown[];
 	[key: string]: unknown;
 };
 
@@ -32,20 +33,68 @@ function parseMetadata(raw: string | null | undefined): OrgMetadata {
 	return {};
 }
 
+function parseStoredTools(raw: unknown[] | undefined): {
+	linked: ToolDefinition[];
+	hadUnlinked: boolean;
+} {
+	if (!Array.isArray(raw)) {
+		return { linked: [], hadUnlinked: false };
+	}
+
+	const linked: ToolDefinition[] = [];
+	let hadUnlinked = false;
+
+	for (const item of raw) {
+		const parsed = toolDefinitionSchema.safeParse(item);
+		if (parsed.success) {
+			linked.push(parsed.data);
+			continue;
+		}
+		hadUnlinked = true;
+	}
+
+	return { linked, hadUnlinked };
+}
+
+export async function writeTools(
+	organizationId: string,
+	tools: ToolDefinition[],
+) {
+	const organization = await getOrganizationById(organizationId);
+	if (!organization) {
+		throw new Error(`Organization not found: ${organizationId}`);
+	}
+	const metadata = parseMetadata(organization.metadata);
+	metadata.optimind_tools = tools;
+	await updateOrganization({
+		id: organizationId,
+		metadata: JSON.stringify(metadata),
+	});
+}
+
+/**
+ * Load org tools, purge any missing agent_id (or otherwise invalid), and
+ * optionally filter to a single agent.
+ */
 export async function listOrgTools(
 	organizationId: string,
+	options?: { agentId?: string },
 ): Promise<ToolDefinition[]> {
 	const organization = await getOrganizationById(organizationId);
 	if (!organization) {
 		return [];
 	}
 	const metadata = parseMetadata(organization.metadata);
-	if (!Array.isArray(metadata.optimind_tools)) {
-		return [];
+	const { linked, hadUnlinked } = parseStoredTools(metadata.optimind_tools);
+
+	if (hadUnlinked) {
+		await writeTools(organizationId, linked);
 	}
-	return metadata.optimind_tools.filter(
-		(tool) => toolDefinitionSchema.safeParse(tool).success,
-	);
+
+	if (options?.agentId) {
+		return linked.filter((tool) => tool.agent_id === options.agentId);
+	}
+	return linked;
 }
 
 /** Resolve selected tool IDs to full definitions from org metadata. */
@@ -90,3 +139,6 @@ export function collectDispatchToolIds(
 	}
 	return [];
 }
+
+export { parseMetadata };
+export type { OrgMetadata };

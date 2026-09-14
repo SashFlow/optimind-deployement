@@ -40,6 +40,7 @@ const BUILTIN_TOOLS = [
 	["reschedule", "ReScheduled"],
 	["transfer_call", "Transfer Call"],
 	["knowledge_search", "Knowledge Search"],
+	["web_search", "Web Search"],
 ] as const;
 
 type BuiltinToolKey = (typeof BUILTIN_TOOLS)[number][0];
@@ -48,6 +49,8 @@ type ToolsPhasePanelProps = {
 	config: AgentConfigDocument;
 	orgTools: ToolDefinition[];
 	organizationId: string;
+	agentId: string;
+	webSearchSupported: boolean;
 	onConfigChange: (patch: Partial<AgentConfigDocument>) => void;
 };
 
@@ -72,31 +75,43 @@ function ToolToggleRow({
 	enabled,
 	onToggle,
 	actions,
+	disabled,
+	disabledHint,
 }: {
 	label: string;
 	description?: string;
 	enabled: boolean;
 	onToggle: () => void;
 	actions?: React.ReactNode;
+	disabled?: boolean;
+	disabledHint?: string;
 }) {
 	return (
 		<div
 			className={cn(
 				"flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-				enabled
-					? "border-primary bg-primary/5"
-					: "border-border/80 bg-background",
+				disabled
+					? "border-border/60 bg-muted/30 opacity-70"
+					: enabled
+						? "border-primary bg-primary/5"
+						: "border-border/80 bg-background",
 			)}
 		>
 			<button
 				type="button"
 				onClick={onToggle}
-				className="min-w-0 flex-1 text-left"
+				disabled={disabled}
+				className="min-w-0 flex-1 text-left disabled:cursor-not-allowed"
 			>
 				<p className="text-sm font-medium">{label}</p>
 				{description ? (
 					<p className="text-xs text-muted-foreground capitalize">
 						{description}
+					</p>
+				) : null}
+				{disabled && disabledHint ? (
+					<p className="mt-0.5 text-xs text-muted-foreground normal-case">
+						{disabledHint}
 					</p>
 				) : null}
 			</button>
@@ -105,8 +120,9 @@ function ToolToggleRow({
 				<button
 					type="button"
 					onClick={onToggle}
+					disabled={disabled}
 					className={cn(
-						"rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+						"rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed",
 						enabled
 							? "bg-primary text-primary-foreground"
 							: "bg-muted text-muted-foreground hover:text-foreground",
@@ -123,6 +139,8 @@ export function ToolsPhasePanel({
 	config,
 	orgTools,
 	organizationId,
+	agentId,
+	webSearchSupported,
 	onConfigChange,
 }: ToolsPhasePanelProps) {
 	const [activePhase, setActivePhase] = React.useState<ToolPhase>("on_call");
@@ -132,8 +150,8 @@ export function ToolsPhasePanel({
 		null,
 	);
 
-	const createTool = useCreateToolMutation(organizationId);
-	const updateTool = useUpdateToolMutation(organizationId);
+	const createTool = useCreateToolMutation(organizationId, agentId);
+	const updateTool = useUpdateToolMutation(organizationId, agentId);
 	const isToolMutationPending = createTool.isPending || updateTool.isPending;
 
 	function updatePhaseTools(
@@ -154,6 +172,9 @@ export function ToolsPhasePanel({
 	}
 
 	function updateBuiltinTool(key: BuiltinToolKey, enabled: boolean) {
+		if (key === "web_search" && enabled && !webSearchSupported) {
+			return;
+		}
 		onConfigChange({
 			tools_config: { ...config.tools_config, [key]: enabled },
 		});
@@ -267,30 +288,46 @@ export function ToolsPhasePanel({
 											<div className="space-y-2">
 												{hasBuiltinSection
 													? BUILTIN_TOOLS.map(
-															([key, label]) => (
-																<ToolToggleRow
-																	key={key}
-																	label={
-																		label
-																	}
-																	description="Built-in"
-																	enabled={
-																		config
-																			.tools_config[
+															([key, label]) => {
+																const webSearchLocked =
+																	key ===
+																		"web_search" &&
+																	!webSearchSupported;
+																return (
+																	<ToolToggleRow
+																		key={
 																			key
-																		]
-																	}
-																	onToggle={() =>
-																		updateBuiltinTool(
-																			key,
-																			!config
+																		}
+																		label={
+																			label
+																		}
+																		description="Built-in"
+																		enabled={Boolean(
+																			config
 																				.tools_config[
 																				key
 																			],
-																		)
-																	}
-																/>
-															),
+																		)}
+																		disabled={
+																			webSearchLocked
+																		}
+																		disabledHint={
+																			webSearchLocked
+																				? "Requires an OpenAI or Gemini conversation model"
+																				: undefined
+																		}
+																		onToggle={() =>
+																			updateBuiltinTool(
+																				key,
+																				!config
+																					.tools_config[
+																					key
+																				],
+																			)
+																		}
+																	/>
+																);
+															},
 														)
 													: null}
 												{orgTools.map((tool) => {

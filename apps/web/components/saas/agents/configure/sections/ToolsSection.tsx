@@ -8,6 +8,8 @@ type ToolsSectionProps = {
 	config: AgentConfigDocument;
 	orgTools: ToolDefinition[];
 	organizationId: string;
+	agentId: string;
+	webSearchSupported: boolean;
 	onConfigChange: (patch: Partial<AgentConfigDocument>) => void;
 };
 
@@ -15,6 +17,8 @@ export function ToolsSection({
 	config,
 	orgTools,
 	organizationId,
+	agentId,
+	webSearchSupported,
 	onConfigChange,
 }: ToolsSectionProps) {
 	return (
@@ -22,6 +26,8 @@ export function ToolsSection({
 			config={config}
 			orgTools={orgTools}
 			organizationId={organizationId}
+			agentId={agentId}
+			webSearchSupported={webSearchSupported}
 			onConfigChange={onConfigChange}
 		/>
 	);

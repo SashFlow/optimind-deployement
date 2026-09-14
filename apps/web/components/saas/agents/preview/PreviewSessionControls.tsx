@@ -34,7 +34,7 @@ import {
 	VideoIcon,
 	VideoOffIcon,
 } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Agent } from "@/services/api/types";
 import { AssistantTranscriptThread } from "../transcript/AssistantTranscriptThread";
@@ -315,6 +315,10 @@ export function PreviewSessionControls({
 	const [agentWaitTimedOut, setAgentWaitTimedOut] = useState(false);
 	const [chatOpen, setChatOpen] = useState(false);
 	const [avatarOnMain, setAvatarOnMain] = useState(true);
+	const isEndingRef = useRef(false);
+	const didConnectRef = useRef(false);
+	const onEndRef = useRef(onEnd);
+	onEndRef.current = onEnd;
 	const shouldWaitForAgent = isConnected && !hasAgent;
 	const hasAvatarVideo = Boolean(videoTrack);
 	const showAvatarFallback =
@@ -356,8 +360,22 @@ export function PreviewSessionControls({
 	}, [shouldWaitForAgent]);
 
 	useEffect(() => {
+		if (isConnected) {
+			didConnectRef.current = true;
+		}
+	}, [isConnected]);
+
+	useEffect(() => {
 		function handleDisconnected() {
-			toast.error("Preview session disconnected");
+			if (isEndingRef.current) {
+				return;
+			}
+			toast.error(
+				didConnectRef.current
+					? "Preview session disconnected"
+					: "Failed to connect to session",
+			);
+			onEndRef.current();
 		}
 		function handleMediaDeviceError(error: Error) {
 			toast.error(error.message || "Microphone access failed");
@@ -582,6 +600,7 @@ export function PreviewSessionControls({
 							aria-label="End preview session"
 							className="size-9 rounded-full border-destructive/30 text-destructive hover:bg-destructive/10"
 							onClick={() => {
+								isEndingRef.current = true;
 								void room.disconnect();
 								onEnd();
 							}}

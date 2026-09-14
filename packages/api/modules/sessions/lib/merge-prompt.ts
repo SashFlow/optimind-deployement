@@ -413,6 +413,7 @@ function prepareToolDefinitions(
 		) as Record<string, unknown>;
 		return {
 			id: asString(substituted.id),
+			agent_id: asString(substituted.agent_id),
 			name: asString(substituted.name),
 			description: asString(substituted.description),
 			tool_type: substituted.tool_type === "python" ? "python" : "http",

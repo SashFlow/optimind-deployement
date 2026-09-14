@@ -471,18 +471,19 @@ export function useTimezonesQuery() {
 	});
 }
 
-export function useToolsQuery(organizationId: string) {
+export function useToolsQuery(organizationId: string, agentId: string) {
 	return useQuery({
 		...orpc.tools.list.queryOptions({
-			input: { organizationId },
+			input: { organizationId, agentId },
 		}),
-		enabled: !!organizationId,
+		enabled: !!organizationId && !!agentId,
 		select: (data): ToolDefinition[] => data.tools,
 	});
 }
 
 export function useCreateToolMutation(
 	organizationId: string,
+	agentId: string,
 	options?: Pick<
 		UseMutationOptions<ToolDefinition, Error, ToolCreateInput>,
 		"onSuccess" | "onError"
@@ -493,6 +494,7 @@ export function useCreateToolMutation(
 		mutationFn: async (input: ToolCreateInput) => {
 			const { tool } = await orpcClient.tools.create({
 				organizationId,
+				agentId,
 				...input,
 			});
 			return tool;
@@ -500,7 +502,7 @@ export function useCreateToolMutation(
 		onSuccess: async (data, variables, onMutateResult, context) => {
 			await queryClient.invalidateQueries({
 				queryKey: orpc.tools.list.key({
-					input: { organizationId },
+					input: { organizationId, agentId },
 				}),
 			});
 			await options?.onSuccess?.(
@@ -516,6 +518,7 @@ export function useCreateToolMutation(
 
 export function useUpdateToolMutation(
 	organizationId: string,
+	agentId: string,
 	options?: Pick<
 		UseMutationOptions<ToolDefinition, Error, ToolUpdateInput>,
 		"onSuccess" | "onError"
@@ -533,7 +536,7 @@ export function useUpdateToolMutation(
 		onSuccess: async (data, variables, onMutateResult, context) => {
 			await queryClient.invalidateQueries({
 				queryKey: orpc.tools.list.key({
-					input: { organizationId },
+					input: { organizationId, agentId },
 				}),
 			});
 			await options?.onSuccess?.(

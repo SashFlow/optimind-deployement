@@ -18,7 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
 import { ChevronDownIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AgentConfigurePreview } from "@/components/saas/agents/AgentConfigurePreview";
 import { AdvancedSection } from "@/components/saas/agents/configure/sections/AdvancedSection";
 import { AvatarSection } from "@/components/saas/agents/configure/sections/AvatarSection";
@@ -28,7 +28,10 @@ import { PromptsSection } from "@/components/saas/agents/configure/sections/Prom
 import { ToolsSection } from "@/components/saas/agents/configure/sections/ToolsSection";
 import { VoiceSection } from "@/components/saas/agents/configure/sections/VoiceSection";
 import type { AgentConfigDocument } from "@/lib/agent-config";
-import { getVoiceModelId } from "@/lib/agent-pipeline";
+import {
+	conversationModelSupportsWebSearch,
+	getVoiceModelId,
+} from "@/lib/agent-pipeline";
 import {
 	useKnowledgeBasesQuery,
 	useProviderModelsQuery,
@@ -103,7 +106,27 @@ export function AgentConfigureForm({
 	const voiceModelId = getVoiceModelId(config, selectedRealtimeModel);
 	const voices = useProviderVoicesQuery(voiceModelId).data ?? [];
 	const knowledgeBases = useKnowledgeBasesQuery(organizationId).data ?? [];
-	const tools = useToolsQuery(organizationId).data ?? [];
+	const tools = useToolsQuery(organizationId, agent.id).data ?? [];
+	const conversationModels = useMemo(
+		() => [...llmModels, ...realtimeModels, ...liveModels],
+		[llmModels, realtimeModels, liveModels],
+	);
+	const webSearchSupported = conversationModelSupportsWebSearch(
+		config,
+		conversationModels,
+	);
+
+	useEffect(() => {
+		if (!webSearchSupported && config.tools_config.web_search) {
+			onConfigChange({
+				...config,
+				tools_config: {
+					...config.tools_config,
+					web_search: false,
+				},
+			});
+		}
+	}, [webSearchSupported, config.tools_config.web_search]);
 
 	function updateConfig(patch: Partial<AgentConfigDocument>) {
 		onConfigChange({ ...config, ...patch });
@@ -274,6 +297,8 @@ export function AgentConfigureForm({
 								config={config}
 								orgTools={tools}
 								organizationId={organizationId}
+								agentId={agent.id}
+								webSearchSupported={webSearchSupported}
 								onConfigChange={updateConfig}
 							/>
 						</div>

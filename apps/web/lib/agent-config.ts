@@ -180,6 +180,7 @@ export type AgentConfigDocument = {
 		api_tools: boolean;
 		widget_tools: boolean;
 		knowledge_search: boolean;
+		web_search: boolean;
 	};
 	before_session_start: {
 		enabled: boolean;
@@ -355,6 +356,7 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 			api_tools: true,
 			widget_tools: false,
 			knowledge_search: false,
+			web_search: false,
 		},
 		before_session_start: {
 			enabled: false,

@@ -17,6 +17,7 @@ import * as React from "react";
 import { ConfigureRadioCard } from "@/components/saas/agents/configure/ConfigureRadioCard";
 import { LocaleCombobox } from "@/components/saas/agents/configure/LocaleCombobox";
 import type { AgentConfigDocument } from "@/lib/agent-config";
+import { AVATAR_MAX_DURATION_SECONDS } from "@/lib/agent-pipeline";
 import { useTimezonesQuery } from "@/services/api/hooks";
 
 const DURATION_OPTIONS = [
@@ -96,10 +97,40 @@ export function CallSessionSection({
 }: CallSessionSectionProps) {
 	const [keywordInput, setKeywordInput] = React.useState("");
 	const timezonesQuery = useTimezonesQuery();
+	const avatarEnabled = config.avatar?.enabled ?? false;
+	const durationOptions = avatarEnabled
+		? DURATION_OPTIONS.filter(
+				(opt) => Number(opt.value) <= AVATAR_MAX_DURATION_SECONDS,
+			)
+		: DURATION_OPTIONS;
 
 	const maxDuration = String(
-		config.call_ending.max_duration_seconds ?? "480",
+		avatarEnabled
+			? Math.min(
+					config.call_ending.max_duration_seconds ??
+						AVATAR_MAX_DURATION_SECONDS,
+					AVATAR_MAX_DURATION_SECONDS,
+				)
+			: (config.call_ending.max_duration_seconds ?? "480"),
 	);
+
+	React.useEffect(() => {
+		if (!avatarEnabled) {
+			return;
+		}
+		const current = config.call_ending.max_duration_seconds;
+		if (
+			current == null ||
+			current > AVATAR_MAX_DURATION_SECONDS
+		) {
+			onConfigChange({
+				call_ending: {
+					...config.call_ending,
+					max_duration_seconds: AVATAR_MAX_DURATION_SECONDS,
+				},
+			});
+		}
+	}, [avatarEnabled, config.call_ending.max_duration_seconds]);
 	const inactivityWarning = String(
 		config.call_ending.inactivity_warning_seconds ?? "20",
 	);
@@ -157,7 +188,7 @@ export function CallSessionSection({
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								{DURATION_OPTIONS.map((opt) => (
+								{durationOptions.map((opt) => (
 									<SelectItem
 										key={opt.value}
 										value={opt.value}
@@ -167,6 +198,11 @@ export function CallSessionSection({
 								))}
 							</SelectContent>
 						</Select>
+						{avatarEnabled ? (
+							<p className="text-xs text-muted-foreground">
+								Limited to 5 minutes while avatar is enabled.
+							</p>
+						) : null}
 					</div>
 					<div className="space-y-2">
 						<Label className="text-sm font-medium">Timezone</Label>

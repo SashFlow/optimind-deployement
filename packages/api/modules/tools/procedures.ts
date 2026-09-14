@@ -1,63 +1,39 @@
 import { ORPCError } from "@orpc/client";
-import { getOrganizationById, updateOrganization } from "@repo/database";
+import { getOrganizationById } from "@repo/database";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
 import {
 	listOrgTools,
-	type ToolDefinition,
 	toolDefinitionSchema,
+	writeTools,
 } from "./lib/org-tools";
-
-type OrgMetadata = {
-	optimind_tools?: ToolDefinition[];
-	[key: string]: unknown;
-};
-
-function parseMetadata(raw: string | null | undefined): OrgMetadata {
-	if (!raw) {
-		return {};
-	}
-	try {
-		const parsed = JSON.parse(raw) as unknown;
-		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-			return parsed as OrgMetadata;
-		}
-	} catch {
-		// ignore invalid metadata
-	}
-	return {};
-}
-
-async function writeTools(organizationId: string, tools: ToolDefinition[]) {
-	const organization = await getOrganizationById(organizationId);
-	if (!organization) {
-		throw new ORPCError("NOT_FOUND");
-	}
-	const metadata = parseMetadata(organization.metadata);
-	metadata.optimind_tools = tools;
-	await updateOrganization({
-		id: organizationId,
-		metadata: JSON.stringify(metadata),
-	});
-}
 
 export const list = protectedProcedure
 	.route({
 		method: "GET",
 		path: "/tools",
 		tags: ["Tools"],
-		summary: "List organization tools",
+		summary: "List agent tools for an organization",
 	})
-	.input(z.object({ organizationId: z.string() }))
+	.input(
+		z.object({
+			organizationId: z.string(),
+			agentId: z.string().min(1),
+		}),
+	)
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
 		const organization = await getOrganizationById(input.organizationId);
 		if (!organization) {
 			throw new ORPCError("NOT_FOUND");
 		}
-		return { tools: await listOrgTools(input.organizationId) };
+		return {
+			tools: await listOrgTools(input.organizationId, {
+				agentId: input.agentId,
+			}),
+		};
 	});
 
 export const create = protectedProcedure
@@ -65,11 +41,12 @@ export const create = protectedProcedure
 		method: "POST",
 		path: "/tools",
 		tags: ["Tools"],
-		summary: "Create organization tool",
+		summary: "Create agent tool",
 	})
 	.input(
 		z.object({
 			organizationId: z.string(),
+			agentId: z.string().min(1),
 			name: z.string().min(1),
 			description: z.string().default(""),
 			tool_type: z.enum(["http", "python"]),
@@ -79,9 +56,15 @@ export const create = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		await requireOrgMembership(input.organizationId, context.user.id);
+		const organization = await getOrganizationById(input.organizationId);
+		if (!organization) {
+			throw new ORPCError("NOT_FOUND");
+		}
+
 		const tools = await listOrgTools(input.organizationId);
 		const tool = toolDefinitionSchema.parse({
 			id: nanoid(),
+			agent_id: input.agentId,
 			name: input.name,
 			description: input.description,
 			tool_type: input.tool_type,
@@ -97,7 +80,7 @@ export const update = protectedProcedure
 		method: "PATCH",
 		path: "/tools/{id}",
 		tags: ["Tools"],
-		summary: "Update organization tool",
+		summary: "Update agent tool",
 	})
 	.input(
 		z.object({
@@ -130,6 +113,7 @@ export const update = protectedProcedure
 
 		const tool = toolDefinitionSchema.parse({
 			id: existing.id,
+			agent_id: existing.agent_id,
 			name: input.name,
 			description: input.description,
 			tool_type: input.tool_type,
@@ -140,4 +124,30 @@ export const update = protectedProcedure
 		next[index] = tool;
 		await writeTools(input.organizationId, next);
 		return { tool };
+	});
+
+export const remove = protectedProcedure
+	.route({
+		method: "DELETE",
+		path: "/tools/{id}",
+		tags: ["Tools"],
+		summary: "Delete agent tool",
+	})
+	.input(
+		z.object({
+			organizationId: z.string(),
+			id: z.string(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+		const tools = await listOrgTools(input.organizationId);
+		const index = tools.findIndex((tool) => tool.id === input.id);
+		if (index === -1) {
+			throw new ORPCError("NOT_FOUND");
+		}
+
+		const next = tools.filter((tool) => tool.id !== input.id);
+		await writeTools(input.organizationId, next);
+		return { success: true as const };
 	});

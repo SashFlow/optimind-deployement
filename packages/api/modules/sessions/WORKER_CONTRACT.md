@@ -123,6 +123,12 @@ X-Worker-Api-Key: ...
 { "status": "COMPLETED", "endReason": "COMPLETED" }
 ```
 
+### Built-in web search
+
+When `config.tools_config.web_search` is true, the worker attaches the model provider’s
+native web-search tool (OpenAI `WebSearch` or Gemini `GoogleSearch`). No backend HTTP
+endpoint is involved. Unsupported conversation providers ignore the flag.
+
 ### Callbacks / reschedule
 
 ```http

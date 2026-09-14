@@ -260,3 +260,42 @@ export function selectPrimaryLanguage(
 		},
 	};
 }
+
+const WEB_SEARCH_PROVIDER_IDS = new Set(["openai", "google", "gemini"]);
+
+/** Model id that drives conversation / provider tools for the active pipeline. */
+export function getConversationModelId(
+	config: AgentConfigDocument,
+): string | null {
+	if (isLivePipeline(config)) {
+		return config.live?.provider_model_id ?? null;
+	}
+	if (isRealtimePipeline(config)) {
+		return config.realtime?.provider_model_id ?? null;
+	}
+	return config.llm?.provider_model_id ?? null;
+}
+
+export function conversationModelSupportsWebSearch(
+	config: AgentConfigDocument,
+	models: ProviderModel[],
+): boolean {
+	const modelId = getConversationModelId(config);
+	if (!modelId) {
+		return false;
+	}
+	const model = models.find((item) => item.id === modelId);
+	if (model) {
+		return WEB_SEARCH_PROVIDER_IDS.has(model.provider_id);
+	}
+	const id = modelId.toLowerCase();
+	return (
+		id.includes("gpt") ||
+		id.includes("openai") ||
+		id.includes("gemini") ||
+		id.startsWith("google/")
+	);
+}
+
+/** Max session length (seconds) when a visual avatar is enabled. */
+export const AVATAR_MAX_DURATION_SECONDS = 300;

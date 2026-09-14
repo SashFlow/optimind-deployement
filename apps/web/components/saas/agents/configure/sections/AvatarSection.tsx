@@ -4,6 +4,7 @@ import { cn } from "@repo/ui/utils";
 import { CheckIcon, LockIcon, PlusIcon } from "lucide-react";
 import { ConfigureSectionToggle } from "@/components/saas/agents/configure/ConfigureSectionToggle";
 import type { AgentConfigDocument } from "@/lib/agent-config";
+import { AVATAR_MAX_DURATION_SECONDS } from "@/lib/agent-pipeline";
 import { STOCK_AVATARS } from "@/lib/stock-avatars";
 import { useAvatarsQuery } from "@/services/api/hooks";
 import type { OrgAvatar } from "@/services/api/types";
@@ -205,6 +206,10 @@ export function AvatarSection({
 				provider_id: option.providerId ?? null,
 				external_avatar_id: option.externalAvatarId,
 			},
+			call_ending: {
+				...config.call_ending,
+				max_duration_seconds: AVATAR_MAX_DURATION_SECONDS,
+			},
 		});
 	}
 
@@ -220,7 +225,7 @@ export function AvatarSection({
 			<div className="px-4 py-4 md:px-5">
 				<ConfigureSectionToggle
 					title="Enable avatar"
-					description="Show a live avatar video stream alongside the assistant voice in web sessions."
+					description="Show a live avatar video stream alongside the assistant voice in web sessions. Maximum call duration is set to 5 minutes while avatar is enabled."
 					checked={config.avatar?.enabled ?? false}
 					onCheckedChange={(enabled) =>
 						onConfigChange({
@@ -228,6 +233,15 @@ export function AvatarSection({
 								...(config.avatar ?? { params: {} }),
 								enabled,
 							},
+							...(enabled
+								? {
+										call_ending: {
+											...config.call_ending,
+											max_duration_seconds:
+												AVATAR_MAX_DURATION_SECONDS,
+										},
+									}
+								: {}),
 						})
 					}
 				>

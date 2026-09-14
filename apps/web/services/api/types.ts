@@ -161,6 +161,7 @@ export type CatalogAudioClip = {
 
 export type ToolDefinition = {
 	id: string;
+	agent_id: string;
 	name: string;
 	description: string;
 	tool_type: "http" | "python";

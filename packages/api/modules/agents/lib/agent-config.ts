@@ -234,6 +234,7 @@ export const agentConfigSchema = z
 				api_tools: z.boolean(),
 				widget_tools: z.boolean(),
 				knowledge_search: z.boolean(),
+				web_search: z.boolean().optional().default(false),
 			})
 			.passthrough()
 			.optional(),

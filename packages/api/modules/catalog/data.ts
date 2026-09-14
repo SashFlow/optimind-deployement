@@ -88,9 +88,24 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("gpt-realtime", "GPT Realtime", "openai", "realtime", {
 		supports_text_output: true,
 	}),
-	model("gemini-live", "Gemini Live", "gemini", "realtime", {
-		supports_text_output: false,
-	}),
+	model(
+		"gemini-3.1-flash-live-preview",
+		"Gemini 3.1 Flash Live",
+		"gemini",
+		"realtime",
+		{
+			supports_text_output: false,
+		},
+	),
+	model(
+		"gemini-2.5-flash-native-audio-preview-12-2025",
+		"Gemini 2.5 Flash Native Audio",
+		"gemini",
+		"realtime",
+		{
+			supports_text_output: false,
+		},
+	),
 
 	// Live (full-duplex + delegated reasoning)
 	model("gpt-live-1", "GPT Live 1", "openai", "live"),
@@ -315,7 +330,11 @@ export const CATALOG_VOICES: CatalogVoice[] = [
 	...voicesFor("gemini-3.1-flash-tts-preview", GEMINI_VOICES),
 	...voicesFor("gemini-2.5-flash-preview-tts", GEMINI_VOICES),
 	...voicesFor("gemini-2.5-pro-preview-tts", GEMINI_VOICES),
-	...voicesFor("gemini-live", GEMINI_VOICES),
+	...voicesFor("gemini-3.1-flash-live-preview", GEMINI_VOICES),
+	...voicesFor(
+		"gemini-2.5-flash-native-audio-preview-12-2025",
+		GEMINI_VOICES,
+	),
 	...voicesFor("sarvam:bulbul:v3", SARVAM_V3_SPEAKERS),
 	...voicesFor("sarvam:bulbul:v2", SARVAM_V2_SPEAKERS),
 	...voicesFor("inworld-tts-1.5-max", INWORLD_VOICES),
