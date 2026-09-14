@@ -13,7 +13,7 @@ export default function Header() {
 				<Logo withLabel={true} />
 				<nav className="hidden items-center md:flex">
 					<Link
-						href="#product"
+						href="/#product"
 						data-slot="button"
 						data-variant="ghost"
 						data-size="sm"
@@ -22,7 +22,7 @@ export default function Header() {
 						Product
 					</Link>
 					<Link
-						href="#solutions"
+						href="/#solutions"
 						data-slot="button"
 						data-variant="ghost"
 						data-size="sm"
@@ -31,7 +31,7 @@ export default function Header() {
 						Solutions
 					</Link>
 					<Link
-						href="#team"
+						href="/#team"
 						data-slot="button"
 						data-variant="ghost"
 						data-size="sm"
@@ -64,7 +64,7 @@ export default function Header() {
 								behavior: "smooth",
 							});
 						}}
-						className="inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg:not([class*='size-'])]:size-4 bg-primary text-primary-foreground hover:bg-primary/90 h-8 gap-1.5 rounded-md px-3"
+						className="hidden md:inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg:not([class*='size-'])]:size-4 bg-primary text-primary-foreground hover:bg-primary/90 h-8 gap-1.5 rounded-md px-3"
 					>
 						Get started
 					</Button>

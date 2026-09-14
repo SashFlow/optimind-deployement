@@ -332,7 +332,7 @@ export function HeroDemo() {
 										event.currentTarget.getBoundingClientRect();
 									seek(
 										(event.clientX - rect.left) /
-										rect.width,
+											rect.width,
 									);
 								}}
 								onKeyDown={(event) => {

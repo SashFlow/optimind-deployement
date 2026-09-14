@@ -11,6 +11,8 @@ export type UseCase = {
 	title: string;
 	snippet: string;
 	image: string;
+	/** Blog post path for this use case (e.g. "/blog/health-reports"). */
+	blogHref: string;
 	/** YouTube video ID for the Solutions embed player (e.g. "dQw4w9WgXcQ"). */
 	youtubeId?: string;
 	sections: UseCaseSection[];
@@ -22,8 +24,9 @@ export const useCases: UseCase[] = [
 		category: "01 — Health Reports",
 		title: "Turn Complex Health Reports Into Clear Conversations",
 		snippet:
-			"Help patients and members understand medical reports, results, and health information through a natural voice experience—without making them decode complex terminology on their own.",
+			"Help patients and members understand medical reports, results, and health information through a natural voice experience—without decoding complex terminology on their own.",
 		image: "/images/use-case/health_report.webp",
+		blogHref: "/blog/health-reports",
 		sections: [
 			{
 				paragraphs: [
@@ -56,8 +59,9 @@ export const useCases: UseCase[] = [
 		category: "02 — Insurance",
 		title: "Make Every Policy Easier to Understand",
 		snippet:
-			"Explain coverage, benefits, exclusions, and policy details through a conversational experience designed specifically for insurance communication.",
+			"Explain coverage, benefits, exclusions, and policy details through a conversational voice experience designed specifically for insurance communication and member questions.",
 		image: "/images/use-case/insurance_policydetails.webp",
+		blogHref: "/blog/insurance",
 		sections: [
 			{
 				paragraphs: [
@@ -90,8 +94,9 @@ export const useCases: UseCase[] = [
 		category: "03 — Claims Status",
 		title: "Keep Members Updated, Without the Waiting",
 		snippet:
-			"Give policyholders timely answers about claim status, missing information, next steps, and updates—while reducing repetitive calls for claims teams.",
+			"Give policyholders timely answers about claim status, missing documents, next steps, and updates—while reducing repetitive inbound calls for busy claims operations teams.",
 		image: "/images/use-case/claim_status.webp",
+		blogHref: "/blog/claims-status",
 		sections: [
 			{
 				paragraphs: [
@@ -125,8 +130,9 @@ export const useCases: UseCase[] = [
 		category: "04 — MER Calls",
 		title: "Make Medical Examination Calls Consistent at Scale",
 		snippet:
-			"Automate pre-issuance Medical Examination Report calls with voice AI trained around insurance underwriting workflows, health information requirements, and the right escalation paths.",
+			"Automate pre-issuance Medical Examination Report calls with voice AI trained around insurance underwriting workflows, health information needs, and clear escalation paths.",
 		image: "/images/use-case/MER_call.webp",
+		blogHref: "/blog/mer-calls",
 		sections: [
 			{
 				heading: "A critical step before policy issuance",
@@ -165,6 +171,7 @@ export const useCases: UseCase[] = [
 		snippet:
 			"Use natural voice conversations to understand how customers and members experienced their insurance, claims, or healthcare journey—not just whether they clicked a survey option.",
 		image: "/images/use-case/feedback_call.webp",
+		blogHref: "/blog/feedback-calls",
 		sections: [
 			{
 				paragraphs: [
@@ -204,6 +211,7 @@ export const useCases: UseCase[] = [
 		snippet:
 			"Automate timely reminders for medical health checks required during insurance policy issuance, helping applicants complete the next step without repeated manual follow-ups.",
 		image: "/images/use-case/reminder_call.webp",
+		blogHref: "/blog/reminder-calls",
 		sections: [
 			{
 				paragraphs: [
@@ -241,8 +249,9 @@ export const useCases: UseCase[] = [
 		category: "07 — Appointment Scheduling",
 		title: "Schedule Medical Tests Without the Back-and-Forth",
 		snippet:
-			"Help insurance applicants schedule their required blood test for policy issuance through a natural voice conversation, without adding another manual scheduling workload for operations teams.",
+			"Help insurance applicants schedule their required blood test for policy through a natural conversation without adding manual scheduling work for your teams.",
 		image: "/images/use-case/appointment_scheduling.webp",
+		blogHref: "/blog/appointment-scheduling",
 		sections: [
 			{
 				paragraphs: [
@@ -282,6 +291,7 @@ export const useCases: UseCase[] = [
 		snippet:
 			"Capture structured patient information through a natural voice conversation, helping healthcare teams reduce repetitive intake work before the patient reaches the clinician.",
 		image: "/images/use-case/patient_intake.webp",
+		blogHref: "/blog/patient-intake",
 		sections: [
 			{
 				paragraphs: [
@@ -318,8 +328,9 @@ export const useCases: UseCase[] = [
 		category: "09 — Patient Follow-Up",
 		title: "Stay Connected After the Visit",
 		snippet:
-			"Automate routine patient follow-ups with voice conversations that check in, reinforce next steps, capture updates, and surface situations that need human attention.",
+			"Automate routine patient follow-ups with voice conversations that check in, reinforce next steps, capture updates, and surface situations that need human attention and care.",
 		image: "/images/use-case/patient_followup.webp",
+		blogHref: "/blog/patient-follow-up",
 		sections: [
 			{
 				paragraphs: [
@@ -359,6 +370,7 @@ export const useCases: UseCase[] = [
 		snippet:
 			"Use conversational voice AI to reinforce post-discharge instructions, answer routine questions, and help patients stay connected to their next steps after leaving the hospital.",
 		image: "/images/use-case/discharge_assistant.webp",
+		blogHref: "/blog/discharge-assistant",
 		sections: [
 			{
 				paragraphs: [
@@ -396,8 +408,9 @@ export const useCases: UseCase[] = [
 		category: "11 — Hospital Navigation",
 		title: "Help Patients Find Their Way",
 		snippet:
-			"Give patients a voice-first way to find departments, clinics, check-in points, and hospital services—reducing confusion and unnecessary calls to front-desk teams.",
+			"Give patients a voice-first way to find departments, clinics, check-in points, pharmacies and key hospital services—reducing confusion and unnecessary calls to busy front-desk teams.",
 		image: "/images/use-case/hospital_navigation.webp",
+		blogHref: "/blog/hospital-navigation",
 		sections: [
 			{
 				paragraphs: [
@@ -435,8 +448,9 @@ export const useCases: UseCase[] = [
 		category: "12 — Health Coach",
 		title: "Bring Chronic Care Management Into the Conversation",
 		snippet:
-			"Keep patients engaged between visits through personalized voice interactions that support ongoing chronic-condition management, routine check-ins, and remote monitoring workflows.",
+			"Keep patients engaged between visits through personalized voice interactions that support chronic-condition management, routine check-ins, and remote monitoring workflows.",
 		image: "/images/use-case/health_coach.webp",
+		blogHref: "/blog/health-coach",
 		sections: [
 			{
 				paragraphs: [

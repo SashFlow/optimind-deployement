@@ -111,13 +111,15 @@ export default async function BlogPostPage(props: { params: Promise<Params> }) {
 			</div>
 
 			{image && (
-				<div className="relative mt-6 aspect-video overflow-hidden rounded-4xl bg-primary/10 p-4 lg:p-6">
+				<div className="relative mt-6 aspect-video overflow-hidden rounded-4xl bg-primary/10">
 					<Image
 						src={image}
 						alt={title}
 						fill
-						sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-						className="object-cover object-center rounded-xl"
+						priority
+						quality={100}
+						sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1200px"
+						className="object-cover object-center"
 					/>
 				</div>
 			)}

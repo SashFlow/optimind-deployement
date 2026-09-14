@@ -1,25 +1,26 @@
 "use client";
 
-import { useCases } from "@/components/marketing/home/use-cases-data";
+import { LocaleLink } from "@i18n/routing";
 import { cn } from "@repo/ui/utils";
 import {
+	ArrowUpRightIcon,
 	BellRingIcon,
 	CalendarClockIcon,
-	CheckIcon,
 	ClipboardListIcon,
 	FileHeartIcon,
 	FileTextIcon,
 	HeartPulseIcon,
 	HomeIcon,
+	type LucideIcon,
 	MapPinnedIcon,
 	MessageSquareHeartIcon,
 	PhoneCallIcon,
 	PlayIcon,
 	ShieldIcon,
 	StethoscopeIcon,
-	type LucideIcon,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useCases } from "@/components/marketing/home/use-cases-data";
 
 const FALLBACK_YOUTUBE_ID = "iuX5PDP73bQ";
 const CYCLE_MS = 5000;
@@ -170,49 +171,51 @@ const Solutions = () => {
 					{useCases.map((useCase, index) => {
 						const Icon = useCaseIcons[useCase.id] ?? FileTextIcon;
 						const isActive = index === activeIndex;
+						const label = getUseCaseLabel(useCase.category);
 
 						return (
-							<button
-								key={useCase.id}
-								type="button"
-								onClick={() => selectUseCase(index)}
-								className={cn(
-									"flex max-w-xl flex-col gap-3 rounded-xl border p-4 text-left transition-colors",
-									"focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
-									isActive
-										? "border-primary bg-primary text-primary-foreground"
-										: "bg-background text-foreground border-border hover:bg-muted/60",
-								)}
-							>
-								<div className="flex items-start justify-between gap-3">
-									<h3 className="flex items-center gap-2 text-lg font-medium tracking-tight text-balance">
-										<Icon className="size-6 shrink-0" />
-										{getUseCaseLabel(useCase.category)}
-									</h3>
-									<span
-										className={cn(
-											"mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border",
-											isActive
-												? "border-primary-foreground/40 bg-primary-foreground text-primary"
-												: "border-muted-foreground/40 bg-background",
-										)}
-									>
-										{isActive ? (
-											<CheckIcon className="size-3.5" />
-										) : null}
-									</span>
-								</div>
-								<p
+							<div key={useCase.id} className="relative">
+								<button
+									type="button"
+									onClick={() => selectUseCase(index)}
 									className={cn(
-										"text-base text-pretty",
+										"flex flex-col gap-3 rounded-xl border p-4 text-left transition-colors",
+										"focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
 										isActive
-											? "text-primary-foreground/85"
-											: "text-muted-foreground",
+											? "border-primary bg-primary text-primary-foreground"
+											: "bg-background text-foreground border-border hover:bg-muted/60",
 									)}
 								>
-									{useCase.snippet}
-								</p>
-							</button>
+									<div className="flex items-start justify-between gap-3">
+										<h3 className="flex items-center gap-2 text-lg font-medium tracking-tight text-balance">
+											<Icon className="size-6 shrink-0" />
+											{label}
+										</h3>
+										<LocaleLink
+											href={useCase.blogHref}
+											aria-label={`Read blog post about ${label}`}
+											className={cn(
+												"absolute top-4 right-4 flex size-5 items-center justify-center rounded-md border transition-colors",
+												isActive
+													? "border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/15"
+													: "border-muted-foreground/40 text-muted-foreground hover:bg-muted hover:text-foreground",
+											)}
+										>
+											<ArrowUpRightIcon className="size-3.5" />
+										</LocaleLink>
+									</div>
+									<p
+										className={cn(
+											"text-base text-pretty",
+											isActive
+												? "text-primary-foreground/85"
+												: "text-muted-foreground",
+										)}
+									>
+										{useCase.snippet}
+									</p>
+								</button>
+							</div>
 						);
 					})}
 				</div>

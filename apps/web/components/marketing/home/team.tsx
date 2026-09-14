@@ -1,4 +1,4 @@
-import { MessageSquareQuoteIcon, } from "lucide-react";
+import { MessageSquareQuoteIcon } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 
@@ -54,7 +54,7 @@ const Team = () => {
 						<div className="bg-background/80 z-10 w-full rounded-xl border p-4 backdrop-blur-sm">
 							<div className="flex flex-col items-start gap-1">
 								<span className="text-sm font-medium lg:text-lg">
-									sahil
+									Sahil
 								</span>
 								<span className="text-muted-foreground text-xs lg:text-sm">
 									Co Founder

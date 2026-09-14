@@ -22,10 +22,10 @@ type Integration = {
 	position: string;
 	iconRotate?: string;
 	orientation:
-	| "vertical"
-	| "vertical-reverse"
-	| "horizontal"
-	| "horizontal-reverse";
+		| "vertical"
+		| "vertical-reverse"
+		| "horizontal"
+		| "horizontal-reverse";
 };
 
 const integrations: Integration[] = [
@@ -205,9 +205,7 @@ function IntegrationNode({ item }: { item: Integration }) {
 
 export function IntegrationsHub() {
 	return (
-		<div
-			className="relative flex size-full max-w-115 items-center justify-center max-lg:mx-auto"
-		>
+		<div className="relative flex size-full max-w-115 items-center justify-center max-lg:mx-auto">
 			<div className="bg-accent relative z-10 flex size-23 flex-col items-center justify-center gap-2 rounded-lg border-3 shadow-[inset_0_0_15px_color-mix(in_oklab,var(--primary)60%,transparent)] md:size-29">
 				<Image
 					src="/images/logo.svg"

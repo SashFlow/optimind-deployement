@@ -26,7 +26,7 @@ export function Logo({
 				onClick={() => router.push("/")}
 			/>
 			{withLabel && (
-				<Link href="/" className="flex items-center">
+				<Link href="/" className="flex-col items-center md:flex-row">
 					<Image
 						src="/images/optimind.svg"
 						alt="Optimind"

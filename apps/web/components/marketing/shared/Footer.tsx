@@ -1,6 +1,6 @@
 "use client";
 
-import { LinkedInLogoIcon, } from "@radix-ui/react-icons";
+import { LinkedInLogoIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { Logo } from "@/components/shared/components/Logo";
 
@@ -14,23 +14,23 @@ export function Footer() {
 				>
 					<div className="flex flex-col gap-2.5">
 						<h3 className="text-muted-foreground text-sm font-medium">
-							Product
+							Quick Links
 						</h3>
 						<ul className="flex flex-col gap-3">
 							<li className="text-base">
 								<Link
-									href="#"
+									href="/#product"
 									className="flex items-center gap-1"
 								>
-									Solutions
+									Product
 								</Link>
 							</li>
 							<li className="text-base">
 								<Link
-									href="#"
+									href="/#solutions"
 									className="flex items-center gap-1"
 								>
-									Use Cases
+									Solutions
 								</Link>
 							</li>
 						</ul>
@@ -42,18 +42,10 @@ export function Footer() {
 						<ul className="flex flex-col gap-3">
 							<li className="text-base">
 								<Link
-									href="#"
+									href="/#team"
 									className="flex items-center gap-1"
 								>
 									About Us
-								</Link>
-							</li>
-							<li className="text-base">
-								<Link
-									href="#"
-									className="flex items-center gap-1"
-								>
-									Careers
 								</Link>
 							</li>
 						</ul>
@@ -65,7 +57,7 @@ export function Footer() {
 						<ul className="flex flex-col gap-3">
 							<li className="text-base">
 								<Link
-									href="#"
+									href="/#faq"
 									className="flex items-center gap-1"
 								>
 									FAQs
@@ -73,7 +65,7 @@ export function Footer() {
 							</li>
 							<li className="text-base">
 								<Link
-									href="#"
+									href="/blog"
 									className="flex items-center gap-1"
 								>
 									Blog
