@@ -36,7 +36,10 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useConfirmationAlert } from "@/components/saas/shared/ConfirmationAlertProvider";
-import { DataTableBulkBar } from "@/components/saas/shared/DataTable";
+import {
+	DataTableBulkBar,
+	StatusBadge,
+} from "@/components/saas/shared/DataTable";
 import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { DataTable } from "@/components/saas/shared/StandardDataTable";
@@ -326,7 +329,22 @@ export function AdminOrganizations() {
 			{
 				id: "name",
 				header: "Name",
-				cell: ({ row }) => row.original.name,
+				cell: ({ row }) => {
+					const organization = row.original;
+					const isActive = activeOrganization?.id === organization.id;
+					return (
+						<span className="inline-flex items-center gap-2">
+							<span
+								className={isActive ? "font-medium" : undefined}
+							>
+								{organization.name}
+							</span>
+							{isActive ? (
+								<StatusBadge label="Active" tone="active" />
+							) : null}
+						</span>
+					);
+				},
 			},
 			{
 				id: "created",
@@ -454,6 +472,11 @@ export function AdminOrganizations() {
 					enableRowSelection
 					pageSize={PAGE_SIZE}
 					getRowId={(row) => row.id}
+					getRowClassName={(row) =>
+						activeOrganization?.id === row.id
+							? "bg-primary/5 hover:bg-primary/10"
+							: undefined
+					}
 					emptyMessage="No organizations found."
 					onSelectionChange={({ selectedRows, clearSelection }) => {
 						selectedOrgsRef.current = selectedRows;

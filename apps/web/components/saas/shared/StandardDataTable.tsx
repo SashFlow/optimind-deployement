@@ -49,6 +49,8 @@ export type StandardDataTableProps<TData, TValue = unknown> = {
 	pageSize?: number;
 	enableRowSelection?: boolean;
 	getRowId?: (row: TData, index: number) => string;
+	/** Optional per-row className (e.g. highlight the active organization). */
+	getRowClassName?: (row: TData) => string | undefined;
 	showPagination?: boolean;
 	/**
 	 * When false, omit the card chrome so the table can sit on a parent
@@ -99,6 +101,7 @@ export function StandardDataTable<TData, TValue = unknown>({
 	pageSize: initialPageSize = 10,
 	enableRowSelection = false,
 	getRowId,
+	getRowClassName,
 	showPagination = true,
 	framed = true,
 }: StandardDataTableProps<TData, TValue>) {
@@ -229,6 +232,7 @@ export function StandardDataTable<TData, TValue = unknown>({
 										"group/row border-border/50",
 										row.getIsSelected() &&
 											"bg-primary/5 hover:bg-primary/10",
+										getRowClassName?.(row.original),
 									)}
 								>
 									{row.getVisibleCells().map((cell) => (
