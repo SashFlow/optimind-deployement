@@ -19,10 +19,19 @@ import {
 	ShieldIcon,
 	StethoscopeIcon,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+	UseCaseAudioComingSoon,
+	UseCaseAudioDemo,
+	UseCaseMediaShell,
+} from "@/components/marketing/home/use-case-audio-demo";
+import {
+	type UseCaseAudioEntry,
+	type UseCaseAudioTimeline,
+	useCaseAudioTimelines,
+} from "@/components/marketing/home/use-case-audio-timelines";
 import { useCases } from "@/components/marketing/home/use-cases-data";
 
-const FALLBACK_YOUTUBE_ID = "iuX5PDP73bQ";
 const CYCLE_MS = 5000;
 
 const useCaseIcons: Record<string, LucideIcon> = {
@@ -84,13 +93,13 @@ function UseCaseVideoPlayer({
 	};
 
 	return (
-		<div className="bg-muted relative aspect-video w-full overflow-hidden rounded-xl ring-1 ring-black/5">
+		<div className="relative size-full overflow-hidden">
 			{playing ? (
 				<iframe
 					key={youtubeId}
 					src={buildEmbedSrc(youtubeId)}
 					title={title}
-					className="absolute top-1/2 left-1/2 aspect-video h-[100%] w-[100%] max-w-none -translate-x-1/2 -translate-y-1/2 border-0"
+					className="absolute inset-0 size-full border-0"
 					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 					allowFullScreen
 				/>
@@ -118,23 +127,177 @@ function UseCaseVideoPlayer({
 	);
 }
 
+function isPartsEntry(
+	entry: UseCaseAudioEntry,
+): entry is { parts: UseCaseAudioTimeline[] } {
+	return "parts" in entry && Array.isArray(entry.parts);
+}
+
+function UseCaseMediaPanel({
+	useCaseId,
+	title,
+	snippet,
+	youtubeId,
+	onPlayingChange,
+}: {
+	useCaseId: string;
+	title: string;
+	snippet: string;
+	youtubeId?: string;
+	onPlayingChange: (playing: boolean) => void;
+}) {
+	const entry = useCaseAudioTimelines[useCaseId];
+	const [activePart, setActivePart] = useState<number | null>(null);
+
+	useEffect(() => {
+		setActivePart(null);
+		onPlayingChange(false);
+		// Reset when switching use cases.
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+	}, [useCaseId]);
+
+	const handlePartPlaying = useCallback(
+		(part: number, playing: boolean) => {
+			if (playing) {
+				setActivePart(part);
+				onPlayingChange(true);
+				return;
+			}
+			setActivePart((current) => {
+				if (current === part) {
+					onPlayingChange(false);
+					return null;
+				}
+				return current;
+			});
+		},
+		[onPlayingChange],
+	);
+
+	let content: React.ReactNode;
+
+	if (youtubeId) {
+		content = (
+			<UseCaseVideoPlayer
+				youtubeId={youtubeId}
+				title={title}
+				onPlayingChange={onPlayingChange}
+			/>
+		);
+	} else if (!entry) {
+		content = <UseCaseAudioComingSoon title={title} embedded />;
+	} else if (isPartsEntry(entry)) {
+		const [part1, part2, part3] = entry.parts;
+		content = (
+			<div className="grid size-full min-h-0 grid-rows-[1.15fr_1fr] gap-1 p-2 sm:gap-2 sm:p-3 lg:p-4">
+				{part1 ? (
+					<div className="min-h-0 overflow-hidden rounded-lg bg-primary/40 ring-1 ring-white/15">
+						<UseCaseAudioDemo
+							audioSrc={part1.src}
+							title={part1.label ?? "Part 1"}
+							description={snippet}
+							footer=""
+							userWaves={part1.userWaves}
+							modelWaves={part1.modelWaves}
+							reasoningWindow={part1.reasoningWindow}
+							durationFallback={part1.durationFallback}
+							embedded
+							compact
+							externalPaused={
+								activePart !== null &&
+								activePart !== (part1.part ?? 1)
+							}
+							onPlayingChange={(playing) =>
+								handlePartPlaying(part1.part ?? 1, playing)
+							}
+						/>
+					</div>
+				) : (
+					<div />
+				)}
+				<div className="grid min-h-0 grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-2">
+					{part2 ? (
+						<div className="min-h-0 overflow-hidden rounded-lg bg-primary/40 ring-1 ring-white/15">
+							<UseCaseAudioDemo
+								audioSrc={part2.src}
+								title={part2.label ?? "Part 2"}
+								footer=""
+								userWaves={part2.userWaves}
+								modelWaves={part2.modelWaves}
+								reasoningWindow={part2.reasoningWindow}
+								durationFallback={part2.durationFallback}
+								embedded
+								compact
+								externalPaused={
+									activePart !== null &&
+									activePart !== (part2.part ?? 2)
+								}
+								onPlayingChange={(playing) =>
+									handlePartPlaying(part2.part ?? 2, playing)
+								}
+							/>
+						</div>
+					) : null}
+					{part3 ? (
+						<div className="min-h-0 overflow-hidden rounded-lg bg-primary/40 ring-1 ring-white/15">
+							<UseCaseAudioDemo
+								audioSrc={part3.src}
+								title={part3.label ?? "Part 3"}
+								footer=""
+								userWaves={part3.userWaves}
+								modelWaves={part3.modelWaves}
+								reasoningWindow={part3.reasoningWindow}
+								durationFallback={part3.durationFallback}
+								embedded
+								compact
+								externalPaused={
+									activePart !== null &&
+									activePart !== (part3.part ?? 3)
+								}
+								onPlayingChange={(playing) =>
+									handlePartPlaying(part3.part ?? 3, playing)
+								}
+							/>
+						</div>
+					) : null}
+				</div>
+			</div>
+		);
+	} else {
+		content = (
+			<UseCaseAudioDemo
+				audioSrc={entry.src}
+				title={title}
+				description={snippet}
+				userWaves={entry.userWaves}
+				modelWaves={entry.modelWaves}
+				reasoningWindow={entry.reasoningWindow}
+				durationFallback={entry.durationFallback}
+				embedded
+				onPlayingChange={onPlayingChange}
+			/>
+		);
+	}
+
+	return <UseCaseMediaShell>{content}</UseCaseMediaShell>;
+}
+
 const Solutions = () => {
 	const [activeIndex, setActiveIndex] = useState(0);
 	const [paused, setPaused] = useState(false);
 	const active = useCases[activeIndex] ?? useCases[0];
-	const youtubeId = active?.youtubeId || FALLBACK_YOUTUBE_ID;
 
-	useEffect(() => {
-		if (paused || useCases.length < 2) {
-			return;
-		}
+	// useEffect(() => {
+	// 	if (paused || useCases.length < 2) {
+	// 		return;
+	// 	}
 
-		const timer = window.setInterval(() => {
-			setActiveIndex((index) => (index + 1) % useCases.length);
-		}, CYCLE_MS);
+	// 	const timer = window.setInterval(() => {
+	// 		setActiveIndex((index) => (index + 1) % useCases.length);
+	// 	}, CYCLE_MS);
 
-		return () => window.clearInterval(timer);
-	}, [paused]);
+	// 	return () => window.clearInterval(timer);
+	// }, [paused]);
 
 	const selectUseCase = (index: number) => {
 		setActiveIndex(index);
@@ -159,9 +322,12 @@ const Solutions = () => {
 				</div>
 
 				{active ? (
-					<UseCaseVideoPlayer
-						youtubeId={youtubeId}
-						title={active.title}
+					<UseCaseMediaPanel
+						key={active.id}
+						useCaseId={active.id}
+						title={getUseCaseLabel(active.category)}
+						snippet={active.snippet}
+						youtubeId={active.youtubeId}
 						onPlayingChange={setPaused}
 					/>
 				) : null}

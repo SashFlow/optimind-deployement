@@ -43,8 +43,8 @@ const Team = () => {
 						Sept, 2026
 					</span>
 				</div>
-				<div className="grid grid-cols-3 gap-3">
-					<div className="bg-muted relative isolate flex aspect-3/4 items-end overflow-hidden rounded-lg p-3 lg:p-5">
+				<div className="grid grid-cols-4 gap-3">
+					{/* <div className="bg-muted relative isolate flex aspect-3/4 items-end overflow-hidden rounded-lg p-3 lg:p-5">
 						<Image
 							alt="sahil - Co Founder"
 							className="z-0 object-cover object-top"
@@ -61,7 +61,8 @@ const Team = () => {
 								</span>
 							</div>
 						</div>
-					</div>
+					</div> */}
+					<div />
 					<div className="bg-muted relative isolate flex aspect-3/4 items-end overflow-hidden rounded-lg p-3 lg:p-5">
 						<Image
 							alt="Sai Yalla - Co Founder"

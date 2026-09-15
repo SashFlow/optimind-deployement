@@ -40,3 +40,4 @@ yarn-error.log*
 cred.json
 
 .pnpm-store
+usecases
