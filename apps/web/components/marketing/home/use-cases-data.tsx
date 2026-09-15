@@ -67,7 +67,7 @@ export const useCases: UseCase[] = [
 			"Automate pre-issuance Medical Examination Report calls with voice AI trained around insurance underwriting workflows, health information needs, and clear escalation paths.",
 		image: "/images/use-case/MER_call.webp",
 		blogHref: "/blog/mer-calls",
-		youtubeId: "UM_1-W14RsQ",
+		youtubeId: "sarJODBT628",
 		sections: [
 			{
 				heading: "A critical step before policy issuance",

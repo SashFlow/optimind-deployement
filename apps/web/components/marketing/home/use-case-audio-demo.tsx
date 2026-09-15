@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceOrb } from "@repo/ui/assistant-ui";
 import { cn } from "@repo/ui/utils";
 import { PauseIcon, PlayIcon, SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -311,34 +312,48 @@ export function UseCaseAudioDemo({
 					"mx-auto flex w-full flex-col items-center text-center",
 					compact
 						? "max-w-3xl gap-1.5 sm:gap-3"
-						: "max-w-4xl gap-4 sm:gap-6",
-					embedded && !compact && "gap-3 sm:gap-6 lg:gap-8",
+						: "max-w-4xl gap-2 sm:gap-6",
+					embedded && !compact && "gap-2 sm:gap-6 lg:gap-8",
 				)}
 			>
-				<div className={cn("flex flex-col", compact ? "gap-0.5" : "gap-2")}>
+				<div
+					className={cn(
+						"flex flex-col items-center",
+						compact ? "gap-0.5" : "gap-1.5 sm:gap-2",
+					)}
+				>
 					<h2
 						className={cn(
 							"font-bold tracking-tight text-balance",
 							compact
 								? "text-xs sm:text-sm md:text-base"
-								: "text-xl sm:text-3xl lg:text-4xl",
+								: "text-base sm:text-3xl lg:text-4xl",
 						)}
 					>
 						{title}
 					</h2>
 					{description && !compact ? (
-						<p className="text-white mx-auto max-w-2xl text-sm text-pretty sm:text-base">
-							{description}
-						</p>
+						<>
+							{/* Mobile: pink voice orb instead of description copy */}
+							<VoiceOrb
+								state={playing ? "speaking" : "listening"}
+								volume={playing ? 0.55 : 0.15}
+								variant="pink"
+								className="my-1 size-24 sm:hidden"
+							/>
+							<p className="text-white mx-auto hidden max-w-2xl text-sm text-pretty sm:block sm:text-base">
+								{description}
+							</p>
+						</>
 					) : null}
 				</div>
 
 				<div
 					className={cn(
-						"flex w-full items-stretch",
+						"flex w-full items-stretch justify-center",
 						compact
 							? "gap-1.5 sm:gap-2"
-							: "flex-col gap-3 sm:flex-row sm:gap-4",
+							: "flex-col gap-2 sm:flex-row sm:gap-4",
 					)}
 				>
 					<button
@@ -348,23 +363,29 @@ export function UseCaseAudioDemo({
 						className={cn(
 							"border-background/20 bg-background/10 text-background hover:bg-background/15 focus-visible:ring-background/40 flex shrink-0 items-center justify-center self-center rounded-full border transition-colors focus-visible:ring-2 focus-visible:outline-none",
 							compact
-								? "size-7 sm:size-8"
-								: "size-9 sm:mt-1 sm:size-11",
+								? "size-10 sm:size-8"
+								: "size-11 sm:mt-1 sm:size-11",
 						)}
 					>
 						{playing ? (
-							<PauseIcon className={cn("fill-current", compact ? "size-3" : "size-4")} />
+							<PauseIcon
+								className={cn(
+									"fill-current",
+									compact ? "size-4 sm:size-3" : "size-4",
+								)}
+							/>
 						) : (
 							<PlayIcon
 								className={cn(
 									"translate-x-px fill-current",
-									compact ? "size-3" : "size-4",
+									compact ? "size-4 sm:size-3" : "size-4",
 								)}
 							/>
 						)}
 					</button>
 
-					<div className="relative min-w-0 flex-1">
+					{/* Wave timelines — desktop/tablet only; mobile shows play button alone */}
+					<div className="relative hidden min-w-0 flex-1 sm:block">
 						<div className={cn("relative flex flex-col", compact ? "gap-1" : "gap-2")}>
 							<Track label="User" tone="bg-white" compact={compact}>
 								<Waveform

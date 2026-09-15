@@ -10,7 +10,12 @@ export type VoiceOrbState =
 	| "speaking"
 	| "muted";
 
-export type VoiceOrbVariant = "default" | "blue" | "violet" | "emerald";
+export type VoiceOrbVariant =
+	| "default"
+	| "blue"
+	| "violet"
+	| "emerald"
+	| "pink";
 
 const VARIANT_COLORS: Record<VoiceOrbVariant, [number, number, number][]> = {
 	default: [
@@ -32,6 +37,12 @@ const VARIANT_COLORS: Record<VoiceOrbVariant, [number, number, number][]> = {
 		[0.15, 0.75, 0.55],
 		[0.3, 0.9, 0.7],
 		[0.1, 0.55, 0.4],
+	],
+	/** Brand secondary #f5a6e4 */
+	pink: [
+		[0.98, 0.55, 0.88],
+		[1.0, 0.78, 0.94],
+		[0.92, 0.35, 0.75],
 	],
 };
 
