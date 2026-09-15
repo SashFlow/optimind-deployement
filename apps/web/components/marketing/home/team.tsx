@@ -43,57 +43,57 @@ const Team = () => {
 						Sept, 2026
 					</span>
 				</div>
-				<div className="grid grid-cols-4 gap-3">
-					{/* <div className="bg-muted relative isolate flex aspect-3/4 items-end overflow-hidden rounded-lg p-3 lg:p-5">
+				<div className="mx-auto grid w-full max-w-md grid-cols-2 gap-3 sm:mx-0 sm:max-w-none sm:grid-cols-4 sm:gap-4">
+					{/* <div className="bg-muted relative isolate flex aspect-3/4 items-end overflow-hidden rounded-lg p-2 sm:p-3 lg:p-5">
 						<Image
 							alt="sahil - Co Founder"
 							className="z-0 object-cover object-top"
 							src="/images/sahil.jpg"
 							fill
 						/>
-						<div className="bg-background/80 z-10 w-full rounded-xl border p-4 backdrop-blur-sm">
-							<div className="flex flex-col items-start gap-1">
-								<span className="text-sm font-medium lg:text-lg">
+						<div className="bg-background/80 z-10 w-full rounded-lg border p-2 backdrop-blur-sm sm:rounded-xl sm:p-3 lg:p-4">
+							<div className="flex flex-col items-start gap-0.5">
+								<span className="text-xs font-medium sm:text-sm lg:text-lg">
 									Sahil
 								</span>
-								<span className="text-muted-foreground text-xs lg:text-sm">
+								<span className="text-muted-foreground text-[10px] sm:text-xs lg:text-sm">
 									Co Founder
 								</span>
 							</div>
 						</div>
 					</div> */}
-					<div />
-					<div className="bg-muted relative isolate flex aspect-3/4 items-end overflow-hidden rounded-lg p-3 lg:p-5">
+					<div className="hidden sm:block" />
+					<div className="bg-muted relative isolate flex aspect-3/4 items-end overflow-hidden rounded-lg p-2 sm:p-3 lg:p-5">
 						<Image
 							alt="Sai Yalla - Co Founder"
 							className="z-0 object-cover object-top"
 							src="/images/sai.jpeg"
 							fill
 						/>
-						<div className="bg-background/80 z-10 w-full rounded-xl border p-4 backdrop-blur-sm">
-							<div className="flex flex-col items-start gap-1">
-								<span className="text-sm font-medium lg:text-lg">
+						<div className="bg-background/80 z-10 w-full rounded-lg border p-2 backdrop-blur-sm sm:rounded-xl sm:p-3 lg:p-4">
+							<div className="flex min-w-0 flex-col items-start gap-0.5">
+								<span className="truncate text-xs font-medium sm:text-sm lg:text-lg">
 									Sai Yalla
 								</span>
-								<span className="text-muted-foreground text-xs lg:text-sm">
+								<span className="text-muted-foreground text-[10px] whitespace-nowrap sm:text-xs lg:text-sm">
 									Co Founder
 								</span>
 							</div>
 						</div>
 					</div>
-					<div className="bg-muted relative isolate flex aspect-3/4 items-end overflow-hidden rounded-lg p-3 lg:p-5">
+					<div className="bg-muted relative isolate flex aspect-3/4 items-end overflow-hidden rounded-lg p-2 sm:p-3 lg:p-5">
 						<Image
 							alt="Sandip Patel - Co Founder"
 							className="z-0 object-cover object-top"
 							src="/images/sandip.jpeg"
 							fill
 						/>
-						<div className="bg-background/80 z-10 w-full rounded-xl border p-4 backdrop-blur-sm">
-							<div className="flex flex-col items-start gap-1">
-								<span className="text-sm font-medium lg:text-lg">
+						<div className="bg-background/80 z-10 w-full rounded-lg border p-2 backdrop-blur-sm sm:rounded-xl sm:p-3 lg:p-4">
+							<div className="flex min-w-0 flex-col items-start gap-0.5">
+								<span className="truncate text-xs font-medium sm:text-sm lg:text-lg">
 									Sandip Patel
 								</span>
-								<span className="text-muted-foreground text-xs lg:text-sm">
+								<span className="text-muted-foreground text-[10px] whitespace-nowrap sm:text-xs lg:text-sm">
 									Co Founder
 								</span>
 							</div>

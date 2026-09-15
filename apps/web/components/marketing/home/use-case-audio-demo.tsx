@@ -10,7 +10,7 @@ import type {
 
 /** Timeline content inset — must match playhead / seek hit area. */
 function timelineInsetClass(compact: boolean) {
-	return compact ? "left-16 sm:left-20" : "left-20 sm:left-24";
+	return compact ? "left-12 sm:left-16 md:left-20" : "left-14 sm:left-20 md:left-24";
 }
 
 function Waveform({
@@ -77,7 +77,7 @@ function Track({
 		>
 			<span
 				className={cn(
-					"text-foreground absolute top-1/2 left-3 z-10 -translate-y-1/2 font-semibold tracking-wide sm:left-4",
+					"text-foreground absolute top-1/2 left-2 z-10 -translate-y-1/2 font-semibold tracking-wide sm:left-3 md:left-4",
 					compact ? "text-[10px] sm:text-xs" : "text-xs sm:text-sm",
 				)}
 			>
@@ -302,7 +302,7 @@ export function UseCaseAudioDemo({
 					(compact
 						? "px-3 py-6 sm:px-5 sm:py-8"
 						: "px-4 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12"),
-				embedded && (compact ? "px-2 py-2 sm:px-3 sm:py-3" : "px-4 py-4 sm:px-8 sm:py-6 lg:px-12"),
+				embedded && (compact ? "px-2 py-2 sm:px-3 sm:py-3" : "px-3 py-4 sm:px-8 sm:py-6 lg:px-12"),
 				className,
 			)}
 		>
@@ -310,9 +310,9 @@ export function UseCaseAudioDemo({
 				className={cn(
 					"mx-auto flex w-full flex-col items-center text-center",
 					compact
-						? "max-w-3xl gap-2 sm:gap-3"
+						? "max-w-3xl gap-1.5 sm:gap-3"
 						: "max-w-4xl gap-4 sm:gap-6",
-					embedded && !compact && "gap-4 sm:gap-6 lg:gap-8",
+					embedded && !compact && "gap-3 sm:gap-6 lg:gap-8",
 				)}
 			>
 				<div className={cn("flex flex-col", compact ? "gap-0.5" : "gap-2")}>
@@ -320,8 +320,8 @@ export function UseCaseAudioDemo({
 						className={cn(
 							"font-bold tracking-tight text-balance",
 							compact
-								? "text-sm sm:text-base"
-								: "text-2xl sm:text-3xl lg:text-4xl",
+								? "text-xs sm:text-sm md:text-base"
+								: "text-xl sm:text-3xl lg:text-4xl",
 						)}
 					>
 						{title}
@@ -336,7 +336,9 @@ export function UseCaseAudioDemo({
 				<div
 					className={cn(
 						"flex w-full items-stretch",
-						compact ? "gap-2" : "gap-3 sm:gap-4",
+						compact
+							? "gap-1.5 sm:gap-2"
+							: "flex-col gap-3 sm:flex-row sm:gap-4",
 					)}
 				>
 					<button
@@ -344,8 +346,10 @@ export function UseCaseAudioDemo({
 						aria-label={playing ? "Pause demo" : "Play demo"}
 						onClick={togglePlayback}
 						className={cn(
-							"border-background/20 bg-background/10 text-background hover:bg-background/15 focus-visible:ring-background/40 mt-1 flex shrink-0 items-center justify-center self-center rounded-full border transition-colors focus-visible:ring-2 focus-visible:outline-none",
-							compact ? "size-8" : "size-10 sm:size-11",
+							"border-background/20 bg-background/10 text-background hover:bg-background/15 focus-visible:ring-background/40 flex shrink-0 items-center justify-center self-center rounded-full border transition-colors focus-visible:ring-2 focus-visible:outline-none",
+							compact
+								? "size-7 sm:size-8"
+								: "size-9 sm:mt-1 sm:size-11",
 						)}
 					>
 						{playing ? (

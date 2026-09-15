@@ -189,9 +189,9 @@ function UseCaseMediaPanel({
 	} else if (isPartsEntry(entry)) {
 		const [part1, part2, part3] = entry.parts;
 		content = (
-			<div className="grid size-full min-h-0 grid-rows-[1.15fr_1fr] gap-1 p-2 sm:gap-2 sm:p-3 lg:p-4">
+			<div className="flex flex-col gap-2 p-2 sm:grid sm:size-full sm:min-h-0 sm:grid-rows-[1.15fr_1fr] sm:gap-2 sm:p-3 lg:p-4">
 				{part1 ? (
-					<div className="min-h-0 overflow-hidden rounded-lg bg-primary/40 ring-1 ring-white/15">
+					<div className="min-h-[152px] overflow-hidden rounded-lg bg-primary/40 ring-1 ring-white/15 sm:min-h-0">
 						<UseCaseAudioDemo
 							audioSrc={part1.src}
 							title={part1.label ?? "Part 1"}
@@ -215,9 +215,9 @@ function UseCaseMediaPanel({
 				) : (
 					<div />
 				)}
-				<div className="grid min-h-0 grid-cols-1 gap-1 sm:grid-cols-2 sm:gap-2">
+				<div className="flex flex-col gap-2 sm:grid sm:min-h-0 sm:grid-cols-2 sm:gap-2">
 					{part2 ? (
-						<div className="min-h-0 overflow-hidden rounded-lg bg-primary/40 ring-1 ring-white/15">
+						<div className="min-h-[152px] overflow-hidden rounded-lg bg-primary/40 ring-1 ring-white/15 sm:min-h-0">
 							<UseCaseAudioDemo
 								audioSrc={part2.src}
 								title={part2.label ?? "Part 2"}
@@ -239,7 +239,7 @@ function UseCaseMediaPanel({
 						</div>
 					) : null}
 					{part3 ? (
-						<div className="min-h-0 overflow-hidden rounded-lg bg-primary/40 ring-1 ring-white/15">
+						<div className="min-h-[152px] overflow-hidden rounded-lg bg-primary/40 ring-1 ring-white/15 sm:min-h-0">
 							<UseCaseAudioDemo
 								audioSrc={part3.src}
 								title={part3.label ?? "Part 3"}
@@ -262,6 +262,12 @@ function UseCaseMediaPanel({
 					) : null}
 				</div>
 			</div>
+		);
+
+		return (
+			<UseCaseMediaShell className="aspect-auto h-auto min-h-0 sm:aspect-video">
+				{content}
+			</UseCaseMediaShell>
 		);
 	} else {
 		content = (

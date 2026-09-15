@@ -61,7 +61,7 @@ function Waveform({
 	segmentColor?: string;
 }) {
 	return (
-		<div className="pointer-events-none absolute inset-y-0 right-0 left-20 flex items-center sm:left-24">
+		<div className="pointer-events-none absolute inset-y-0 right-0 left-14 flex items-center sm:left-20 md:left-24">
 			<div className="border-foreground/20 absolute inset-x-0 top-1/2 border-t border-dashed" />
 			{segments.map((segment) => {
 				const left = `${segment.start * 100}%`;
@@ -101,11 +101,11 @@ function Track({
 	return (
 		<div
 			className={cn(
-				"relative h-14 overflow-hidden rounded-md sm:h-16",
+				"relative h-12 overflow-hidden rounded-md sm:h-16",
 				tone,
 			)}
 		>
-			<span className="text-foreground absolute top-1/2 left-3 z-10 -translate-y-1/2 text-xs font-semibold tracking-wide sm:left-4 sm:text-sm">
+			<span className="text-foreground absolute top-1/2 left-2.5 z-10 -translate-y-1/2 text-xs font-semibold tracking-wide sm:left-4 sm:text-sm">
 				{label}
 			</span>
 			{children}
@@ -255,10 +255,10 @@ export function HeroDemo() {
 	const timeLabel = `${Math.floor(elapsed / 60)}:${String(Math.floor(elapsed % 60)).padStart(2, "0")}`;
 
 	return (
-		<div className="bg-primary text-white relative w-full overflow-hidden rounded-xl px-4 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
-			<div className="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center sm:gap-8">
+		<div className="bg-primary text-white relative w-full overflow-hidden rounded-xl px-3 py-6 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
+			<div className="mx-auto flex max-w-4xl flex-col items-center gap-5 text-center sm:gap-8">
 				<div className="flex flex-col gap-2">
-					<h2 className="text-2xl font-bold tracking-tight text-balance sm:text-3xl lg:text-4xl">
+					<h2 className="text-xl font-bold tracking-tight text-balance sm:text-3xl lg:text-4xl">
 						How it works
 					</h2>
 					<p className="text-white mx-auto max-w-2xl text-sm text-pretty sm:text-base">
@@ -267,12 +267,12 @@ export function HeroDemo() {
 					</p>
 				</div>
 
-				<div className="flex w-full items-stretch gap-3 sm:gap-4">
+				<div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:gap-4">
 					<button
 						type="button"
 						aria-label={playing ? "Pause demo" : "Play demo"}
 						onClick={togglePlayback}
-						className="border-background/20 bg-background/10 text-background hover:bg-background/15 focus-visible:ring-background/40 mt-1 flex size-10 shrink-0 items-center justify-center self-center rounded-full border transition-colors focus-visible:ring-2 focus-visible:outline-none sm:size-11"
+						className="border-background/20 bg-background/10 text-background hover:bg-background/15 focus-visible:ring-background/40 flex size-9 shrink-0 items-center justify-center self-center rounded-full border transition-colors focus-visible:ring-2 focus-visible:outline-none sm:mt-1 sm:size-11"
 					>
 						{playing ? (
 							<PauseIcon className="size-4 fill-current" />
@@ -281,7 +281,7 @@ export function HeroDemo() {
 						)}
 					</button>
 
-					<div className="relative min-w-0 flex-1">
+					<div className="relative min-w-0 w-full flex-1">
 						<div className="relative flex flex-col gap-2">
 							<Track label="User" tone="bg-white">
 								<Waveform
@@ -298,11 +298,11 @@ export function HeroDemo() {
 							</Track>
 
 							<Track label="Reasoning" tone="bg-white">
-								<div className="pointer-events-none absolute inset-y-0 right-0 left-20 flex items-center sm:left-24">
+								<div className="pointer-events-none absolute inset-y-0 right-0 left-14 flex items-center sm:left-20 md:left-24">
 									<div className="border-foreground/20 absolute inset-x-0 top-1/2 border-t border-dashed" />
 									<div
 										className={cn(
-											"absolute top-1/2 flex h-8 -translate-y-1/2 items-center justify-center rounded-md border text-[10px] font-medium tracking-wide whitespace-nowrap transition-colors sm:h-9 sm:text-xs bg-secondary",
+											"absolute top-1/2 flex h-7 -translate-y-1/2 items-center justify-center rounded-md border text-[10px] font-medium tracking-wide whitespace-nowrap transition-colors sm:h-9 sm:text-xs bg-secondary",
 											reasoningActive
 												? "border-foreground/50 bg-foreground/10 text-foreground"
 												: "border-foreground/25 bg-transparent text-foreground/70",
@@ -319,7 +319,7 @@ export function HeroDemo() {
 
 							{/* Timeline scrubber: starts where dotted lines start (after labels), not at first speech */}
 							<div
-								className="absolute inset-y-0 right-0 left-20 sm:left-24"
+								className="absolute inset-y-0 right-0 left-14 sm:left-20 md:left-24"
 								role="slider"
 								aria-label="Delegated reasoning interaction timeline"
 								aria-valuemin={0}
