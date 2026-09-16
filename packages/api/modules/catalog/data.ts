@@ -84,10 +84,51 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("gemini-3.7-flash", "Gemini 3.7 Flash", "gemini", "llm"),
 	model("gemini-3.8-flash", "Gemini 3.8 Flash", "gemini", "llm"),
 
-	// Realtime
+	// Realtime — OpenAI
+	model("gpt-realtime-2.1", "GPT Realtime 2.1", "openai", "realtime", {
+		supports_text_output: true,
+	}),
+	model(
+		"gpt-realtime-2.1-mini",
+		"GPT Realtime 2.1 Mini",
+		"openai",
+		"realtime",
+		{
+			supports_text_output: true,
+		},
+	),
+	model("gpt-realtime-2", "GPT Realtime 2", "openai", "realtime", {
+		supports_text_output: true,
+	}),
+	model("gpt-realtime-1.5", "GPT Realtime 1.5", "openai", "realtime", {
+		supports_text_output: true,
+	}),
 	model("gpt-realtime", "GPT Realtime", "openai", "realtime", {
 		supports_text_output: true,
 	}),
+	model("gpt-realtime-mini", "GPT Realtime Mini", "openai", "realtime", {
+		supports_text_output: true,
+	}),
+	model(
+		"gpt-4o-realtime-preview",
+		"GPT-4o Realtime Preview",
+		"openai",
+		"realtime",
+		{
+			supports_text_output: true,
+		},
+	),
+	model(
+		"gpt-4o-mini-realtime-preview",
+		"GPT-4o Mini Realtime Preview",
+		"openai",
+		"realtime",
+		{
+			supports_text_output: true,
+		},
+	),
+
+	// Realtime — Gemini
 	model(
 		"gemini-3.1-flash-live-preview",
 		"Gemini 3.1 Flash Live",
@@ -128,6 +169,17 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("gemini-3-pro-preview", "Gemini 3 Pro STT", "gemini", "stt"),
 	model("gemini-2.5-flash", "Gemini 2.5 Flash STT", "gemini", "stt"),
 
+	// STT — Sarvam
+	model("sarvam:saaras:v4", "Saaras v4", "sarvam", "stt", {
+		delivery_mode: "byok",
+	}),
+	model("sarvam:saaras:v3", "Saaras v3", "sarvam", "stt", {
+		delivery_mode: "byok",
+	}),
+	model("sarvam:saaras:v3-realtime", "Saaras Realtime", "sarvam", "stt", {
+		delivery_mode: "byok",
+	}),
+
 	// TTS — OpenAI
 	model("gpt-4o-mini-tts", "GPT-4o Mini TTS", "openai", "tts"),
 	model("tts-1", "TTS-1", "openai", "tts"),
@@ -149,8 +201,12 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("gemini-2.5-pro-preview-tts", "Gemini 2.5 Pro TTS", "gemini", "tts"),
 
 	// TTS — Sarvam
-	model("sarvam:bulbul:v3", "Bulbul v3", "sarvam", "tts"),
-	model("sarvam:bulbul:v2", "Bulbul v2", "sarvam", "tts"),
+	model("sarvam:bulbul:v3", "Bulbul v3", "sarvam", "tts", {
+		delivery_mode: "byok",
+	}),
+	model("sarvam:bulbul:v2", "Bulbul v2", "sarvam", "tts", {
+		delivery_mode: "byok",
+	}),
 
 	// TTS — Inworld
 	model("inworld-tts-1.5-max", "Inworld TTS 1.5 Max", "inworld", "tts"),
@@ -325,7 +381,14 @@ export const CATALOG_VOICES: CatalogVoice[] = [
 	...voicesFor("gpt-4o-mini-tts", OPENAI_VOICES),
 	...voicesFor("tts-1", OPENAI_TTS_1_VOICES),
 	...voicesFor("tts-1-hd", OPENAI_TTS_1_VOICES),
+	...voicesFor("gpt-realtime-2.1", OPENAI_REALTIME_VOICES),
+	...voicesFor("gpt-realtime-2.1-mini", OPENAI_REALTIME_VOICES),
+	...voicesFor("gpt-realtime-2", OPENAI_REALTIME_VOICES),
+	...voicesFor("gpt-realtime-1.5", OPENAI_REALTIME_VOICES),
 	...voicesFor("gpt-realtime", OPENAI_REALTIME_VOICES),
+	...voicesFor("gpt-realtime-mini", OPENAI_REALTIME_VOICES),
+	...voicesFor("gpt-4o-realtime-preview", OPENAI_REALTIME_VOICES),
+	...voicesFor("gpt-4o-mini-realtime-preview", OPENAI_REALTIME_VOICES),
 	...voicesFor("gpt-live-1", OPENAI_LIVE_VOICES),
 	...voicesFor("gemini-3.1-flash-tts-preview", GEMINI_VOICES),
 	...voicesFor("gemini-2.5-flash-preview-tts", GEMINI_VOICES),
@@ -375,7 +438,9 @@ export const CATALOG_LANGUAGES = [
 	{ value: "en", label: "English" },
 	{ value: "en-US", label: "English (US)" },
 	{ value: "en-GB", label: "English (UK)" },
+	{ value: "en-IN", label: "English (India)" },
 	{ value: "hi", label: "Hindi" },
+	{ value: "hi-IN", label: "Hindi (India)" },
 	{ value: "es", label: "Spanish" },
 	{ value: "fr", label: "French" },
 	{ value: "de", label: "German" },
