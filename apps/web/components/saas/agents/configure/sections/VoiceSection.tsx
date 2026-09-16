@@ -224,6 +224,47 @@ export function VoiceSection({ config, onConfigChange }: VoiceSectionProps) {
 				</ConfigureSectionToggle>
 			</div>
 
+			<div className="px-4 py-4 md:px-5">
+				<ConfigureSectionToggle
+					title="Noise filtering"
+					description="Reduces background noise on the caller's audio before it reaches the assistant."
+					checked={config.noise_filtering.enabled}
+					onCheckedChange={(enabled) =>
+						onConfigChange({
+							noise_filtering: {
+								...config.noise_filtering,
+								enabled,
+							},
+						})
+					}
+				>
+					<div className="space-y-2">
+						<div className="flex items-center justify-between">
+							<Label className="text-xs">Suppression level</Label>
+							<span className="text-xs text-muted-foreground">
+								{config.noise_filtering.suppression_level}%
+							</span>
+						</div>
+						<Slider
+							min={0}
+							max={100}
+							value={[config.noise_filtering.suppression_level]}
+							onValueChange={(value) => {
+								const raw = Array.isArray(value)
+									? value[0]
+									: value;
+								onConfigChange({
+									noise_filtering: {
+										...config.noise_filtering,
+										suppression_level: raw ?? 80,
+									},
+								});
+							}}
+						/>
+					</div>
+				</ConfigureSectionToggle>
+			</div>
+
 			<div className="space-y-4 px-4 py-4 md:px-5">
 				<SectionHeader
 					title="Voice activity detection"
