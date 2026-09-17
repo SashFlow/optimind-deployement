@@ -14,15 +14,12 @@ import {
 import { Spinner } from "@repo/ui/spinner";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { MicIcon, PhoneIcon } from "lucide-react";
+import { MicIcon } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PreviewSessionControls } from "@/components/saas/agents/preview/PreviewSessionControls";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
-import { normalizePhoneNumber } from "@/lib/phone";
-
-type MediaMode = "web" | "phone";
 
 const UNAVAILABLE_MESSAGES = {
 	disabled: "This shared link has been disabled.",
@@ -148,23 +145,18 @@ function VariableField({
 export default function SharedTrialPage() {
 	const params = useParams<{ token: string }>();
 	const token = params.token;
-	const [name, setName] = useState("");
-	const [media, setMedia] = useState<MediaMode>("web");
-	const [phoneNumber, setPhoneNumber] = useState("");
 	const [variableValues, setVariableValues] = useState<
 		Record<string, string>
 	>({});
 	const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+	const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
 	const [audioDeviceId, setAudioDeviceId] = useState("");
+	const [videoDeviceId, setVideoDeviceId] = useState("");
 	const [devicesLoading, setDevicesLoading] = useState(false);
 	const [permissionError, setPermissionError] = useState<string | null>(null);
 	const [credentials, setCredentials] = useState<{
 		token: string;
 		serverUrl: string;
-	} | null>(null);
-	const [phoneDispatch, setPhoneDispatch] = useState<{
-		roomName: string;
-		phoneNumber: string;
 	} | null>(null);
 
 	const trialQuery = useQuery(
@@ -176,16 +168,6 @@ export default function SharedTrialPage() {
 	const startMutation = useMutation(
 		orpc.sessions.startTrialSession.mutationOptions({
 			onSuccess: (data) => {
-				if (data.channel === "PHONE") {
-					setPhoneDispatch({
-						roomName: data.roomName,
-						phoneNumber: data.phoneNumber ?? phoneNumber,
-					});
-					toast.success(`Calling ${data.phoneNumber ?? phoneNumber}`);
-					void trialQuery.refetch();
-					return;
-				}
-
 				if (!data.participantToken || !data.serverUrl) {
 					toast.error("Could not start web session");
 					void trialQuery.refetch();
@@ -210,7 +192,7 @@ export default function SharedTrialPage() {
 			!navigator.mediaDevices?.getUserMedia
 		) {
 			setPermissionError(
-				"This browser does not support microphone access.",
+				"This browser does not support microphone or camera access.",
 			);
 			return;
 		}
@@ -220,6 +202,7 @@ export default function SharedTrialPage() {
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
 				audio: true,
+				video: true,
 			});
 			for (const track of stream.getTracks()) {
 				track.stop();
@@ -229,25 +212,40 @@ export default function SharedTrialPage() {
 			const mics = devices.filter(
 				(device) => device.kind === "audioinput" && device.deviceId,
 			);
+			const cameras = devices.filter(
+				(device) => device.kind === "videoinput" && device.deviceId,
+			);
 			setAudioDevices(mics);
+			setVideoDevices(cameras);
 			setAudioDeviceId((current) =>
 				current && mics.some((device) => device.deviceId === current)
 					? current
 					: (mics[0]?.deviceId ?? ""),
 			);
+			setVideoDeviceId((current) =>
+				current && cameras.some((device) => device.deviceId === current)
+					? current
+					: (cameras[0]?.deviceId ?? ""),
+			);
 			if (mics.length === 0) {
 				setPermissionError(
 					"No microphone found. Connect a mic and try again.",
+				);
+			} else if (cameras.length === 0) {
+				setPermissionError(
+					"No camera found. Connect a camera and try again.",
 				);
 			}
 		} catch (error) {
 			setPermissionError(
 				error instanceof Error
 					? error.message
-					: "Microphone permission is required to start a session.",
+					: "Microphone and camera permission is required to start a session.",
 			);
 			setAudioDevices([]);
+			setVideoDevices([]);
 			setAudioDeviceId("");
+			setVideoDeviceId("");
 		} finally {
 			setDevicesLoading(false);
 		}
@@ -257,11 +255,8 @@ export default function SharedTrialPage() {
 		if (!trialQuery.data?.trial.available) {
 			return;
 		}
-		if (media !== "web") {
-			return;
-		}
 		void loadDevices();
-	}, [trialQuery.data?.trial.available, media, loadDevices]);
+	}, [trialQuery.data?.trial.available, loadDevices]);
 
 	function handleStart() {
 		const variables =
@@ -272,29 +267,19 @@ export default function SharedTrialPage() {
 			return;
 		}
 
-		if (media === "phone") {
-			const normalized = normalizePhoneNumber(phoneNumber);
-			if (!normalized) {
-				toast.error("Enter a valid phone number");
-				return;
-			}
-			startMutation.mutate({
-				token,
-				participantName: name.trim() || "Guest",
-				contactMetadata,
-				phoneNumber: normalized,
-			});
-			return;
-		}
-
 		if (!audioDeviceId) {
 			toast.error("Select a microphone before starting");
 			return;
 		}
 
+		if (!videoDeviceId) {
+			toast.error("Select a camera before starting");
+			return;
+		}
+
 		startMutation.mutate({
 			token,
-			participantName: name.trim() || "Guest",
+			participantName: "Guest",
 			contactMetadata,
 		});
 	}
@@ -311,7 +296,11 @@ export default function SharedTrialPage() {
 							? { deviceId: { exact: audioDeviceId } }
 							: true
 					}
-					video={false}
+					video={
+						videoDeviceId
+							? { deviceId: { exact: videoDeviceId } }
+							: true
+					}
 					className="flex min-h-screen flex-col"
 				>
 					<PreviewSessionControls
@@ -328,40 +317,6 @@ export default function SharedTrialPage() {
 						}}
 					/>
 				</LiveKitRoom>
-			</div>
-		);
-	}
-
-	if (phoneDispatch) {
-		return (
-			<div className="mx-auto flex min-h-screen w-full max-w-xl items-center px-4 py-8 sm:px-6 sm:py-10">
-				<div className="w-full space-y-5 rounded-3xl border bg-card p-6 text-center shadow-sm ring-1 ring-black/5">
-					<div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-						<PhoneIcon className="size-6" />
-					</div>
-					<div className="space-y-1">
-						<h1 className="font-semibold text-xl tracking-tight">
-							Outbound call dispatched
-						</h1>
-						<p className="text-sm text-muted-foreground">
-							Calling {phoneDispatch.phoneNumber}
-						</p>
-						<p className="text-xs text-muted-foreground">
-							Room {phoneDispatch.roomName}
-						</p>
-					</div>
-					<Button
-						type="button"
-						variant="outline"
-						className="w-full"
-						onClick={() => {
-							setPhoneDispatch(null);
-							void trialQuery.refetch();
-						}}
-					>
-						Done
-					</Button>
-				</div>
 			</div>
 		);
 	}
@@ -398,212 +353,179 @@ export default function SharedTrialPage() {
 	const unavailableMessage = trial.unavailableReason
 		? UNAVAILABLE_MESSAGES[trial.unavailableReason]
 		: null;
-	const canStartWeb =
-		!devicesLoading && Boolean(audioDeviceId) && !permissionError;
-	const canStartPhone = phoneNumber.trim().length > 0;
 	const canStart =
 		trial.available &&
 		!startMutation.isPending &&
-		(media === "web" ? canStartWeb : canStartPhone);
+		!devicesLoading &&
+		Boolean(audioDeviceId) &&
+		Boolean(videoDeviceId) &&
+		!permissionError;
 
 	return (
-		<div className="mx-auto flex min-h-screen w-full max-w-xl items-center px-4 py-8 sm:px-6 sm:py-10">
-			<div className="w-full space-y-6 rounded-3xl border bg-card p-5 shadow-sm ring-1 ring-black/5 sm:p-6">
-				<div className="space-y-2">
-					<p className="text-sm text-muted-foreground">
-						Shared demo link
-					</p>
-					<h1 className="font-semibold text-2xl tracking-tight">
+		<div className="mx-auto flex min-h-dvh w-full max-w-2xl items-stretch justify-center px-4 py-4 sm:items-center sm:px-6 sm:py-6">
+			<div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
+				<div className="shrink-0 space-y-1 border-b px-5 py-4 sm:px-6 sm:py-5">
+					<h1 className="font-semibold text-xl tracking-tight sm:text-2xl">
 						{agent.name}
 					</h1>
-					{trial.label ? (
-						<p className="text-sm text-muted-foreground">
-							{trial.label}
-						</p>
-					) : null}
-				</div>
-
-				<div className="grid gap-2 text-sm text-muted-foreground">
-					<p>
+					<p className="text-sm text-muted-foreground">
 						Sessions left:{" "}
 						<span className="font-medium text-foreground">
 							{trial.remaining}
 						</span>
 					</p>
-					<p>
-						Expires:{" "}
-						<span className="font-medium text-foreground">
-							{trial.expiresAt
-								? new Date(trial.expiresAt).toLocaleDateString()
-								: "Never"}
-						</span>
-					</p>
 				</div>
 
-				{unavailableMessage ? (
-					<div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-						{unavailableMessage}
-					</div>
-				) : (
-					<>
-						<div className="space-y-2">
-							<Label htmlFor="guest-name">
-								Your name (optional)
-							</Label>
-							<Input
-								id="guest-name"
-								value={name}
-								onChange={(event) =>
-									setName(event.target.value)
-								}
-								placeholder="Guest"
-								autoComplete="name"
-							/>
+				<div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
+					{unavailableMessage ? (
+						<div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+							{unavailableMessage}
 						</div>
-
-						<div className="space-y-2">
-							<Label htmlFor="guest-media">How to join</Label>
-							<Select
-								value={media}
-								onValueChange={(value) => {
-									if (value === "web" || value === "phone") {
-										setMedia(value);
-									}
-								}}
-							>
-								<SelectTrigger id="guest-media">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="web">
-										Web (browser)
-									</SelectItem>
-									<SelectItem value="phone">
-										Phone (telephony)
-									</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
-
-						{media === "phone" ? (
-							<div className="space-y-2">
-								<Label htmlFor="guest-phone">
-									Phone number
-								</Label>
-								<Input
-									id="guest-phone"
-									type="tel"
-									value={phoneNumber}
-									onChange={(event) =>
-										setPhoneNumber(event.target.value)
-									}
-									placeholder="+91 98765 43210"
-									autoComplete="tel"
-								/>
-							</div>
-						) : (
-							<div className="space-y-2">
-								<Label htmlFor="guest-mic">Microphone</Label>
-								{devicesLoading ? (
-									<div className="flex items-center gap-2 text-sm text-muted-foreground">
-										<Spinner className="size-4" />
-										Requesting microphone access…
-									</div>
-								) : permissionError ? (
-									<div className="space-y-3">
-										<p className="text-sm text-destructive">
-											{permissionError}
-										</p>
-										<Button
-											type="button"
-											variant="outline"
-											className="w-full"
-											onClick={() => void loadDevices()}
-										>
-											<MicIcon className="size-4" />
-											Allow microphone
-										</Button>
-									</div>
-								) : (
-									<Select
-										value={audioDeviceId}
-										onValueChange={setAudioDeviceId}
+					) : (
+						<>
+							{devicesLoading ? (
+								<div className="flex items-center gap-2 text-sm text-muted-foreground">
+									<Spinner className="size-4" />
+									Requesting microphone and camera access…
+								</div>
+							) : permissionError ? (
+								<div className="space-y-3">
+									<p className="text-sm text-destructive">
+										{permissionError}
+									</p>
+									<Button
+										type="button"
+										variant="outline"
+										className="w-full"
+										onClick={() => void loadDevices()}
 									>
-										<SelectTrigger id="guest-mic">
-											<SelectValue placeholder="Select microphone" />
-										</SelectTrigger>
-										<SelectContent>
-											{audioDevices.map((device) => (
-												<SelectItem
-													key={device.deviceId}
-													value={device.deviceId}
-												>
-													{device.label ||
-														"Microphone"}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								)}
-							</div>
-						)}
-
-						{variables.length > 0 ? (
-							<div className="space-y-3">
-								<p className="text-sm font-medium">
-									Call variables
-								</p>
-								{variables.map((variable) => (
-									<div
-										key={variable.name}
-										className="space-y-2"
-									>
-										<Label
-											htmlFor={`share-var-${variable.name}`}
-										>
-											{variable.name}
-											{variable.required ? (
-												<span className="text-destructive">
-													{" "}
-													*
-												</span>
-											) : null}
+										<MicIcon className="size-4" />
+										Allow microphone & camera
+									</Button>
+								</div>
+							) : (
+								<div className="grid gap-4 sm:grid-cols-2">
+									<div className="min-w-0 space-y-2">
+										<Label htmlFor="guest-mic">
+											Microphone
 										</Label>
-										<VariableField
-											variable={variable}
-											value={
-												variableValues[variable.name] ??
-												""
-											}
-											onChange={(value) =>
-												setVariableValues(
-													(current) => ({
-														...current,
-														[variable.name]: value,
-													}),
-												)
-											}
-										/>
+										<Select
+											value={audioDeviceId}
+											onValueChange={setAudioDeviceId}
+										>
+											<SelectTrigger
+												id="guest-mic"
+												className="w-full"
+											>
+												<SelectValue placeholder="Select microphone" />
+											</SelectTrigger>
+											<SelectContent>
+												{audioDevices.map((device) => (
+													<SelectItem
+														key={device.deviceId}
+														value={device.deviceId}
+													>
+														{device.label ||
+															"Microphone"}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									</div>
-								))}
-							</div>
-						) : null}
-					</>
-				)}
 
-				<Button
-					type="button"
-					className="w-full"
-					loading={startMutation.isPending}
-					disabled={!canStart}
-					onClick={handleStart}
-				>
-					{!trial.available
-						? "Link unavailable"
-						: media === "phone"
-							? "Call me"
+									<div className="min-w-0 space-y-2">
+										<Label htmlFor="guest-cam">
+											Camera
+										</Label>
+										<Select
+											value={videoDeviceId}
+											onValueChange={setVideoDeviceId}
+										>
+											<SelectTrigger
+												id="guest-cam"
+												className="w-full"
+											>
+												<SelectValue placeholder="Select camera" />
+											</SelectTrigger>
+											<SelectContent>
+												{videoDevices.map((device) => (
+													<SelectItem
+														key={device.deviceId}
+														value={device.deviceId}
+													>
+														{device.label ||
+															"Camera"}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+								</div>
+							)}
+
+							{variables.length > 0 ? (
+								<div className="space-y-3">
+									<p className="text-sm font-medium">
+										Enter the following
+									</p>
+									<div className="grid gap-4 sm:grid-cols-2">
+										{variables.map((variable) => (
+											<div
+												key={variable.name}
+												className="min-w-0 space-y-2"
+											>
+												<Label
+													htmlFor={`share-var-${variable.name}`}
+													className="block truncate"
+													title={variable.name}
+												>
+													{variable.name}
+													{variable.required ? (
+														<span className="text-destructive">
+															{" "}
+															*
+														</span>
+													) : null}
+												</Label>
+												<VariableField
+													variable={variable}
+													value={
+														variableValues[
+															variable.name
+														] ?? ""
+													}
+													onChange={(value) =>
+														setVariableValues(
+															(current) => ({
+																...current,
+																[variable.name]:
+																	value,
+															}),
+														)
+													}
+												/>
+											</div>
+										))}
+									</div>
+								</div>
+							) : null}
+						</>
+					)}
+				</div>
+
+				<div className="shrink-0 border-t bg-card px-5 py-4 sm:px-6">
+					<Button
+						type="button"
+						className="w-full"
+						loading={startMutation.isPending}
+						disabled={!canStart}
+						onClick={handleStart}
+					>
+						{!trial.available
+							? "Link unavailable"
 							: "Start session"}
-				</Button>
+					</Button>
+				</div>
 			</div>
 		</div>
 	);
