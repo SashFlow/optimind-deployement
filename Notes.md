@@ -158,7 +158,7 @@ From `SessionUsage` (LLM / STT / TTS / realtime / SIP / egress / etc.):
 - TTS character count
 - Requests per modality
 - Usage by provider / model
-- BYOK vs LiveKit Inference vs platform (`unitSource`)
+- BYOK vs platform (`unitSource`)
 - Cost *estimates* if you attach a price sheet (no cost table yet — but you have the units)
 
 **Charts**

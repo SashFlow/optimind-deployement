@@ -139,7 +139,6 @@ export type ProviderModel = {
 	display_name: string;
 	provider_id: string;
 	is_enabled: boolean;
-	delivery_mode: "hosted" | "byok";
 	kind: "llm" | "realtime" | "live" | "stt" | "tts";
 	supports_text_output?: boolean;
 };

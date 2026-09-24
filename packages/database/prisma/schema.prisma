@@ -421,7 +421,6 @@ enum UsageModality {
 }
 
 enum UnitSource {
-    LIVEKIT_INFERENCE
     BYOK
     PLATFORM
 }
@@ -1416,7 +1415,7 @@ model SessionUsage {
     modality       UsageModality
     provider       String
     model          String
-    unitSource     UnitSource     @default(LIVEKIT_INFERENCE)
+    unitSource     UnitSource     @default(BYOK)
 
     inputTokens             Int @default(0)
     inputCachedTokens       Int @default(0)

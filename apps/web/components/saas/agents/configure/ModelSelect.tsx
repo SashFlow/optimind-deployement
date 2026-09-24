@@ -70,8 +70,10 @@ export function ModelSelect({
 	}, [enabledModels, groupByProvider, providerNames]);
 
 	const selectedModel = enabledModels.find((model) => model.id === value);
+	// Every model runs against the provider's own API with our key, so any
+	// selected model needs credentials for its provider.
 	const missingCredential =
-		selectedModel?.delivery_mode === "byok" &&
+		selectedModel &&
 		providerCredentials &&
 		!providerCredentials.has(selectedModel.provider_id);
 

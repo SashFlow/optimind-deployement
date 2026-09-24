@@ -60,10 +60,7 @@ export const create = protectedProcedure
 			unit: unitEnum,
 			unitAmountMicros: z.number().int().nonnegative(),
 			currency: z.string().default("USD"),
-			unitSource: z
-				.enum(["LIVEKIT_INFERENCE", "BYOK", "PLATFORM"])
-				.nullable()
-				.optional(),
+			unitSource: z.enum(["BYOK", "PLATFORM"]).nullable().optional(),
 			effectiveFrom: z.coerce.date().optional(),
 			effectiveTo: z.coerce.date().nullable().optional(),
 		}),
@@ -100,10 +97,7 @@ export const update = protectedProcedure
 			currency: z.string().optional(),
 			model: z.string().nullable().optional(),
 			unit: unitEnum.optional(),
-			unitSource: z
-				.enum(["LIVEKIT_INFERENCE", "BYOK", "PLATFORM"])
-				.nullable()
-				.optional(),
+			unitSource: z.enum(["BYOK", "PLATFORM"]).nullable().optional(),
 			effectiveTo: z.coerce.date().nullable().optional(),
 		}),
 	)

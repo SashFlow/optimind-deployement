@@ -541,7 +541,7 @@ export type UsageModality = z.infer<typeof UsageModalitySchema>;
 
 // File: UnitSource.schema.ts
 
-export const UnitSourceSchema = z.enum(['LIVEKIT_INFERENCE', 'BYOK', 'PLATFORM'])
+export const UnitSourceSchema = z.enum(['BYOK', 'PLATFORM'])
 
 export type UnitSource = z.infer<typeof UnitSourceSchema>;
 
@@ -1407,7 +1407,7 @@ export const SessionUsageSchema = z.object({
   modality: UsageModalitySchema,
   provider: z.string(),
   model: z.string(),
-  unitSource: UnitSourceSchema.default("LIVEKIT_INFERENCE"),
+  unitSource: UnitSourceSchema.default("BYOK"),
   inputTokens: z.number().int(),
   inputCachedTokens: z.number().int(),
   inputCachedAudioTokens: z.number().int(),

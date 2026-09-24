@@ -8,7 +8,6 @@ export type CatalogModel = {
 	display_name: string;
 	provider_id: string;
 	is_enabled: boolean;
-	delivery_mode: "hosted" | "byok";
 	kind: "llm" | "realtime" | "live" | "stt" | "tts";
 	supports_text_output?: boolean;
 };
@@ -47,7 +46,6 @@ function model(
 		display_name,
 		provider_id,
 		is_enabled: true,
-		delivery_mode: "hosted",
 		kind,
 		...extra,
 	};
@@ -170,15 +168,9 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("gemini-2.5-flash", "Gemini 2.5 Flash STT", "gemini", "stt"),
 
 	// STT — Sarvam
-	model("sarvam:saaras:v4", "Saaras v4", "sarvam", "stt", {
-		delivery_mode: "byok",
-	}),
-	model("sarvam:saaras:v3", "Saaras v3", "sarvam", "stt", {
-		delivery_mode: "byok",
-	}),
-	model("sarvam:saaras:v3-realtime", "Saaras Realtime", "sarvam", "stt", {
-		delivery_mode: "byok",
-	}),
+	model("sarvam:saaras:v4", "Saaras v4", "sarvam", "stt"),
+	model("sarvam:saaras:v3", "Saaras v3", "sarvam", "stt"),
+	model("sarvam:saaras:v3-realtime", "Saaras Realtime", "sarvam", "stt"),
 
 	// TTS — OpenAI
 	model("gpt-4o-mini-tts", "GPT-4o Mini TTS", "openai", "tts"),
@@ -201,12 +193,8 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("gemini-2.5-pro-preview-tts", "Gemini 2.5 Pro TTS", "gemini", "tts"),
 
 	// TTS — Sarvam
-	model("sarvam:bulbul:v3", "Bulbul v3", "sarvam", "tts", {
-		delivery_mode: "byok",
-	}),
-	model("sarvam:bulbul:v2", "Bulbul v2", "sarvam", "tts", {
-		delivery_mode: "byok",
-	}),
+	model("sarvam:bulbul:v3", "Bulbul v3", "sarvam", "tts"),
+	model("sarvam:bulbul:v2", "Bulbul v2", "sarvam", "tts"),
 
 	// TTS — Inworld
 	model("inworld-tts-1.5-max", "Inworld TTS 1.5 Max", "inworld", "tts"),

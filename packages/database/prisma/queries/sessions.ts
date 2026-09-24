@@ -420,7 +420,7 @@ export async function upsertSessionUsage(data: {
 			modality,
 			provider,
 			model,
-			unitSource: unitSource ?? "LIVEKIT_INFERENCE",
+			unitSource: unitSource ?? "BYOK",
 			...metrics,
 			raw: toJson(raw),
 			isFinal: isFinal ?? false,
@@ -428,7 +428,7 @@ export async function upsertSessionUsage(data: {
 		},
 		update: {
 			...metrics,
-			unitSource: unitSource ?? "LIVEKIT_INFERENCE",
+			unitSource: unitSource ?? "BYOK",
 			raw: toJson(raw),
 			isFinal: isFinal ?? false,
 			capturedAt: capturedAt ?? new Date(),
