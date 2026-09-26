@@ -13,7 +13,6 @@ import type {
 	KnowledgeBaseDetail,
 	KnowledgeDocument,
 	KnowledgeSource,
-	OrgAvatar,
 	ToolCreateInput,
 	ToolDefinition,
 	ToolUpdateInput,
@@ -136,21 +135,10 @@ export function useCampaignAnalyticsQuery(campaignId?: string) {
 	});
 }
 
-export function useAvatarsQuery(organizationId: string) {
+export function useAvatarProvidersQuery() {
 	return useQuery({
-		...orpc.avatars.list.queryOptions({
-			input: { organizationId },
-		}),
-		enabled: !!organizationId,
-		select: (data): OrgAvatar[] =>
-			(data.avatars ?? []).map((avatar) => ({
-				id: avatar.id,
-				display_name: avatar.name,
-				preview_url: avatar.previewUrl ?? null,
-				external_avatar_id: avatar.anamAvatarId,
-				provider_id: "anam",
-				is_enabled: true,
-			})),
+		...orpc.catalog.listAvatarProviders.queryOptions({ input: undefined }),
+		select: (data) => data.providers,
 	});
 }
 

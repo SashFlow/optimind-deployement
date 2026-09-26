@@ -5,6 +5,7 @@ import {
 	listProviders,
 	listTimezones,
 	listVoices,
+	listAvatarProviders,
 } from "./procedures";
 
 export const catalogRouter = {
@@ -14,4 +15,5 @@ export const catalogRouter = {
 	listAudioClips,
 	listLanguages,
 	listTimezones,
+	listAvatarProviders,
 };

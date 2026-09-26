@@ -7,6 +7,7 @@ import {
 	CATALOG_PROVIDERS,
 	CATALOG_TIMEZONES,
 	CATALOG_VOICES,
+	AVATARS_PROVIDERS,
 } from "./data";
 
 export const listProviders = publicProcedure
@@ -83,3 +84,13 @@ export const listTimezones = publicProcedure
 		summary: "List timezones",
 	})
 	.handler(async () => ({ timezones: CATALOG_TIMEZONES }));
+
+
+export const listAvatarProviders = publicProcedure
+	.route({
+		method: "GET",
+		path: "/catalog/avatar-providers",
+		tags: ["Catalog"],
+		summary: "List avatar providers",
+	})
+	.handler(async () => ({ providers: AVATARS_PROVIDERS }));

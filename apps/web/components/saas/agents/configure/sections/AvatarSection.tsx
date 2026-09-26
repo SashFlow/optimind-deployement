@@ -1,18 +1,31 @@
 "use client";
 
+import { Label } from "@repo/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@repo/ui/select";
 import { cn } from "@repo/ui/utils";
 import { CheckIcon, LockIcon, PlusIcon } from "lucide-react";
+import { useState } from "react";
 import { ConfigureSectionToggle } from "@/components/saas/agents/configure/ConfigureSectionToggle";
 import type { AgentConfigDocument } from "@/lib/agent-config";
 import { AVATAR_MAX_DURATION_SECONDS } from "@/lib/agent-pipeline";
-import { STOCK_AVATARS } from "@/lib/stock-avatars";
-import { useAvatarsQuery } from "@/services/api/hooks";
-import type { OrgAvatar } from "@/services/api/types";
+import { useAvatarProvidersQuery } from "@/services/api/hooks";
 
 type AvatarSectionProps = {
 	config: AgentConfigDocument;
 	organizationId: string;
 	onConfigChange: (patch: Partial<AgentConfigDocument>) => void;
+};
+
+type AvatarProvider = {
+	id: string;
+	display_name: string;
+	avatars: { id: string; display_name: string }[];
 };
 
 type AvatarOption = {
@@ -21,8 +34,7 @@ type AvatarOption = {
 	subtitle: string;
 	previewUrl: string | null;
 	externalAvatarId: string;
-	orgAvatarId?: string | null;
-	providerId?: string | null;
+	providerId: string;
 };
 
 function SectionHeader({
@@ -42,45 +54,57 @@ function SectionHeader({
 	);
 }
 
-function buildAvatarOptions(orgAvatars: OrgAvatar[]): AvatarOption[] {
-	const stockOptions: AvatarOption[] = STOCK_AVATARS.map((avatar) => ({
-		key: `stock:${avatar.id}`,
-		displayName: avatar.displayName,
-		subtitle: "",
-		previewUrl: avatar.previewUrl,
-		externalAvatarId: avatar.id,
-	}));
-
-	const orgOptions: AvatarOption[] = orgAvatars
-		.filter((avatar) => avatar.is_enabled)
-		.map((avatar) => ({
-			key: `org:${avatar.id}`,
-			displayName: avatar.display_name,
-			subtitle: "Custom",
-			previewUrl: avatar.preview_url,
-			externalAvatarId: avatar.external_avatar_id,
-			orgAvatarId: avatar.id,
-			providerId: avatar.provider_id,
-		}));
-
-	return [...stockOptions, ...orgOptions];
+function getAvatarKey(providerId: string, avatarId: string): string {
+	return `${providerId}:${avatarId}`;
 }
 
-function getSelectedAvatarKey(config: AgentConfigDocument): string | null {
+function buildAvatarOptions(provider: AvatarProvider | null): AvatarOption[] {
+	if (!provider) {
+		return [];
+	}
+
+	return provider.avatars.map((avatar) => ({
+		key: getAvatarKey(provider.id, avatar.id),
+		displayName: avatar.display_name,
+		subtitle: provider.display_name,
+		previewUrl: `/images/avatar/${avatar.id}.png`,
+		externalAvatarId: avatar.id,
+		providerId: provider.id,
+	}));
+}
+
+// Older configs may have an avatar id without a provider id; infer it from the catalog.
+function getConfiguredProviderId(
+	config: AgentConfigDocument,
+	providers: AvatarProvider[],
+): string | null {
 	const avatar = config.avatar;
-	if (!avatar) {
-		return null;
+	if (avatar?.provider_id) {
+		return avatar.provider_id;
 	}
 
-	if (avatar.org_avatar_id) {
-		return `org:${avatar.org_avatar_id}`;
-	}
-
-	if (avatar.external_avatar_id) {
-		return `stock:${avatar.external_avatar_id}`;
+	if (avatar?.external_avatar_id) {
+		const externalAvatarId = avatar.external_avatar_id;
+		return (
+			providers.find((provider) =>
+				provider.avatars.some((item) => item.id === externalAvatarId),
+			)?.id ?? null
+		);
 	}
 
 	return null;
+}
+
+function getSelectedAvatarKey(
+	config: AgentConfigDocument,
+	providerId: string | null,
+): string | null {
+	const externalAvatarId = config.avatar?.external_avatar_id;
+	if (!providerId || !externalAvatarId) {
+		return null;
+	}
+
+	return getAvatarKey(providerId, externalAvatarId);
 }
 
 function AvatarPreviewImage({
@@ -92,7 +116,9 @@ function AvatarPreviewImage({
 	alt: string;
 	className?: string;
 }) {
-	if (!src) {
+	const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+	if (!src || failedSrc === src) {
 		return (
 			<div
 				className={cn(
@@ -112,6 +138,7 @@ function AvatarPreviewImage({
 		<img
 			src={src}
 			alt={alt}
+			onError={() => setFailedSrc(src)}
 			className={cn("size-full object-cover", className)}
 		/>
 	);
@@ -191,19 +218,39 @@ export function AvatarSection({
 	organizationId,
 	onConfigChange,
 }: AvatarSectionProps) {
-	const avatarsQuery = useAvatarsQuery(organizationId);
-	const avatarOptions = buildAvatarOptions(avatarsQuery.data ?? []);
-	const selectedKey = getSelectedAvatarKey(config);
+	const providersQuery = useAvatarProvidersQuery();
+	const providers = providersQuery.data ?? [];
+	const configuredProviderId = getConfiguredProviderId(config, providers);
+	const selectedKey = getSelectedAvatarKey(config, configuredProviderId);
+
+	// Browsing a provider doesn't change the saved avatar until one is picked.
+	const [browsingProviderId, setBrowsingProviderId] = useState<string | null>(
+		null,
+	);
+	const activeProvider =
+		providers.find(
+			(provider) =>
+				provider.id === (browsingProviderId ?? configuredProviderId),
+		) ??
+		providers[0] ??
+		null;
+	const avatarOptions = buildAvatarOptions(activeProvider);
+
+	const selectedProvider =
+		providers.find((provider) => provider.id === configuredProviderId) ??
+		null;
 	const selectedOption =
-		avatarOptions.find((option) => option.key === selectedKey) ?? null;
+		buildAvatarOptions(selectedProvider).find(
+			(option) => option.key === selectedKey,
+		) ?? null;
 
 	function selectAvatar(option: AvatarOption) {
 		onConfigChange({
 			avatar: {
 				...(config.avatar ?? { params: {} }),
 				enabled: true,
-				org_avatar_id: option.orgAvatarId ?? null,
-				provider_id: option.providerId ?? null,
+				org_avatar_id: null,
+				provider_id: option.providerId,
 				external_avatar_id: option.externalAvatarId,
 			},
 			call_ending: {
@@ -246,6 +293,40 @@ export function AvatarSection({
 					}
 				>
 					<div className="space-y-4">
+						<div className="space-y-1.5">
+							<Label htmlFor="avatar-provider">Provider</Label>
+							<Select
+								value={activeProvider?.id ?? ""}
+								onValueChange={(value) =>
+									value && setBrowsingProviderId(value)
+								}
+								disabled={providers.length === 0}
+							>
+								<SelectTrigger
+									id="avatar-provider"
+									className="w-full bg-background sm:max-w-xs"
+								>
+									<SelectValue
+										placeholder={
+											providersQuery.isLoading
+												? "Loading providers..."
+												: "Select a provider"
+										}
+									/>
+								</SelectTrigger>
+								<SelectContent>
+									{providers.map((provider) => (
+										<SelectItem
+											key={provider.id}
+											value={provider.id}
+										>
+											{provider.display_name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
 						<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 							{avatarOptions.map((option) => (
 								<AvatarSelectCard
