@@ -29,6 +29,10 @@ Room/agent dispatch `metadata` is JSON matching:
 
 Parse this from the LiveKit job metadata when the worker joins.
 
+When `config.avatar.enabled` is true, `config.avatar.provider_id` (`"anam"` | `"spatialreal"`)
+selects the avatar plugin and `config.avatar.external_avatar_id` is the provider's avatar id.
+For catalog avatars the API always fills `provider_id` from the catalog at dispatch time.
+
 ## Required hooks
 
 ### 1. On session start (agent joins)
