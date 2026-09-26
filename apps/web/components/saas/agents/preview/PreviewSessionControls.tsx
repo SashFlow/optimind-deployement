@@ -9,11 +9,10 @@ import {
 	useParticipants,
 	useRoomContext,
 	useTracks,
-	useTrackVolume,
 	useVoiceAssistant,
 	VideoTrack,
 } from "@livekit/components-react";
-import { VoiceOrb, type VoiceOrbState } from "@repo/ui/assistant-ui";
+import { type VoiceOrbState } from "@repo/ui/assistant-ui";
 import { Button } from "@repo/ui/button";
 import {
 	Dialog,
@@ -26,7 +25,6 @@ import { cn } from "@repo/ui/utils";
 import { ConnectionState, RoomEvent, Track } from "livekit-client";
 import {
 	ArrowLeftRightIcon,
-	FileIcon,
 	MessageSquareIcon,
 	MicIcon,
 	MicOffIcon,
@@ -34,17 +32,17 @@ import {
 	VideoIcon,
 	VideoOffIcon,
 } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Agent } from "@/services/api/types";
-import { AssistantTranscriptThread } from "../transcript/AssistantTranscriptThread";
-import { previewItemsToThreadMessages } from "../transcript/mapTranscriptMessages";
-import {
-	type PreviewFileItem,
-	type PreviewRpcCard,
-	type PreviewTextItem,
-	usePreviewRoomData,
-} from "./usePreviewRoomData";
+import FileList from "./FileList";
+import MainStage from "./MainStage";
+import MessageList from "./MessageList";
+import PipStage from "./PipStage";
+import RpcCardList from "./RpcCardList";
+import SessionVoiceOrb from "./SessionVoiceOrb";
+import SpatialRealAvatarStage from "./SpatialRealAvatarStage";
+import { usePreviewRoomData } from "./usePreviewRoomData";
 
 function isUserParticipant(identity: string) {
 	return (
@@ -88,197 +86,6 @@ function useLocalTrackRef(source: Track.Source) {
 	}, [localParticipant.identity, tracks]);
 }
 
-function SessionVoiceOrb({
-	state,
-	agentAudioTrack,
-	localMicTrack,
-}: {
-	state: VoiceOrbState;
-	agentAudioTrack?: TrackReference;
-	localMicTrack?: TrackReference;
-}) {
-	const agentVolume = useTrackVolume(agentAudioTrack);
-	const localVolume = useTrackVolume(localMicTrack);
-	// Prefer agent speech; fall back to local mic while listening.
-	const rawVolume =
-		state === "speaking" ? agentVolume : Math.max(agentVolume, localVolume);
-	const volume = Math.min(1, rawVolume * 2.75);
-
-	return (
-		<VoiceOrb
-			state={state}
-			volume={volume}
-			variant="blue"
-			className="size-52 sm:size-64"
-		/>
-	);
-}
-
-function MessageList({
-	messages,
-	localIdentity,
-}: {
-	messages: PreviewTextItem[];
-	localIdentity: string;
-}) {
-	const threadMessages = useMemo(
-		() => previewItemsToThreadMessages(messages, localIdentity),
-		[messages, localIdentity],
-	);
-
-	return (
-		<AssistantTranscriptThread
-			messages={threadMessages}
-			className="min-h-[12rem]"
-			emptyFallback={
-				<p className="text-sm text-muted-foreground">
-					Transcriptions and agent text will appear here.
-				</p>
-			}
-		/>
-	);
-}
-
-function FileList({ files }: { files: PreviewFileItem[] }) {
-	if (files.length === 0) {
-		return null;
-	}
-
-	return (
-		<div className="space-y-2">
-			{files.map((file) => {
-				const isImage = file.mimeType?.startsWith("image/");
-				return (
-					<div
-						key={file.id}
-						className="overflow-hidden rounded-lg border bg-background"
-					>
-						{isImage ? (
-							// Object URL from LiveKit byte stream; next/image is not suitable.
-							// eslint-disable-next-line @next/next/no-img-element
-							// biome-ignore lint/performance/noImgElement: LiveKit object URL
-							<img
-								src={file.url}
-								alt={file.name}
-								className="max-h-48 w-full object-contain bg-muted"
-							/>
-						) : null}
-						<div className="flex items-center gap-2 px-3 py-2 text-xs">
-							<FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
-							<a
-								href={file.url}
-								download={file.name}
-								className="min-w-0 truncate font-medium underline-offset-2 hover:underline"
-							>
-								{file.name}
-							</a>
-							<span className="ml-auto shrink-0 text-muted-foreground">
-								{file.topic}
-							</span>
-						</div>
-					</div>
-				);
-			})}
-		</div>
-	);
-}
-
-function RpcCardList({ cards }: { cards: PreviewRpcCard[] }) {
-	if (cards.length === 0) {
-		return null;
-	}
-
-	return (
-		<div className="space-y-2">
-			{cards.map((card) => (
-				<div
-					key={`${card.method}-${card.id}`}
-					className="rounded-lg border bg-background p-3"
-				>
-					<div className="flex items-start justify-between gap-2">
-						<div>
-							<p className="text-sm font-medium">{card.title}</p>
-							{card.subtitle ? (
-								<p className="mt-0.5 text-xs text-muted-foreground">
-									{card.subtitle}
-								</p>
-							) : null}
-						</div>
-						<span
-							className={cn(
-								"rounded-full px-2 py-0.5 text-[10px] font-medium uppercase",
-								card.status === "success" &&
-									"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-								card.status === "warning" &&
-									"bg-amber-500/10 text-amber-700 dark:text-amber-400",
-								(!card.status || card.status === "info") &&
-									"bg-muted text-muted-foreground",
-							)}
-						>
-							{card.method.replace(/^client\./, "")}
-						</span>
-					</div>
-					{card.fields.length > 0 ? (
-						<dl className="mt-3 space-y-1.5">
-							{card.fields.map((field) => (
-								<div
-									key={`${card.id}-${field.label}`}
-									className="grid grid-cols-[auto_1fr] gap-x-3 text-xs"
-								>
-									<dt className="text-muted-foreground">
-										{field.label}
-									</dt>
-									<dd className="text-right font-medium">
-										{field.value}
-									</dd>
-								</div>
-							))}
-						</dl>
-					) : null}
-				</div>
-			))}
-		</div>
-	);
-}
-
-function MainStage({
-	children,
-	className,
-}: {
-	children: ReactNode;
-	className?: string;
-}) {
-	return (
-		<div
-			className={cn(
-				"relative overflow-hidden rounded-xl bg-black shadow-sm",
-				className,
-			)}
-		>
-			{children}
-		</div>
-	);
-}
-
-function PipStage({
-	children,
-	className,
-}: {
-	children: ReactNode;
-	className?: string;
-}) {
-	return (
-		<div
-			className={cn(
-				"relative h-20 w-28 overflow-hidden rounded-lg border bg-background shadow-md sm:h-24 sm:w-36",
-				className,
-			)}
-		>
-			{children}
-		</div>
-	);
-}
-
 const VIDEO_FILL_CLASS = "size-full object-cover";
 const PORTRAIT_STAGE_CLASS = "aspect-video w-full max-h-[700px] max-w-5xl";
 const LANDSCAPE_STAGE_CLASS = "aspect-video w-full max-h-[420px] max-w-3xl";
@@ -287,11 +94,16 @@ export function PreviewSessionControls({
 	agent,
 	avatarEnabled,
 	avatarPreviewUrl,
+	avatarType = "anam",
+	avatarId,
 	onEnd,
 }: {
 	agent: Agent;
 	avatarEnabled: boolean;
 	avatarPreviewUrl?: string | null;
+	avatarType?: "anam" | "spatialreal";
+	/** SpatialReal avatar id; falls back to NEXT_PUBLIC_SPATIALREAL_AVATAR_ID. */
+	avatarId?: string | null;
 	onEnd: () => void;
 }) {
 	const room = useRoomContext();
@@ -320,11 +132,17 @@ export function PreviewSessionControls({
 	const onEndRef = useRef(onEnd);
 	onEndRef.current = onEnd;
 	const shouldWaitForAgent = isConnected && !hasAgent;
-	const hasAvatarVideo = Boolean(videoTrack);
+	// SpatialReal renders the avatar client-side from an animation data track,
+	// so there is no avatar video track to show.
+	const isSpatialReal = avatarEnabled && avatarType === "spatialreal";
+	const hasAvatarVideo = !isSpatialReal && Boolean(videoTrack);
 	const showAvatarFallback =
-		avatarEnabled && !hasAvatarVideo && Boolean(avatarPreviewUrl);
+		avatarEnabled &&
+		!isSpatialReal &&
+		!hasAvatarVideo &&
+		Boolean(avatarPreviewUrl);
 	const showAvatarWaiting =
-		avatarEnabled && !hasAvatarVideo && !avatarPreviewUrl;
+		avatarEnabled && !isSpatialReal && !hasAvatarVideo && !avatarPreviewUrl;
 	const hasLocalCamera =
 		Boolean(cameraTrackRef) &&
 		isCameraEnabled &&
@@ -338,9 +156,15 @@ export function PreviewSessionControls({
 			: undefined;
 	const hasLocalVideo = Boolean(localVideoTrack);
 	const hasAvatarStage =
-		hasAvatarVideo || showAvatarFallback || showAvatarWaiting;
+		isSpatialReal ||
+		hasAvatarVideo ||
+		showAvatarFallback ||
+		showAvatarWaiting;
+	// The SpatialReal canvas must stay mounted, so it always stays on main.
 	const canSwapVideos =
-		(hasAvatarVideo || showAvatarFallback) && hasLocalVideo;
+		!isSpatialReal &&
+		(hasAvatarVideo || showAvatarFallback) &&
+		hasLocalVideo;
 	const hasChatContent =
 		messages.length > 0 || files.length > 0 || rpcCards.length > 0;
 
@@ -416,7 +240,9 @@ export function PreviewSessionControls({
 		return "Waiting for agent…";
 	})();
 
-	const avatarVideo = hasAvatarVideo ? (
+	const avatarVideo = isSpatialReal ? (
+		<SpatialRealAvatarStage room={room} avatarId={avatarId} />
+	) : hasAvatarVideo ? (
 		<VideoTrack trackRef={videoTrack} className={VIDEO_FILL_CLASS} />
 	) : showAvatarFallback ? (
 		<>
@@ -439,7 +265,8 @@ export function PreviewSessionControls({
 	const avatarMainStage = avatarVideo ? (
 		<>
 			{avatarVideo}
-			{showAvatarFallback || (hasAvatarVideo && !hasAgent) ? (
+			{showAvatarFallback ||
+			((hasAvatarVideo || isSpatialReal) && !hasAgent) ? (
 				<div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/55 to-transparent p-3">
 					<p className="text-xs text-white/90">{statusLabel}</p>
 				</div>
@@ -508,7 +335,7 @@ export function PreviewSessionControls({
 									showPortraitMain && PORTRAIT_STAGE_CLASS,
 									showLandscapeMain && LANDSCAPE_STAGE_CLASS,
 									showAudioOnlyMain &&
-										"aspect-auto h-auto w-full max-w-md bg-transparent shadow-none",
+									"aspect-auto h-auto w-full max-w-md bg-transparent shadow-none",
 								)}
 							>
 								{mainContent}
@@ -583,7 +410,7 @@ export function PreviewSessionControls({
 							className={cn(
 								"relative size-9 rounded-full",
 								chatOpen &&
-									"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+								"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 							)}
 							onClick={() => setChatOpen(true)}
 						>
