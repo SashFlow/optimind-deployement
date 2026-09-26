@@ -20,6 +20,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PreviewSessionControls } from "@/components/saas/agents/preview/PreviewSessionControls";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
+import { resolvePreviewAvatar } from "@/lib/preview-avatar";
 
 const UNAVAILABLE_MESSAGES = {
 	disabled: "This shared link has been disabled.",
@@ -27,6 +28,8 @@ const UNAVAILABLE_MESSAGES = {
 	exhausted: "This shared link has no sessions left.",
 	unpublished: "This agent is not published yet.",
 } as const;
+
+const NO_CAMERA = "none";
 
 function isValidUrl(value: string) {
 	try {
@@ -202,10 +205,22 @@ export default function SharedTrialPage() {
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
 				audio: true,
-				video: true,
 			});
 			for (const track of stream.getTracks()) {
 				track.stop();
+			}
+
+			// Camera is optional: ask for it, but never fail the flow if it is
+			// missing or denied.
+			try {
+				const videoStream = await navigator.mediaDevices.getUserMedia({
+					video: true,
+				});
+				for (const track of videoStream.getTracks()) {
+					track.stop();
+				}
+			} catch {
+				// ignore — session can start without a camera
 			}
 
 			const devices = await navigator.mediaDevices.enumerateDevices();
@@ -222,25 +237,22 @@ export default function SharedTrialPage() {
 					? current
 					: (mics[0]?.deviceId ?? ""),
 			);
+			// Camera stays unselected by default.
 			setVideoDeviceId((current) =>
 				current && cameras.some((device) => device.deviceId === current)
 					? current
-					: (cameras[0]?.deviceId ?? ""),
+					: "",
 			);
 			if (mics.length === 0) {
 				setPermissionError(
 					"No microphone found. Connect a mic and try again.",
-				);
-			} else if (cameras.length === 0) {
-				setPermissionError(
-					"No camera found. Connect a camera and try again.",
 				);
 			}
 		} catch (error) {
 			setPermissionError(
 				error instanceof Error
 					? error.message
-					: "Microphone and camera permission is required to start a session.",
+					: "Microphone permission is required to start a session.",
 			);
 			setAudioDevices([]);
 			setVideoDevices([]);
@@ -272,11 +284,6 @@ export default function SharedTrialPage() {
 			return;
 		}
 
-		if (!videoDeviceId) {
-			toast.error("Select a camera before starting");
-			return;
-		}
-
 		startMutation.mutate({
 			token,
 			participantName: "Guest",
@@ -299,7 +306,7 @@ export default function SharedTrialPage() {
 					video={
 						videoDeviceId
 							? { deviceId: { exact: videoDeviceId } }
-							: true
+							: false
 					}
 					className="flex min-h-screen flex-col"
 				>
@@ -308,9 +315,14 @@ export default function SharedTrialPage() {
 							id: trialQuery.data?.agent.id ?? "trial",
 							name: trialQuery.data?.agent.name ?? "Agent",
 						}}
-						avatarEnabled={
-							trialQuery.data?.agent.avatarEnabled ?? false
-						}
+						avatar={resolvePreviewAvatar({
+							enabled:
+								trialQuery.data?.agent.avatarEnabled ?? false,
+							provider_id:
+								trialQuery.data?.agent.avatarProvider ?? null,
+							external_avatar_id:
+								trialQuery.data?.agent.avatarId ?? null,
+						})}
 						onEnd={() => {
 							setCredentials(null);
 							void trialQuery.refetch();
@@ -358,7 +370,6 @@ export default function SharedTrialPage() {
 		!startMutation.isPending &&
 		!devicesLoading &&
 		Boolean(audioDeviceId) &&
-		Boolean(videoDeviceId) &&
 		!permissionError;
 
 	return (
@@ -386,7 +397,7 @@ export default function SharedTrialPage() {
 							{devicesLoading ? (
 								<div className="flex items-center gap-2 text-sm text-muted-foreground">
 									<Spinner className="size-4" />
-									Requesting microphone and camera access…
+									Requesting microphone access…
 								</div>
 							) : permissionError ? (
 								<div className="space-y-3">
@@ -400,7 +411,7 @@ export default function SharedTrialPage() {
 										onClick={() => void loadDevices()}
 									>
 										<MicIcon className="size-4" />
-										Allow microphone & camera
+										Allow microphone
 									</Button>
 								</div>
 							) : (
@@ -433,33 +444,57 @@ export default function SharedTrialPage() {
 										</Select>
 									</div>
 
-									<div className="min-w-0 space-y-2">
-										<Label htmlFor="guest-cam">
-											Camera
-										</Label>
-										<Select
-											value={videoDeviceId}
-											onValueChange={setVideoDeviceId}
-										>
-											<SelectTrigger
-												id="guest-cam"
-												className="w-full"
+									{videoDevices.length > 0 ? (
+										<div className="min-w-0 space-y-2">
+											<Label htmlFor="guest-cam">
+												Camera{" "}
+												<span className="text-muted-foreground">
+													(optional)
+												</span>
+											</Label>
+											<Select
+												value={
+													videoDeviceId || NO_CAMERA
+												}
+												onValueChange={(value) =>
+													setVideoDeviceId(
+														value === NO_CAMERA
+															? ""
+															: value,
+													)
+												}
 											>
-												<SelectValue placeholder="Select camera" />
-											</SelectTrigger>
-											<SelectContent>
-												{videoDevices.map((device) => (
+												<SelectTrigger
+													id="guest-cam"
+													className="w-full"
+												>
+													<SelectValue placeholder="No camera" />
+												</SelectTrigger>
+												<SelectContent>
 													<SelectItem
-														key={device.deviceId}
-														value={device.deviceId}
+														value={NO_CAMERA}
 													>
-														{device.label ||
-															"Camera"}
+														No camera
 													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</div>
+													{videoDevices.map(
+														(device) => (
+															<SelectItem
+																key={
+																	device.deviceId
+																}
+																value={
+																	device.deviceId
+																}
+															>
+																{device.label ||
+																	"Camera"}
+															</SelectItem>
+														),
+													)}
+												</SelectContent>
+											</Select>
+										</div>
+									) : null}
 								</div>
 							)}
 

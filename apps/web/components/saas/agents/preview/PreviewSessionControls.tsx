@@ -12,7 +12,7 @@ import {
 	useVoiceAssistant,
 	VideoTrack,
 } from "@livekit/components-react";
-import { type VoiceOrbState } from "@repo/ui/assistant-ui";
+import type { VoiceOrbState } from "@repo/ui/assistant-ui";
 import { Button } from "@repo/ui/button";
 import {
 	Dialog,
@@ -24,7 +24,6 @@ import {
 import { cn } from "@repo/ui/utils";
 import { ConnectionState, RoomEvent, Track } from "livekit-client";
 import {
-	ArrowLeftRightIcon,
 	MessageSquareIcon,
 	MicIcon,
 	MicOffIcon,
@@ -34,11 +33,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import type { PreviewAvatar } from "@/lib/preview-avatar";
 import type { Agent } from "@/services/api/types";
-import FileList from "./FileList";
 import MainStage from "./MainStage";
 import MessageList from "./MessageList";
-import PipStage from "./PipStage";
 import RpcCardList from "./RpcCardList";
 import SessionVoiceOrb from "./SessionVoiceOrb";
 import SpatialRealAvatarStage from "./SpatialRealAvatarStage";
@@ -65,11 +63,6 @@ function mapAgentStateToOrb(
 			return "speaking";
 		case "listening":
 			return "listening";
-		case "thinking":
-			return "connecting";
-		case "connecting":
-		case "initializing":
-			return "connecting";
 		default:
 			return "idle";
 	}
@@ -87,23 +80,16 @@ function useLocalTrackRef(source: Track.Source) {
 }
 
 const VIDEO_FILL_CLASS = "size-full object-cover";
-const PORTRAIT_STAGE_CLASS = "aspect-video w-full max-h-[700px] max-w-5xl";
-const LANDSCAPE_STAGE_CLASS = "aspect-video w-full max-h-[420px] max-w-3xl";
+const AVATAR_STAGE_CLASS = "aspect-video w-full max-h-[700px] max-w-5xl";
+const CAMERA_STAGE_CLASS = "aspect-video w-full max-h-[420px] max-w-3xl";
 
 export function PreviewSessionControls({
 	agent,
-	avatarEnabled,
-	avatarPreviewUrl,
-	avatarType = "anam",
-	avatarId,
+	avatar,
 	onEnd,
 }: {
 	agent: Agent;
-	avatarEnabled: boolean;
-	avatarPreviewUrl?: string | null;
-	avatarType?: "anam" | "spatialreal";
-	/** SpatialReal avatar id; falls back to NEXT_PUBLIC_SPATIALREAL_AVATAR_ID. */
-	avatarId?: string | null;
+	avatar: PreviewAvatar;
 	onEnd: () => void;
 }) {
 	const room = useRoomContext();
@@ -113,7 +99,6 @@ export function PreviewSessionControls({
 	const { isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
 	const cameraTrackRef = useLocalTrackRef(Track.Source.Camera);
 	const microphoneTrackRef = useLocalTrackRef(Track.Source.Microphone);
-	const [screenShareTrack] = useTracks([Track.Source.ScreenShare]);
 	const { messages, files, rpcCards } = usePreviewRoomData(
 		agent.name,
 		agent.id,
@@ -126,45 +111,31 @@ export function PreviewSessionControls({
 	);
 	const [agentWaitTimedOut, setAgentWaitTimedOut] = useState(false);
 	const [chatOpen, setChatOpen] = useState(false);
-	const [avatarOnMain, setAvatarOnMain] = useState(true);
 	const isEndingRef = useRef(false);
 	const didConnectRef = useRef(false);
 	const onEndRef = useRef(onEnd);
 	onEndRef.current = onEnd;
 	const shouldWaitForAgent = isConnected && !hasAgent;
-	// SpatialReal renders the avatar client-side from an animation data track,
-	// so there is no avatar video track to show.
-	const isSpatialReal = avatarEnabled && avatarType === "spatialreal";
-	const hasAvatarVideo = !isSpatialReal && Boolean(videoTrack);
+	// SpatialReal renders the avatar client-side from an animation data track on
+	// this room, so there is no avatar video track to show; anam publishes one.
+	const isSpatialReal = avatar.enabled && avatar.provider === "spatialreal";
+	const hasAvatarVideo =
+		avatar.enabled && !isSpatialReal && Boolean(videoTrack);
 	const showAvatarFallback =
-		avatarEnabled &&
+		avatar.enabled &&
 		!isSpatialReal &&
 		!hasAvatarVideo &&
-		Boolean(avatarPreviewUrl);
+		Boolean(avatar.previewUrl);
 	const showAvatarWaiting =
-		avatarEnabled && !isSpatialReal && !hasAvatarVideo && !avatarPreviewUrl;
+		avatar.enabled &&
+		!isSpatialReal &&
+		!hasAvatarVideo &&
+		!avatar.previewUrl;
 	const hasLocalCamera =
 		Boolean(cameraTrackRef) &&
 		isCameraEnabled &&
 		!cameraTrackRef?.publication.isMuted;
-	const hasScreenShare =
-		Boolean(screenShareTrack) && !screenShareTrack?.publication.isMuted;
-	const localVideoTrack = hasLocalCamera
-		? cameraTrackRef
-		: hasScreenShare
-			? screenShareTrack
-			: undefined;
-	const hasLocalVideo = Boolean(localVideoTrack);
-	const hasAvatarStage =
-		isSpatialReal ||
-		hasAvatarVideo ||
-		showAvatarFallback ||
-		showAvatarWaiting;
-	// The SpatialReal canvas must stay mounted, so it always stays on main.
-	const canSwapVideos =
-		!isSpatialReal &&
-		(hasAvatarVideo || showAvatarFallback) &&
-		hasLocalVideo;
+	const localVideoTrack = hasLocalCamera ? cameraTrackRef : undefined;
 	const hasChatContent =
 		messages.length > 0 || files.length > 0 || rpcCards.length > 0;
 
@@ -212,12 +183,6 @@ export function PreviewSessionControls({
 		};
 	}, [room]);
 
-	useEffect(() => {
-		if (!canSwapVideos && !avatarOnMain) {
-			setAvatarOnMain(true);
-		}
-	}, [avatarOnMain, canSwapVideos]);
-
 	const statusLabel = (() => {
 		if (!isConnected) {
 			return "Connecting…";
@@ -225,9 +190,6 @@ export function PreviewSessionControls({
 		if (hasAgent) {
 			if (state === "listening") {
 				return `Listening · ${agent.name}`;
-			}
-			if (state === "thinking") {
-				return `Thinking · ${agent.name}`;
 			}
 			if (state === "speaking") {
 				return `Speaking · ${agent.name}`;
@@ -240,25 +202,21 @@ export function PreviewSessionControls({
 		return "Waiting for agent…";
 	})();
 
+	// Both avatar kinds occupy the same stage; only the source differs.
 	const avatarVideo = isSpatialReal ? (
-		<SpatialRealAvatarStage room={room} avatarId={avatarId} />
+		<SpatialRealAvatarStage room={room} avatarId={avatar.avatarId} />
 	) : hasAvatarVideo ? (
 		<VideoTrack trackRef={videoTrack} className={VIDEO_FILL_CLASS} />
 	) : showAvatarFallback ? (
-		<>
-			{/* Dynamic avatar URL from config; next/image domains vary. */}
-			{/* eslint-disable-next-line @next/next/no-img-element */}
-			{/* biome-ignore lint/performance/noImgElement: dynamic avatar URLs */}
-			<img
-				src={avatarPreviewUrl ?? undefined}
-				alt="Avatar preview"
-				className={cn(VIDEO_FILL_CLASS, "opacity-90")}
-			/>
-		</>
+		// biome-ignore lint/performance/noImgElement: dynamic avatar URLs
+		<img
+			src={avatar.previewUrl ?? undefined}
+			alt="Avatar preview"
+			className={cn(VIDEO_FILL_CLASS, "opacity-90")}
+		/>
 	) : showAvatarWaiting ? (
-		<div className="flex size-full flex-col items-center justify-center gap-3 bg-black px-4 text-center">
-			<p className="text-sm text-white/90">Waiting for avatar video…</p>
-			<p className="text-xs text-white/60">{statusLabel}</p>
+		<div className="flex size-full items-center justify-center bg-black">
+			<p className="text-xs text-white/70">Waiting for avatar…</p>
 		</div>
 	) : null;
 
@@ -278,17 +236,12 @@ export function PreviewSessionControls({
 		<VideoTrack trackRef={localVideoTrack} className={VIDEO_FILL_CLASS} />
 	) : null;
 
-	const showPortraitMain = hasAvatarStage && (avatarOnMain || !canSwapVideos);
-	const showLandscapeMain =
-		(canSwapVideos && !avatarOnMain) ||
-		(Boolean(localStage) && !hasAvatarStage);
-	const showAudioOnlyMain = !hasAvatarStage && !localStage;
+	const showAvatarMain = Boolean(avatarMainStage);
+	const showCameraMain = !showAvatarMain && Boolean(localStage);
+	const showAudioOnlyMain = !showAvatarMain && !localStage;
 	const orbState = mapAgentStateToOrb(state, hasAgent);
 
 	const mainContent = (() => {
-		if (canSwapVideos) {
-			return avatarOnMain ? avatarMainStage : localStage;
-		}
 		if (avatarMainStage) {
 			return avatarMainStage;
 		}
@@ -311,14 +264,6 @@ export function PreviewSessionControls({
 		);
 	})();
 
-	const pipContent = canSwapVideos
-		? avatarOnMain
-			? localStage
-			: avatarVideo
-		: hasLocalVideo && hasAvatarStage
-			? localStage
-			: null;
-
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4 md:p-5">
@@ -332,24 +277,16 @@ export function PreviewSessionControls({
 						>
 							<MainStage
 								className={cn(
-									showPortraitMain && PORTRAIT_STAGE_CLASS,
-									showLandscapeMain && LANDSCAPE_STAGE_CLASS,
+									showAvatarMain && AVATAR_STAGE_CLASS,
+									showCameraMain && CAMERA_STAGE_CLASS,
 									showAudioOnlyMain &&
-									"aspect-auto h-auto w-full max-w-md bg-transparent shadow-none",
+										"aspect-auto h-auto w-full max-w-md bg-transparent shadow-none",
 								)}
 							>
 								{mainContent}
 							</MainStage>
 						</div>
 					</div>
-
-					{pipContent ? (
-						<div className="pointer-events-none absolute right-3 bottom-20 z-10 sm:right-4 sm:bottom-24">
-							<div className="pointer-events-auto">
-								<PipStage>{pipContent}</PipStage>
-							</div>
-						</div>
-					) : null}
 
 					<div className="flex shrink-0 items-center justify-center gap-2 border-t bg-background/90 px-3 py-2.5 backdrop-blur">
 						<TrackToggle
@@ -386,21 +323,6 @@ export function PreviewSessionControls({
 							)}
 						</TrackToggle>
 
-						{canSwapVideos ? (
-							<Button
-								type="button"
-								variant="outline"
-								size="icon"
-								aria-label="Swap avatar and camera video"
-								className="size-9 rounded-full"
-								onClick={() =>
-									setAvatarOnMain((value) => !value)
-								}
-							>
-								<ArrowLeftRightIcon className="size-4" />
-							</Button>
-						) : null}
-
 						<Button
 							type="button"
 							variant="outline"
@@ -410,7 +332,7 @@ export function PreviewSessionControls({
 							className={cn(
 								"relative size-9 rounded-full",
 								chatOpen &&
-								"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+									"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 							)}
 							onClick={() => setChatOpen(true)}
 						>
@@ -455,14 +377,6 @@ export function PreviewSessionControls({
 									localIdentity={localIdentity}
 								/>
 							</section>
-							{files.length > 0 ? (
-								<section className="space-y-2">
-									<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-										Files
-									</h3>
-									<FileList files={files} />
-								</section>
-							) : null}
 							{rpcCards.length > 0 ? (
 								<section className="space-y-2">
 									<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

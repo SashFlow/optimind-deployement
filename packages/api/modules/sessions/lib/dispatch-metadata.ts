@@ -36,9 +36,31 @@ export const dispatchMetadataSchema = z.object({
 export type DispatchMetadata = z.infer<typeof dispatchMetadataSchema>;
 
 /**
+ * Resolve which avatar plugin (anam / spatialreal) an avatar id belongs to.
+ * Catalog avatars resolve from the catalog; older configs may have saved the
+ * avatar id without a provider id, so fall back to whatever was stored.
+ */
+export function resolveAvatarProviderId(
+	externalAvatarId: unknown,
+	savedProviderId: unknown,
+): string | null {
+	if (typeof externalAvatarId !== "string" || !externalAvatarId) {
+		return typeof savedProviderId === "string" ? savedProviderId : null;
+	}
+
+	const catalogProviderId = AVATARS_PROVIDERS.find((provider) =>
+		provider.avatars.some((item) => item.id === externalAvatarId),
+	)?.id;
+
+	return (
+		catalogProviderId ??
+		(typeof savedProviderId === "string" ? savedProviderId : null)
+	);
+}
+
+/**
  * Ensure `config.avatar.provider_id` is set so the worker knows which avatar
- * plugin (anam / spatialreal) to start. Catalog avatars resolve their provider
- * from the catalog; older configs may have saved the avatar id without one.
+ * plugin to start.
  */
 function resolveAvatarProvider(
 	config: Record<string, unknown>,
@@ -54,18 +76,15 @@ function resolveAvatarProvider(
 		return config;
 	}
 
-	const catalogProviderId = AVATARS_PROVIDERS.find((provider) =>
-		provider.avatars.some((item) => item.id === externalAvatarId),
-	)?.id;
-	const providerId =
-		catalogProviderId ??
-		(typeof avatarRecord.provider_id === "string"
-			? avatarRecord.provider_id
-			: null);
-
 	return {
 		...config,
-		avatar: { ...avatarRecord, provider_id: providerId },
+		avatar: {
+			...avatarRecord,
+			provider_id: resolveAvatarProviderId(
+				externalAvatarId,
+				avatarRecord.provider_id,
+			),
+		},
 	};
 }
 

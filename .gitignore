@@ -41,3 +41,6 @@ cred.json
 
 .pnpm-store
 usecases
+
+# Generated at build time by @spatialwalk/avatarkit's Next plugin
+apps/web/public/_avatarkit/

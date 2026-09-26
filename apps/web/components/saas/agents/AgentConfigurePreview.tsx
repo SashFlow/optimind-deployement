@@ -29,6 +29,10 @@ import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
 import { normalizePhoneNumber } from "@/lib/phone";
+import {
+	DISABLED_PREVIEW_AVATAR,
+	type PreviewAvatar,
+} from "@/lib/preview-avatar";
 import { fetchSessionCredentials } from "@/services/api/livekit";
 import { uploadPreviewAsset } from "@/services/api/preview-assets";
 import type { Agent } from "@/services/api/types";
@@ -56,8 +60,7 @@ type AgentConfigurePreviewProps = {
 	savedVariables: AgentVariableDefinition[];
 	hasUnsavedVariables?: boolean;
 	draftVersionId?: string;
-	avatarEnabled?: boolean;
-	avatarPreviewUrl?: string | null;
+	avatar?: PreviewAvatar;
 	onCancel?: () => void;
 	className?: string;
 };
@@ -191,8 +194,7 @@ export function AgentConfigurePreview({
 	savedVariables,
 	hasUnsavedVariables = false,
 	draftVersionId,
-	avatarEnabled = false,
-	avatarPreviewUrl = null,
+	avatar = DISABLED_PREVIEW_AVATAR,
 	onCancel,
 	className,
 }: AgentConfigurePreviewProps) {
@@ -437,8 +439,7 @@ export function AgentConfigurePreview({
 			>
 				<PreviewSessionControls
 					agent={agent}
-					avatarEnabled={avatarEnabled}
-					avatarPreviewUrl={avatarPreviewUrl}
+					avatar={avatar}
 					onEnd={handleEndSession}
 				/>
 			</LiveKitRoom>
@@ -447,8 +448,7 @@ export function AgentConfigurePreview({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		agent,
-		avatarEnabled,
-		avatarPreviewUrl,
+		avatar,
 		cameraEnabled,
 		micEnabled,
 		onCancel,
@@ -492,7 +492,7 @@ export function AgentConfigurePreview({
 		);
 	}
 
-	const showAvatar = avatarEnabled && Boolean(avatarPreviewUrl);
+	const showAvatar = avatar.enabled && Boolean(avatar.previewUrl);
 	const orbState: VoiceOrbState = starting ? "connecting" : "idle";
 
 	return (
@@ -507,7 +507,7 @@ export function AgentConfigurePreview({
 								{/* eslint-disable-next-line @next/next/no-img-element */}
 								{/* biome-ignore lint/performance/noImgElement: dynamic avatar URLs */}
 								<img
-									src={avatarPreviewUrl ?? undefined}
+									src={avatar.previewUrl ?? undefined}
 									alt="Selected avatar"
 									className="size-full object-cover"
 								/>
@@ -634,8 +634,8 @@ export function AgentConfigurePreview({
 																}
 																value={
 																	variableValues[
-																		variable
-																			.name
+																	variable
+																		.name
 																	] ?? ""
 																}
 																onChange={(
@@ -700,7 +700,7 @@ export function AgentConfigurePreview({
 											onClick={() => void toggleMic()}
 										>
 											{mediaPermissionPending ===
-											"mic" ? (
+												"mic" ? (
 												<Spinner className="size-4" />
 											) : micEnabled ? (
 												<MicIcon className="size-4" />
@@ -731,7 +731,7 @@ export function AgentConfigurePreview({
 											onClick={() => void toggleCamera()}
 										>
 											{mediaPermissionPending ===
-											"camera" ? (
+												"camera" ? (
 												<Spinner className="size-4" />
 											) : cameraEnabled ? (
 												<VideoIcon className="size-4" />

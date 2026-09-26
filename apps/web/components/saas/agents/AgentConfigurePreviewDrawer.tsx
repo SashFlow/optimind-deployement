@@ -11,6 +11,7 @@ import {
 import { PanelRightOpenIcon } from "lucide-react";
 import { useState } from "react";
 import type { AgentConfigDocument } from "@/lib/agent-config";
+import type { PreviewAvatar } from "@/lib/preview-avatar";
 import type { Agent } from "@/services/api/types";
 import { AgentConfigurePreview } from "./AgentConfigurePreview";
 
@@ -19,15 +20,13 @@ export function AgentConfigurePreviewDrawer({
 	savedVariables,
 	hasUnsavedVariables,
 	draftVersionId,
-	avatarEnabled,
-	avatarPreviewUrl,
+	avatar,
 }: {
 	agent: Agent;
 	savedVariables: AgentConfigDocument["variables"];
 	hasUnsavedVariables?: boolean;
 	draftVersionId?: string;
-	avatarEnabled?: boolean;
-	avatarPreviewUrl?: string | null;
+	avatar?: PreviewAvatar;
 }) {
 	const [open, setOpen] = useState(false);
 
@@ -50,8 +49,7 @@ export function AgentConfigurePreviewDrawer({
 					savedVariables={savedVariables}
 					hasUnsavedVariables={hasUnsavedVariables}
 					draftVersionId={draftVersionId}
-					avatarEnabled={avatarEnabled}
-					avatarPreviewUrl={avatarPreviewUrl}
+					avatar={avatar}
 					onCancel={() => setOpen(false)}
 				/>
 			</DrawerContent>

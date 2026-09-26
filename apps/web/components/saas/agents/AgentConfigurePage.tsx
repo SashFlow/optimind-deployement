@@ -12,10 +12,11 @@ import {
 	getVoicemailConfigError,
 	normalizeAgentConfig,
 } from "@/lib/agent-config";
-import { getAvatarPreviewUrl } from "@/lib/stock-avatars";
+import { resolvePreviewAvatar } from "@/lib/preview-avatar";
 import {
 	useAgentQuery,
 	useAgentVersionsQuery,
+	useAvatarProvidersQuery,
 	usePublishAgentVersionMutation,
 	useUpdateAgentVersionMutation,
 } from "@/services/api/hooks";
@@ -67,9 +68,12 @@ export default function AgentConfigurePage() {
 			JSON.stringify(savedConfig.variables),
 		[config.variables, savedConfig.variables],
 	);
-	const avatarEnabled = savedConfig.avatar?.enabled ?? false;
-	const avatarPreviewUrl = getAvatarPreviewUrl(
-		savedConfig.avatar?.external_avatar_id,
+	// The catalog resolves the provider for older configs that saved an avatar
+	// id without one, so anam and SpatialReal avatars both preview correctly.
+	const avatarProviders = useAvatarProvidersQuery().data;
+	const avatar = React.useMemo(
+		() => resolvePreviewAvatar(savedConfig.avatar, avatarProviders),
+		[savedConfig.avatar, avatarProviders],
 	);
 
 	const updateVersion = useUpdateAgentVersionMutation(
@@ -146,8 +150,7 @@ export default function AgentConfigurePage() {
 				agent={agentQuery.data}
 				savedVariables={savedConfig.variables}
 				hasUnsavedVariables={hasUnsavedVariables}
-				avatarEnabled={avatarEnabled}
-				avatarPreviewUrl={avatarPreviewUrl}
+				avatar={avatar}
 				isDirty={isDirty}
 				isSaving={updateVersion.isPending}
 				isPublishing={publishVersion.isPending}

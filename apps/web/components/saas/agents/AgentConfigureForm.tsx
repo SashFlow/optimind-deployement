@@ -32,6 +32,7 @@ import {
 	conversationModelSupportsWebSearch,
 	getVoiceModelId,
 } from "@/lib/agent-pipeline";
+import type { PreviewAvatar } from "@/lib/preview-avatar";
 import {
 	useKnowledgeBasesQuery,
 	useProviderModelsQuery,
@@ -68,8 +69,7 @@ type AgentConfigureFormProps = {
 	agent: Agent;
 	savedVariables: AgentConfigDocument["variables"];
 	hasUnsavedVariables?: boolean;
-	avatarEnabled?: boolean;
-	avatarPreviewUrl?: string | null;
+	avatar?: PreviewAvatar;
 	isDirty?: boolean;
 	isSaving?: boolean;
 	isPublishing?: boolean;
@@ -85,8 +85,7 @@ export function AgentConfigureForm({
 	agent,
 	savedVariables,
 	hasUnsavedVariables = false,
-	avatarEnabled = false,
-	avatarPreviewUrl = null,
+	avatar,
 	isDirty = false,
 	isSaving = false,
 	isPublishing = false,
@@ -321,8 +320,7 @@ export function AgentConfigureForm({
 								savedVariables={savedVariables}
 								hasUnsavedVariables={hasUnsavedVariables}
 								draftVersionId={versionId}
-								avatarEnabled={avatarEnabled}
-								avatarPreviewUrl={avatarPreviewUrl}
+								avatar={avatar}
 								className="min-h-0 flex-1"
 							/>
 						</div>

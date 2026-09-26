@@ -30,6 +30,7 @@ import { protectedProcedure, publicProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
 import {
 	buildDispatchMetadata,
+	resolveAvatarProviderId,
 	serializeDispatchMetadata,
 } from "./lib/dispatch-metadata";
 import {
@@ -388,7 +389,11 @@ export const getTrialLink = publicProcedure
 			> | null) ?? null;
 		const avatarConfig =
 			config && typeof config.avatar === "object" && config.avatar
-				? (config.avatar as { enabled?: boolean })
+				? (config.avatar as {
+						enabled?: boolean;
+						provider_id?: string | null;
+						external_avatar_id?: string | null;
+					})
 				: null;
 
 		return {
@@ -408,6 +413,13 @@ export const getTrialLink = publicProcedure
 				id: trial.agent.id,
 				name: trial.agent.name,
 				avatarEnabled: Boolean(avatarConfig?.enabled),
+				// The share page needs these to pick the avatar renderer:
+				// anam publishes a video track, spatialreal renders a canvas.
+				avatarProvider: resolveAvatarProviderId(
+					avatarConfig?.external_avatar_id,
+					avatarConfig?.provider_id,
+				),
+				avatarId: avatarConfig?.external_avatar_id ?? null,
 				hasPublishedVersion,
 				variables: normalizeTrialVariables(config?.variables),
 			},
