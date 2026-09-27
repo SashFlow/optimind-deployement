@@ -9,6 +9,8 @@ import { ConnectionState, type Room, RoomEvent } from "livekit-client";
 /** `RTCProvider` is not exported from the package root; borrow it from AvatarPlayer. */
 type RtcProvider = ConstructorParameters<typeof AvatarPlayer>[0];
 
+type RoomListener = Parameters<Room["off"]>[1];
+
 /** `RTCRtpReceiver.transform` is not in the DOM lib on every TS version. */
 type TransformableReceiver = { transform: unknown };
 
@@ -53,6 +55,7 @@ export async function createSharedRoomProvider(
 
 	class SharedRoomLiveKitProvider extends LiveKitProvider {
 		private listenersAttached = false;
+		private roomListeners: [RoomEvent, RoomListener][] = [];
 
 		constructor() {
 			super();
@@ -71,15 +74,43 @@ export async function createSharedRoomProvider(
 
 		/**
 		 * The base class calls this from every `connect()`, assuming a room it
-		 * created and will throw away. Ours is long-lived, so a second connect
-		 * would stack a duplicate copy of every listener onto it.
+		 * created and will throw away, so it never removes its (anonymous)
+		 * listeners. Ours is long-lived: a second connect would stack duplicates,
+		 * and listeners left behind after disconnect would feed room events —
+		 * notably `Disconnected` when the session ends — into a disposed
+		 * AvatarView. Record them as they are added so disconnect() can detach.
 		 */
 		setupEventListeners(livekit: unknown) {
 			if (this.listenersAttached) {
 				return;
 			}
 			this.listenersAttached = true;
-			baseSetupEventListeners.call(this, livekit);
+
+			const recordingRoom = room as unknown as {
+				on: (event: RoomEvent, listener: RoomListener) => Room;
+			};
+			recordingRoom.on = (event, listener) => {
+				this.roomListeners.push([event, listener]);
+				return Object.getPrototypeOf(room).on.call(
+					room,
+					event,
+					listener,
+				);
+			};
+			try {
+				baseSetupEventListeners.call(this, livekit);
+			} finally {
+				// Drop the own-property shim so Room.prototype.on applies again.
+				delete (recordingRoom as { on?: unknown }).on;
+			}
+		}
+
+		private detachRoomListeners() {
+			for (const [event, listener] of this.roomListeners) {
+				room.off(event, listener);
+			}
+			this.roomListeners = [];
+			this.listenersAttached = false;
 		}
 
 		override async connect(config: RTCConnectionConfig) {
@@ -133,6 +164,7 @@ export async function createSharedRoomProvider(
 
 		override async disconnect() {
 			this.detachAudioMuting();
+			this.detachRoomListeners();
 			// Runs before the first await so an overlapping reconnect cannot have
 			// installed its transform yet.
 			this.releaseAnimationTransforms();

@@ -32,6 +32,15 @@ type SdkOptions = Pick<
 	| "userId"
 >;
 
+/**
+ * The SDK jitter buffer holds only 4 frames at a fixed 25fps and evicts the
+ * oldest — the very frame it needs next — on overflow, so any burst or slight
+ * rate mismatch drops ~1 in 4 frames. Render frames as they arrive instead.
+ */
+const DEFAULT_PLAYER_OPTIONS: NonNullable<
+	UseSpatialRealAvatarOptions["playerOptions"]
+> = { logLevel: "warning", enableJitterBuffer: false };
+
 function toError(error: unknown, fallbackMessage: string) {
 	return error instanceof Error ? error : new Error(fallbackMessage);
 }
@@ -312,26 +321,6 @@ export function useSpatialRealAvatar(
 			callbacksRef.current.onDisconnected?.();
 		};
 
-		const handleStalled = async () => {
-			if (abort.signal.aborted || !player) {
-				return;
-			}
-
-			try {
-				await player.reconnect();
-				if (!abort.signal.aborted) {
-					updateStatus("connected");
-				}
-			} catch (error) {
-				handleError(
-					toError(
-						error,
-						"Avatar stream stalled and could not reconnect.",
-					),
-				);
-			}
-		};
-
 		const cleanupHandlers = () => {
 			if (!player) {
 				return;
@@ -339,7 +328,6 @@ export function useSpatialRealAvatar(
 
 			player.off("disconnected", handleDisconnected);
 			player.off("error", handleError);
-			player.off("stalled", handleStalled);
 		};
 
 		async function connectAvatar(
@@ -416,12 +404,15 @@ export function useSpatialRealAvatar(
 			player = new Player(
 				provider,
 				view,
-				callbacksRef.current.playerOptions ?? { logLevel: "warning" },
+				callbacksRef.current.playerOptions ?? DEFAULT_PLAYER_OPTIONS,
 			);
 			playerRef.current = player;
 			player.on("disconnected", handleDisconnected);
 			player.on("error", handleError);
-			player.on("stalled", handleStalled);
+			// No "stalled" handler: the SDK fires it after 5s without frames, i.e.
+			// whenever the agent is silent, and already falls back to idle and
+			// resumes on the next frame. Reconnecting there tore down the
+			// animation pipeline on every pause and dropped the next turn's start.
 
 			await player.connect({
 				url: SHARED_ROOM_CREDENTIAL,
