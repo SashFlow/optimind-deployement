@@ -634,8 +634,8 @@ export function AgentConfigurePreview({
 																}
 																value={
 																	variableValues[
-																	variable
-																		.name
+																		variable
+																			.name
 																	] ?? ""
 																}
 																onChange={(
@@ -700,7 +700,7 @@ export function AgentConfigurePreview({
 											onClick={() => void toggleMic()}
 										>
 											{mediaPermissionPending ===
-												"mic" ? (
+											"mic" ? (
 												<Spinner className="size-4" />
 											) : micEnabled ? (
 												<MicIcon className="size-4" />
@@ -731,7 +731,7 @@ export function AgentConfigurePreview({
 											onClick={() => void toggleCamera()}
 										>
 											{mediaPermissionPending ===
-												"camera" ? (
+											"camera" ? (
 												<Spinner className="size-4" />
 											) : cameraEnabled ? (
 												<VideoIcon className="size-4" />

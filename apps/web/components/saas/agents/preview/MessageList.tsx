@@ -4,26 +4,26 @@ import { previewItemsToThreadMessages } from "../transcript/mapTranscriptMessage
 import { AssistantTranscriptThread } from "../transcript/AssistantTranscriptThread";
 
 export default function MessageList({
-    messages,
-    localIdentity,
+	messages,
+	localIdentity,
 }: {
-    messages: PreviewTextItem[];
-    localIdentity: string;
+	messages: PreviewTextItem[];
+	localIdentity: string;
 }) {
-    const threadMessages = useMemo(
-        () => previewItemsToThreadMessages(messages, localIdentity),
-        [messages, localIdentity],
-    );
+	const threadMessages = useMemo(
+		() => previewItemsToThreadMessages(messages, localIdentity),
+		[messages, localIdentity],
+	);
 
-    return (
-        <AssistantTranscriptThread
-            messages={threadMessages}
-            className="min-h-[12rem]"
-            emptyFallback={
-                <p className="text-sm text-muted-foreground">
-                    Transcriptions and agent text will appear here.
-                </p>
-            }
-        />
-    );
+	return (
+		<AssistantTranscriptThread
+			messages={threadMessages}
+			className="min-h-[12rem]"
+			emptyFallback={
+				<p className="text-sm text-muted-foreground">
+					Transcriptions and agent text will appear here.
+				</p>
+			}
+		/>
+	);
 }

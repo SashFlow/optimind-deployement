@@ -22,13 +22,11 @@ export default function SpatialRealAvatarStage({
 }: {
 	/** Defaults to the room from <LiveKitRoom>. */
 	room?: Room | null;
-	/** SpatialReal avatar id; falls back to NEXT_PUBLIC_SPATIALREAL_AVATAR_ID. */
-	avatarId?: string | null;
+	avatarId: string;
 	className?: string;
 }) {
 	const appId = process.env.NEXT_PUBLIC_SPATIALREAL_APP_ID;
-	const resolvedAvatarId = avatarId
-
+	const resolvedAvatarId = avatarId;
 	if (!appId || !resolvedAvatarId) {
 		return (
 			<div

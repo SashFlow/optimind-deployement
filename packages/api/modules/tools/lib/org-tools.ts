@@ -140,5 +140,5 @@ export function collectDispatchToolIds(
 	return [];
 }
 
-export { parseMetadata };
 export type { OrgMetadata };
+export { parseMetadata };

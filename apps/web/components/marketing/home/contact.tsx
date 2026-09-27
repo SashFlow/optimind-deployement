@@ -16,24 +16,24 @@ const contactDetails: {
 	value: string;
 	href?: string;
 }[] = [
-		{
-			icon: MailIcon,
-			label: "Email",
-			value: "growth@sashflow.com",
-			href: "mailto:growth@sashflow.com",
-		},
-		// {
-		// 	icon: PhoneIcon,
-		// 	label: "Phone",
-		// 	value: "+91 73059 72149",
-		// 	href: "tel:+917305972149",
-		// },
-		// {
-		// 	icon: MapPinIcon,
-		// 	label: "Office",
-		// 	value: "1302, Alliance Bhaskar, Navy Colony, Mamlatdar Wadi, Malad (W), Mumbai, India - 400064",
-		// },
-	];
+	{
+		icon: MailIcon,
+		label: "Email",
+		value: "growth@sashflow.com",
+		href: "mailto:growth@sashflow.com",
+	},
+	// {
+	// 	icon: PhoneIcon,
+	// 	label: "Phone",
+	// 	value: "+91 73059 72149",
+	// 	href: "tel:+917305972149",
+	// },
+	// {
+	// 	icon: MapPinIcon,
+	// 	label: "Office",
+	// 	value: "1302, Alliance Bhaskar, Navy Colony, Mamlatdar Wadi, Malad (W), Mumbai, India - 400064",
+	// },
+];
 
 const Contact = () => {
 	const formId = useId();

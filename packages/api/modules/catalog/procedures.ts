@@ -85,7 +85,6 @@ export const listTimezones = publicProcedure
 	})
 	.handler(async () => ({ timezones: CATALOG_TIMEZONES }));
 
-
 export const listAvatarProviders = publicProcedure
 	.route({
 		method: "GET",

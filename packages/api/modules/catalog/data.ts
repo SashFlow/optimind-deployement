@@ -21,9 +21,9 @@ export type CatalogVoice = {
 };
 
 export type AvatarModel = {
-    id: string;
-    display_name: string;
-}
+	id: string;
+	display_name: string;
+};
 
 export type CatalogAudioClip = {
 	id: "office_ambience" | "keyboard_typing" | "keyboard_typing2" | "custom";
@@ -456,23 +456,37 @@ export const CATALOG_TIMEZONES = [
 	{ value: "Australia/Sydney", label: "Australia/Sydney" },
 ];
 
-export const AVATARS_PROVIDERS: { id: string; display_name: string; avatars: AvatarModel[] }[] = [
-	{ id: "anam", 
-		display_name: "Anam", 
-		avatars: [{
-        id: "5f46f99e-c4be-4f22-bde2-b364975a0851",
-        display_name: "Sanjay",
-    },
-    {
-        id: "d3e94c42-b348-4bec-8225-e47a682128a0",
-        display_name: "Samira",
-		
-    }] },
-	{ id: "spatialreal", display_name: "SpatialReal", avatars:[{
-        id: "6aed28f9-674c-4ffb-89ee-b447b28aa3ed",
-        display_name: "Raj",
-    }, {
-        id: "4b119100-4e6d-44bd-a0f8-bc1abc4382ee",
-        display_name: "Arjun",
-    }]},
+export const AVATARS_PROVIDERS: {
+	id: string;
+	display_name: string;
+	avatars: AvatarModel[];
+}[] = [
+	{
+		id: "anam",
+		display_name: "Anam",
+		avatars: [
+			{
+				id: "5f46f99e-c4be-4f22-bde2-b364975a0851",
+				display_name: "Sanjay",
+			},
+			{
+				id: "d3e94c42-b348-4bec-8225-e47a682128a0",
+				display_name: "Samira",
+			},
+		],
+	},
+	{
+		id: "spatialreal",
+		display_name: "SpatialReal",
+		avatars: [
+			{
+				id: "6aed28f9-674c-4ffb-89ee-b447b28aa3ed",
+				display_name: "Raj",
+			},
+			{
+				id: "4b119100-4e6d-44bd-a0f8-bc1abc4382ee",
+				display_name: "Arjun",
+			},
+		],
+	},
 ];

@@ -11,7 +11,9 @@ import type {
 
 /** Timeline content inset — must match playhead / seek hit area. */
 function timelineInsetClass(compact: boolean) {
-	return compact ? "left-12 sm:left-16 md:left-20" : "left-14 sm:left-20 md:left-24";
+	return compact
+		? "left-12 sm:left-16 md:left-20"
+		: "left-14 sm:left-20 md:left-24";
 }
 
 function Waveform({
@@ -101,7 +103,9 @@ export function UseCaseMediaShell({
 	className?: string;
 }) {
 	return (
-		<div className={cn(USE_CASE_MEDIA_SHELL_CLASS, className)}>{children}</div>
+		<div className={cn(USE_CASE_MEDIA_SHELL_CLASS, className)}>
+			{children}
+		</div>
 	);
 }
 
@@ -303,7 +307,10 @@ export function UseCaseAudioDemo({
 					(compact
 						? "px-3 py-6 sm:px-5 sm:py-8"
 						: "px-4 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12"),
-				embedded && (compact ? "px-2 py-2 sm:px-3 sm:py-3" : "px-3 py-4 sm:px-8 sm:py-6 lg:px-12"),
+				embedded &&
+					(compact
+						? "px-2 py-2 sm:px-3 sm:py-3"
+						: "px-3 py-4 sm:px-8 sm:py-6 lg:px-12"),
 				className,
 			)}
 		>
@@ -386,8 +393,17 @@ export function UseCaseAudioDemo({
 
 					{/* Wave timelines — desktop/tablet only; mobile shows play button alone */}
 					<div className="relative hidden min-w-0 flex-1 sm:block">
-						<div className={cn("relative flex flex-col", compact ? "gap-1" : "gap-2")}>
-							<Track label="User" tone="bg-white" compact={compact}>
+						<div
+							className={cn(
+								"relative flex flex-col",
+								compact ? "gap-1" : "gap-2",
+							)}
+						>
+							<Track
+								label="User"
+								tone="bg-white"
+								compact={compact}
+							>
 								<Waveform
 									segments={userWaves}
 									segmentColor="bg-secondary"
@@ -395,7 +411,11 @@ export function UseCaseAudioDemo({
 								/>
 							</Track>
 
-							<Track label="Model" tone="bg-white" compact={compact}>
+							<Track
+								label="Model"
+								tone="bg-white"
+								compact={compact}
+							>
 								<Waveform
 									segments={modelWaves}
 									segmentColor="bg-secondary"
@@ -403,7 +423,11 @@ export function UseCaseAudioDemo({
 								/>
 							</Track>
 
-							<Track label="Reasoning" tone="bg-white" compact={compact}>
+							<Track
+								label="Reasoning"
+								tone="bg-white"
+								compact={compact}
+							>
 								<div
 									className={cn(
 										"pointer-events-none absolute inset-y-0 right-0 flex items-center",

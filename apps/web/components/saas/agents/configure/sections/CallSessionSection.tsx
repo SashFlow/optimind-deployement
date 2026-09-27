@@ -119,10 +119,7 @@ export function CallSessionSection({
 			return;
 		}
 		const current = config.call_ending.max_duration_seconds;
-		if (
-			current == null ||
-			current > AVATAR_MAX_DURATION_SECONDS
-		) {
+		if (current == null || current > AVATAR_MAX_DURATION_SECONDS) {
 			onConfigChange({
 				call_ending: {
 					...config.call_ending,

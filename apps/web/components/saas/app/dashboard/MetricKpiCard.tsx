@@ -155,8 +155,7 @@ export function MetricKpiCard({
 	const showDelta = delta !== null;
 	const rising = showDelta ? delta >= 0 : false;
 	const isFavorable = showDelta ? (invertDelta ? !rising : rising) : false;
-	const sparklineData =
-		sparkline && sparkline.length > 1 ? sparkline : null;
+	const sparklineData = sparkline && sparkline.length > 1 ? sparkline : null;
 	const showSparkline = sparklineData !== null;
 	const progressValue =
 		typeof progress === "number" && Number.isFinite(progress)
@@ -278,7 +277,10 @@ export function MetricKpiCard({
 								) : (
 									<span />
 								)}
-								<MiniSparkline data={sparklineData} tone={tone} />
+								<MiniSparkline
+									data={sparklineData}
+									tone={tone}
+								/>
 							</div>
 						) : null}
 

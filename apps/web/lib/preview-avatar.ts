@@ -17,7 +17,7 @@ export type PreviewAvatar = {
 	enabled: boolean;
 	provider: PreviewAvatarProvider;
 	/** Provider-side avatar id, needed to load the SpatialReal character. */
-	avatarId: string | null;
+	avatarId: string;
 	/** Still image shown before the stream starts, and as the anam fallback. */
 	previewUrl: string | null;
 };
@@ -25,7 +25,7 @@ export type PreviewAvatar = {
 export const DISABLED_PREVIEW_AVATAR: PreviewAvatar = {
 	enabled: false,
 	provider: "anam",
-	avatarId: null,
+	avatarId: "",
 	previewUrl: null,
 };
 
@@ -68,11 +68,11 @@ export function resolvePreviewAvatar(
 	avatar: AvatarRef | null | undefined,
 	catalog: readonly AvatarCatalogProvider[] = [],
 ): PreviewAvatar {
-	if (!avatar?.enabled) {
+	if (!avatar?.enabled || !avatar.external_avatar_id) {
 		return DISABLED_PREVIEW_AVATAR;
 	}
 
-	const avatarId = avatar.external_avatar_id ?? null;
+	const avatarId = avatar.external_avatar_id;
 
 	return {
 		enabled: true,
@@ -81,7 +81,7 @@ export function resolvePreviewAvatar(
 			avatarId,
 			catalog,
 		),
-		avatarId,
+		avatarId: avatarId,
 		previewUrl: getAvatarPreviewUrl(avatarId),
 	};
 }
