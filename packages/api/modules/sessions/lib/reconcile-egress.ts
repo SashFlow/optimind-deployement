@@ -46,6 +46,30 @@ function extractFileUrl(egressInfo: {
 	return first?.location;
 }
 
+// Postgres INT4 max; `durationMs` is an Int column.
+const MAX_INT4 = 2_147_483_647;
+
+/**
+ * LiveKit reports startedAt/endedAt as nanosecond bigints. Returns a whole
+ * number of ms, or undefined when the timestamps are missing or nonsensical
+ * (e.g. endedAt before startedAt), so we never write an out-of-range value.
+ */
+export function egressDurationMs(info: {
+	startedAt?: bigint | number;
+	endedAt?: bigint | number;
+}): number | undefined {
+	if (!info.startedAt || !info.endedAt) {
+		return undefined;
+	}
+	const ms = Math.round(
+		(Number(info.endedAt) - Number(info.startedAt)) / 1_000_000,
+	);
+	if (!Number.isFinite(ms) || ms < 0 || ms > MAX_INT4) {
+		return undefined;
+	}
+	return ms;
+}
+
 type EgressJobLike = {
 	id: string;
 	status: string;
@@ -83,15 +107,12 @@ export async function reconcileEgressJob(job: EgressJobLike) {
 			? Array.from(new Set([...(job.outputUrls ?? []), fileUrl]))
 			: (job.outputUrls ?? undefined);
 
-		return updateEgressJob(job.id, {
+		return await updateEgressJob(job.id, {
 			status: mapLivekitEgressStatus(info.status),
 			fileUrl: fileUrl ?? undefined,
 			outputUrls,
 			errorMessage: info.error || undefined,
-			durationMs:
-				info.endedAt && info.startedAt
-					? Number(info.endedAt - info.startedAt) / 1_000_000
-					: undefined,
+			durationMs: egressDurationMs(info),
 		});
 	} catch (error) {
 		logger.warn("Failed to reconcile egress job", {

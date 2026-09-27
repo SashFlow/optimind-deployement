@@ -6,7 +6,10 @@ import {
 } from "@repo/database";
 import { createWebhookReceiver, getLiveKitConfig } from "@repo/livekit";
 import { logger } from "@repo/logs";
-import { mapLivekitEgressStatus } from "../lib/reconcile-egress";
+import {
+	egressDurationMs,
+	mapLivekitEgressStatus,
+} from "../lib/reconcile-egress";
 
 function extractFileUrl(egressInfo: {
 	file?: { location?: string };
@@ -58,11 +61,7 @@ export async function livekitWebhookHandler(
 						fileUrl: fileUrl ?? undefined,
 						outputUrls,
 						errorMessage: info.error || undefined,
-						durationMs:
-							info.endedAt && info.startedAt
-								? Number(info.endedAt - info.startedAt) /
-									1_000_000
-								: undefined,
+						durationMs: egressDurationMs(info),
 					});
 				}
 			}
