@@ -17,15 +17,17 @@ import {
  */
 export default function SpatialRealAvatarStage({
 	room,
+	appId,
 	avatarId,
 	className,
 }: {
 	/** Defaults to the room from <LiveKitRoom>. */
 	room?: Room | null;
+	/** Served by the session-start API from the server-only SPATIALREAL_APP_ID. */
+	appId?: string | null;
 	avatarId: string;
 	className?: string;
 }) {
-	const appId = process.env.NEXT_PUBLIC_SPATIALREAL_APP_ID;
 	const resolvedAvatarId = avatarId;
 	if (!appId || !resolvedAvatarId) {
 		return (
@@ -38,8 +40,8 @@ export default function SpatialRealAvatarStage({
 				<AlertTriangle className="size-5 text-amber-400" />
 				<p className="text-sm text-white/90">Avatar not configured</p>
 				<p className="text-xs text-white/60">
-					Set NEXT_PUBLIC_SPATIALREAL_APP_ID and select a SpatialReal
-					avatar for this agent.
+					Set SPATIALREAL_APP_ID on the server and select a
+					SpatialReal avatar for this agent.
 				</p>
 			</div>
 		);

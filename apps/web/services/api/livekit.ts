@@ -20,6 +20,7 @@ export async function fetchSessionCredentials({
 }: FetchSessionCredentialsInput): Promise<{
 	participantToken: string;
 	serverUrl: string;
+	spatialRealAppId: string | null;
 }> {
 	const result = await orpcClient.sessions.create({
 		organizationId,
@@ -43,5 +44,6 @@ export async function fetchSessionCredentials({
 	return {
 		participantToken: result.participantToken,
 		serverUrl: result.serverUrl,
+		spatialRealAppId: result.spatialRealAppId ?? null,
 	};
 }

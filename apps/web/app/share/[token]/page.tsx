@@ -160,6 +160,7 @@ export default function SharedTrialPage() {
 	const [credentials, setCredentials] = useState<{
 		token: string;
 		serverUrl: string;
+		spatialRealAppId: string | null;
 	} | null>(null);
 
 	const trialQuery = useQuery(
@@ -180,6 +181,7 @@ export default function SharedTrialPage() {
 				setCredentials({
 					token: data.participantToken,
 					serverUrl: data.serverUrl,
+					spatialRealAppId: data.spatialRealAppId ?? null,
 				});
 			},
 			onError: (error) => {
@@ -323,6 +325,7 @@ export default function SharedTrialPage() {
 							external_avatar_id:
 								trialQuery.data?.agent.avatarId ?? null,
 						})}
+						spatialRealAppId={credentials.spatialRealAppId}
 						onEnd={() => {
 							setCredentials(null);
 							void trialQuery.refetch();

@@ -49,6 +49,14 @@ import { workerProcedure } from "./lib/worker-procedure";
 
 const AGENT_NAME = process.env.AGENT_NAME || "demo-agent";
 
+/**
+ * SpatialReal app id, handed out only with a started web session so it stays
+ * out of the client bundle (the browser SDK still needs it at runtime).
+ */
+function getSpatialRealAppId(): string | null {
+	return process.env.SPATIALREAL_APP_ID?.trim() || null;
+}
+
 function configRecordingEnabled(config: unknown): boolean {
 	if (!config || typeof config !== "object") {
 		return false;
@@ -270,6 +278,7 @@ export const create = protectedProcedure
 			serverUrl: cfg.url,
 			participantToken,
 			dispatchMetadata,
+			spatialRealAppId: getSpatialRealAppId(),
 		};
 	});
 
@@ -554,6 +563,7 @@ export const startTrialSession = publicProcedure
 				serverUrl: null,
 				participantToken: null,
 				phoneNumber: normalizedPhone,
+				spatialRealAppId: null,
 			};
 		}
 
@@ -571,6 +581,7 @@ export const startTrialSession = publicProcedure
 			serverUrl: cfg.url,
 			participantToken,
 			phoneNumber: null,
+			spatialRealAppId: getSpatialRealAppId(),
 		};
 	});
 

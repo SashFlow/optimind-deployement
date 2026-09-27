@@ -221,6 +221,7 @@ export function AgentConfigurePreview({
 	const [sessionCredentials, setSessionCredentials] = useState<{
 		token: string;
 		serverUrl: string;
+		spatialRealAppId: string | null;
 		contactMetadata: Record<string, unknown>;
 	} | null>(null);
 
@@ -348,6 +349,7 @@ export function AgentConfigurePreview({
 		setSessionCredentials({
 			token: credentials.participantToken,
 			serverUrl: credentials.serverUrl,
+			spatialRealAppId: credentials.spatialRealAppId,
 			contactMetadata,
 		});
 	}
@@ -440,6 +442,7 @@ export function AgentConfigurePreview({
 				<PreviewSessionControls
 					agent={agent}
 					avatar={avatar}
+					spatialRealAppId={sessionCredentials.spatialRealAppId}
 					onEnd={handleEndSession}
 				/>
 			</LiveKitRoom>

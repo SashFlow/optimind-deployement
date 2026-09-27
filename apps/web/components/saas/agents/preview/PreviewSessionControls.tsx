@@ -86,10 +86,13 @@ const CAMERA_STAGE_CLASS = "aspect-video w-full max-h-[420px] max-w-3xl";
 export function PreviewSessionControls({
 	agent,
 	avatar,
+	spatialRealAppId,
 	onEnd,
 }: {
 	agent: Agent;
 	avatar: PreviewAvatar;
+	/** Returned by the session-start API; required for SpatialReal avatars. */
+	spatialRealAppId?: string | null;
 	onEnd: () => void;
 }) {
 	const room = useRoomContext();
@@ -204,7 +207,11 @@ export function PreviewSessionControls({
 
 	// Both avatar kinds occupy the same stage; only the source differs.
 	const avatarVideo = isSpatialReal ? (
-		<SpatialRealAvatarStage room={room} avatarId={avatar.avatarId} />
+		<SpatialRealAvatarStage
+			room={room}
+			appId={spatialRealAppId}
+			avatarId={avatar.avatarId}
+		/>
 	) : hasAvatarVideo ? (
 		<VideoTrack trackRef={videoTrack} className={VIDEO_FILL_CLASS} />
 	) : showAvatarFallback ? (
