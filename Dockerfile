@@ -36,10 +36,11 @@ ENV PORT=3000
 
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 
-# Next standalone output contains a self-sufficient server and traced deps.
-COPY --from=installer /app/apps/web ./apps/web
-COPY --from=installer /app/packages ./packages
-COPY --from=installer /app/node_modules ./node_modules
+# Owned by nextjs: withAvatarkit writes into its package's .cache on config
+# load, and Next writes to apps/web/.next/cache at runtime.
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web ./apps/web
+COPY --from=installer --chown=nextjs:nodejs /app/packages ./packages
+COPY --from=installer --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=installer /app/package.json ./package.json
 COPY --from=installer /app/pnpm-lock.yaml ./pnpm-lock.yaml
 
