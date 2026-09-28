@@ -23,8 +23,8 @@ interface AvatarVoiceAgentProps {
 }
 
 function readSpatialrealConfig() {
-  const appId = process.env.NEXT_PUBLIC_SPATIALREAL_APP_ID;
-  const avatarId = process.env.NEXT_PUBLIC_SPATIALREAL_AVATAR_ID;
+  const appId = "app_muipa6l3_1pb8l4x";
+  const avatarId = "6aed28f9-674c-4ffb-89ee-b447b28aa3ed";
 
   if (!appId || !avatarId) {
     throw new Error(
@@ -354,9 +354,8 @@ export default function AvatarVoiceAgent({
             }
           >
             <div
-              className={`relative h-full overflow-hidden bg-slate-900 ${
-                isAvatarFullscreen ? "" : "rounded-lg"
-              }`}
+              className={`relative h-full overflow-hidden bg-slate-900 ${isAvatarFullscreen ? "" : "rounded-lg"
+                }`}
             >
               <div
                 ref={setContainerRef}
