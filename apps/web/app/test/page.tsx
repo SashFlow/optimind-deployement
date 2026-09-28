@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import AvatarVoiceAgent from "../components/AvatarVoiceAgent";
-
+import AvatarVoiceAgent from "@/components/test/AvatarVoiceAgent";
+import { orpc } from "@/components/shared/lib/orpc-query-utils";
+import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
 interface ConnectionInfo {
 	sessionId: string;
 	roomName: string;
@@ -16,32 +18,39 @@ export default function HomePage() {
 	const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo | null>(null);
 	const [isConnecting, setIsConnecting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const startTrialSession = useMutation(
+		orpc.sessions.startTrialSession.mutationOptions({
+			onSuccess: (data) => {
+				if (!data.participantToken || !data.serverUrl) {
+					toast.error("Could not start web session");
+					setIsConnecting(false);
+					return;
+				}
 
-	const connect = useCallback(async () => {
-		setIsConnecting(true);
-		setError(null);
+				setConnectionInfo({
+					participantToken: data.participantToken,
+					serverUrl: data.serverUrl,
+					spatialRealAppId: data.spatialRealAppId ?? "",
+					sessionId: data.sessionId,
+					roomName: data.roomName,
+					phoneNumber: data.phoneNumber ?? null,
+				});
 
-		try {
-			const response = await fetch("/api/rpc/sessions/startTrialSession", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ json: { token: "f45bz5yv7mazc3wabb0c1tqh", participantName: "Guest", contactMetadata: { caller_name: "Sahil" } } }),
-			});
+				setIsConnecting(false);
+			},
 
-			if (!response.ok) {
-				throw new Error("Failed to get token");
-			}
+			onError: (error) => {
+				setIsConnecting(false);
+				toast.error(error.message || "Could not start session");
+			},
+		}),
+	);
 
-			const data = (await response.json()).json as ConnectionInfo;
-			setConnectionInfo(data);
-		} catch (connectError) {
-			setError(connectError instanceof Error ? connectError.message : "Connection failed");
-		} finally {
-			setIsConnecting(false);
-		}
-	}, []);
+	const connect = useCallback(() => {
+		startTrialSession.mutate({
+			token: "f45bz5yv7mazc3wabb0c1tqh",
+		});
+	}, [startTrialSession]);
 
 	const disconnect = useCallback(() => {
 		setConnectionInfo(null);

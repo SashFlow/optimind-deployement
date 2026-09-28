@@ -40,7 +40,7 @@ export default async function proxy(req: NextRequest) {
 
 		return NextResponse.next();
 	}
-	if (pathname.startsWith("/demo") || pathname.startsWith("/share")) {
+	if (pathname.startsWith("/demo") || pathname.startsWith("/share") || pathname.startsWith("/test")) {
 		return NextResponse.next();
 	}
 
