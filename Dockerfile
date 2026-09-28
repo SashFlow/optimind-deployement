@@ -37,11 +37,17 @@ ENV PORT=3000
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 
 # Next standalone output contains a self-sufficient server and traced deps.
-COPY --from=installer /app/apps/web/.next/standalone ./
-COPY --from=installer /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=installer /app/apps/web/public ./apps/web/public
+COPY --from=installer /app/apps/web ./apps/web
+COPY --from=installer /app/packages ./packages
+COPY --from=installer /app/node_modules ./node_modules
+COPY --from=installer /app/package.json ./package.json
+COPY --from=installer /app/pnpm-lock.yaml ./pnpm-lock.yaml
+
+# COPY --from=installer /app/apps/web/.next/standalone ./
+# COPY --from=installer /app/apps/web/.next/static ./apps/web/.next/static
+# COPY --from=installer /app/apps/web/public ./apps/web/public
 
 USER nextjs
 EXPOSE 3000
 
-CMD ["node", "apps/web/server.js"]
+CMD ["./node_modules/.bin/next", "start", "apps/web"]

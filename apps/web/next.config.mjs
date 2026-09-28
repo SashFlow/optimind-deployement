@@ -12,7 +12,7 @@ const withNextIntl = nextIntlPlugin("./i18n/request.ts");
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {
-	output: "standalone",
+	// output: "standalone",
 	serverExternalPackages: [
 		"@aws-sdk/client-s3",
 		"@aws-sdk/s3-request-presigner",
