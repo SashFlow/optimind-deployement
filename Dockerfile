@@ -50,4 +50,6 @@ COPY --from=installer /app/pnpm-lock.yaml ./pnpm-lock.yaml
 USER nextjs
 EXPOSE 3000
 
-CMD ["./node_modules/.bin/next", "start", "apps/web"]
+# pnpm doesn't hoist `next` to the root; it lives in apps/web/node_modules.
+WORKDIR /app/apps/web
+CMD ["node", "node_modules/next/dist/bin/next", "start"]
