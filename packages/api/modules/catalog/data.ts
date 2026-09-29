@@ -487,6 +487,14 @@ export const AVATARS_PROVIDERS: {
 				id: "4b119100-4e6d-44bd-a0f8-bc1abc4382ee",
 				display_name: "Arjun",
 			},
+						{
+				id: "3c409ac5-2637-4dd6-9c0c-c47c4b085966",
+				display_name: "Sanjay",
+			},
+						{
+				id: "a0a234f5-0e04-483c-9cf1-3d5bd88b4442",
+				display_name: "Samira",
+			},
 		],
 	},
 ];
