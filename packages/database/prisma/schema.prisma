@@ -125,36 +125,36 @@ model TwoFactor {
 }
 
 model Organization {
-    id                  String               @id @default(cuid())
-    name                String
-    slug                String?
-    logo                String?
-    createdAt           DateTime
-    metadata            String?
-    paymentsCustomerId  String?
-    members             Member[]
-    invitations         Invitation[]
-    purchases           Purchase[]
-    auditLogs           AuditLog[]
-    agents              Agent[]
-    agentVersions       AgentVersion[]
-    agentSessions       AgentSession[]
-    sessionEvents       SessionEvent[]
-    transcripts         Transcript[]
-    toolCallRecords     ToolCallRecord[]
-    sessionUsages       SessionUsage[]
-    campaigns           Campaign[]
-    campaignContacts    CampaignContact[]
-    campaignAccessLinks CampaignAccessLink[]
-    campaignSessions    CampaignSession[]
-    knowledgeBases      KnowledgeBase[]
-    phoneNumbers        PhoneNumber[]
-    sipTrunks           SipTrunk[]
-    dispatchRules       DispatchRule[]
-    customVoices        CustomVoice[]
-    egressJobs          EgressJob[]
-    avatarProfiles      AvatarProfile[]
-    usageMetrics        UsageMetric[]
+    id                     String                  @id @default(cuid())
+    name                   String
+    slug                   String?
+    logo                   String?
+    createdAt              DateTime
+    metadata               String?
+    paymentsCustomerId     String?
+    members                Member[]
+    invitations            Invitation[]
+    purchases              Purchase[]
+    auditLogs              AuditLog[]
+    agents                 Agent[]
+    agentVersions          AgentVersion[]
+    agentSessions          AgentSession[]
+    sessionEvents          SessionEvent[]
+    transcripts            Transcript[]
+    toolCallRecords        ToolCallRecord[]
+    sessionUsages          SessionUsage[]
+    campaigns              Campaign[]
+    campaignContacts       CampaignContact[]
+    campaignAccessLinks    CampaignAccessLink[]
+    campaignSessions       CampaignSession[]
+    knowledgeBases         KnowledgeBase[]
+    phoneNumbers           PhoneNumber[]
+    sipTrunks              SipTrunk[]
+    dispatchRules          DispatchRule[]
+    customVoices           CustomVoice[]
+    egressJobs             EgressJob[]
+    avatarProfiles         AvatarProfile[]
+    usageMetrics           UsageMetric[]
     campaignWorkflows      CampaignWorkflow[]
     workflowRuns           WorkflowRun[]
     workflowApprovals      WorkflowApproval[]
@@ -278,32 +278,32 @@ enum AgentVersionStatus {
 }
 
 model Agent {
-    id                 String              @id @default(cuid())
-    createdAt          DateTime            @default(now())
-    updatedAt          DateTime            @updatedAt
-    organizationId     String
-    organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    name               String
-    description        String?
-    status             AgentStatus         @default(ACTIVE)
-    draftVersionId     String?
-    draftVersion       AgentVersion?       @relation("AgentDraftVersion", fields: [draftVersionId], references: [id], onDelete: SetNull)
-    publishedVersionId String?
-    publishedVersion   AgentVersion?       @relation("AgentPublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
-    versions           AgentVersion[]      @relation("AgentVersions")
-    trials             AgentTrial[]
-    sessions           AgentSession[]
-    transcripts        Transcript[]
-    sessionUsages      SessionUsage[]
-    egressJobs         EgressJob[]
-    campaigns          Campaign[]
-    knowledgeBases     AgentKnowledgeBase[]
-    phoneNumbers       PhoneNumber[]
-    dispatchRules      DispatchRule[]
+    id                     String                  @id @default(cuid())
+    createdAt              DateTime                @default(now())
+    updatedAt              DateTime                @updatedAt
+    organizationId         String
+    organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    name                   String
+    description            String?
+    status                 AgentStatus             @default(ACTIVE)
+    draftVersionId         String?
+    draftVersion           AgentVersion?           @relation("AgentDraftVersion", fields: [draftVersionId], references: [id], onDelete: SetNull)
+    publishedVersionId     String?
+    publishedVersion       AgentVersion?           @relation("AgentPublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
+    versions               AgentVersion[]          @relation("AgentVersions")
+    trials                 AgentTrial[]
+    sessions               AgentSession[]
+    transcripts            Transcript[]
+    sessionUsages          SessionUsage[]
+    egressJobs             EgressJob[]
+    campaigns              Campaign[]
+    knowledgeBases         AgentKnowledgeBase[]
+    phoneNumbers           PhoneNumber[]
+    dispatchRules          DispatchRule[]
     usageMetrics           UsageMetric[]
     sessionCollectedFields SessionCollectedField[]
-    embedEnabled           Boolean             @default(false)
-    token                  String?             @unique
+    embedEnabled           Boolean                 @default(false)
+    token                  String?                 @unique
 
     @@index([organizationId])
     @@map("agent")
@@ -436,22 +436,22 @@ model AgentSession {
     agentVersionId String
     agentVersion   AgentVersion @relation(fields: [agentVersionId], references: [id], onDelete: Restrict)
 
-    livekitRoomName  String
-    livekitRoomSid   String?
-    livekitJobId     String?
-    livekitWorkerId  String?
+    livekitRoomName String
+    livekitRoomSid  String?
+    livekitJobId    String?
+    livekitWorkerId String?
 
     channel   AgentSessionChannel   @default(WEB)
     direction AgentSessionDirection @default(NONE)
 
-    sipTrunkId         String?
-    sipTrunk           SipTrunk?     @relation(fields: [sipTrunkId], references: [id], onDelete: SetNull)
-    sipDispatchRuleId  String?
-    sipDispatchRule    DispatchRule? @relation(fields: [sipDispatchRuleId], references: [id], onDelete: SetNull)
-    sipCallId          String?
-    fromNumber         String?
-    toNumber           String?
-    sipAttrs           Json          @default("{}")
+    sipTrunkId        String?
+    sipTrunk          SipTrunk?     @relation(fields: [sipTrunkId], references: [id], onDelete: SetNull)
+    sipDispatchRuleId String?
+    sipDispatchRule   DispatchRule? @relation(fields: [sipDispatchRuleId], references: [id], onDelete: SetNull)
+    sipCallId         String?
+    fromNumber        String?
+    toNumber          String?
+    sipAttrs          Json          @default("{}")
 
     status      AgentSessionStatus @default(QUEUED)
     startedAt   DateTime?
@@ -470,17 +470,20 @@ model AgentSession {
 
     campaignSession CampaignSession? @relation("CampaignAgentSession")
 
-    externalUserId String?
-    metadata       Json    @default("{}")
+    endUserId String?
+    endUser   EndUser? @relation(fields: [endUserId], references: [id], onDelete: SetNull)
+    metadata  Json     @default("{}")
 
-    events                 SessionEvent[]
-    transcript             Transcript?
-    toolCalls              ToolCallRecord[]
-    usages                 SessionUsage[]
-    egressJobs             EgressJob[]
-    collectedFields        SessionCollectedField[]
-    callbackSchedules      CallbackSchedule[]      @relation("CallbackOriginSession")
-    completedCallbacks     CallbackSchedule[]      @relation("CallbackCompletedSession")
+    events             SessionEvent[]
+    transcript         Transcript?
+    toolCalls          ToolCallRecord[]
+    usages             SessionUsage[]
+    egressJobs         EgressJob[]
+    collectedFields    SessionCollectedField[]
+    callbackSchedules  CallbackSchedule[]      @relation("CallbackOriginSession")
+    completedCallbacks CallbackSchedule[]      @relation("CallbackCompletedSession")
+
+    files SessionFile[]
 
     @@index([organizationId, startedAt])
     @@index([agentId, startedAt])
@@ -514,20 +517,20 @@ model SessionEvent {
 }
 
 model Transcript {
-    id             String           @id @default(cuid())
-    createdAt      DateTime         @default(now())
-    updatedAt      DateTime         @updatedAt
-    organizationId String
-    organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    sessionId      String           @unique
-    session        AgentSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-    agentId        String
-    agent          Agent            @relation(fields: [agentId], references: [id], onDelete: Restrict)
-    language       String?
-    status         TranscriptStatus @default(PENDING)
-    fullText       String           @default("") @db.Text
-    wordCount      Int              @default(0)
-    storageUri     String?
+    id                 String           @id @default(cuid())
+    createdAt          DateTime         @default(now())
+    updatedAt          DateTime         @updatedAt
+    organizationId     String
+    organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    sessionId          String           @unique
+    session            AgentSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    agentId            String
+    agent              Agent            @relation(fields: [agentId], references: [id], onDelete: Restrict)
+    language           String?
+    status             TranscriptStatus @default(PENDING)
+    fullText           String           @default("") @db.Text
+    wordCount          Int              @default(0)
+    storageUri         String?
     retentionExpiresAt DateTime?
 
     segments TranscriptSegment[]
@@ -563,21 +566,21 @@ model TranscriptSegment {
 }
 
 model ToolCallRecord {
-    id                   String         @id @default(cuid())
-    createdAt            DateTime       @default(now())
-    organizationId       String
-    organization         Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    sessionId            String
-    session              AgentSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-    transcriptSegmentId  String?
-    transcriptSegment    TranscriptSegment? @relation(fields: [transcriptSegmentId], references: [id], onDelete: SetNull)
-    toolName             String
-    arguments            Json           @default("{}")
-    result               Json           @default("{}")
-    status               ToolCallStatus @default(COMPLETED)
-    error                String?        @db.Text
-    startedAt            DateTime?
-    completedAt          DateTime?
+    id                  String             @id @default(cuid())
+    createdAt           DateTime           @default(now())
+    organizationId      String
+    organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    sessionId           String
+    session             AgentSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    transcriptSegmentId String?
+    transcriptSegment   TranscriptSegment? @relation(fields: [transcriptSegmentId], references: [id], onDelete: SetNull)
+    toolName            String
+    arguments           Json               @default("{}")
+    result              Json               @default("{}")
+    status              ToolCallStatus     @default(COMPLETED)
+    error               String?            @db.Text
+    startedAt           DateTime?
+    completedAt         DateTime?
 
     @@index([sessionId])
     @@index([organizationId])
@@ -686,8 +689,8 @@ model Campaign {
     retryDelayMinutes      Int       @default(60)
 
     // --- open access (INBOUND_OPEN / WEB_LINK public entry) ---
-    publicToken String? @unique
-    embedEnabled Boolean @default(false)
+    publicToken    String? @unique
+    embedEnabled   Boolean @default(false)
     /// Optional phone / SIP identity for inbound voice
     inboundAddress String?
 
@@ -711,13 +714,13 @@ model Campaign {
 }
 
 model CampaignContact {
-    id             String                @id @default(cuid())
-    createdAt      DateTime              @default(now())
-    updatedAt      DateTime              @updatedAt
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
     organizationId String
-    organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     campaignId     String
-    campaign       Campaign              @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    campaign       Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
     displayName String?
     phoneE164   String?
@@ -729,15 +732,15 @@ model CampaignContact {
     /// Freeform personal context injected into the agent (name, company, notes, etc.)
     context Json @default("{}")
 
-    status           CampaignContactStatus @default(PENDING)
-    attemptCount     Int                   @default(0)
-    lastAttemptAt    DateTime?
-    nextAttemptAt    DateTime?
-    lastOutcome      String?
-    doNotContact     Boolean               @default(false)
-    consentGiven     Boolean               @default(false)
-    consentAt        DateTime?
-    consentSource    String?
+    status        CampaignContactStatus @default(PENDING)
+    attemptCount  Int                   @default(0)
+    lastAttemptAt DateTime?
+    nextAttemptAt DateTime?
+    lastOutcome   String?
+    doNotContact  Boolean               @default(false)
+    consentGiven  Boolean               @default(false)
+    consentAt     DateTime?
+    consentSource String?
 
     /// Rolling conversation memory for natural recalls
     memorySummary   String?   @db.Text
@@ -749,25 +752,25 @@ model CampaignContact {
     sessions          CampaignSession[]
     callbackSchedules CallbackSchedule[]
 
+    @@unique([campaignId, externalId])
     @@index([campaignId, status])
     @@index([campaignId, nextAttemptAt])
     @@index([organizationId])
     @@index([phoneE164])
     @@index([email])
-    @@unique([campaignId, externalId])
     @@map("campaign_contact")
 }
 
 model CampaignAccessLink {
-    id             String                 @id @default(cuid())
-    createdAt      DateTime               @default(now())
-    updatedAt      DateTime               @updatedAt
+    id             String           @id @default(cuid())
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime         @updatedAt
     organizationId String
-    organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     campaignId     String
-    campaign       Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    campaign       Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
     contactId      String?
-    contact        CampaignContact?       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+    contact        CampaignContact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
     kind    CampaignAccessLinkKind
     token   String                 @unique
@@ -931,8 +934,8 @@ model CampaignWorkflow {
 }
 
 model CampaignWorkflowVersion {
-    id         String   @id @default(cuid())
-    createdAt  DateTime @default(now())
+    id         String           @id @default(cuid())
+    createdAt  DateTime         @default(now())
     workflowId String
     workflow   CampaignWorkflow @relation("WorkflowVersions", fields: [workflowId], references: [id], onDelete: Cascade)
 
@@ -952,35 +955,35 @@ model CampaignWorkflowVersion {
 }
 
 model WorkflowRun {
-    id             String            @id @default(cuid())
-    createdAt      DateTime          @default(now())
-    updatedAt      DateTime          @updatedAt
-    organizationId String
-    organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    campaignId     String
-    campaign       Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-    workflowId     String
-    workflow       CampaignWorkflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+    id                String                  @id @default(cuid())
+    createdAt         DateTime                @default(now())
+    updatedAt         DateTime                @updatedAt
+    organizationId    String
+    organization      Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    campaignId        String
+    campaign          Campaign                @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    workflowId        String
+    workflow          CampaignWorkflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
     workflowVersionId String
     workflowVersion   CampaignWorkflowVersion @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict)
 
-    status         WorkflowRunStatus  @default(PENDING)
+    status         WorkflowRunStatus   @default(PENDING)
     triggerType    WorkflowTriggerType
-    triggerPayload Json               @default("{}")
-    envSnapshot    Json               @default("{}")
+    triggerPayload Json                @default("{}")
+    envSnapshot    Json                @default("{}")
     /// Out-var stack: { env, trigger, nodes, loop? }
-    context        Json               @default("{}")
+    context        Json                @default("{}")
     /// Current node cursor / frontier for the runner
-    cursor         Json               @default("{}")
-    error          String?            @db.Text
+    cursor         Json                @default("{}")
+    error          String?             @db.Text
     startedAt      DateTime?
     finishedAt     DateTime?
     claimedAt      DateTime?
     claimToken     String?
 
-    steps      WorkflowStep[]
-    waits      WorkflowWait[]
-    approvals  WorkflowApproval[]
+    steps     WorkflowStep[]
+    waits     WorkflowWait[]
+    approvals WorkflowApproval[]
 
     @@index([campaignId, status, createdAt])
     @@index([workflowId, status])
@@ -990,19 +993,19 @@ model WorkflowRun {
 }
 
 model WorkflowStep {
-    id        String             @id @default(cuid())
-    createdAt DateTime           @default(now())
-    updatedAt DateTime           @updatedAt
+    id        String      @id @default(cuid())
+    createdAt DateTime    @default(now())
+    updatedAt DateTime    @updatedAt
     runId     String
-    run       WorkflowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+    run       WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
 
-    nodeId   String
-    nodeType String
-    status   WorkflowStepStatus  @default(PENDING)
-    attempt  Int                 @default(1)
-    input    Json                @default("{}")
-    output   Json                @default("{}")
-    error    String?             @db.Text
+    nodeId     String
+    nodeType   String
+    status     WorkflowStepStatus @default(PENDING)
+    attempt    Int                @default(1)
+    input      Json               @default("{}")
+    output     Json               @default("{}")
+    error      String?            @db.Text
     startedAt  DateTime?
     finishedAt DateTime?
 
@@ -1016,19 +1019,19 @@ model WorkflowStep {
 }
 
 model WorkflowWait {
-    id        String             @id @default(cuid())
-    createdAt DateTime           @default(now())
-    updatedAt DateTime           @updatedAt
+    id        String       @id @default(cuid())
+    createdAt DateTime     @default(now())
+    updatedAt DateTime     @updatedAt
     runId     String
-    run       WorkflowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+    run       WorkflowRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
     stepId    String
-    step      WorkflowStep       @relation(fields: [stepId], references: [id], onDelete: Cascade)
+    step      WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
-    kind       WorkflowWaitKind
-    status     WorkflowWaitStatus @default(PENDING)
-    externalId String?
-    resumeAt   DateTime?
-    payload    Json               @default("{}")
+    kind          WorkflowWaitKind
+    status        WorkflowWaitStatus @default(PENDING)
+    externalId    String?
+    resumeAt      DateTime?
+    payload       Json               @default("{}")
     resumePayload Json?
 
     approvals WorkflowApproval[]
@@ -1040,26 +1043,26 @@ model WorkflowWait {
 }
 
 model WorkflowApproval {
-    id             String                    @id @default(cuid())
-    createdAt      DateTime                  @default(now())
-    updatedAt      DateTime                  @updatedAt
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
     organizationId String
-    organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     runId          String
-    run            WorkflowRun               @relation(fields: [runId], references: [id], onDelete: Cascade)
+    run            WorkflowRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
     stepId         String
-    step           WorkflowStep              @relation(fields: [stepId], references: [id], onDelete: Cascade)
+    step           WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
     waitId         String
-    wait           WorkflowWait              @relation(fields: [waitId], references: [id], onDelete: Cascade)
+    wait           WorkflowWait @relation(fields: [waitId], references: [id], onDelete: Cascade)
 
-    token      String                   @unique @default(cuid())
-    channel    WorkflowApprovalChannel
-    decision   WorkflowApprovalDecision @default(PENDING)
-    message    String?                  @db.Text
-    decidedBy  String?
-    decidedAt  DateTime?
-    expiresAt  DateTime?
-    emailTo    String?
+    token     String                   @unique @default(cuid())
+    channel   WorkflowApprovalChannel
+    decision  WorkflowApprovalDecision @default(PENDING)
+    message   String?                  @db.Text
+    decidedBy String?
+    decidedAt DateTime?
+    expiresAt DateTime?
+    emailTo   String?
 
     @@index([organizationId])
     @@index([runId])
@@ -1093,39 +1096,39 @@ enum DocumentSourceType {
 }
 
 model KnowledgeBase {
-    id              String              @id @default(cuid())
-    createdAt       DateTime            @default(now())
-    updatedAt       DateTime            @updatedAt
-    organizationId  String
-    organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    name            String
-    description     String?
-    embeddingModel  String              @default("text-embedding-3-small")
-    embeddingDim    Int                 @default(1536)
-    status          KnowledgeBaseStatus @default(ACTIVE)
-    metadata        Json                @default("{}")
+    id             String              @id @default(cuid())
+    createdAt      DateTime            @default(now())
+    updatedAt      DateTime            @updatedAt
+    organizationId String
+    organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    name           String
+    description    String?
+    embeddingModel String              @default("text-embedding-3-small")
+    embeddingDim   Int                 @default(1536)
+    status         KnowledgeBaseStatus @default(ACTIVE)
+    metadata       Json                @default("{}")
 
-    documents  Document[]
-    agents     AgentKnowledgeBase[]
-    campaigns  CampaignKnowledgeBase[]
+    documents Document[]
+    agents    AgentKnowledgeBase[]
+    campaigns CampaignKnowledgeBase[]
 
     @@index([organizationId, status])
     @@map("knowledge_base")
 }
 
 model Document {
-    id             String             @id @default(cuid())
-    createdAt      DateTime           @default(now())
-    updatedAt      DateTime           @updatedAt
+    id              String             @id @default(cuid())
+    createdAt       DateTime           @default(now())
+    updatedAt       DateTime           @updatedAt
     knowledgeBaseId String
-    knowledgeBase  KnowledgeBase      @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
-    title          String
-    sourceType     DocumentSourceType @default(UPLOAD)
-    sourceUrl      String?
-    storageKey     String?
-    status         DocumentStatus     @default(PENDING)
-    errorMessage   String?
-    metadata       Json               @default("{}")
+    knowledgeBase   KnowledgeBase      @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+    title           String
+    sourceType      DocumentSourceType @default(UPLOAD)
+    sourceUrl       String?
+    storageKey      String?
+    status          DocumentStatus     @default(PENDING)
+    errorMessage    String?
+    metadata        Json               @default("{}")
 
     chunks DocumentChunk[]
 
@@ -1134,15 +1137,15 @@ model Document {
 }
 
 model DocumentChunk {
-    id         String                      @id @default(cuid())
-    createdAt  DateTime                    @default(now())
-    updatedAt  DateTime                    @updatedAt
+    id         String   @id @default(cuid())
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
     documentId String
-    document   Document                    @relation(fields: [documentId], references: [id], onDelete: Cascade)
-    content    String                      @db.Text
+    document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+    content    String   @db.Text
     chunkIndex Int
     tokenCount Int?
-    metadata   Json                        @default("{}")
+    metadata   Json     @default("{}")
     /// Embedding vector stored as JSON number array (portable; swap to pgvector later if needed)
     embedding  Json?
 
@@ -1215,11 +1218,11 @@ model PhoneNumber {
     sipTrunkId     String?
     sipTrunk       SipTrunk?    @relation(fields: [sipTrunkId], references: [id], onDelete: SetNull)
 
-    e164           String
-    plivoNumberId  String?
-    friendlyName   String?
-    capabilities   Json         @default("{}")
-    metadata       Json         @default("{}")
+    e164          String
+    plivoNumberId String?
+    friendlyName  String?
+    capabilities  Json    @default("{}")
+    metadata      Json    @default("{}")
 
     @@unique([organizationId, e164])
     @@index([campaignId])
@@ -1229,11 +1232,11 @@ model PhoneNumber {
 }
 
 model SipTrunk {
-    id             String            @id @default(cuid())
-    createdAt      DateTime          @default(now())
-    updatedAt      DateTime          @updatedAt
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
     organizationId String
-    organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
     name              String
     direction         SipTrunkDirection
@@ -1242,9 +1245,9 @@ model SipTrunk {
     plivoUriId        String?
     plivoCredentialId String?
     authUsername      String?
-    hasCredentials    Boolean          @default(false)
-    numbers           String[]         @default([])
-    metadata          Json             @default("{}")
+    hasCredentials    Boolean           @default(false)
+    numbers           String[]          @default([])
+    metadata          Json              @default("{}")
 
     phoneNumbers  PhoneNumber[]
     dispatchRules DispatchRule[]
@@ -1300,29 +1303,29 @@ model CustomVoice {
 }
 
 model EgressJob {
-    id                String             @id @default(cuid())
-    createdAt         DateTime           @default(now())
-    updatedAt         DateTime           @updatedAt
+    id                String           @id @default(cuid())
+    createdAt         DateTime         @default(now())
+    updatedAt         DateTime         @updatedAt
     organizationId    String
-    organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     campaignSessionId String?
-    campaignSession   CampaignSession?   @relation(fields: [campaignSessionId], references: [id], onDelete: SetNull)
+    campaignSession   CampaignSession? @relation(fields: [campaignSessionId], references: [id], onDelete: SetNull)
     agentSessionId    String?
-    agentSession      AgentSession?      @relation(fields: [agentSessionId], references: [id], onDelete: SetNull)
+    agentSession      AgentSession?    @relation(fields: [agentSessionId], references: [id], onDelete: SetNull)
     agentId           String?
-    agent             Agent?             @relation(fields: [agentId], references: [id], onDelete: SetNull)
+    agent             Agent?           @relation(fields: [agentId], references: [id], onDelete: SetNull)
 
     livekitEgressId String?
     type            EgressJobType
-    status          EgressJobStatus      @default(STARTING)
+    status          EgressJobStatus @default(STARTING)
     roomName        String?
-    outputUrls      String[]             @default([])
-    destination     Json                 @default("{}")
+    outputUrls      String[]        @default([])
+    destination     Json            @default("{}")
     fileUrl         String?
     durationMs      Int?
     sizeBytes       Int?
     errorMessage    String?
-    metadata        Json                 @default("{}")
+    metadata        Json            @default("{}")
 
     @@index([organizationId, status])
     @@index([campaignSessionId])
@@ -1330,28 +1333,6 @@ model EgressJob {
     @@index([agentId])
     @@index([livekitEgressId])
     @@map("egress_job")
-}
-
-// ------------------------------------------------------------
-// ----------------------------- Avatars (Anam) ---------------
-// ------------------------------------------------------------
-
-model AvatarProfile {
-    id             String       @id @default(cuid())
-    createdAt      DateTime     @default(now())
-    updatedAt      DateTime     @updatedAt
-    organizationId String
-    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-    name          String
-    anamAvatarId  String
-    anamPersonaId String?
-    previewUrl    String?
-    metadata      Json          @default("{}")
-
-    @@index([organizationId])
-    @@index([anamAvatarId])
-    @@map("avatar_profile")
 }
 
 // ------------------------------------------------------------
@@ -1375,25 +1356,25 @@ enum UsageMetricCategory {
 }
 
 model UsageMetric {
-    id                String              @id @default(cuid())
-    createdAt         DateTime            @default(now())
+    id                String           @id @default(cuid())
+    createdAt         DateTime         @default(now())
     organizationId    String
-    organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     agentId           String?
-    agent             Agent?              @relation(fields: [agentId], references: [id], onDelete: SetNull)
+    agent             Agent?           @relation(fields: [agentId], references: [id], onDelete: SetNull)
     campaignId        String?
-    campaign          Campaign?           @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+    campaign          Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
     campaignSessionId String?
-    campaignSession   CampaignSession?    @relation(fields: [campaignSessionId], references: [id], onDelete: SetNull)
+    campaignSession   CampaignSession? @relation(fields: [campaignSessionId], references: [id], onDelete: SetNull)
 
     source     UsageMetricSource
     category   UsageMetricCategory
     provider   String?
     metric     String
-    value      Decimal            @db.Decimal(20, 6)
+    value      Decimal             @db.Decimal(20, 6)
     unit       String
-    recordedAt DateTime           @default(now())
-    metadata   Json               @default("{}")
+    recordedAt DateTime            @default(now())
+    metadata   Json                @default("{}")
 
     @@index([organizationId, recordedAt])
     @@index([agentId, recordedAt])
@@ -1403,31 +1384,31 @@ model UsageMetric {
 }
 
 model SessionUsage {
-    id             String         @id @default(cuid())
-    createdAt      DateTime       @default(now())
-    updatedAt      DateTime       @updatedAt
+    id             String        @id @default(cuid())
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
     organizationId String
-    organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     sessionId      String
-    session        AgentSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    session        AgentSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
     agentId        String
-    agent          Agent          @relation(fields: [agentId], references: [id], onDelete: Restrict)
+    agent          Agent         @relation(fields: [agentId], references: [id], onDelete: Restrict)
     modality       UsageModality
     provider       String
     model          String
-    unitSource     UnitSource     @default(BYOK)
+    unitSource     UnitSource    @default(BYOK)
 
-    inputTokens             Int @default(0)
-    inputCachedTokens       Int @default(0)
-    inputCachedAudioTokens  Int @default(0)
-    inputCachedTextTokens   Int @default(0)
-    inputCachedImageTokens  Int @default(0)
-    inputAudioTokens        Int @default(0)
-    inputTextTokens         Int @default(0)
-    inputImageTokens        Int @default(0)
-    outputTokens            Int @default(0)
-    outputAudioTokens       Int @default(0)
-    outputTextTokens        Int @default(0)
+    inputTokens               Int @default(0)
+    inputCachedTokens         Int @default(0)
+    inputCachedAudioTokens    Int @default(0)
+    inputCachedTextTokens     Int @default(0)
+    inputCachedImageTokens    Int @default(0)
+    inputAudioTokens          Int @default(0)
+    inputTextTokens           Int @default(0)
+    inputImageTokens          Int @default(0)
+    outputTokens              Int @default(0)
+    outputAudioTokens         Int @default(0)
+    outputTextTokens          Int @default(0)
     providerSessionDurationMs Int @default(0)
 
     charactersCount Int @default(0)
@@ -1441,9 +1422,9 @@ model SessionUsage {
     egressMinutes      Int @default(0)
     egressBytes        Int @default(0)
 
-    raw       Json     @default("{}")
+    raw        Json     @default("{}")
     capturedAt DateTime @default(now())
-    isFinal   Boolean  @default(false)
+    isFinal    Boolean  @default(false)
 
     @@unique([sessionId, modality, provider, model])
     @@index([organizationId, capturedAt])
@@ -1468,12 +1449,12 @@ model SessionCollectedField {
     agentId        String
     agent          Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
 
-    key       String
-    label     String?
-    fieldType String        @default("string")
-    value     Json          @default("null")
-    required  Boolean       @default(false)
-    capturedAt DateTime     @default(now())
+    key        String
+    label      String?
+    fieldType  String   @default("string")
+    value      Json     @default("null")
+    required   Boolean  @default(false)
+    capturedAt DateTime @default(now())
 
     @@unique([sessionId, key])
     @@index([organizationId, capturedAt])
@@ -1516,7 +1497,7 @@ model CallbackSchedule {
     status      CallbackScheduleStatus @default(PENDING)
     source      CallbackScheduleSource @default(RESCHEDULE)
 
-    contactMetadata Json @default("{}")
+    contactMetadata Json    @default("{}")
     errorMessage    String? @db.Text
 
     completedSessionId String?
@@ -1544,18 +1525,60 @@ model ProviderRate {
     organizationId String?
     organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-    modality   UsageModality
-    provider   String
-    model      String?
-    unit       ProviderRateUnit
+    modality         UsageModality
+    provider         String
+    model            String?
+    unit             ProviderRateUnit
     /// Micros of currency per unit (1 USD = 1_000_000 micros)
     unitAmountMicros Int
-    currency   String          @default("USD")
-    unitSource UnitSource?
-    effectiveFrom DateTime     @default(now())
-    effectiveTo   DateTime?
+    currency         String           @default("USD")
+    unitSource       UnitSource?
+    effectiveFrom    DateTime         @default(now())
+    effectiveTo      DateTime?
 
     @@index([modality, provider, effectiveFrom])
     @@index([organizationId, modality, provider])
     @@map("provider_rate")
+}
+
+model SessionFile {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    sessionId String
+    session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+    name String
+    url  String
+    type String
+    size Int
+
+    @@index([organizationId, sessionId])
+    @@map("session_file")
+}
+
+model EndUser {
+    id             String       @id @default(cuid())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+    agentId String
+    agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+    name     String
+    identity String
+    phone    String?
+    metadata Json     @default("{}")
+    memory   String[] @default([])
+    files    String[] @default([])
+
+    sessions AgentSession[]
+
+    @@index([organizationId])
+    @@map("end_user")
 }
