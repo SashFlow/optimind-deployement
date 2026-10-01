@@ -21,12 +21,16 @@ export function AgentConfigurePreviewDrawer({
 	hasUnsavedVariables,
 	draftVersionId,
 	avatar,
+	sessionModalities,
+	maxDurationSeconds,
 }: {
 	agent: Agent;
 	savedVariables: AgentConfigDocument["variables"];
 	hasUnsavedVariables?: boolean;
 	draftVersionId?: string;
 	avatar?: PreviewAvatar;
+	sessionModalities?: AgentConfigDocument["session_modalities"];
+	maxDurationSeconds?: number | null;
 }) {
 	const [open, setOpen] = useState(false);
 
@@ -50,6 +54,8 @@ export function AgentConfigurePreviewDrawer({
 					hasUnsavedVariables={hasUnsavedVariables}
 					draftVersionId={draftVersionId}
 					avatar={avatar}
+					sessionModalities={sessionModalities}
+					maxDurationSeconds={maxDurationSeconds}
 					onCancel={() => setOpen(false)}
 				/>
 			</DrawerContent>

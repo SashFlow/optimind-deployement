@@ -34,6 +34,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { PreviewAvatar } from "@/lib/preview-avatar";
+import { formatRemainingDuration } from "@/lib/session-modalities";
 import type { Agent } from "@/services/api/types";
 import MainStage from "./MainStage";
 import MessageList from "./MessageList";
@@ -88,12 +89,20 @@ export function PreviewSessionControls({
 	avatar,
 	spatialRealAppId,
 	onEnd,
+	maxDurationSeconds = null,
+	chatMandatory = false,
+	proctoringEnabled = false,
+	proctoringNotice = null,
 }: {
 	agent: Agent;
 	avatar: PreviewAvatar;
 	/** Returned by the session-start API; required for SpatialReal avatars. */
 	spatialRealAppId?: string | null;
 	onEnd: () => void;
+	maxDurationSeconds?: number | null;
+	chatMandatory?: boolean;
+	proctoringEnabled?: boolean;
+	proctoringNotice?: string | null;
 }) {
 	const room = useRoomContext();
 	const connectionState = useConnectionState();
@@ -113,7 +122,12 @@ export function PreviewSessionControls({
 		(p) => p.identity !== localIdentity && !isUserParticipant(p.identity),
 	);
 	const [agentWaitTimedOut, setAgentWaitTimedOut] = useState(false);
-	const [chatOpen, setChatOpen] = useState(false);
+	const [chatOpen, setChatOpen] = useState(chatMandatory);
+	const [remainingSeconds, setRemainingSeconds] = useState<number | null>(
+		typeof maxDurationSeconds === "number" && maxDurationSeconds > 0
+			? maxDurationSeconds
+			: null,
+	);
 	const isEndingRef = useRef(false);
 	const didConnectRef = useRef(false);
 	const onEndRef = useRef(onEnd);
@@ -147,6 +161,12 @@ export function PreviewSessionControls({
 	}
 
 	useEffect(() => {
+		if (chatMandatory) {
+			setChatOpen(true);
+		}
+	}, [chatMandatory]);
+
+	useEffect(() => {
 		if (!shouldWaitForAgent) {
 			return;
 		}
@@ -162,6 +182,36 @@ export function PreviewSessionControls({
 			didConnectRef.current = true;
 		}
 	}, [isConnected]);
+
+	useEffect(() => {
+		if (
+			!isConnected ||
+			typeof maxDurationSeconds !== "number" ||
+			maxDurationSeconds <= 0
+		) {
+			return;
+		}
+
+		setRemainingSeconds(maxDurationSeconds);
+		const startedAt = Date.now();
+		const timer = window.setInterval(() => {
+			const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+			const remaining = Math.max(0, maxDurationSeconds - elapsed);
+			setRemainingSeconds(remaining);
+			if (remaining <= 0) {
+				window.clearInterval(timer);
+				if (isEndingRef.current) {
+					return;
+				}
+				isEndingRef.current = true;
+				toast.message("Maximum call duration reached");
+				void room.disconnect();
+				onEndRef.current();
+			}
+		}, 1000);
+
+		return () => window.clearInterval(timer);
+	}, [isConnected, maxDurationSeconds, room]);
 
 	useEffect(() => {
 		function handleDisconnected() {
@@ -275,6 +325,24 @@ export function PreviewSessionControls({
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4 md:p-5">
 				<div className="relative flex h-full max-h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-xl border bg-card shadow-sm lg:max-w-4xl xl:max-w-5xl">
+					{(proctoringEnabled || remainingSeconds != null) && (
+						<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+							{proctoringEnabled ? (
+								<span>
+									{proctoringNotice?.trim() ||
+										"Proctoring enabled"}
+								</span>
+							) : (
+								<span />
+							)}
+							{remainingSeconds != null ? (
+								<span className="font-medium text-foreground">
+									{formatRemainingDuration(remainingSeconds)}{" "}
+									left
+								</span>
+							) : null}
+						</div>
+					)}
 					<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 p-3 sm:p-4">
 						<div
 							className={cn(
@@ -367,7 +435,15 @@ export function PreviewSessionControls({
 				</div>
 			</div>
 
-			<Dialog open={chatOpen} onOpenChange={setChatOpen}>
+			<Dialog
+				open={chatOpen}
+				onOpenChange={(open) => {
+					if (chatMandatory && !open) {
+						return;
+					}
+					setChatOpen(open);
+				}}
+			>
 				<DialogContent className="flex! max-h-[min(85dvh,40rem)] w-[calc(100%-2rem)] max-w-lg flex-col gap-0 overflow-hidden p-0">
 					<DialogHeader className="shrink-0 border-b px-6 py-4 pr-12 text-left">
 						<DialogTitle>Conversation</DialogTitle>

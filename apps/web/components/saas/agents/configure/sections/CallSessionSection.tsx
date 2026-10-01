@@ -160,6 +160,198 @@ export function CallSessionSection({
 		<div className="rounded-xl border bg-card divide-y">
 			<div className="space-y-4 px-4 py-4 md:px-5">
 				<SectionHeader
+					title="Call modalities"
+					description="Channel, media track, and proctoring requirements for sessions."
+				/>
+				<div className="grid gap-4 sm:grid-cols-2">
+					<div className="space-y-2">
+						<Label className="text-sm font-medium">Call type</Label>
+						<Select
+							value={config.session_modalities.call_type}
+							onValueChange={(value) =>
+								value &&
+								onConfigChange({
+									session_modalities: {
+										...config.session_modalities,
+										call_type: value as
+											| "phone"
+											| "web"
+											| "both",
+									},
+								})
+							}
+						>
+							<SelectTrigger className="w-full bg-background">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="phone">Phone</SelectItem>
+								<SelectItem value="web">Web</SelectItem>
+								<SelectItem value="both">Both</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+					<div className="space-y-2">
+						<Label className="text-sm font-medium">
+							Audio track
+						</Label>
+						<Select
+							value={config.session_modalities.audio_track}
+							onValueChange={(value) =>
+								value &&
+								onConfigChange({
+									session_modalities: {
+										...config.session_modalities,
+										audio_track: value as
+											| "mandatory"
+											| "optional",
+									},
+								})
+							}
+						>
+							<SelectTrigger className="w-full bg-background">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="mandatory">
+									Mandatory
+								</SelectItem>
+								<SelectItem value="optional">
+									Optional
+								</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+					<div className="space-y-2">
+						<Label className="text-sm font-medium">
+							Video track
+						</Label>
+						<Select
+							value={config.session_modalities.video_track}
+							onValueChange={(value) =>
+								value &&
+								onConfigChange({
+									session_modalities: {
+										...config.session_modalities,
+										video_track: value as
+											| "mandatory"
+											| "optional",
+									},
+								})
+							}
+						>
+							<SelectTrigger className="w-full bg-background">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="mandatory">
+									Mandatory
+								</SelectItem>
+								<SelectItem value="optional">
+									Optional
+								</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+					<div className="space-y-2">
+						<Label className="text-sm font-medium">Chat</Label>
+						<Select
+							value={config.session_modalities.chat}
+							onValueChange={(value) =>
+								value &&
+								onConfigChange({
+									session_modalities: {
+										...config.session_modalities,
+										chat: value as "mandatory" | "optional",
+									},
+								})
+							}
+						>
+							<SelectTrigger className="w-full bg-background">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="mandatory">
+									Mandatory
+								</SelectItem>
+								<SelectItem value="optional">
+									Optional
+								</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+				</div>
+				<div className="rounded-lg border bg-background/60 px-3">
+					<ToggleField
+						label="Proctoring"
+						description="Enable proctoring controls for this agent’s sessions."
+						checked={config.session_modalities.proctoring.enabled}
+						onCheckedChange={(enabled) =>
+							onConfigChange({
+								session_modalities: {
+									...config.session_modalities,
+									proctoring: {
+										...config.session_modalities.proctoring,
+										enabled,
+										...(enabled
+											? {}
+											: {
+													proactive_response: false,
+													id_verification: false,
+												}),
+									},
+								},
+							})
+						}
+					>
+						<div className="space-y-0">
+							<ToggleField
+								label="Proactive response"
+								description="Allow proactive interventions during proctored sessions."
+								checked={
+									config.session_modalities.proctoring
+										.proactive_response
+								}
+								onCheckedChange={(proactive_response) =>
+									onConfigChange({
+										session_modalities: {
+											...config.session_modalities,
+											proctoring: {
+												...config.session_modalities
+													.proctoring,
+												proactive_response,
+											},
+										},
+									})
+								}
+							/>
+							<ToggleField
+								label="ID verification"
+								description="Require identity verification for proctored sessions."
+								checked={
+									config.session_modalities.proctoring
+										.id_verification
+								}
+								onCheckedChange={(id_verification) =>
+									onConfigChange({
+										session_modalities: {
+											...config.session_modalities,
+											proctoring: {
+												...config.session_modalities
+													.proctoring,
+												id_verification,
+											},
+										},
+									})
+								}
+							/>
+						</div>
+					</ToggleField>
+				</div>
+			</div>
+
+			<div className="space-y-4 px-4 py-4 md:px-5">
+				<SectionHeader
 					title="Call duration"
 					description="Limits and inactivity timeouts for active calls."
 				/>

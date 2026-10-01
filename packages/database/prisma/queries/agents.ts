@@ -81,6 +81,38 @@ export async function updateAgent(
 	});
 }
 
+/** Ensure the agent has an embed token and embedEnabled=true. */
+export async function ensureAgentEmbedToken(id: string) {
+	const agent = await db.agent.findUnique({ where: { id } });
+	if (!agent) {
+		return null;
+	}
+	if (agent.token && agent.embedEnabled) {
+		return db.agent.findUnique({
+			where: { id },
+			include: { draftVersion: true, publishedVersion: true },
+		});
+	}
+	return db.agent.update({
+		where: { id },
+		data: {
+			embedEnabled: true,
+			token: agent.token ?? createId(),
+		},
+		include: { draftVersion: true, publishedVersion: true },
+	});
+}
+
+export async function getAgentByEmbedToken(token: string) {
+	return db.agent.findFirst({
+		where: { token, embedEnabled: true, status: { not: "DELETED" } },
+		include: {
+			draftVersion: true,
+			publishedVersion: true,
+		},
+	});
+}
+
 export async function updateAgentDraftConfig(
 	agentId: string,
 	config: Prisma.InputJsonValue,

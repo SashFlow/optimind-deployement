@@ -9,15 +9,24 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@repo/ui/dialog";
+import {
+	FolderTabs,
+	FolderTabsActions,
+	FolderTabsBar,
+	FolderTabsContent,
+	FolderTabsList,
+	FolderTabsTrigger,
+} from "@repo/ui/folder-tabs";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Switch } from "@repo/ui/switch";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CopyIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { CopyIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { AgentEmbedPanel } from "@/components/saas/agents/AgentEmbedPanel";
 import {
 	DataTableBulkBar,
 	IdentityCell,
@@ -106,6 +115,7 @@ async function copyTrialUrl(path: string) {
 
 export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	const queryClient = useQueryClient();
+	const [tab, setTab] = useState("links");
 	const trialLinksQuery = useQuery(
 		orpc.agents.listTrialLinks.queryOptions({
 			input: { id: agentId },
@@ -398,92 +408,96 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 		[updateMutation.isPending],
 	);
 
-	const toolbar = (
-		<div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-			<div className="space-y-1">
-				<h2 className="font-semibold text-lg">Trial links</h2>
-				<p className="text-sm text-muted-foreground">
-					Shareable demo links. Guests can fully test the published
-					agent on web or mobile.
-				</p>
+	const linksContent = trialLinksQuery.isLoading ? (
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+			<div className="min-h-0 flex-1 overflow-x-auto">
+				<TableBodySkeleton
+					headers={[
+						"",
+						"Label",
+						"URL",
+						"Status",
+						"Remaining",
+						"Expiry",
+						"Enabled",
+						"Actions",
+					]}
+					columns={[
+						{ type: "action" },
+						{ type: "text", width: "w-24" },
+						{ type: "text", width: "w-40" },
+						{ type: "pill" },
+						{ type: "text", width: "w-14" },
+						{ type: "text", width: "w-20" },
+						{ type: "action" },
+						{ type: "action" },
+					]}
+				/>
 			</div>
-			<Button
-				type="button"
-				className="shrink-0"
-				onClick={openCreateDialog}
-			>
-				Create link
-			</Button>
 		</div>
+	) : (
+		<DataTable
+			columns={columns}
+			data={trials}
+			framed={false}
+			enableRowSelection
+			pageSize={PAGE_SIZE}
+			getRowId={(row) => row.id}
+			emptyMessage="No trial links yet."
+			onSelectionChange={({ selectedRows, clearSelection }) => {
+				selectedTrialsRef.current = selectedRows;
+				clearSelectionRef.current = clearSelection;
+			}}
+			bulkBar={({ selectedCount, clearSelection }) => (
+				<DataTableBulkBar
+					count={selectedCount}
+					onClear={clearSelection}
+				>
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						disabled={bulkBusy || deleteMutation.isPending}
+						className="text-destructive"
+						onClick={() => {
+							void bulkDelete();
+						}}
+					>
+						{bulkBusy ? "Deleting…" : "Delete"}
+					</Button>
+				</DataTableBulkBar>
+			)}
+		/>
 	);
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col">
-			{trialLinksQuery.isLoading ? (
-				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-					<div className="flex min-h-16 shrink-0 items-center border-b border-border/60 px-1 py-3 sm:px-0">
-						{toolbar}
-					</div>
-					<div className="min-h-0 flex-1 overflow-x-auto">
-						<TableBodySkeleton
-							headers={[
-								"",
-								"Label",
-								"URL",
-								"Status",
-								"Remaining",
-								"Expiry",
-								"Enabled",
-								"Actions",
-							]}
-							columns={[
-								{ type: "action" },
-								{ type: "text", width: "w-24" },
-								{ type: "text", width: "w-40" },
-								{ type: "pill" },
-								{ type: "text", width: "w-14" },
-								{ type: "text", width: "w-20" },
-								{ type: "action" },
-								{ type: "action" },
-							]}
-						/>
-					</div>
-				</div>
-			) : (
-				<DataTable
-					columns={columns}
-					data={trials}
-					toolbar={toolbar}
-					framed={false}
-					enableRowSelection
-					pageSize={PAGE_SIZE}
-					getRowId={(row) => row.id}
-					emptyMessage="No trial links yet."
-					onSelectionChange={({ selectedRows, clearSelection }) => {
-						selectedTrialsRef.current = selectedRows;
-						clearSelectionRef.current = clearSelection;
-					}}
-					bulkBar={({ selectedCount, clearSelection }) => (
-						<DataTableBulkBar
-							count={selectedCount}
-							onClear={clearSelection}
-						>
-							<Button
-								type="button"
-								size="sm"
-								variant="outline"
-								disabled={bulkBusy || deleteMutation.isPending}
-								className="text-destructive"
-								onClick={() => {
-									void bulkDelete();
-								}}
-							>
-								{bulkBusy ? "Deleting…" : "Delete"}
-							</Button>
-						</DataTableBulkBar>
-					)}
-				/>
-			)}
+		<FolderTabs
+			value={tab}
+			onValueChange={setTab}
+			className="min-h-0 flex-1 bg-transparent rounded-none"
+		>
+			<FolderTabsBar>
+				<FolderTabsList>
+					<FolderTabsTrigger value="links">Links</FolderTabsTrigger>
+					<FolderTabsTrigger value="embed">Embed</FolderTabsTrigger>
+				</FolderTabsList>
+				{tab === "links" ? (
+					<FolderTabsActions>
+						<button type="button" onClick={openCreateDialog}>
+							<PlusIcon className="size-4" />
+							Create
+						</button>
+					</FolderTabsActions>
+				) : null}
+			</FolderTabsBar>
+
+			<FolderTabsContent value="links" scrollable={false}>
+				{linksContent}
+			</FolderTabsContent>
+
+			<FolderTabsContent value="embed">
+				<AgentEmbedPanel agentId={agentId} />
+			</FolderTabsContent>
 
 			<Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
 				<DialogContent className="max-w-md">
@@ -587,6 +601,6 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 					</form>
 				</DialogContent>
 			</Dialog>
-		</div>
+		</FolderTabs>
 	);
 }

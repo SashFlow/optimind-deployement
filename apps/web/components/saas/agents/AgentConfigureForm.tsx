@@ -321,6 +321,10 @@ export function AgentConfigureForm({
 								hasUnsavedVariables={hasUnsavedVariables}
 								draftVersionId={versionId}
 								avatar={avatar}
+								sessionModalities={config.session_modalities}
+								maxDurationSeconds={
+									config.call_ending.max_duration_seconds
+								}
 								className="min-h-0 flex-1"
 							/>
 						</div>

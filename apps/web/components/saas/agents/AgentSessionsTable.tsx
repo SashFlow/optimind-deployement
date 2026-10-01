@@ -11,7 +11,7 @@ import {
 } from "@repo/ui/select";
 import type { ColumnDef } from "@tanstack/react-table";
 import { formatDistanceToNow } from "date-fns";
-import { SearchIcon, XIcon } from "lucide-react";
+import { SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -68,10 +68,6 @@ export function AgentSessionsTable({
 }) {
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-	const [endUserFilter, setEndUserFilter] = useState<{
-		id: string;
-		name: string;
-	} | null>(null);
 	const [bulkBusy, setBulkBusy] = useState(false);
 	const selectedSessionsRef = useRef<AgentSessionRow[]>([]);
 	const clearSelectionRef = useRef<() => void>(() => {});
@@ -81,9 +77,6 @@ export function AgentSessionsTable({
 		const query = search.trim().toLowerCase();
 		return sessions.filter((session) => {
 			if (statusFilter !== "all" && session.status !== statusFilter) {
-				return false;
-			}
-			if (endUserFilter && session.endUser?.id !== endUserFilter.id) {
 				return false;
 			}
 			if (!query) {
@@ -98,7 +91,7 @@ export function AgentSessionsTable({
 				endUser?.phone,
 			].some((value) => value?.toLowerCase().includes(query));
 		});
-	}, [sessions, search, statusFilter, endUserFilter]);
+	}, [sessions, search, statusFilter]);
 
 	async function bulkEnd() {
 		const selectedEndable = selectedSessionsRef.current.filter((session) =>
@@ -121,29 +114,11 @@ export function AgentSessionsTable({
 	const columns = useMemo<ColumnDef<AgentSessionRow>[]>(
 		() => [
 			{
-				id: "session",
-				header: "Session",
-				cell: ({ row }) => {
-					const session = row.original;
-					return (
-						<Link
-							href={`/app/agents/${agentId}/session/${session.id}`}
-							className="block min-w-0 underline-offset-2 hover:underline"
-						>
-							<IdentityCell
-								name={session.id.slice(0, 10)}
-								secondary={session.livekitRoomName}
-								showAvatar={false}
-							/>
-						</Link>
-					);
-				},
-			},
-			{
 				id: "user",
 				header: "User",
 				cell: ({ row }) => {
-					const endUser = row.original.endUser;
+					const session = row.original;
+					const endUser = session.endUser;
 					if (!endUser) {
 						return (
 							<span className="text-muted-foreground text-sm">
@@ -152,16 +127,9 @@ export function AgentSessionsTable({
 						);
 					}
 					return (
-						<button
-							type="button"
-							title="Show sessions for this user"
+						<Link
+							href={`/app/agents/${agentId}/session/${session.id}`}
 							className="block min-w-0 text-left underline-offset-2 hover:underline"
-							onClick={() =>
-								setEndUserFilter({
-									id: endUser.id,
-									name: endUser.name,
-								})
-							}
 						>
 							<IdentityCell
 								name={endUser.name}
@@ -170,7 +138,7 @@ export function AgentSessionsTable({
 								}
 								showAvatar={false}
 							/>
-						</button>
+						</Link>
 					);
 				},
 			},
@@ -219,39 +187,47 @@ export function AgentSessionsTable({
 			{
 				id: "actions",
 				header: () => <span className="sr-only">Actions</span>,
-				size: 96,
+				size: 140,
 				cell: ({ row }) => {
 					const session = row.original;
-					if (!ENDABLE_STATUSES.has(session.status)) {
-						return (
-							<span className="text-muted-foreground text-xs">
-								—
-							</span>
-						);
-					}
+					const canEnd = ENDABLE_STATUSES.has(session.status);
 					return (
-						<div className="flex items-center justify-end">
+						<div className="flex items-center justify-end gap-2">
 							<Button
 								type="button"
 								size="sm"
-								variant="outline"
-								disabled={
-									(endSession.isPending &&
-										endSession.variables?.id ===
-											session.id) ||
-									bulkBusy
-								}
-								onClick={() =>
-									endSession.mutate({
-										id: session.id,
-									})
-								}
+								variant="ghost"
+								asChild
 							>
-								{endSession.isPending &&
-								endSession.variables?.id === session.id
-									? "Ending…"
-									: "End"}
+								<Link
+									href={`/app/agents/${agentId}/session/${session.id}`}
+								>
+									View
+								</Link>
 							</Button>
+							{canEnd ? (
+								<Button
+									type="button"
+									size="sm"
+									variant="outline"
+									disabled={
+										(endSession.isPending &&
+											endSession.variables?.id ===
+												session.id) ||
+										bulkBusy
+									}
+									onClick={() =>
+										endSession.mutate({
+											id: session.id,
+										})
+									}
+								>
+									{endSession.isPending &&
+									endSession.variables?.id === session.id
+										? "Ending…"
+										: "End"}
+								</Button>
+							) : null}
 						</div>
 					);
 				},
@@ -262,17 +238,6 @@ export function AgentSessionsTable({
 
 	const filters = (
 		<div className="ml-auto flex flex-col gap-2 sm:flex-row sm:items-center">
-			{endUserFilter ? (
-				<Button
-					type="button"
-					size="sm"
-					variant="outline"
-					onClick={() => setEndUserFilter(null)}
-				>
-					User: {endUserFilter.name}
-					<XIcon className="size-3.5" />
-				</Button>
-			) : null}
 			<div className="relative min-w-0 sm:w-72">
 				<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 				<Input
@@ -313,7 +278,6 @@ export function AgentSessionsTable({
 						<TableBodySkeleton
 							headers={[
 								"",
-								"Session",
 								"User",
 								"Status",
 								"Channel",
@@ -323,7 +287,6 @@ export function AgentSessionsTable({
 							]}
 							columns={[
 								{ type: "action" },
-								{ type: "text", width: "w-28" },
 								{ type: "text", width: "w-28" },
 								{ type: "pill" },
 								{ type: "text", width: "w-16" },
@@ -345,7 +308,7 @@ export function AgentSessionsTable({
 				</div>
 			) : (
 				<DataTable
-					key={`${search}-${statusFilter}-${endUserFilter?.id ?? ""}`}
+					key={`${search}-${statusFilter}`}
 					columns={columns}
 					data={filtered}
 					toolbar={filters}

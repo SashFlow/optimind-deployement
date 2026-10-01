@@ -5,6 +5,7 @@ import {
 	createEgressJob,
 	createSessionEvent,
 	createToolCallRecord,
+	getAgentByEmbedToken,
 	getAgentById,
 	getAgentSessionById,
 	getAgentTrialByToken,
@@ -368,6 +369,74 @@ function normalizeTrialVariables(raw: unknown): Array<{
 	return [];
 }
 
+const DEFAULT_TRIAL_SESSION_MODALITIES = {
+	call_type: "web" as const,
+	audio_track: "mandatory" as const,
+	video_track: "optional" as const,
+	chat: "optional" as const,
+	proctoring: {
+		enabled: false,
+		proactive_response: false,
+		id_verification: false,
+	},
+};
+
+function normalizeTrialSessionModalities(raw: unknown) {
+	const source =
+		raw && typeof raw === "object" && !Array.isArray(raw)
+			? (raw as Record<string, unknown>)
+			: {};
+	const callType =
+		source.call_type === "phone" ||
+		source.call_type === "web" ||
+		source.call_type === "both"
+			? source.call_type
+			: DEFAULT_TRIAL_SESSION_MODALITIES.call_type;
+	const asTrack = (value: unknown, fallback: "mandatory" | "optional") =>
+		value === "mandatory" || value === "optional" ? value : fallback;
+	const proctoringRaw =
+		source.proctoring &&
+		typeof source.proctoring === "object" &&
+		!Array.isArray(source.proctoring)
+			? (source.proctoring as Record<string, unknown>)
+			: {};
+
+	return {
+		call_type: callType,
+		audio_track: asTrack(
+			source.audio_track,
+			DEFAULT_TRIAL_SESSION_MODALITIES.audio_track,
+		),
+		video_track: asTrack(
+			source.video_track,
+			DEFAULT_TRIAL_SESSION_MODALITIES.video_track,
+		),
+		chat: asTrack(source.chat, DEFAULT_TRIAL_SESSION_MODALITIES.chat),
+		proctoring: {
+			enabled: Boolean(
+				proctoringRaw.enabled ??
+					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring.enabled,
+			),
+			proactive_response: Boolean(
+				proctoringRaw.proactive_response ??
+					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring
+						.proactive_response,
+			),
+			id_verification: Boolean(
+				proctoringRaw.id_verification ??
+					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring.id_verification,
+			),
+		},
+	};
+}
+
+function normalizeTrialMaxDurationSeconds(raw: unknown): number | null {
+	if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) {
+		return null;
+	}
+	return Math.floor(raw);
+}
+
 function normalizeTrialPhoneNumber(raw: string): string | null {
 	const trimmed = raw.trim();
 	if (!trimmed) {
@@ -432,6 +501,10 @@ export const getTrialLink = publicProcedure
 						external_avatar_id?: string | null;
 					})
 				: null;
+		const callEnding =
+			config && typeof config.call_ending === "object" && config.call_ending
+				? (config.call_ending as Record<string, unknown>)
+				: null;
 
 		return {
 			trial: {
@@ -459,6 +532,12 @@ export const getTrialLink = publicProcedure
 				avatarId: avatarConfig?.external_avatar_id ?? null,
 				hasPublishedVersion,
 				variables: normalizeTrialVariables(config?.variables),
+				sessionModalities: normalizeTrialSessionModalities(
+					config?.session_modalities,
+				),
+				maxDurationSeconds: normalizeTrialMaxDurationSeconds(
+					callEnding?.max_duration_seconds,
+				),
 			},
 		};
 	});
@@ -635,6 +714,182 @@ export const startTrialSession = publicProcedure
 			serverUrl: cfg.url,
 			participantToken,
 			phoneNumber: null,
+			spatialRealAppId: getSpatialRealAppId(),
+		};
+	});
+
+export const getEmbedAgent = publicProcedure
+	.route({
+		method: "GET",
+		path: "/sessions/embed/{token}",
+		tags: ["Sessions"],
+		summary: "Get public embed agent details",
+	})
+	.input(z.object({ token: z.string().min(1) }))
+	.handler(async ({ input }) => {
+		const agent = await getAgentByEmbedToken(input.token);
+		if (!agent?.token) {
+			throw new ORPCError("NOT_FOUND", {
+				message: "This embed link is invalid",
+			});
+		}
+
+		const hasPublishedVersion = Boolean(agent.publishedVersion);
+		const unavailableReason = !hasPublishedVersion
+			? ("unpublished" as const)
+			: null;
+		const config =
+			(agent.publishedVersion?.config as Record<string, unknown> | null) ??
+			null;
+		const avatarConfig =
+			config && typeof config.avatar === "object" && config.avatar
+				? (config.avatar as {
+						enabled?: boolean;
+						provider_id?: string | null;
+						external_avatar_id?: string | null;
+					})
+				: null;
+		const callEnding =
+			config && typeof config.call_ending === "object" && config.call_ending
+				? (config.call_ending as Record<string, unknown>)
+				: null;
+
+		return {
+			embed: {
+				token: agent.token,
+				available: unavailableReason === null,
+				unavailableReason,
+			},
+			agent: {
+				id: agent.id,
+				name: agent.name,
+				avatarEnabled: Boolean(avatarConfig?.enabled),
+				avatarProvider: resolveAvatarProviderId(
+					avatarConfig?.external_avatar_id,
+					avatarConfig?.provider_id,
+				),
+				avatarId: avatarConfig?.external_avatar_id ?? null,
+				hasPublishedVersion,
+				variables: normalizeTrialVariables(config?.variables),
+				sessionModalities: normalizeTrialSessionModalities(
+					config?.session_modalities,
+				),
+				maxDurationSeconds: normalizeTrialMaxDurationSeconds(
+					callEnding?.max_duration_seconds,
+				),
+			},
+		};
+	});
+
+export const startEmbedSession = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/embed/{token}/start",
+		tags: ["Sessions"],
+		summary: "Start a public embed session",
+	})
+	.input(
+		z.object({
+			token: z.string().min(1),
+			participantName: z.string().min(1).max(120).default("Guest"),
+			contactMetadata: z.record(z.string(), z.unknown()).optional(),
+			/** External end-user id for upsert (query ?id=). */
+			externalId: z.string().trim().min(1).max(200).optional(),
+			name: z.string().trim().max(120).optional(),
+		}),
+	)
+	.handler(async ({ input }) => {
+		const agent = await getAgentByEmbedToken(input.token);
+		if (!agent?.token) {
+			throw new ORPCError("NOT_FOUND", {
+				message: "This embed link is invalid",
+			});
+		}
+
+		const version = agent.publishedVersion;
+		if (!version) {
+			throw new ORPCError("FORBIDDEN", {
+				message: "This agent is not published yet",
+			});
+		}
+
+		const configSnapshot =
+			(version.config as Record<string, unknown>) ?? {};
+		const recordingEnabled = configRecordingEnabled(configSnapshot);
+		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+		const roomName = `SESSION_${timestamp}_${Math.floor(Math.random() * 10_000)}`;
+
+		const endUser = await resolveSessionEndUser(
+			{ organizationId: agent.organizationId, agentId: agent.id },
+			input.externalId
+				? {
+						kind: "external",
+						externalId: input.externalId,
+						name:
+							input.name ||
+							(input.participantName !== "Guest"
+								? input.participantName
+								: null),
+						metadata: input.contactMetadata,
+					}
+				: {
+						kind: "anonymous",
+						name:
+							input.name ||
+							(input.participantName !== "Guest"
+								? input.participantName
+								: null),
+					},
+		);
+
+		const session = await createAgentSession({
+			organizationId: agent.organizationId,
+			agentId: agent.id,
+			endUserId: endUser.id,
+			livekitRoomName: roomName,
+			channel: "WEB",
+			direction: "WEB",
+			configSnapshot,
+			recordingEnabled,
+			metadata: {
+				source: "embed",
+				externalId: input.externalId ?? null,
+				channel: "WEB",
+			},
+		});
+
+		const dispatchMetadata = await buildDispatchMetadata({
+			organization_id: agent.organizationId,
+			agent_id: agent.id,
+			agent_version_id: version.id,
+			session_id: session.id,
+			config: configSnapshot,
+			source: "web",
+			direction: "WEB",
+			channel: "WEB",
+			contact_metadata: input.contactMetadata ?? {},
+			end_user: toDispatchEndUser(endUser),
+			recording_enabled: recordingEnabled,
+		});
+		await createOutboundRoomWithDispatch({
+			roomName,
+			agentName: AGENT_NAME,
+			metadata: serializeDispatchMetadata(dispatchMetadata),
+		});
+
+		const participantToken = await createParticipantToken({
+			identity: `user-${Math.floor(Math.random() * 10_000)}`,
+			name: input.participantName,
+			roomName,
+		});
+
+		const cfg = getLiveKitConfig();
+		return {
+			sessionId: session.id,
+			roomName,
+			channel: "WEB" as const,
+			serverUrl: cfg.url,
+			participantToken,
 			spatialRealAppId: getSpatialRealAppId(),
 		};
 	});

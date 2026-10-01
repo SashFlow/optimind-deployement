@@ -25,7 +25,14 @@ export type EndUserSource =
 			variables?: Record<string, unknown>;
 	  }
 	/** Anonymous web visitor: a new end user every session. */
-	| { kind: "anonymous"; name?: string | null };
+	| { kind: "anonymous"; name?: string | null }
+	/** Embed visitor with a stable external id: upsert by identity. */
+	| {
+			kind: "external";
+			externalId: string;
+			name?: string | null;
+			metadata?: Record<string, unknown>;
+	  };
 
 function contactName(contactMetadata: Record<string, unknown> = {}) {
 	for (const key of ["name", "full_name", "customer_name", "contact_name"]) {
@@ -76,6 +83,20 @@ export async function resolveSessionEndUser(base: Base, source: EndUserSource) {
 				identityPrefix: "anon",
 				name: source.name?.trim() || "Guest",
 				metadata: { source: "anonymous" },
+			});
+		case "external":
+			return upsertEndUser({
+				...base,
+				identity: `external:${source.externalId}`,
+				name:
+					source.name?.trim() ||
+					contactName(source.metadata) ||
+					"Guest",
+				metadata: {
+					source: "embed",
+					externalId: source.externalId,
+					...(source.metadata ?? {}),
+				},
 			});
 	}
 }

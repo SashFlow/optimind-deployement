@@ -23,22 +23,49 @@ import {
 	VideoIcon,
 	VideoOffIcon,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
-import type { AgentVariableDefinition } from "@/lib/agent-config";
+import type {
+	AgentVariableDefinition,
+	SessionModalitiesConfig,
+} from "@/lib/agent-config";
 import { normalizePhoneNumber } from "@/lib/phone";
 import {
 	DISABLED_PREVIEW_AVATAR,
 	type PreviewAvatar,
 } from "@/lib/preview-avatar";
+import {
+	DEFAULT_SESSION_MODALITIES,
+	isTrackMandatory,
+	resolvePreviewMedia,
+} from "@/lib/session-modalities";
 import { fetchSessionCredentials } from "@/services/api/livekit";
 import { uploadPreviewAsset } from "@/services/api/preview-assets";
 import type { Agent } from "@/services/api/types";
 import { PreviewSessionControls } from "./preview/PreviewSessionControls";
 
 type PreviewMedia = "web" | "phone";
+
+function buildProctoringNotice(
+	proctoring: SessionModalitiesConfig["proctoring"],
+): string | null {
+	if (!proctoring.enabled) {
+		return null;
+	}
+	const details: string[] = [];
+	if (proctoring.proactive_response) {
+		details.push("proactive response");
+	}
+	if (proctoring.id_verification) {
+		details.push("ID verification");
+	}
+	if (details.length === 0) {
+		return "Proctoring enabled";
+	}
+	return `Proctoring enabled · ${details.join(" · ")}`;
+}
 
 async function requestMediaPermission(
 	constraints: MediaStreamConstraints,
@@ -61,6 +88,8 @@ type AgentConfigurePreviewProps = {
 	hasUnsavedVariables?: boolean;
 	draftVersionId?: string;
 	avatar?: PreviewAvatar;
+	sessionModalities?: SessionModalitiesConfig;
+	maxDurationSeconds?: number | null;
 	onCancel?: () => void;
 	className?: string;
 };
@@ -195,6 +224,8 @@ export function AgentConfigurePreview({
 	hasUnsavedVariables = false,
 	draftVersionId,
 	avatar = DISABLED_PREVIEW_AVATAR,
+	sessionModalities = DEFAULT_SESSION_MODALITIES,
+	maxDurationSeconds = null,
 	onCancel,
 	className,
 }: AgentConfigurePreviewProps) {
@@ -205,9 +236,14 @@ export function AgentConfigurePreview({
 		Record<string, string>
 	>({});
 	const [uploadingField, setUploadingField] = useState<string | null>(null);
-	const [media, setMedia] = useState<PreviewMedia>("web");
+	const [media, setMedia] = useState<PreviewMedia>(() =>
+		resolvePreviewMedia(sessionModalities.call_type, "web"),
+	);
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [starting, setStarting] = useState(false);
+	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
+	const videoMandatory = isTrackMandatory(sessionModalities.video_track);
+	const chatMandatory = isTrackMandatory(sessionModalities.chat);
 	const [micEnabled, setMicEnabled] = useState(false);
 	const [cameraEnabled, setCameraEnabled] = useState(false);
 	const [mediaPermissionPending, setMediaPermissionPending] = useState<
@@ -226,12 +262,102 @@ export function AgentConfigurePreview({
 	} | null>(null);
 
 	const definedVariables = savedVariables.filter((v) => v.name.trim());
+	const allowPhone = sessionModalities.call_type !== "web";
+	const allowWeb = sessionModalities.call_type !== "phone";
+	const showMediaToggle = sessionModalities.call_type === "both";
+	const proctoringNotice = buildProctoringNotice(
+		sessionModalities.proctoring,
+	);
+
+	useEffect(() => {
+		setMedia((current) =>
+			resolvePreviewMedia(sessionModalities.call_type, current),
+		);
+	}, [sessionModalities.call_type]);
+
+	useEffect(() => {
+		if (media !== "web") {
+			return;
+		}
+
+		let cancelled = false;
+
+		async function ensureMandatoryPermissions() {
+			if (audioMandatory && !micEnabled) {
+				mediaPermissionPendingRef.current = true;
+				setMediaPermissionPending("mic");
+				try {
+					await requestMediaPermission({ audio: true });
+					if (!cancelled) {
+						setMicEnabled(true);
+					}
+				} catch (error) {
+					if (!cancelled) {
+						setMicEnabled(false);
+						toast.error(
+							error instanceof Error
+								? error.message
+								: "Microphone permission denied",
+						);
+					}
+				} finally {
+					mediaPermissionPendingRef.current = false;
+					if (!cancelled) {
+						setMediaPermissionPending(null);
+					}
+				}
+			}
+
+			if (cancelled) {
+				return;
+			}
+
+			if (videoMandatory && !cameraEnabled) {
+				mediaPermissionPendingRef.current = true;
+				setMediaPermissionPending("camera");
+				try {
+					await requestMediaPermission({ video: true });
+					if (!cancelled) {
+						setCameraEnabled(true);
+					}
+				} catch (error) {
+					if (!cancelled) {
+						setCameraEnabled(false);
+						toast.error(
+							error instanceof Error
+								? error.message
+								: "Camera permission denied",
+						);
+					}
+				} finally {
+					mediaPermissionPendingRef.current = false;
+					if (!cancelled) {
+						setMediaPermissionPending(null);
+					}
+				}
+			}
+		}
+
+		void ensureMandatoryPermissions();
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		audioMandatory,
+		cameraEnabled,
+		media,
+		micEnabled,
+		videoMandatory,
+	]);
 
 	async function toggleMic() {
 		if (mediaPermissionPendingRef.current) {
 			return;
 		}
 		if (micEnabled) {
+			if (audioMandatory) {
+				return;
+			}
 			setMicEnabled(false);
 			return;
 		}
@@ -259,6 +385,9 @@ export function AgentConfigurePreview({
 			return;
 		}
 		if (cameraEnabled) {
+			if (videoMandatory) {
+				return;
+			}
 			setCameraEnabled(false);
 			return;
 		}
@@ -402,11 +531,30 @@ export function AgentConfigurePreview({
 			return;
 		}
 
+		if (media === "web") {
+			if (audioMandatory && !micEnabled) {
+				toast.error("Microphone is required before starting");
+				return;
+			}
+			if (videoMandatory && !cameraEnabled) {
+				toast.error("Camera is required before starting");
+				return;
+			}
+		}
+
 		setStarting(true);
 		try {
 			if (media === "phone") {
+				if (!allowPhone) {
+					toast.error("Phone sessions are disabled for this agent");
+					return;
+				}
 				await handleStartPhoneSession(contactMetadata);
 			} else {
+				if (!allowWeb) {
+					toast.error("Web sessions are disabled for this agent");
+					return;
+				}
 				await handleStartWebSession(contactMetadata);
 			}
 		} catch (error) {
@@ -444,6 +592,10 @@ export function AgentConfigurePreview({
 					avatar={avatar}
 					spatialRealAppId={sessionCredentials.spatialRealAppId}
 					onEnd={handleEndSession}
+					maxDurationSeconds={maxDurationSeconds}
+					chatMandatory={chatMandatory}
+					proctoringEnabled={sessionModalities.proctoring.enabled}
+					proctoringNotice={proctoringNotice}
 				/>
 			</LiveKitRoom>
 		);
@@ -453,9 +605,13 @@ export function AgentConfigurePreview({
 		agent,
 		avatar,
 		cameraEnabled,
+		chatMandatory,
+		maxDurationSeconds,
 		micEnabled,
 		onCancel,
+		proctoringNotice,
 		sessionCredentials,
+		sessionModalities.proctoring.enabled,
 	]);
 
 	if (sessionCredentials) {
@@ -533,30 +689,51 @@ export function AgentConfigurePreview({
 
 					{/* Controls */}
 					<div className="flex min-w-0 flex-1 flex-col gap-3 p-5 sm:p-6">
-						<div className="flex items-center justify-between gap-3">
-							<div className="min-w-0">
-								<Label
-									htmlFor="preview-media-phone"
-									className="text-sm font-medium"
-								>
-									Phone
-								</Label>
+						{sessionModalities.proctoring.enabled ? (
+							<p className="rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+								{proctoringNotice}
+							</p>
+						) : null}
+
+						{showMediaToggle ? (
+							<div className="flex items-center justify-between gap-3">
+								<div className="min-w-0">
+									<Label
+										htmlFor="preview-media-phone"
+										className="text-sm font-medium"
+									>
+										Phone
+									</Label>
+									<p className="text-xs text-muted-foreground">
+										{media === "phone"
+											? "Telephony outbound call"
+											: "Web browser session"}
+									</p>
+								</div>
+								<Switch
+									id="preview-media-phone"
+									checked={media === "phone"}
+									onCheckedChange={(checked) =>
+										setMedia(checked ? "phone" : "web")
+									}
+									disabled={starting}
+									aria-label="Use phone instead of web"
+								/>
+							</div>
+						) : (
+							<div className="space-y-1">
+								<p className="text-sm font-medium">
+									{media === "phone"
+										? "Phone session"
+										: "Web session"}
+								</p>
 								<p className="text-xs text-muted-foreground">
 									{media === "phone"
-										? "Telephony outbound call"
-										: "Web browser session"}
+										? "This agent is configured for phone calls only."
+										: "This agent is configured for web sessions only."}
 								</p>
 							</div>
-							<Switch
-								id="preview-media-phone"
-								checked={media === "phone"}
-								onCheckedChange={(checked) =>
-									setMedia(checked ? "phone" : "web")
-								}
-								disabled={starting}
-								aria-label="Use phone instead of web"
-							/>
-						</div>
+						)}
 
 						{media === "phone" ? (
 							<div className="space-y-1.5">
@@ -677,6 +854,21 @@ export function AgentConfigurePreview({
 						) : null}
 
 						<div className="mt-auto flex flex-col gap-2 border-t pt-3">
+							{media === "web" &&
+							(audioMandatory || videoMandatory) ? (
+								<p className="text-xs text-muted-foreground">
+									{[
+										audioMandatory
+											? "Microphone required"
+											: null,
+										videoMandatory
+											? "Camera required"
+											: null,
+									]
+										.filter(Boolean)
+										.join(" · ")}
+								</p>
+							) : null}
 							<div className="flex items-center gap-2">
 								{media === "web" ? (
 									<>
@@ -692,7 +884,9 @@ export function AgentConfigurePreview({
 											aria-pressed={micEnabled}
 											disabled={
 												starting ||
-												mediaPermissionPending !== null
+												mediaPermissionPending !==
+													null ||
+												(audioMandatory && micEnabled)
 											}
 											className={cn(
 												"size-10 shrink-0 rounded-full",
@@ -723,7 +917,10 @@ export function AgentConfigurePreview({
 											aria-pressed={cameraEnabled}
 											disabled={
 												starting ||
-												mediaPermissionPending !== null
+												mediaPermissionPending !==
+													null ||
+												(videoMandatory &&
+													cameraEnabled)
 											}
 											className={cn(
 												"size-10 shrink-0 rounded-full",
@@ -748,7 +945,13 @@ export function AgentConfigurePreview({
 									type="button"
 									className="min-w-0 flex-1 gap-2"
 									loading={starting}
-									disabled={starting}
+									disabled={
+										starting ||
+										(media === "web" &&
+											((audioMandatory && !micEnabled) ||
+												(videoMandatory &&
+													!cameraEnabled)))
+									}
 									onClick={() => void handleStartSession()}
 								>
 									{starting ? (

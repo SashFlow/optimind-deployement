@@ -12,6 +12,8 @@ import { cn } from "@repo/ui/utils";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
 	BracesIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
 	ClockIcon,
 	DownloadIcon,
 	ExternalLinkIcon,
@@ -22,6 +24,8 @@ import {
 	RadioIcon,
 	VideoIcon,
 } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { MetricKpiCard } from "@/components/saas/app/dashboard/MetricKpiCard";
 import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
@@ -30,6 +34,7 @@ import {
 	DataTableTypeBadge,
 } from "@/components/saas/shared/StandardDataTable";
 import type { SessionDetail } from "./lib/hooks";
+import { useAgentSessionsQuery } from "./lib/hooks";
 import { AssistantTranscriptThread } from "./transcript/AssistantTranscriptThread";
 import { sessionSegmentsToThreadMessages } from "./transcript/mapTranscriptMessages";
 
@@ -367,13 +372,13 @@ function EgressStatusBadge({
 			className={cn(
 				"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize",
 				isComplete &&
-					"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+				"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
 				isFailed && "bg-destructive/10 text-destructive",
 				inProgress && "bg-primary/10 text-primary",
 				!isComplete &&
-					!isFailed &&
-					!inProgress &&
-					"bg-muted text-muted-foreground",
+				!isFailed &&
+				!inProgress &&
+				"bg-muted text-muted-foreground",
 			)}
 		>
 			{inProgress ? (
@@ -702,36 +707,35 @@ export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 	);
 }
 
-function EndUserCard({ session }: { session: SessionDetail }) {
-	const endUser = session.endUser;
-	if (!endUser) {
-		return null;
+export function SessionMemoriesPanel({
+	session,
+}: {
+	session: SessionDetail;
+}) {
+	const memories = session.endUser?.memory ?? [];
+
+	if (!session.endUser) {
+		return (
+			<div className="flex min-h-0 flex-1 items-center justify-center p-6">
+				<p className="text-sm text-muted-foreground">
+					No end user linked to this session.
+				</p>
+			</div>
+		);
 	}
-	const memory = endUser.memory ?? [];
-	const files = session.files ?? [];
-	const contact = [endUser.email, endUser.phone].filter(Boolean).join(" · ");
 
 	return (
-		<Card className="shadow-xs">
-			<CardHeader>
-				<CardTitle className="text-base font-bold leading-none">
-					End user
-				</CardTitle>
-			</CardHeader>
-			<CardContent className="space-y-4 text-sm">
-				<div>
-					<div className="font-medium">{endUser.name}</div>
-					<div className="text-xs text-muted-foreground">
-						{contact || endUser.identity}
-					</div>
-				</div>
-				<div className="space-y-1">
-					<div className="text-xs text-muted-foreground">
+		<div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-6">
+			<Card className="shadow-xs">
+				<CardHeader>
+					<CardTitle className="text-base font-bold leading-none">
 						Memories
-					</div>
-					{memory.length > 0 ? (
-						<ul className="list-disc space-y-1 pl-5">
-							{memory.map((item) => (
+					</CardTitle>
+				</CardHeader>
+				<CardContent className="text-sm">
+					{memories.length > 0 ? (
+						<ul className="list-disc space-y-2 pl-5">
+							{memories.map((item) => (
 								<li key={item}>{item}</li>
 							))}
 						</ul>
@@ -740,13 +744,26 @@ function EndUserCard({ session }: { session: SessionDetail }) {
 							No memories yet.
 						</p>
 					)}
-				</div>
-				{files.length > 0 ? (
-					<div className="space-y-1">
-						<div className="text-xs text-muted-foreground">
-							Files from this session
-						</div>
-						<ul className="space-y-1">
+				</CardContent>
+			</Card>
+		</div>
+	);
+}
+
+export function SessionFilesPanel({ session }: { session: SessionDetail }) {
+	const files = session.files ?? [];
+
+	return (
+		<div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-6">
+			<Card className="shadow-xs">
+				<CardHeader>
+					<CardTitle className="text-base font-bold leading-none">
+						Files
+					</CardTitle>
+				</CardHeader>
+				<CardContent className="text-sm">
+					{files.length > 0 ? (
+						<ul className="space-y-2">
 							{files.map((file) => (
 								<li
 									key={file.id}
@@ -772,10 +789,103 @@ function EndUserCard({ session }: { session: SessionDetail }) {
 								</li>
 							))}
 						</ul>
-					</div>
-				) : null}
-			</CardContent>
-		</Card>
+					) : (
+						<p className="text-muted-foreground">
+							No files from this session.
+						</p>
+					)}
+				</CardContent>
+			</Card>
+		</div>
+	);
+}
+
+function SessionNavigator({ session }: { session: SessionDetail }) {
+	const params = useParams<{ agentId: string }>();
+	const agentId = params.agentId;
+	const sessionsQuery = useAgentSessionsQuery(agentId);
+
+	const { previousId, nextId } = useMemo(() => {
+		const sessions = [...(sessionsQuery.data ?? [])].sort((a, b) => {
+			const aTime = new Date(a.startedAt ?? a.createdAt).getTime();
+			const bTime = new Date(b.startedAt ?? b.createdAt).getTime();
+			return aTime - bTime;
+		});
+		const endUserId = session.endUser?.id;
+		const scoped = endUserId
+			? sessions.filter((item) => item.endUser?.id === endUserId)
+			: sessions;
+		const index = scoped.findIndex((item) => item.id === session.id);
+		if (index < 0) {
+			return { previousId: null, nextId: null };
+		}
+		return {
+			previousId: scoped[index - 1]?.id ?? null,
+			nextId: scoped[index + 1]?.id ?? null,
+		};
+	}, [session.endUser?.id, session.id, sessionsQuery.data]);
+
+	const displayName = session.endUser?.name ?? "Unknown user";
+	const displayId = session.endUser?.id ?? session.id;
+
+	return (
+		<div className="flex items-center gap-3">
+			{previousId ? (
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					className="shrink-0"
+					asChild
+					aria-label="Previous session"
+				>
+					<Link href={`/app/agents/${agentId}/session/${previousId}`}>
+						<ChevronLeftIcon className="size-4" />
+					</Link>
+				</Button>
+			) : (
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					className="shrink-0"
+					disabled
+					aria-label="Previous session"
+				>
+					<ChevronLeftIcon className="size-4" />
+				</Button>
+			)}
+
+			<div className="min-w-0 flex-1 text-center">
+				<div className="truncate font-medium text-sm">{displayName}</div>
+			</div>
+
+			{nextId ? (
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					className="shrink-0"
+					asChild
+					aria-label="Next session"
+				>
+					<Link href={`/app/agents/${agentId}/session/${nextId}`}>
+						<ChevronRightIcon className="size-4" />
+					</Link>
+				</Button>
+			) : (
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					className="shrink-0"
+					disabled
+					aria-label="Next session"
+				>
+					<ChevronRightIcon className="size-4" />
+				</Button>
+			)}
+		</div>
 	);
 }
 
@@ -790,6 +900,8 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 
 	return (
 		<div className="mt-4 space-y-4">
+			<SessionNavigator session={session} />
+
 			<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
 				<MetricKpiCard
 					compact
@@ -875,7 +987,6 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 				</Card>
 			</div>
 
-			{session.endUser ? <EndUserCard session={session} /> : null}
 
 			{collectedFields.length > 0 ? (
 				<Card className="shadow-xs">

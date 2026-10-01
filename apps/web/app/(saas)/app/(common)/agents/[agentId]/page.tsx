@@ -49,7 +49,11 @@ export default function AgentDetailLayout() {
 			<FolderTabsContent value="sessions" scrollable={false}>
 				<AgentLogsPage />
 			</FolderTabsContent>
-			<FolderTabsContent value="access-control">
+			<FolderTabsContent
+				value="access-control"
+				scrollable={false}
+				className="p-0"
+			>
 				<AgentAccessControlPage />
 			</FolderTabsContent>
 		</FolderTabs>

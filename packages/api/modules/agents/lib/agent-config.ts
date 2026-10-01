@@ -225,6 +225,22 @@ export const agentConfigSchema = z
 			})
 			.passthrough()
 			.optional(),
+		session_modalities: z
+			.object({
+				call_type: z.enum(["phone", "web", "both"]),
+				audio_track: z.enum(["mandatory", "optional"]),
+				video_track: z.enum(["mandatory", "optional"]),
+				chat: z.enum(["mandatory", "optional"]),
+				proctoring: z
+					.object({
+						enabled: z.boolean(),
+						proactive_response: z.boolean(),
+						id_verification: z.boolean(),
+					})
+					.passthrough(),
+			})
+			.passthrough()
+			.optional(),
 		tools: z.array(z.string()).optional(),
 		tools_config: z
 			.object({

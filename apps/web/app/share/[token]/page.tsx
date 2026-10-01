@@ -12,6 +12,7 @@ import {
 	SelectValue,
 } from "@repo/ui/select";
 import { Spinner } from "@repo/ui/spinner";
+import { Switch } from "@repo/ui/switch";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { MicIcon } from "lucide-react";
@@ -20,7 +21,14 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PreviewSessionControls } from "@/components/saas/agents/preview/PreviewSessionControls";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
+import { normalizePhoneNumber } from "@/lib/phone";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
+import {
+	DEFAULT_SESSION_MODALITIES,
+	isTrackMandatory,
+	normalizeSessionModalities,
+	resolvePreviewMedia,
+} from "@/lib/session-modalities";
 
 const UNAVAILABLE_MESSAGES = {
 	disabled: "This shared link has been disabled.",
@@ -158,6 +166,13 @@ export default function SharedTrialPage() {
 	const [videoDeviceId, setVideoDeviceId] = useState("");
 	const [devicesLoading, setDevicesLoading] = useState(false);
 	const [permissionError, setPermissionError] = useState<string | null>(null);
+	const [sessionMedia, setSessionMedia] = useState<"web" | "phone">("web");
+	const [outboundPhone, setOutboundPhone] = useState("");
+	const [phoneDispatch, setPhoneDispatch] = useState<{
+		sessionId: string;
+		roomName: string;
+		phoneNumber: string | null;
+	} | null>(null);
 	const [credentials, setCredentials] = useState<{
 		token: string;
 		serverUrl: string;
@@ -170,9 +185,57 @@ export default function SharedTrialPage() {
 		}),
 	);
 
+	const sessionModalities = normalizeSessionModalities(
+		trialQuery.data?.agent.sessionModalities ?? DEFAULT_SESSION_MODALITIES,
+	);
+	const maxDurationSeconds =
+		trialQuery.data?.agent.maxDurationSeconds ?? null;
+	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
+	const videoMandatory = isTrackMandatory(sessionModalities.video_track);
+	const chatMandatory = isTrackMandatory(sessionModalities.chat);
+	const allowPhone = sessionModalities.call_type !== "web";
+	const allowWeb = sessionModalities.call_type !== "phone";
+	const showMediaToggle = sessionModalities.call_type === "both";
+	const proctoringNotice = (() => {
+		if (!sessionModalities.proctoring.enabled) {
+			return null;
+		}
+		const details: string[] = [];
+		if (sessionModalities.proctoring.proactive_response) {
+			details.push("proactive response");
+		}
+		if (sessionModalities.proctoring.id_verification) {
+			details.push("ID verification");
+		}
+		return details.length > 0
+			? `Proctoring enabled · ${details.join(" · ")}`
+			: "Proctoring enabled";
+	})();
+
+	useEffect(() => {
+		setSessionMedia((current) =>
+			resolvePreviewMedia(sessionModalities.call_type, current),
+		);
+	}, [sessionModalities.call_type]);
+
 	const startMutation = useMutation(
 		orpc.sessions.startTrialSession.mutationOptions({
 			onSuccess: (data) => {
+				if (data.channel === "PHONE") {
+					setPhoneDispatch({
+						sessionId: data.sessionId,
+						roomName: data.roomName,
+						phoneNumber: data.phoneNumber,
+					});
+					toast.success(
+						data.phoneNumber
+							? `Calling ${data.phoneNumber}`
+							: "Outbound call dispatched",
+					);
+					void trialQuery.refetch();
+					return;
+				}
+
 				if (!data.participantToken || !data.serverUrl) {
 					toast.error("Could not start web session");
 					void trialQuery.refetch();
@@ -206,15 +269,26 @@ export default function SharedTrialPage() {
 		setDevicesLoading(true);
 		setPermissionError(null);
 		try {
-			const stream = await navigator.mediaDevices.getUserMedia({
-				audio: true,
-			});
-			for (const track of stream.getTracks()) {
-				track.stop();
+			if (audioMandatory) {
+				const stream = await navigator.mediaDevices.getUserMedia({
+					audio: true,
+				});
+				for (const track of stream.getTracks()) {
+					track.stop();
+				}
+			} else {
+				try {
+					const stream = await navigator.mediaDevices.getUserMedia({
+						audio: true,
+					});
+					for (const track of stream.getTracks()) {
+						track.stop();
+					}
+				} catch {
+					// optional audio can continue without a mic
+				}
 			}
 
-			// Camera is optional: ask for it, but never fail the flow if it is
-			// missing or denied.
 			try {
 				const videoStream = await navigator.mediaDevices.getUserMedia({
 					video: true,
@@ -222,8 +296,14 @@ export default function SharedTrialPage() {
 				for (const track of videoStream.getTracks()) {
 					track.stop();
 				}
-			} catch {
-				// ignore — session can start without a camera
+			} catch (error) {
+				if (videoMandatory) {
+					throw error instanceof Error
+						? error
+						: new Error(
+								"Camera permission is required to start a session.",
+							);
+				}
 			}
 
 			const devices = await navigator.mediaDevices.enumerateDevices();
@@ -240,22 +320,31 @@ export default function SharedTrialPage() {
 					? current
 					: (mics[0]?.deviceId ?? ""),
 			);
-			// Camera stays unselected by default.
-			setVideoDeviceId((current) =>
-				current && cameras.some((device) => device.deviceId === current)
-					? current
-					: "",
-			);
-			if (mics.length === 0) {
+			setVideoDeviceId((current) => {
+				if (
+					current &&
+					cameras.some((device) => device.deviceId === current)
+				) {
+					return current;
+				}
+				return videoMandatory ? (cameras[0]?.deviceId ?? "") : "";
+			});
+			if (audioMandatory && mics.length === 0) {
 				setPermissionError(
 					"No microphone found. Connect a mic and try again.",
+				);
+			} else if (videoMandatory && cameras.length === 0) {
+				setPermissionError(
+					"No camera found. Connect a camera and try again.",
 				);
 			}
 		} catch (error) {
 			setPermissionError(
 				error instanceof Error
 					? error.message
-					: "Microphone permission is required to start a session.",
+					: audioMandatory
+						? "Microphone permission is required to start a session."
+						: "Media permission is required to start a session.",
 			);
 			setAudioDevices([]);
 			setVideoDevices([]);
@@ -264,14 +353,14 @@ export default function SharedTrialPage() {
 		} finally {
 			setDevicesLoading(false);
 		}
-	}, []);
+	}, [audioMandatory, videoMandatory]);
 
 	useEffect(() => {
-		if (!trialQuery.data?.trial.available) {
+		if (!trialQuery.data?.trial.available || !allowWeb) {
 			return;
 		}
 		void loadDevices();
-	}, [trialQuery.data?.trial.available, loadDevices]);
+	}, [trialQuery.data?.trial.available, allowWeb, loadDevices]);
 
 	function handleStart() {
 		const variables =
@@ -282,9 +371,21 @@ export default function SharedTrialPage() {
 			return;
 		}
 
-		if (!audioDeviceId) {
-			toast.error("Select a microphone before starting");
-			return;
+		if (sessionMedia === "web") {
+			if (audioMandatory && !audioDeviceId) {
+				toast.error("Select a microphone before starting");
+				return;
+			}
+			if (videoMandatory && !videoDeviceId) {
+				toast.error("Select a camera before starting");
+				return;
+			}
+		} else {
+			const normalized = normalizePhoneNumber(outboundPhone);
+			if (!normalized) {
+				toast.error("Enter a valid phone number");
+				return;
+			}
 		}
 
 		const name = visitor.name.trim();
@@ -297,6 +398,10 @@ export default function SharedTrialPage() {
 			name: name || undefined,
 			email: email || undefined,
 			contactPhone: phone || undefined,
+			phoneNumber:
+				sessionMedia === "phone"
+					? (normalizePhoneNumber(outboundPhone) ?? undefined)
+					: undefined,
 		});
 	}
 
@@ -310,7 +415,9 @@ export default function SharedTrialPage() {
 					audio={
 						audioDeviceId
 							? { deviceId: { exact: audioDeviceId } }
-							: true
+							: audioMandatory
+								? true
+								: false
 					}
 					video={
 						videoDeviceId
@@ -333,12 +440,44 @@ export default function SharedTrialPage() {
 								trialQuery.data?.agent.avatarId ?? null,
 						})}
 						spatialRealAppId={credentials.spatialRealAppId}
+						maxDurationSeconds={maxDurationSeconds}
+						chatMandatory={chatMandatory}
+						proctoringEnabled={sessionModalities.proctoring.enabled}
+						proctoringNotice={proctoringNotice}
 						onEnd={() => {
 							setCredentials(null);
 							void trialQuery.refetch();
 						}}
 					/>
 				</LiveKitRoom>
+			</div>
+		);
+	}
+
+	if (phoneDispatch) {
+		return (
+			<div className="mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-6">
+				<div className="w-full space-y-4 rounded-3xl border bg-card p-6 text-center shadow-sm ring-1 ring-black/5">
+					<h1 className="font-semibold text-xl tracking-tight">
+						Outbound call dispatched
+					</h1>
+					<p className="text-sm text-muted-foreground">
+						{phoneDispatch.phoneNumber
+							? `Calling ${phoneDispatch.phoneNumber}`
+							: `Room ${phoneDispatch.roomName}`}
+					</p>
+					<Button
+						type="button"
+						variant="outline"
+						className="w-full"
+						onClick={() => {
+							setPhoneDispatch(null);
+							void trialQuery.refetch();
+						}}
+					>
+						Done
+					</Button>
+				</div>
 			</div>
 		);
 	}
@@ -375,12 +514,18 @@ export default function SharedTrialPage() {
 	const unavailableMessage = trial.unavailableReason
 		? UNAVAILABLE_MESSAGES[trial.unavailableReason]
 		: null;
+	const canStartWeb =
+		allowWeb &&
+		!devicesLoading &&
+		(!audioMandatory || Boolean(audioDeviceId)) &&
+		(!videoMandatory || Boolean(videoDeviceId)) &&
+		!permissionError;
+	const canStartPhone =
+		allowPhone && Boolean(normalizePhoneNumber(outboundPhone));
 	const canStart =
 		trial.available &&
 		!startMutation.isPending &&
-		!devicesLoading &&
-		Boolean(audioDeviceId) &&
-		!permissionError;
+		(sessionMedia === "phone" ? canStartPhone : canStartWeb);
 
 	return (
 		<div className="mx-auto flex min-h-dvh w-full max-w-2xl items-stretch justify-center px-4 py-4 sm:items-center sm:px-6 sm:py-6">
@@ -404,10 +549,61 @@ export default function SharedTrialPage() {
 						</div>
 					) : (
 						<>
-							{devicesLoading ? (
+							{sessionModalities.proctoring.enabled ? (
+								<div className="rounded-xl border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+									{proctoringNotice}
+								</div>
+							) : null}
+
+							{showMediaToggle ? (
+								<div className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3">
+									<div className="min-w-0">
+										<p className="text-sm font-medium">
+											Phone call
+										</p>
+										<p className="text-xs text-muted-foreground">
+											{sessionMedia === "phone"
+												? "Place an outbound phone call"
+												: "Join from this browser"}
+										</p>
+									</div>
+									<Switch
+										checked={sessionMedia === "phone"}
+										onCheckedChange={(checked) =>
+											setSessionMedia(
+												checked ? "phone" : "web",
+											)
+										}
+										aria-label="Use phone instead of web"
+									/>
+								</div>
+							) : (
+								<p className="text-sm text-muted-foreground">
+									{sessionMedia === "phone"
+										? "This shared link starts a phone call."
+										: "This shared link starts a web session."}
+								</p>
+							)}
+
+							{sessionMedia === "phone" ? (
+								<div className="space-y-2">
+									<Label htmlFor="share-outbound-phone">
+										Phone number
+									</Label>
+									<Input
+										id="share-outbound-phone"
+										type="tel"
+										value={outboundPhone}
+										onChange={(event) =>
+											setOutboundPhone(event.target.value)
+										}
+										placeholder="+91 98765 43210"
+									/>
+								</div>
+							) : devicesLoading ? (
 								<div className="flex items-center gap-2 text-sm text-muted-foreground">
 									<Spinner className="size-4" />
-									Requesting microphone access…
+									Requesting media access…
 								</div>
 							) : permissionError ? (
 								<div className="space-y-3">
@@ -421,46 +617,83 @@ export default function SharedTrialPage() {
 										onClick={() => void loadDevices()}
 									>
 										<MicIcon className="size-4" />
-										Allow microphone
+										Allow media access
 									</Button>
 								</div>
 							) : (
 								<div className="grid gap-4 sm:grid-cols-2">
-									<div className="min-w-0 space-y-2">
-										<Label htmlFor="guest-mic">
-											Microphone
-										</Label>
-										<Select
-											value={audioDeviceId}
-											onValueChange={setAudioDeviceId}
-										>
-											<SelectTrigger
-												id="guest-mic"
-												className="w-full"
+									{(audioMandatory ||
+										audioDevices.length > 0) && (
+										<div className="min-w-0 space-y-2">
+											<Label htmlFor="guest-mic">
+												Microphone
+												{audioMandatory ? null : (
+													<span className="text-muted-foreground">
+														{" "}
+														(optional)
+													</span>
+												)}
+											</Label>
+											<Select
+												value={
+													audioDeviceId ||
+													(audioMandatory
+														? ""
+														: NO_CAMERA)
+												}
+												onValueChange={(value) =>
+													setAudioDeviceId(
+														value === NO_CAMERA
+															? ""
+															: value,
+													)
+												}
 											>
-												<SelectValue placeholder="Select microphone" />
-											</SelectTrigger>
-											<SelectContent>
-												{audioDevices.map((device) => (
-													<SelectItem
-														key={device.deviceId}
-														value={device.deviceId}
-													>
-														{device.label ||
-															"Microphone"}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</div>
+												<SelectTrigger
+													id="guest-mic"
+													className="w-full"
+												>
+													<SelectValue placeholder="Select microphone" />
+												</SelectTrigger>
+												<SelectContent>
+													{!audioMandatory ? (
+														<SelectItem
+															value={NO_CAMERA}
+														>
+															No microphone
+														</SelectItem>
+													) : null}
+													{audioDevices.map(
+														(device) => (
+															<SelectItem
+																key={
+																	device.deviceId
+																}
+																value={
+																	device.deviceId
+																}
+															>
+																{device.label ||
+																	"Microphone"}
+															</SelectItem>
+														),
+													)}
+												</SelectContent>
+											</Select>
+										</div>
+									)}
 
-									{videoDevices.length > 0 ? (
+									{(videoMandatory ||
+										videoDevices.length > 0) && (
 										<div className="min-w-0 space-y-2">
 											<Label htmlFor="guest-cam">
-												Camera{" "}
-												<span className="text-muted-foreground">
-													(optional)
-												</span>
+												Camera
+												{videoMandatory ? null : (
+													<span className="text-muted-foreground">
+														{" "}
+														(optional)
+													</span>
+												)}
 											</Label>
 											<Select
 												value={
@@ -478,14 +711,22 @@ export default function SharedTrialPage() {
 													id="guest-cam"
 													className="w-full"
 												>
-													<SelectValue placeholder="No camera" />
+													<SelectValue
+														placeholder={
+															videoMandatory
+																? "Select camera"
+																: "No camera"
+														}
+													/>
 												</SelectTrigger>
 												<SelectContent>
-													<SelectItem
-														value={NO_CAMERA}
-													>
-														No camera
-													</SelectItem>
+													{!videoMandatory ? (
+														<SelectItem
+															value={NO_CAMERA}
+														>
+															No camera
+														</SelectItem>
+													) : null}
 													{videoDevices.map(
 														(device) => (
 															<SelectItem
@@ -504,7 +745,7 @@ export default function SharedTrialPage() {
 												</SelectContent>
 											</Select>
 										</div>
-									) : null}
+									)}
 								</div>
 							)}
 
@@ -625,7 +866,9 @@ export default function SharedTrialPage() {
 					>
 						{!trial.available
 							? "Link unavailable"
-							: "Start session"}
+							: sessionMedia === "phone"
+								? "Place call"
+								: "Start session"}
 					</Button>
 				</div>
 			</div>

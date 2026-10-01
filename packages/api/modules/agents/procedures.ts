@@ -5,6 +5,7 @@ import {
 	createAgentTrial,
 	deleteAgentTrial,
 	detachKnowledgeBaseFromAgent,
+	ensureAgentEmbedToken,
 	getAgentById,
 	getAgentTrialById,
 	listAgents,
@@ -105,6 +106,8 @@ export const update = protectedProcedure
 			description: z.string().nullable().optional(),
 			status: z.enum(["ACTIVE", "INACTIVE", "DELETED"]).optional(),
 			embedEnabled: z.boolean().optional(),
+			/** When true, ensures embedEnabled + a public embed token exist. */
+			ensureEmbedToken: z.boolean().optional(),
 		}),
 	)
 	.handler(async ({ input, context }) => {
@@ -113,8 +116,11 @@ export const update = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 		await requireOrgMembership(existing.organizationId, context.user.id);
-		const { id, ...data } = input;
-		const agent = await updateAgent(id, data);
+		const { id, ensureEmbedToken, ...data } = input;
+		const agent = ensureEmbedToken
+			? ((await ensureAgentEmbedToken(id)) ??
+				(await updateAgent(id, data)))
+			: await updateAgent(id, data);
 		await recordAudit({
 			headers: context.headers,
 			userId: context.user.id,

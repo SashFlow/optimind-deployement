@@ -12,6 +12,8 @@ import { useParams } from "next/navigation";
 import {
 	AgentSessionDetail,
 	SessionEventsPanel,
+	SessionFilesPanel,
+	SessionMemoriesPanel,
 } from "@/components/saas/agents/AgentSessionDetail";
 import type { SessionDetail } from "@/components/saas/agents/lib/hooks";
 import { useSessionDetailQuery } from "@/components/saas/agents/lib/hooks";
@@ -47,6 +49,10 @@ export default function AgentSessionPage() {
 						Overview
 					</FolderTabsTrigger>
 					<FolderTabsTrigger value="events">Events</FolderTabsTrigger>
+					<FolderTabsTrigger value="memories">
+						Memories
+					</FolderTabsTrigger>
+					<FolderTabsTrigger value="files">Files</FolderTabsTrigger>
 				</FolderTabsList>
 			</FolderTabsBar>
 			<FolderTabsContent value="overview">
@@ -54,6 +60,12 @@ export default function AgentSessionPage() {
 			</FolderTabsContent>
 			<FolderTabsContent value="events" scrollable={false}>
 				<SessionEventsPanel events={events} />
+			</FolderTabsContent>
+			<FolderTabsContent value="memories" scrollable={false}>
+				<SessionMemoriesPanel session={session} />
+			</FolderTabsContent>
+			<FolderTabsContent value="files" scrollable={false}>
+				<SessionFilesPanel session={session} />
 			</FolderTabsContent>
 		</FolderTabs>
 	);

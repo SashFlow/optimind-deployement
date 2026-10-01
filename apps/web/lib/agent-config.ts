@@ -136,6 +136,24 @@ export type AgentVariableDefinition = {
 	required: boolean;
 };
 
+export type SessionTrackRequirement = "mandatory" | "optional";
+
+export type SessionCallType = "phone" | "web" | "both";
+
+export type SessionProctoringConfig = {
+	enabled: boolean;
+	proactive_response: boolean;
+	id_verification: boolean;
+};
+
+export type SessionModalitiesConfig = {
+	call_type: SessionCallType;
+	audio_track: SessionTrackRequirement;
+	video_track: SessionTrackRequirement;
+	chat: SessionTrackRequirement;
+	proctoring: SessionProctoringConfig;
+};
+
 export type AgentConfigDocument = {
 	instructions: string;
 	greeting: GreetingConfig;
@@ -172,6 +190,7 @@ export type AgentConfigDocument = {
 		inactivity_end_seconds: number | null;
 		timezone: string;
 	};
+	session_modalities: SessionModalitiesConfig;
 	tools: string[];
 	tools_config: {
 		end_call: boolean;
@@ -348,6 +367,17 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 			inactivity_end_seconds: null,
 			timezone: "Asia/Kolkata",
 		},
+		session_modalities: {
+			call_type: "web",
+			audio_track: "mandatory",
+			video_track: "optional",
+			chat: "optional",
+			proctoring: {
+				enabled: false,
+				proactive_response: false,
+				id_verification: false,
+			},
+		},
 		tools: [],
 		tools_config: {
 			end_call: true,
@@ -453,6 +483,14 @@ export function normalizeAgentConfig(
 					: defaults.background_audio.clip),
 		},
 		call_ending: { ...defaults.call_ending, ...(c.call_ending ?? {}) },
+		session_modalities: {
+			...defaults.session_modalities,
+			...(c.session_modalities ?? {}),
+			proctoring: {
+				...defaults.session_modalities.proctoring,
+				...(c.session_modalities?.proctoring ?? {}),
+			},
+		},
 		tools_config: { ...defaults.tools_config, ...(c.tools_config ?? {}) },
 		before_session_start: {
 			...defaults.before_session_start,
