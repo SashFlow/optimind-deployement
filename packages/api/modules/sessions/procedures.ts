@@ -1418,10 +1418,7 @@ export const uploadParticipantFile = publicProcedure
 				message: "Token does not match this session",
 			});
 		}
-		if (
-			session.status !== "QUEUED" &&
-			session.status !== "ACTIVE"
-		) {
+		if (session.status !== "QUEUED" && session.status !== "ACTIVE") {
 			throw new ORPCError("BAD_REQUEST", {
 				message: "Session is no longer accepting uploads",
 			});

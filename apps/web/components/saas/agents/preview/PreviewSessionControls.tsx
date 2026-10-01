@@ -141,11 +141,9 @@ export function PreviewSessionControls({
 		if (isCameraEnabled) {
 			return;
 		}
-		void room.localParticipant
-			.setCameraEnabled(true)
-			.catch(() => {
-				toast.error("Camera is required while proctoring is enabled");
-			});
+		void room.localParticipant.setCameraEnabled(true).catch(() => {
+			toast.error("Camera is required while proctoring is enabled");
+		});
 	}, [proctoringEnabled, isConnected, isCameraEnabled, room]);
 
 	const shouldWaitForAgent = isConnected && !hasAgent;
@@ -411,7 +409,8 @@ export function PreviewSessionControls({
 								isCameraEnabled
 									? "border-transparent bg-primary text-primary-foreground"
 									: "bg-muted text-muted-foreground",
-								proctoringEnabled && "cursor-not-allowed opacity-80",
+								proctoringEnabled &&
+									"cursor-not-allowed opacity-80",
 							)}
 						>
 							{isCameraEnabled ? (
