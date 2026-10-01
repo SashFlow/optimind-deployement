@@ -27,6 +27,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
+import { ProctoringProvider } from "@/context/proctoring-provider";
 import type {
 	AgentVariableDefinition,
 	SessionModalitiesConfig,
@@ -36,6 +37,7 @@ import {
 	DISABLED_PREVIEW_AVATAR,
 	type PreviewAvatar,
 } from "@/lib/preview-avatar";
+import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
 	DEFAULT_SESSION_MODALITIES,
 	isTrackMandatory,
@@ -242,7 +244,10 @@ export function AgentConfigurePreview({
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [starting, setStarting] = useState(false);
 	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
-	const videoMandatory = isTrackMandatory(sessionModalities.video_track);
+	const proctoringEnabled = sessionModalities.proctoring.enabled;
+	const videoMandatory =
+		isTrackMandatory(sessionModalities.video_track) ||
+		(proctoringEnabled && media === "web");
 	const chatMandatory = isTrackMandatory(sessionModalities.chat);
 	const [micEnabled, setMicEnabled] = useState(false);
 	const [cameraEnabled, setCameraEnabled] = useState(false);
@@ -255,6 +260,7 @@ export function AgentConfigurePreview({
 		sessionId?: string;
 	} | null>(null);
 	const [sessionCredentials, setSessionCredentials] = useState<{
+		sessionId: string;
 		token: string;
 		serverUrl: string;
 		spatialRealAppId: string | null;
@@ -342,13 +348,7 @@ export function AgentConfigurePreview({
 		return () => {
 			cancelled = true;
 		};
-	}, [
-		audioMandatory,
-		cameraEnabled,
-		media,
-		micEnabled,
-		videoMandatory,
-	]);
+	}, [audioMandatory, cameraEnabled, media, micEnabled, videoMandatory]);
 
 	async function toggleMic() {
 		if (mediaPermissionPendingRef.current) {
@@ -476,6 +476,7 @@ export function AgentConfigurePreview({
 			participantName: agent.name,
 		});
 		setSessionCredentials({
+			sessionId: credentials.sessionId,
 			token: credentials.participantToken,
 			serverUrl: credentials.serverUrl,
 			spatialRealAppId: credentials.spatialRealAppId,
@@ -578,6 +579,18 @@ export function AgentConfigurePreview({
 		if (!sessionCredentials) {
 			return null;
 		}
+		const controls = (
+			<PreviewSessionControls
+				agent={agent}
+				avatar={avatar}
+				spatialRealAppId={sessionCredentials.spatialRealAppId}
+				onEnd={handleEndSession}
+				maxDurationSeconds={maxDurationSeconds}
+				chatMandatory={chatMandatory}
+				proctoringEnabled={proctoringEnabled}
+				proctoringNotice={proctoringNotice}
+			/>
+		);
 		return (
 			<LiveKitRoom
 				token={sessionCredentials.token}
@@ -587,16 +600,28 @@ export function AgentConfigurePreview({
 				video={cameraEnabled}
 				className="flex min-h-0 flex-1 flex-col"
 			>
-				<PreviewSessionControls
-					agent={agent}
-					avatar={avatar}
-					spatialRealAppId={sessionCredentials.spatialRealAppId}
-					onEnd={handleEndSession}
-					maxDurationSeconds={maxDurationSeconds}
-					chatMandatory={chatMandatory}
-					proctoringEnabled={sessionModalities.proctoring.enabled}
-					proctoringNotice={proctoringNotice}
-				/>
+				{proctoringEnabled ? (
+					<ProctoringProvider
+						enabled
+						proactiveResponse={
+							sessionModalities.proctoring.proactive_response
+						}
+						idVerification={
+							sessionModalities.proctoring.id_verification
+						}
+						onIdCapture={(result) =>
+							uploadIdCaptureFiles({
+								sessionId: sessionCredentials.sessionId,
+								participantToken: sessionCredentials.token,
+								result,
+							})
+						}
+					>
+						{controls}
+					</ProctoringProvider>
+				) : (
+					controls
+				)}
 			</LiveKitRoom>
 		);
 		// handleEndSession closes over onCancel; include it explicitly.
@@ -610,8 +635,10 @@ export function AgentConfigurePreview({
 		micEnabled,
 		onCancel,
 		proctoringNotice,
+		proctoringEnabled,
 		sessionCredentials,
-		sessionModalities.proctoring.enabled,
+		sessionModalities.proctoring.id_verification,
+		sessionModalities.proctoring.proactive_response,
 	]);
 
 	if (sessionCredentials) {

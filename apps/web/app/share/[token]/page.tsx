@@ -20,8 +20,10 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PreviewSessionControls } from "@/components/saas/agents/preview/PreviewSessionControls";
+import { ProctoringProvider } from "@/context/proctoring-provider";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
 import { normalizePhoneNumber } from "@/lib/phone";
+import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
 import {
 	DEFAULT_SESSION_MODALITIES,
@@ -174,6 +176,7 @@ export default function SharedTrialPage() {
 		phoneNumber: string | null;
 	} | null>(null);
 	const [credentials, setCredentials] = useState<{
+		sessionId: string;
 		token: string;
 		serverUrl: string;
 		spatialRealAppId: string | null;
@@ -191,7 +194,10 @@ export default function SharedTrialPage() {
 	const maxDurationSeconds =
 		trialQuery.data?.agent.maxDurationSeconds ?? null;
 	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
-	const videoMandatory = isTrackMandatory(sessionModalities.video_track);
+	const proctoringEnabled = sessionModalities.proctoring.enabled;
+	const videoMandatory =
+		isTrackMandatory(sessionModalities.video_track) ||
+		(proctoringEnabled && sessionMedia === "web");
 	const chatMandatory = isTrackMandatory(sessionModalities.chat);
 	const allowPhone = sessionModalities.call_type !== "web";
 	const allowWeb = sessionModalities.call_type !== "phone";
@@ -243,6 +249,7 @@ export default function SharedTrialPage() {
 				}
 
 				setCredentials({
+					sessionId: data.sessionId,
 					token: data.participantToken,
 					serverUrl: data.serverUrl,
 					spatialRealAppId: data.spatialRealAppId ?? null,
@@ -406,6 +413,28 @@ export default function SharedTrialPage() {
 	}
 
 	if (credentials) {
+		const controls = (
+			<PreviewSessionControls
+				agent={{
+					id: trialQuery.data?.agent.id ?? "trial",
+					name: trialQuery.data?.agent.name ?? "Agent",
+				}}
+				avatar={resolvePreviewAvatar({
+					enabled: trialQuery.data?.agent.avatarEnabled ?? false,
+					provider_id: trialQuery.data?.agent.avatarProvider ?? null,
+					external_avatar_id: trialQuery.data?.agent.avatarId ?? null,
+				})}
+				spatialRealAppId={credentials.spatialRealAppId}
+				maxDurationSeconds={maxDurationSeconds}
+				chatMandatory={chatMandatory}
+				proctoringEnabled={proctoringEnabled}
+				proctoringNotice={proctoringNotice}
+				onEnd={() => {
+					setCredentials(null);
+					void trialQuery.refetch();
+				}}
+			/>
+		);
 		return (
 			<div className="flex min-h-screen flex-col bg-background">
 				<LiveKitRoom
@@ -426,29 +455,28 @@ export default function SharedTrialPage() {
 					}
 					className="flex min-h-screen flex-col"
 				>
-					<PreviewSessionControls
-						agent={{
-							id: trialQuery.data?.agent.id ?? "trial",
-							name: trialQuery.data?.agent.name ?? "Agent",
-						}}
-						avatar={resolvePreviewAvatar({
-							enabled:
-								trialQuery.data?.agent.avatarEnabled ?? false,
-							provider_id:
-								trialQuery.data?.agent.avatarProvider ?? null,
-							external_avatar_id:
-								trialQuery.data?.agent.avatarId ?? null,
-						})}
-						spatialRealAppId={credentials.spatialRealAppId}
-						maxDurationSeconds={maxDurationSeconds}
-						chatMandatory={chatMandatory}
-						proctoringEnabled={sessionModalities.proctoring.enabled}
-						proctoringNotice={proctoringNotice}
-						onEnd={() => {
-							setCredentials(null);
-							void trialQuery.refetch();
-						}}
-					/>
+					{proctoringEnabled ? (
+						<ProctoringProvider
+							enabled
+							proactiveResponse={
+								sessionModalities.proctoring.proactive_response
+							}
+							idVerification={
+								sessionModalities.proctoring.id_verification
+							}
+							onIdCapture={(result) =>
+								uploadIdCaptureFiles({
+									sessionId: credentials.sessionId,
+									participantToken: credentials.token,
+									result,
+								})
+							}
+						>
+							{controls}
+						</ProctoringProvider>
+					) : (
+						controls
+					)}
 				</LiveKitRoom>
 			</div>
 		);

@@ -132,6 +132,22 @@ export function PreviewSessionControls({
 	const didConnectRef = useRef(false);
 	const onEndRef = useRef(onEnd);
 	onEndRef.current = onEnd;
+
+	// Proctoring requires a published camera track; keep it on for the session.
+	useEffect(() => {
+		if (!proctoringEnabled || !isConnected) {
+			return;
+		}
+		if (isCameraEnabled) {
+			return;
+		}
+		void room.localParticipant
+			.setCameraEnabled(true)
+			.catch(() => {
+				toast.error("Camera is required while proctoring is enabled");
+			});
+	}, [proctoringEnabled, isConnected, isCameraEnabled, room]);
+
 	const shouldWaitForAgent = isConnected && !hasAgent;
 	// SpatialReal renders the avatar client-side from an animation data track on
 	// this room, so there is no avatar video track to show; anam publishes one.
@@ -384,11 +400,18 @@ export function PreviewSessionControls({
 						<TrackToggle
 							source={Track.Source.Camera}
 							showIcon={false}
+							disabled={proctoringEnabled}
+							title={
+								proctoringEnabled
+									? "Camera is required for proctoring"
+									: undefined
+							}
 							className={cn(
 								"inline-flex size-9 items-center justify-center rounded-full border transition-colors",
 								isCameraEnabled
 									? "border-transparent bg-primary text-primary-foreground"
 									: "bg-muted text-muted-foreground",
+								proctoringEnabled && "cursor-not-allowed opacity-80",
 							)}
 						>
 							{isCameraEnabled ? (

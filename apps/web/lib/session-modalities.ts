@@ -23,7 +23,10 @@ function asTrackRequirement(
 	return value === "mandatory" || value === "optional" ? value : fallback;
 }
 
-function asCallType(value: unknown, fallback: SessionCallType): SessionCallType {
+function asCallType(
+	value: unknown,
+	fallback: SessionCallType,
+): SessionCallType {
 	return value === "phone" || value === "web" || value === "both"
 		? value
 		: fallback;

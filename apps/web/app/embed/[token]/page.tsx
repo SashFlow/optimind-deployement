@@ -16,6 +16,8 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { PreviewSessionControls } from "@/components/saas/agents/preview/PreviewSessionControls";
+import { ProctoringProvider } from "@/context/proctoring-provider";
+import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
 import {
 	DEFAULT_SESSION_MODALITIES,
@@ -77,6 +79,7 @@ function EmbedAgentPageContent() {
 	const [devicesReady, setDevicesReady] = useState(false);
 	const [permissionError, setPermissionError] = useState<string | null>(null);
 	const [credentials, setCredentials] = useState<{
+		sessionId: string;
 		token: string;
 		serverUrl: string;
 		spatialRealAppId: string | null;
@@ -95,7 +98,9 @@ function EmbedAgentPageContent() {
 	const maxDurationSeconds =
 		embedQuery.data?.agent.maxDurationSeconds ?? null;
 	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
-	const videoMandatory = isTrackMandatory(sessionModalities.video_track);
+	const proctoringEnabled = sessionModalities.proctoring.enabled;
+	const videoMandatory =
+		isTrackMandatory(sessionModalities.video_track) || proctoringEnabled;
 	const chatMandatory = isTrackMandatory(sessionModalities.chat);
 	const proctoringNotice = (() => {
 		if (!sessionModalities.proctoring.enabled) {
@@ -121,6 +126,7 @@ function EmbedAgentPageContent() {
 					return;
 				}
 				setCredentials({
+					sessionId: data.sessionId,
 					token: data.participantToken,
 					serverUrl: data.serverUrl,
 					spatialRealAppId: data.spatialRealAppId ?? null,
@@ -184,7 +190,9 @@ function EmbedAgentPageContent() {
 				(device) => device.kind === "videoinput" && device.deviceId,
 			);
 			setAudioDeviceId(mics[0]?.deviceId ?? "");
-			setVideoDeviceId(videoMandatory ? (cameras[0]?.deviceId ?? "") : "");
+			setVideoDeviceId(
+				videoMandatory ? (cameras[0]?.deviceId ?? "") : "",
+			);
 
 			if (audioMandatory && mics.length === 0) {
 				setPermissionError(
@@ -260,6 +268,29 @@ function EmbedAgentPageContent() {
 	]);
 
 	if (credentials) {
+		const controls = (
+			<PreviewSessionControls
+				agent={{
+					id: embedQuery.data?.agent.id ?? "embed",
+					name: embedQuery.data?.agent.name ?? "Agent",
+				}}
+				avatar={resolvePreviewAvatar({
+					enabled: embedQuery.data?.agent.avatarEnabled ?? false,
+					provider_id: embedQuery.data?.agent.avatarProvider ?? null,
+					external_avatar_id: embedQuery.data?.agent.avatarId ?? null,
+				})}
+				spatialRealAppId={credentials.spatialRealAppId}
+				maxDurationSeconds={maxDurationSeconds}
+				chatMandatory={chatMandatory}
+				proctoringEnabled={proctoringEnabled}
+				proctoringNotice={proctoringNotice}
+				onEnd={() => {
+					setCredentials(null);
+					startAttempted.current = false;
+					void embedQuery.refetch();
+				}}
+			/>
+		);
 		return (
 			<div className="flex min-h-screen flex-col bg-background">
 				<LiveKitRoom
@@ -280,30 +311,28 @@ function EmbedAgentPageContent() {
 					}
 					className="flex min-h-screen flex-col"
 				>
-					<PreviewSessionControls
-						agent={{
-							id: embedQuery.data?.agent.id ?? "embed",
-							name: embedQuery.data?.agent.name ?? "Agent",
-						}}
-						avatar={resolvePreviewAvatar({
-							enabled:
-								embedQuery.data?.agent.avatarEnabled ?? false,
-							provider_id:
-								embedQuery.data?.agent.avatarProvider ?? null,
-							external_avatar_id:
-								embedQuery.data?.agent.avatarId ?? null,
-						})}
-						spatialRealAppId={credentials.spatialRealAppId}
-						maxDurationSeconds={maxDurationSeconds}
-						chatMandatory={chatMandatory}
-						proctoringEnabled={sessionModalities.proctoring.enabled}
-						proctoringNotice={proctoringNotice}
-						onEnd={() => {
-							setCredentials(null);
-							startAttempted.current = false;
-							void embedQuery.refetch();
-						}}
-					/>
+					{proctoringEnabled ? (
+						<ProctoringProvider
+							enabled
+							proactiveResponse={
+								sessionModalities.proctoring.proactive_response
+							}
+							idVerification={
+								sessionModalities.proctoring.id_verification
+							}
+							onIdCapture={(result) =>
+								uploadIdCaptureFiles({
+									sessionId: credentials.sessionId,
+									participantToken: credentials.token,
+									result,
+								})
+							}
+						>
+							{controls}
+						</ProctoringProvider>
+					) : (
+						controls
+					)}
 				</LiveKitRoom>
 			</div>
 		);

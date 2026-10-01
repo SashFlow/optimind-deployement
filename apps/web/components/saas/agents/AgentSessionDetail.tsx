@@ -372,13 +372,13 @@ function EgressStatusBadge({
 			className={cn(
 				"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize",
 				isComplete &&
-				"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+					"bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
 				isFailed && "bg-destructive/10 text-destructive",
 				inProgress && "bg-primary/10 text-primary",
 				!isComplete &&
-				!isFailed &&
-				!inProgress &&
-				"bg-muted text-muted-foreground",
+					!isFailed &&
+					!inProgress &&
+					"bg-muted text-muted-foreground",
 			)}
 		>
 			{inProgress ? (
@@ -707,11 +707,7 @@ export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 	);
 }
 
-export function SessionMemoriesPanel({
-	session,
-}: {
-	session: SessionDetail;
-}) {
+export function SessionMemoriesPanel({ session }: { session: SessionDetail }) {
 	const memories = session.endUser?.memory ?? [];
 
 	if (!session.endUser) {
@@ -857,7 +853,9 @@ function SessionNavigator({ session }: { session: SessionDetail }) {
 			)}
 
 			<div className="min-w-0 flex-1 text-center">
-				<div className="truncate font-medium text-sm">{displayName}</div>
+				<div className="truncate font-medium text-sm">
+					{displayName}
+				</div>
 			</div>
 
 			{nextId ? (
@@ -986,7 +984,6 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 					</CardContent>
 				</Card>
 			</div>
-
 
 			{collectedFields.length > 0 ? (
 				<Card className="shadow-xs">

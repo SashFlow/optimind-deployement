@@ -284,7 +284,7 @@ export function CallSessionSection({
 				<div className="rounded-lg border bg-background/60 px-3">
 					<ToggleField
 						label="Proctoring"
-						description="Enable proctoring controls for this agent’s sessions."
+						description="Enable proctoring controls for this agent’s sessions. Requires the camera on web sessions."
 						checked={config.session_modalities.proctoring.enabled}
 						onCheckedChange={(enabled) =>
 							onConfigChange({

@@ -9,6 +9,7 @@ import {
 	RoomServiceClient,
 	S3Upload,
 	SipClient,
+	TokenVerifier,
 	type VideoGrant,
 	WebhookReceiver,
 } from "livekit-server-sdk";
@@ -91,6 +92,42 @@ export async function createParticipantToken(opts: {
 	}
 
 	return at.toJwt();
+}
+
+export type ParticipantTokenClaims = {
+	identity: string;
+	name?: string;
+	roomName: string;
+};
+
+/** Verify a LiveKit participant JWT and return identity + room grant. */
+export async function verifyParticipantToken(
+	token: string,
+	config?: LiveKitConfig,
+): Promise<ParticipantTokenClaims> {
+	const cfg = config ?? getLiveKitConfig();
+	const verifier = new TokenVerifier(cfg.apiKey, cfg.apiSecret);
+	const payload = await verifier.verify(token);
+	const identity =
+		typeof payload.sub === "string" && payload.sub.trim()
+			? payload.sub
+			: null;
+	const video =
+		payload.video && typeof payload.video === "object"
+			? (payload.video as { room?: unknown })
+			: null;
+	const roomName =
+		typeof video?.room === "string" && video.room.trim()
+			? video.room
+			: null;
+	if (!identity || !roomName) {
+		throw new Error("Participant token is missing identity or room grant");
+	}
+	return {
+		identity,
+		name: typeof payload.name === "string" ? payload.name : undefined,
+		roomName,
+	};
 }
 
 export async function createAgentDispatch(opts: {

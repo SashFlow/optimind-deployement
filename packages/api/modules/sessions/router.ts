@@ -14,6 +14,7 @@ import {
 	startSessionEgress,
 	startTrialSession,
 	uploadFileInternal,
+	uploadParticipantFile,
 } from "./procedures";
 
 export const sessionsRouter = {
@@ -25,6 +26,7 @@ export const sessionsRouter = {
 	startTrialSession,
 	getEmbedAgent,
 	startEmbedSession,
+	uploadParticipantFile,
 	startEgress: startSessionEgress,
 	internal: {
 		patchLifecycle,

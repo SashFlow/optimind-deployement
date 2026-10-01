@@ -154,6 +154,49 @@ Response: `{ file: { id, name, type, size, url } }` (`url` is the storage key). 
 `end-users/{org}/{endUser}/{session}/…`, recorded as a `SessionFile` and appended to `EndUser.files`.
 Returns 400 when the session has no end user.
 
+Web participants can also upload (e.g. ID capture) with a LiveKit participant JWT:
+
+```http
+POST /api/sessions/{session_id}/participant-files
+Authorization: Bearer <livekit-participant-jwt>
+Content-Type: multipart/form-data
+
+file=<binary>          (required, max 5 MB)
+name=<display name>    (optional)
+participantToken=...   (optional alternative to Authorization header)
+```
+
+Token `video.room` must match the session's LiveKit room. Session must be `QUEUED` or `ACTIVE`.
+
+### Client → agent LiveKit RPCs (proctoring)
+
+When `config.session_modalities.proctoring.enabled` is true, the web client runs MediaPipe
+checks and may call these RPCs on the agent participant:
+
+#### `add_context`
+
+Payload (JSON string):
+
+```ts
+{
+  state: string              // spoken verbatim when action is "say"
+  action: "say" | "generate_reply" | "silent"
+  type: "multiple_people" | "additional_device" | "no_face" | "gaze_away" | "id_captured"
+  details?: Record<string, unknown>
+}
+```
+
+- `proactive_response: false` forces `action: "silent"` for violation types.
+- `id_captured` is always sent with `action: "silent"` after a successful ID upload.
+
+#### `start_id_capture`
+
+The agent may call this RPC on the **local (candidate) participant** to open the ID capture
+overlay. No payload required. Response: `{ "started": true }`.
+
+Used when `session_modalities.proctoring.id_verification` is true (client also auto-starts
+after connect) or when a tool such as identity verification needs a fresh capture.
+
 ### Callbacks / reschedule
 
 ```http
@@ -192,6 +235,7 @@ The report / terminal lifecycle handlers:
 | `GET` | `/api/sessions/{id}` | Session + transcript + usage + egress |
 | `POST` | `/api/sessions/{id}/egress` | Start room-composite egress → S3 |
 | `POST` | `/api/sessions/{id}/end` | Cancel session + delete LiveKit room |
+| `POST` | `/api/sessions/{id}/participant-files` | Participant JWT upload → `SessionFile` |
 
 ## Webhooks
 

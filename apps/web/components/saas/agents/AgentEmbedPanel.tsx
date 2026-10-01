@@ -54,8 +54,7 @@ export function AgentEmbedPanel({ agentId }: { agentId: string }) {
 
 	const agent = agentQuery.data?.agent;
 	const token = agent?.token ?? null;
-	const needsProvision =
-		Boolean(agent) && (!token || !agent?.embedEnabled);
+	const needsProvision = Boolean(agent) && (!token || !agent?.embedEnabled);
 
 	useEffect(() => {
 		if (!needsProvision || provisionStarted.current) {

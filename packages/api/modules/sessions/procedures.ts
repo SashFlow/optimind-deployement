@@ -23,6 +23,7 @@ import {
 	getLiveKitConfig,
 	recordingFilepath,
 	startRoomCompositeEgress,
+	verifyParticipantToken,
 } from "@repo/livekit";
 import { logger } from "@repo/logs";
 import { z } from "zod";
@@ -502,7 +503,9 @@ export const getTrialLink = publicProcedure
 					})
 				: null;
 		const callEnding =
-			config && typeof config.call_ending === "object" && config.call_ending
+			config &&
+			typeof config.call_ending === "object" &&
+			config.call_ending
 				? (config.call_ending as Record<string, unknown>)
 				: null;
 
@@ -739,8 +742,10 @@ export const getEmbedAgent = publicProcedure
 			? ("unpublished" as const)
 			: null;
 		const config =
-			(agent.publishedVersion?.config as Record<string, unknown> | null) ??
-			null;
+			(agent.publishedVersion?.config as Record<
+				string,
+				unknown
+			> | null) ?? null;
 		const avatarConfig =
 			config && typeof config.avatar === "object" && config.avatar
 				? (config.avatar as {
@@ -750,7 +755,9 @@ export const getEmbedAgent = publicProcedure
 					})
 				: null;
 		const callEnding =
-			config && typeof config.call_ending === "object" && config.call_ending
+			config &&
+			typeof config.call_ending === "object" &&
+			config.call_ending
 				? (config.call_ending as Record<string, unknown>)
 				: null;
 
@@ -1336,6 +1343,100 @@ export const uploadFileInternal = workerProcedure
 				message: "File is larger than 25 MB",
 			});
 		}
+		const file = await uploadEndUserFile({
+			session: {
+				id: session.id,
+				organizationId: session.organizationId,
+				endUserId: session.endUserId,
+			},
+			file: input.file,
+			name: input.name,
+		});
+		return { file };
+	});
+
+const MAX_PARTICIPANT_FILE_BYTES = 5 * 1024 * 1024;
+
+/** Extract a LiveKit participant JWT from Authorization or an explicit input field. */
+function readParticipantToken(
+	headers: Headers,
+	explicit?: string | null,
+): string | null {
+	const fromInput = explicit?.trim();
+	if (fromInput) {
+		return fromInput;
+	}
+	const auth =
+		headers.get("authorization") ?? headers.get("Authorization") ?? "";
+	const match = /^Bearer\s+(.+)$/i.exec(auth.trim());
+	return match?.[1]?.trim() || null;
+}
+
+export const uploadParticipantFile = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/{id}/participant-files",
+		tags: ["Sessions"],
+		summary:
+			"Upload a file for the session's end user (participant JWT auth)",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			file: z.file(),
+			name: z.string().max(200).optional(),
+			/** Optional when Authorization: Bearer <livekit-jwt> is set. */
+			participantToken: z.string().min(1).optional(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		const token = readParticipantToken(
+			context.headers,
+			input.participantToken,
+		);
+		if (!token) {
+			throw new ORPCError("UNAUTHORIZED", {
+				message: "Participant token required",
+			});
+		}
+
+		let claims: Awaited<ReturnType<typeof verifyParticipantToken>>;
+		try {
+			claims = await verifyParticipantToken(token);
+		} catch {
+			throw new ORPCError("UNAUTHORIZED", {
+				message: "Invalid participant token",
+			});
+		}
+
+		const session = await getAgentSessionById(input.id);
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		if (session.livekitRoomName !== claims.roomName) {
+			throw new ORPCError("FORBIDDEN", {
+				message: "Token does not match this session",
+			});
+		}
+		if (
+			session.status !== "QUEUED" &&
+			session.status !== "ACTIVE"
+		) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Session is no longer accepting uploads",
+			});
+		}
+		if (!session.endUserId) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Session has no end user",
+			});
+		}
+		if (input.file.size > MAX_PARTICIPANT_FILE_BYTES) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "File is larger than 5 MB",
+			});
+		}
+
 		const file = await uploadEndUserFile({
 			session: {
 				id: session.id,

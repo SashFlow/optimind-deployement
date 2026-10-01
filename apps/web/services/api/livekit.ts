@@ -18,6 +18,7 @@ export async function fetchSessionCredentials({
 	metadata,
 	participantName,
 }: FetchSessionCredentialsInput): Promise<{
+	sessionId: string;
 	participantToken: string;
 	serverUrl: string;
 	spatialRealAppId: string | null;
@@ -42,6 +43,7 @@ export async function fetchSessionCredentials({
 	}
 
 	return {
+		sessionId: result.session.id,
 		participantToken: result.participantToken,
 		serverUrl: result.serverUrl,
 		spatialRealAppId: result.spatialRealAppId ?? null,

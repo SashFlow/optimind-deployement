@@ -222,7 +222,7 @@ interface UseProctoringOptions {
 	enabled?: boolean;
 	config?: ProctoringConfigOverrides;
 	/**
-	 * Pushes a captured ID card to the backend. Defaults to `pushIdCapture` (placeholder stub).
+	 * Pushes a captured ID card to the backend.
 	 * Throw to mark the capture as failed so the candidate can retry.
 	 */
 	onIdCapture?: (result: IdCaptureResult) => Promise<unknown> | unknown;
@@ -296,13 +296,10 @@ export function useProctoring({
 	const submitIdCapture = useCallback(
 		async (captured: IdCaptureResult) => {
 			try {
-				const push =
-					onIdCaptureRef.current ??
-					((result: IdCaptureResult) =>
-						pushIdCapture(result, {
-							roomName: room.name,
-							participantIdentity: room.localParticipant.identity,
-						}));
+				const push = onIdCaptureRef.current;
+				if (!push) {
+					throw new Error("ID capture upload is not configured");
+				}
 				await push(captured);
 				// The candidate may have closed the overlay while the upload was in flight.
 				if (modeRef.current !== "ID_CAPTURE") return;
@@ -375,9 +372,8 @@ export function useProctoring({
 			}
 
 			state.lastReportedAt = now;
-			toastAlert({
+			toast.warning(check.title, {
 				id: `proctoring-${type}`,
-				title: check.title,
 				description: check.message,
 			});
 			void sendContext(room, {
