@@ -6,7 +6,6 @@ import {
 	aggregateSessionStats,
 	aggregateUsage,
 	db,
-	listSessionCollectedFields,
 } from "@repo/database";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
@@ -372,7 +371,7 @@ export const cost = protectedProcedure
 		method: "GET",
 		path: "/dashboard/cost",
 		tags: ["Dashboard"],
-		summary: "Estimated cost from SessionUsage × ProviderRate",
+		summary: "Estimated cost from SessionUsage × provider rate constants",
 	})
 	.input(orgDaysInput)
 	.handler(async ({ input, context }) => {
@@ -445,36 +444,4 @@ export const latency = protectedProcedure
 			agentId: input.agentId,
 		});
 		return { latency: result };
-	});
-
-export const collectedFields = protectedProcedure
-	.route({
-		method: "GET",
-		path: "/sessions/collected-fields",
-		tags: ["Sessions"],
-		summary: "List collected data fields across sessions",
-	})
-	.input(
-		z.object({
-			organizationId: z.string(),
-			sessionId: z.string().optional(),
-			agentId: z.string().optional(),
-			key: z.string().optional(),
-			days: z.number().int().min(1).max(90).default(30),
-			limit: z.number().int().min(1).max(500).default(100),
-		}),
-	)
-	.handler(async ({ input, context }) => {
-		await requireOrgMembership(input.organizationId, context.user.id);
-		const since = new Date();
-		since.setDate(since.getDate() - input.days);
-		const fields = await listSessionCollectedFields({
-			organizationId: input.organizationId,
-			sessionId: input.sessionId,
-			agentId: input.agentId,
-			key: input.key,
-			from: since,
-			limit: input.limit,
-		});
-		return { fields };
 	});

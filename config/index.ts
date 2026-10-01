@@ -111,6 +111,8 @@ export const config = {
 			fell: process.env.NEXT_PUBLIC_FELL_BUCKET_NAME ?? "fell",
 			pictures:
 				process.env.NEXT_PUBLIC_PICTURES_BUCKET_NAME ?? "pictures",
+			// files the agent worker uploads for end users (server-side only)
+			endUserFiles: process.env.S3_BUCKET_NAME?.trim() || "notes",
 		},
 	},
 	contactForm: {

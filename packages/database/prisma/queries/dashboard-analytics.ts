@@ -1,8 +1,6 @@
 import { db } from "../client";
-import {
-	estimateUsageCostMicros,
-	getEffectiveProviderRates,
-} from "./analytics";
+import { estimateUsageCostMicros } from "./analytics";
+import { PROVIDER_RATES } from "./provider-rates";
 
 function percentile(sorted: number[], p: number): number | null {
 	if (sorted.length === 0) {
@@ -276,7 +274,6 @@ export async function aggregateCost(opts: {
 	agentId?: string;
 }) {
 	const { usages } = await aggregateUsage(opts);
-	const rates = await getEffectiveProviderRates(opts.organizationId);
 
 	const daily = new Map<
 		string,
@@ -290,7 +287,7 @@ export async function aggregateCost(opts: {
 
 	let totalMicros = 0;
 	for (const u of usages) {
-		const micros = estimateUsageCostMicros(u, rates);
+		const micros = estimateUsageCostMicros(u, PROVIDER_RATES);
 		totalMicros += micros;
 		const day = dateKey(u.capturedAt);
 		const d = daily.get(day) ?? {

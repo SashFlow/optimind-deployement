@@ -13,7 +13,6 @@ import {
 	saveAgentSessionReport,
 	syncCampaignSessionFromAgentSession,
 	updateAgentSessionLifecycle,
-	upsertSessionCollectedFields,
 } from "@repo/database";
 import {
 	createOutboundRoomWithDispatch,
@@ -37,6 +36,13 @@ import {
 	inferEgressContentType,
 	resolveEgressPlayableUrl,
 } from "./lib/egress-media-url";
+import { resolveSessionEndUser, toDispatchEndUser } from "./lib/end-user";
+import {
+	MAX_END_USER_FILE_BYTES,
+	uploadEndUserFile,
+	withSignedFileUrls,
+} from "./lib/end-user-files";
+import { generateEndUserMemoriesSafe } from "./lib/memories";
 import {
 	isMetricsOnlyReport,
 	persistSessionArtifacts,
@@ -82,6 +88,9 @@ export const list = protectedProcedure
 			status: z
 				.enum(["QUEUED", "ACTIVE", "COMPLETED", "FAILED", "CANCELLED"])
 				.optional(),
+			endUserId: z.string().optional(),
+			/** Matches end-user name/email/phone/identity, session id, room, numbers. */
+			q: z.string().max(200).optional(),
 			take: z.number().int().min(1).max(100).optional(),
 			skip: z.number().int().min(0).optional(),
 		}),
@@ -140,6 +149,7 @@ export const get = protectedProcedure
 			session: {
 				...session,
 				egressJobs,
+				files: await withSignedFileUrls(session.files),
 			},
 		};
 	});
@@ -207,10 +217,27 @@ export const create = protectedProcedure
 			input.roomName ??
 			`SESSION_${timestamp}_${Math.floor(Math.random() * 10_000)}`;
 
+		// Campaign / reschedule calls belong to the contact being dialled;
+		// everything else to the logged-in user starting the session.
+		const contactPhone =
+			input.source === "campaign" || input.source === "reschedule"
+				? input.phoneNumber
+				: undefined;
+		const endUser = await resolveSessionEndUser(
+			{ organizationId: input.organizationId, agentId: agent.id },
+			contactPhone
+				? {
+						kind: "phone",
+						phone: contactPhone,
+						contactMetadata: input.contactMetadata,
+					}
+				: { kind: "user", user: context.user },
+		);
+
 		const session = await createAgentSession({
 			organizationId: input.organizationId,
 			agentId: agent.id,
-			agentVersionId: version.id,
+			endUserId: endUser.id,
 			livekitRoomName: roomName,
 			channel: input.channel,
 			direction: input.direction,
@@ -249,6 +276,7 @@ export const create = protectedProcedure
 			direction: input.direction,
 			channel: input.channel,
 			contact_metadata: input.contactMetadata ?? {},
+			end_user: toDispatchEndUser(endUser),
 			recording_enabled: recordingEnabled,
 		});
 		const metadataJson = serializeDispatchMetadata(dispatchMetadata);
@@ -447,7 +475,12 @@ export const startTrialSession = publicProcedure
 			token: z.string().min(1),
 			participantName: z.string().min(1).max(120).default("Guest"),
 			contactMetadata: z.record(z.string(), z.unknown()).optional(),
+			/** When set, the agent calls this number instead of a web session. */
 			phoneNumber: z.string().min(1).max(32).optional(),
+			/** Visitor details for the trial end user. */
+			name: z.string().trim().max(120).optional(),
+			email: z.string().trim().email().max(254).optional(),
+			contactPhone: z.string().trim().max(32).optional(),
 		}),
 	)
 	.handler(async ({ input }) => {
@@ -510,10 +543,30 @@ export const startTrialSession = publicProcedure
 			? `PHONE_SESSION_${Math.floor(Math.random() * 100_000)}`
 			: `SESSION_${timestamp}_${Math.floor(Math.random() * 10_000)}`;
 
+		const contactPhone = input.contactPhone
+			? (normalizeTrialPhoneNumber(input.contactPhone) ??
+				input.contactPhone)
+			: null;
+		const endUser = await resolveSessionEndUser(
+			{ organizationId: agent.organizationId, agentId: agent.id },
+			{
+				kind: "trial",
+				trial: { id: trial.id, label: trial.label },
+				name:
+					input.name ||
+					(input.participantName !== "Guest"
+						? input.participantName
+						: null),
+				email: input.email,
+				phone: normalizedPhone ?? contactPhone,
+				variables: input.contactMetadata,
+			},
+		);
+
 		const session = await createAgentSession({
 			organizationId: agent.organizationId,
 			agentId: agent.id,
-			agentVersionId: version.id,
+			endUserId: endUser.id,
 			livekitRoomName: roomName,
 			channel: isPhone ? "PHONE" : "WEB",
 			direction: isPhone ? "OUTBOUND" : "WEB",
@@ -539,6 +592,7 @@ export const startTrialSession = publicProcedure
 			direction: isPhone ? "OUTBOUND" : "WEB",
 			channel: isPhone ? "PHONE" : "WEB",
 			contact_metadata: input.contactMetadata ?? {},
+			end_user: toDispatchEndUser(endUser),
 			recording_enabled: recordingEnabled,
 		});
 		const metadataJson = isPhone
@@ -787,6 +841,9 @@ export const patchLifecycle = workerProcedure
 			} catch {
 				// Non-fatal: workflow resume is best-effort
 			}
+			if (data.status === "COMPLETED") {
+				await generateEndUserMemoriesSafe(session.id);
+			}
 		}
 
 		return {
@@ -937,12 +994,6 @@ export const postReport = workerProcedure
 		});
 
 		if (input.collectedData && input.collectedData.length > 0) {
-			await upsertSessionCollectedFields({
-				organizationId: session.organizationId,
-				sessionId: session.id,
-				agentId: session.agentId,
-				fields: input.collectedData,
-			});
 			const prevMeta =
 				session.metadata &&
 				typeof session.metadata === "object" &&
@@ -967,6 +1018,11 @@ export const postReport = workerProcedure
 			await syncCampaignSessionFromAgentSession(session.id);
 		} catch {
 			// Non-fatal
+		}
+
+		// Report can land after lifecycle COMPLETED; memories need the transcript.
+		if (input.isFinal !== false && session.status === "COMPLETED") {
+			await generateEndUserMemoriesSafe(session.id);
 		}
 
 		return {
@@ -994,4 +1050,45 @@ export const startEgressInternal = workerProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 		return startEgressForSession(session, input.audioOnly);
+	});
+
+export const uploadFileInternal = workerProcedure
+	.route({
+		method: "POST",
+		path: "/internal/sessions/{id}/files",
+		tags: ["Internal"],
+		summary: "Upload a file for the session's end user (worker, multipart)",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			file: z.file(),
+			name: z.string().max(200).optional(),
+		}),
+	)
+	.handler(async ({ input }) => {
+		const session = await getAgentSessionById(input.id);
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		if (!session.endUserId) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Session has no end user",
+			});
+		}
+		if (input.file.size > MAX_END_USER_FILE_BYTES) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "File is larger than 25 MB",
+			});
+		}
+		const file = await uploadEndUserFile({
+			session: {
+				id: session.id,
+				organizationId: session.organizationId,
+				endUserId: session.endUserId,
+			},
+			file: input.file,
+			name: input.name,
+		});
+		return { file };
 	});

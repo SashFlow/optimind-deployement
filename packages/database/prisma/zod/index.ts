@@ -85,7 +85,7 @@ export type AgentScalarFieldEnum = z.infer<typeof AgentScalarFieldEnumSchema>;
 
 // File: AgentVersionScalarFieldEnum.schema.ts
 
-export const AgentVersionScalarFieldEnumSchema = z.enum(['id', 'agentId', 'createdAt', 'updatedAt', 'organizationId', 'isDraft', 'version', 'config'])
+export const AgentVersionScalarFieldEnumSchema = z.enum(['id', 'agentId', 'createdAt', 'updatedAt', 'organizationId', 'isDraft', 'config'])
 
 export type AgentVersionScalarFieldEnum = z.infer<typeof AgentVersionScalarFieldEnumSchema>;
 
@@ -97,7 +97,7 @@ export type AgentTrialScalarFieldEnum = z.infer<typeof AgentTrialScalarFieldEnum
 
 // File: AgentSessionScalarFieldEnum.schema.ts
 
-export const AgentSessionScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'agentId', 'agentVersionId', 'livekitRoomName', 'livekitRoomSid', 'livekitJobId', 'livekitWorkerId', 'channel', 'direction', 'sipTrunkId', 'sipDispatchRuleId', 'sipCallId', 'fromNumber', 'toNumber', 'sipAttrs', 'status', 'startedAt', 'connectedAt', 'endedAt', 'durationMs', 'endReason', 'errorCode', 'errorMessage', 'configSnapshot', 'livekitSessionReport', 'recordingEnabled', 'transcriptStatus', 'externalUserId', 'metadata'])
+export const AgentSessionScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'agentId', 'livekitRoomName', 'livekitRoomSid', 'livekitJobId', 'livekitWorkerId', 'channel', 'direction', 'sipTrunkId', 'sipDispatchRuleId', 'sipCallId', 'fromNumber', 'toNumber', 'sipAttrs', 'status', 'startedAt', 'connectedAt', 'endedAt', 'durationMs', 'endReason', 'errorCode', 'errorMessage', 'configSnapshot', 'livekitSessionReport', 'recordingEnabled', 'transcriptStatus', 'endUserId', 'metadata'])
 
 export type AgentSessionScalarFieldEnum = z.infer<typeof AgentSessionScalarFieldEnumSchema>;
 
@@ -233,29 +233,11 @@ export const DispatchRuleScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'upd
 
 export type DispatchRuleScalarFieldEnum = z.infer<typeof DispatchRuleScalarFieldEnumSchema>;
 
-// File: CustomVoiceScalarFieldEnum.schema.ts
-
-export const CustomVoiceScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'name', 'livekitVoiceId', 'sampleStorageKeys', 'metadata'])
-
-export type CustomVoiceScalarFieldEnum = z.infer<typeof CustomVoiceScalarFieldEnumSchema>;
-
 // File: EgressJobScalarFieldEnum.schema.ts
 
 export const EgressJobScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'campaignSessionId', 'agentSessionId', 'agentId', 'livekitEgressId', 'type', 'status', 'roomName', 'outputUrls', 'destination', 'fileUrl', 'durationMs', 'sizeBytes', 'errorMessage', 'metadata'])
 
 export type EgressJobScalarFieldEnum = z.infer<typeof EgressJobScalarFieldEnumSchema>;
-
-// File: AvatarProfileScalarFieldEnum.schema.ts
-
-export const AvatarProfileScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'name', 'anamAvatarId', 'anamPersonaId', 'previewUrl', 'metadata'])
-
-export type AvatarProfileScalarFieldEnum = z.infer<typeof AvatarProfileScalarFieldEnumSchema>;
-
-// File: UsageMetricScalarFieldEnum.schema.ts
-
-export const UsageMetricScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'organizationId', 'agentId', 'campaignId', 'campaignSessionId', 'source', 'category', 'provider', 'metric', 'value', 'unit', 'recordedAt', 'metadata'])
-
-export type UsageMetricScalarFieldEnum = z.infer<typeof UsageMetricScalarFieldEnumSchema>;
 
 // File: SessionUsageScalarFieldEnum.schema.ts
 
@@ -263,23 +245,23 @@ export const SessionUsageScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'upd
 
 export type SessionUsageScalarFieldEnum = z.infer<typeof SessionUsageScalarFieldEnumSchema>;
 
-// File: SessionCollectedFieldScalarFieldEnum.schema.ts
-
-export const SessionCollectedFieldScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'sessionId', 'agentId', 'key', 'label', 'fieldType', 'value', 'required', 'capturedAt'])
-
-export type SessionCollectedFieldScalarFieldEnum = z.infer<typeof SessionCollectedFieldScalarFieldEnumSchema>;
-
 // File: CallbackScheduleScalarFieldEnum.schema.ts
 
 export const CallbackScheduleScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'sessionId', 'campaignId', 'campaignContactId', 'phoneE164', 'scheduledAt', 'status', 'source', 'contactMetadata', 'errorMessage', 'completedSessionId'])
 
 export type CallbackScheduleScalarFieldEnum = z.infer<typeof CallbackScheduleScalarFieldEnumSchema>;
 
-// File: ProviderRateScalarFieldEnum.schema.ts
+// File: SessionFileScalarFieldEnum.schema.ts
 
-export const ProviderRateScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'modality', 'provider', 'model', 'unit', 'unitAmountMicros', 'currency', 'unitSource', 'effectiveFrom', 'effectiveTo'])
+export const SessionFileScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'sessionId', 'name', 'url', 'type', 'size'])
 
-export type ProviderRateScalarFieldEnum = z.infer<typeof ProviderRateScalarFieldEnumSchema>;
+export type SessionFileScalarFieldEnum = z.infer<typeof SessionFileScalarFieldEnumSchema>;
+
+// File: EndUserScalarFieldEnum.schema.ts
+
+export const EndUserScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'agentId', 'name', 'identity', 'email', 'phone', 'metadata', 'memory', 'files'])
+
+export type EndUserScalarFieldEnum = z.infer<typeof EndUserScalarFieldEnumSchema>;
 
 // File: SortOrder.schema.ts
 
@@ -340,12 +322,6 @@ export type AuditActionType = z.infer<typeof AuditActionTypeSchema>;
 export const AgentStatusSchema = z.enum(['ACTIVE', 'INACTIVE', 'DELETED'])
 
 export type AgentStatus = z.infer<typeof AgentStatusSchema>;
-
-// File: AgentVersionStatus.schema.ts
-
-export const AgentVersionStatusSchema = z.enum(['DRAFT', 'PUBLISHED', 'DELETED'])
-
-export type AgentVersionStatus = z.infer<typeof AgentVersionStatusSchema>;
 
 // File: AgentSessionChannel.schema.ts
 
@@ -521,18 +497,6 @@ export const EgressJobStatusSchema = z.enum(['STARTING', 'ACTIVE', 'ENDING', 'CO
 
 export type EgressJobStatus = z.infer<typeof EgressJobStatusSchema>;
 
-// File: UsageMetricSource.schema.ts
-
-export const UsageMetricSourceSchema = z.enum(['AGENT', 'CAMPAIGN', 'SESSION'])
-
-export type UsageMetricSource = z.infer<typeof UsageMetricSourceSchema>;
-
-// File: UsageMetricCategory.schema.ts
-
-export const UsageMetricCategorySchema = z.enum(['LLM', 'STT', 'TTS', 'AVATAR', 'SIP', 'EGRESS', 'ROOM'])
-
-export type UsageMetricCategory = z.infer<typeof UsageMetricCategorySchema>;
-
 // File: UsageModality.schema.ts
 
 export const UsageModalitySchema = z.enum(['LLM', 'REALTIME', 'STT', 'TTS', 'VAD', 'AVATAR', 'SIP', 'LIVEKIT_ROOM', 'EGRESS'])
@@ -556,12 +520,6 @@ export type CallbackScheduleStatus = z.infer<typeof CallbackScheduleStatusSchema
 export const CallbackScheduleSourceSchema = z.enum(['RESCHEDULE', 'VOICEMAIL', 'MANUAL'])
 
 export type CallbackScheduleSource = z.infer<typeof CallbackScheduleSourceSchema>;
-
-// File: ProviderRateUnit.schema.ts
-
-export const ProviderRateUnitSchema = z.enum(['TOKEN', 'MINUTE', 'CHARACTER', 'REQUEST'])
-
-export type ProviderRateUnit = z.infer<typeof ProviderRateUnitSchema>;
 
 // File: User.schema.ts
 
@@ -783,7 +741,6 @@ export const AgentVersionSchema = z.object({
   updatedAt: z.date(),
   organizationId: z.string(),
   isDraft: z.boolean().default(true),
-  version: AgentVersionStatusSchema.default("DRAFT"),
   config: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
 });
 
@@ -816,7 +773,6 @@ export const AgentSessionSchema = z.object({
   updatedAt: z.date(),
   organizationId: z.string(),
   agentId: z.string(),
-  agentVersionId: z.string(),
   livekitRoomName: z.string(),
   livekitRoomSid: z.string().nullish(),
   livekitJobId: z.string().nullish(),
@@ -841,7 +797,7 @@ export const AgentSessionSchema = z.object({
   livekitSessionReport: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
   recordingEnabled: z.boolean(),
   transcriptStatus: TranscriptStatusSchema.default("PENDING"),
-  externalUserId: z.string().nullish(),
+  endUserId: z.string().nullish(),
   metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
 });
 
@@ -1314,22 +1270,6 @@ export const DispatchRuleSchema = z.object({
 export type DispatchRuleType = z.infer<typeof DispatchRuleSchema>;
 
 
-// File: CustomVoice.schema.ts
-
-export const CustomVoiceSchema = z.object({
-  id: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  organizationId: z.string(),
-  name: z.string(),
-  livekitVoiceId: z.string().nullish(),
-  sampleStorageKeys: z.array(z.string()),
-  metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
-});
-
-export type CustomVoiceType = z.infer<typeof CustomVoiceSchema>;
-
-
 // File: EgressJob.schema.ts
 
 export const EgressJobSchema = z.object({
@@ -1354,45 +1294,6 @@ export const EgressJobSchema = z.object({
 });
 
 export type EgressJob = z.infer<typeof EgressJobSchema>;
-
-
-// File: AvatarProfile.schema.ts
-
-export const AvatarProfileSchema = z.object({
-  id: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  organizationId: z.string(),
-  name: z.string(),
-  anamAvatarId: z.string(),
-  anamPersonaId: z.string().nullish(),
-  previewUrl: z.string().nullish(),
-  metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
-});
-
-export type AvatarProfileType = z.infer<typeof AvatarProfileSchema>;
-
-
-// File: UsageMetric.schema.ts
-
-export const UsageMetricSchema = z.object({
-  id: z.string(),
-  createdAt: z.date(),
-  organizationId: z.string(),
-  agentId: z.string().nullish(),
-  campaignId: z.string().nullish(),
-  campaignSessionId: z.string().nullish(),
-  source: UsageMetricSourceSchema,
-  category: UsageMetricCategorySchema,
-  provider: z.string().nullish(),
-  metric: z.string(),
-  value: z.string().regex(/^-?\d{1,10}(?:\.\d{1,8})?$/, "Invalid decimal format"),
-  unit: z.string(),
-  recordedAt: z.date(),
-  metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
-});
-
-export type UsageMetricType = z.infer<typeof UsageMetricSchema>;
 
 
 // File: SessionUsage.schema.ts
@@ -1437,26 +1338,6 @@ export const SessionUsageSchema = z.object({
 export type SessionUsageType = z.infer<typeof SessionUsageSchema>;
 
 
-// File: SessionCollectedField.schema.ts
-
-export const SessionCollectedFieldSchema = z.object({
-  id: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  organizationId: z.string(),
-  sessionId: z.string(),
-  agentId: z.string(),
-  key: z.string(),
-  label: z.string().nullish(),
-  fieldType: z.string().default("string"),
-  value: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("null"),
-  required: z.boolean(),
-  capturedAt: z.date(),
-});
-
-export type SessionCollectedFieldType = z.infer<typeof SessionCollectedFieldSchema>;
-
-
 // File: CallbackSchedule.schema.ts
 
 export const CallbackScheduleSchema = z.object({
@@ -1479,23 +1360,39 @@ export const CallbackScheduleSchema = z.object({
 export type CallbackScheduleType = z.infer<typeof CallbackScheduleSchema>;
 
 
-// File: ProviderRate.schema.ts
+// File: SessionFile.schema.ts
 
-export const ProviderRateSchema = z.object({
+export const SessionFileSchema = z.object({
   id: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  organizationId: z.string().nullish(),
-  modality: UsageModalitySchema,
-  provider: z.string(),
-  model: z.string().nullish(),
-  unit: ProviderRateUnitSchema,
-  unitAmountMicros: z.number().int(),
-  currency: z.string().default("USD"),
-  unitSource: UnitSourceSchema.nullish(),
-  effectiveFrom: z.date(),
-  effectiveTo: z.date().nullish(),
+  organizationId: z.string(),
+  sessionId: z.string(),
+  name: z.string(),
+  url: z.string(),
+  type: z.string(),
+  size: z.number().int(),
 });
 
-export type ProviderRateType = z.infer<typeof ProviderRateSchema>;
+export type SessionFileType = z.infer<typeof SessionFileSchema>;
+
+
+// File: EndUser.schema.ts
+
+export const EndUserSchema = z.object({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  organizationId: z.string(),
+  agentId: z.string(),
+  name: z.string(),
+  identity: z.string(),
+  email: z.string().nullish(),
+  phone: z.string().nullish(),
+  metadata: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  memory: z.array(z.string()),
+  files: z.array(z.string()),
+});
+
+export type EndUserType = z.infer<typeof EndUserSchema>;
 

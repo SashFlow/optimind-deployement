@@ -4,7 +4,7 @@ import {
 	collectDispatchToolIds,
 	resolveOrgToolsByIds,
 } from "../../tools/lib/org-tools";
-import { prepareConfigForDispatch } from "./merge-prompt";
+import { type DispatchEndUser, prepareConfigForDispatch } from "./merge-prompt";
 
 export const dispatchSourceSchema = z.enum([
 	"web",
@@ -30,6 +30,10 @@ export const dispatchMetadataSchema = z.object({
 	direction: z.enum(["NONE", "INBOUND", "OUTBOUND", "WEB"]).default("NONE"),
 	channel: z.enum(["WEB", "SIP", "PHONE"]).default("WEB"),
 	contact_metadata: z.record(z.string(), z.unknown()).default({}),
+	end_user: z
+		.object({ id: z.string().min(1), name: z.string() })
+		.nullable()
+		.optional(),
 	recording_enabled: z.boolean().default(false),
 });
 
@@ -94,7 +98,9 @@ function resolveAvatarProvider(
  * - full tool definitions in config.tool_definitions (resolved from org tools by ID)
  */
 export async function buildDispatchMetadata(
-	input: z.input<typeof dispatchMetadataSchema>,
+	input: Omit<z.input<typeof dispatchMetadataSchema>, "end_user"> & {
+		end_user?: DispatchEndUser | null;
+	},
 ): Promise<DispatchMetadata> {
 	const contactMetadata = input.contact_metadata ?? {};
 	const rawConfig = resolveAvatarProvider(
@@ -113,8 +119,12 @@ export async function buildDispatchMetadata(
 		...input,
 		config: prepareConfigForDispatch(rawConfig, contactMetadata, {
 			toolDefinitions,
+			endUser: input.end_user ?? undefined,
 		}),
 		contact_metadata: contactMetadata,
+		end_user: input.end_user
+			? { id: input.end_user.id, name: input.end_user.name }
+			: null,
 	});
 }
 

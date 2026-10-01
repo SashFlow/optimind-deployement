@@ -16,6 +16,15 @@ export type AgentSessionRow = {
 	createdAt: string;
 	agentId: string;
 	errorMessage: string | null;
+	endUser: SessionEndUser | null;
+};
+
+export type SessionEndUser = {
+	id: string;
+	name: string;
+	identity: string;
+	email: string | null;
+	phone: string | null;
 };
 
 export type AgentStats = {
@@ -44,6 +53,7 @@ export function mapSession(row: {
 	createdAt: Date | string;
 	agentId: string;
 	errorMessage?: string | null;
+	endUser?: SessionEndUser | null;
 }): AgentSessionRow {
 	return {
 		id: row.id,
@@ -56,6 +66,15 @@ export function mapSession(row: {
 		createdAt: new Date(row.createdAt).toISOString(),
 		agentId: row.agentId,
 		errorMessage: row.errorMessage ?? null,
+		endUser: row.endUser
+			? {
+					id: row.endUser.id,
+					name: row.endUser.name,
+					identity: row.endUser.identity,
+					email: row.endUser.email ?? null,
+					phone: row.endUser.phone ?? null,
+				}
+			: null,
 	};
 }
 

@@ -39,6 +39,7 @@ export type Config = {
 			notes: string;
 			fell: string;
 			pictures: string;
+			endUserFiles: string;
 		};
 	};
 	ui: {

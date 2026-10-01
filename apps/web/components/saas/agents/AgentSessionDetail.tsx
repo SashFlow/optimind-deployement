@@ -702,8 +702,88 @@ export function SessionEventsPanel({ events }: { events: SessionEventRow[] }) {
 	);
 }
 
+function EndUserCard({ session }: { session: SessionDetail }) {
+	const endUser = session.endUser;
+	if (!endUser) {
+		return null;
+	}
+	const memory = endUser.memory ?? [];
+	const files = session.files ?? [];
+	const contact = [endUser.email, endUser.phone].filter(Boolean).join(" · ");
+
+	return (
+		<Card className="shadow-xs">
+			<CardHeader>
+				<CardTitle className="text-base font-bold leading-none">
+					End user
+				</CardTitle>
+			</CardHeader>
+			<CardContent className="space-y-4 text-sm">
+				<div>
+					<div className="font-medium">{endUser.name}</div>
+					<div className="text-xs text-muted-foreground">
+						{contact || endUser.identity}
+					</div>
+				</div>
+				<div className="space-y-1">
+					<div className="text-xs text-muted-foreground">
+						Memories
+					</div>
+					{memory.length > 0 ? (
+						<ul className="list-disc space-y-1 pl-5">
+							{memory.map((item) => (
+								<li key={item}>{item}</li>
+							))}
+						</ul>
+					) : (
+						<p className="text-muted-foreground">
+							No memories yet.
+						</p>
+					)}
+				</div>
+				{files.length > 0 ? (
+					<div className="space-y-1">
+						<div className="text-xs text-muted-foreground">
+							Files from this session
+						</div>
+						<ul className="space-y-1">
+							{files.map((file) => (
+								<li
+									key={file.id}
+									className="flex items-center gap-2"
+								>
+									{file.downloadUrl ? (
+										<a
+											href={file.downloadUrl}
+											target="_blank"
+											rel="noreferrer"
+											className="truncate font-medium underline-offset-2 hover:underline"
+										>
+											{file.name}
+										</a>
+									) : (
+										<span className="truncate font-medium">
+											{file.name}
+										</span>
+									)}
+									<span className="shrink-0 text-xs text-muted-foreground">
+										{formatBytes(file.size)}
+									</span>
+								</li>
+							))}
+						</ul>
+					</div>
+				) : null}
+			</CardContent>
+		</Card>
+	);
+}
+
 export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 	const egressJobs = session.egressJobs ?? [];
+	const collectedFields = Object.entries(
+		session.metadata?.collectedData ?? {},
+	);
 	const transcriptSegments = session.transcript?.segments ?? [];
 	const transcriptText =
 		session.transcript?.fullText ?? session.transcript?.text ?? null;
@@ -795,7 +875,9 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 				</Card>
 			</div>
 
-			{(session.collectedFields?.length ?? 0) > 0 ? (
+			{session.endUser ? <EndUserCard session={session} /> : null}
+
+			{collectedFields.length > 0 ? (
 				<Card className="shadow-xs">
 					<CardHeader>
 						<CardTitle className="text-base font-bold leading-none">
@@ -803,16 +885,16 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 						</CardTitle>
 					</CardHeader>
 					<CardContent className="grid gap-2 sm:grid-cols-2">
-						{(session.collectedFields ?? []).map((field) => (
+						{collectedFields.map(([key, value]) => (
 							<div
-								key={field.id}
+								key={key}
 								className="rounded-xl border border-border/70 px-3 py-2 text-sm shadow-xs"
 							>
 								<div className="text-xs text-muted-foreground">
-									{field.label || field.key}
+									{key}
 								</div>
 								<div className="font-medium">
-									{String(field.value ?? "—")}
+									{String(value ?? "—")}
 								</div>
 							</div>
 						))}

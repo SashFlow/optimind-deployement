@@ -1,5 +1,10 @@
 import { RoomConfiguration } from "@livekit/protocol";
 import { buildDispatchMetadata } from "@repo/api/modules/sessions/lib/dispatch-metadata";
+import {
+	resolveSessionEndUser,
+	toDispatchEndUser,
+} from "@repo/api/modules/sessions/lib/end-user";
+import { auth } from "@repo/auth";
 import { createAgentSession, getAgentById } from "@repo/database";
 import {
 	createAgentDispatch,
@@ -92,10 +97,21 @@ export async function POST(req: Request) {
 			const recordingEnabled =
 				recordingOverride ?? configRecordingEnabled(configSnapshot);
 
+			// Login is optional here: link to the signed-in user when present.
+			const authSession = await auth.api
+				.getSession({ headers: req.headers })
+				.catch(() => null);
+			const endUser = await resolveSessionEndUser(
+				{ organizationId, agentId: agent.id },
+				authSession?.user
+					? { kind: "user", user: authSession.user }
+					: { kind: "anonymous" },
+			);
+
 			const session = await createAgentSession({
 				organizationId,
 				agentId: agent.id,
-				agentVersionId: version.id,
+				endUserId: endUser.id,
 				livekitRoomName: roomName,
 				channel: "WEB",
 				direction: "WEB",
@@ -126,6 +142,7 @@ export async function POST(req: Request) {
 				direction: "WEB",
 				channel: "WEB",
 				contact_metadata: contactMetadata,
+				end_user: toDispatchEndUser(endUser),
 				recording_enabled: recordingEnabled,
 			});
 

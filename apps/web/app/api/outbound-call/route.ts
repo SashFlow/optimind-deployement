@@ -1,4 +1,9 @@
 import { buildDispatchMetadata } from "@repo/api/modules/sessions/lib/dispatch-metadata";
+import {
+	resolveSessionEndUser,
+	toDispatchEndUser,
+} from "@repo/api/modules/sessions/lib/end-user";
+import { auth } from "@repo/auth";
 import { createAgentSession, getAgentById } from "@repo/database";
 import { createOutboundRoomWithDispatch } from "@repo/livekit";
 import { NextResponse } from "next/server";
@@ -79,10 +84,28 @@ export async function POST(req: Request) {
 			const recordingEnabled =
 				body.recordingEnabled ?? configRecordingEnabled(configSnapshot);
 
+			const contactMetadata =
+				body.contactMetadata &&
+				typeof body.contactMetadata === "object" &&
+				!Array.isArray(body.contactMetadata)
+					? body.contactMetadata
+					: {};
+
+			// Login is optional here: signed-in user, otherwise the dialled number.
+			const authSession = await auth.api
+				.getSession({ headers: req.headers })
+				.catch(() => null);
+			const endUser = await resolveSessionEndUser(
+				{ organizationId: body.organizationId, agentId: agent.id },
+				authSession?.user
+					? { kind: "user", user: authSession.user }
+					: { kind: "phone", phone: phoneNumber, contactMetadata },
+			);
+
 			const session = await createAgentSession({
 				organizationId: body.organizationId,
 				agentId: agent.id,
-				agentVersionId: version.id,
+				endUserId: endUser.id,
 				livekitRoomName: roomName,
 				channel: "PHONE",
 				direction: "OUTBOUND",
@@ -96,13 +119,6 @@ export async function POST(req: Request) {
 			});
 			sessionId = session.id;
 
-			const contactMetadata =
-				body.contactMetadata &&
-				typeof body.contactMetadata === "object" &&
-				!Array.isArray(body.contactMetadata)
-					? body.contactMetadata
-					: {};
-
 			const dispatchMetadata = await buildDispatchMetadata({
 				organization_id: body.organizationId,
 				agent_id: agent.id,
@@ -114,6 +130,7 @@ export async function POST(req: Request) {
 				direction: "OUTBOUND",
 				channel: "PHONE",
 				contact_metadata: contactMetadata,
+				end_user: toDispatchEndUser(endUser),
 				recording_enabled: recordingEnabled,
 			});
 

@@ -151,16 +151,13 @@ model Organization {
     phoneNumbers           PhoneNumber[]
     sipTrunks              SipTrunk[]
     dispatchRules          DispatchRule[]
-    customVoices           CustomVoice[]
     egressJobs             EgressJob[]
-    avatarProfiles         AvatarProfile[]
-    usageMetrics           UsageMetric[]
     campaignWorkflows      CampaignWorkflow[]
     workflowRuns           WorkflowRun[]
     workflowApprovals      WorkflowApproval[]
-    sessionCollectedFields SessionCollectedField[]
     callbackSchedules      CallbackSchedule[]
-    providerRates          ProviderRate[]
+    sessionFiles           SessionFile[]
+    endUsers               EndUser[]
 
     @@unique([slug])
     @@map("organization")
@@ -271,12 +268,6 @@ enum AgentStatus {
     DELETED
 }
 
-enum AgentVersionStatus {
-    DRAFT
-    PUBLISHED
-    DELETED
-}
-
 model Agent {
     id                     String                  @id @default(cuid())
     createdAt              DateTime                @default(now())
@@ -300,8 +291,7 @@ model Agent {
     knowledgeBases         AgentKnowledgeBase[]
     phoneNumbers           PhoneNumber[]
     dispatchRules          DispatchRule[]
-    usageMetrics           UsageMetric[]
-    sessionCollectedFields SessionCollectedField[]
+    endUsers               EndUser[]
     embedEnabled           Boolean                 @default(false)
     token                  String?                 @unique
 
@@ -318,12 +308,11 @@ model AgentVersion {
     organizationId String
     organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     isDraft        Boolean            @default(true)
-    version        AgentVersionStatus @default(DRAFT)
     config         Json               @default("{}")
     draftFor       Agent[]            @relation("AgentDraftVersion")
     publishedFor   Agent[]            @relation("AgentPublishedVersion")
-    sessions       AgentSession[]
 
+    @@unique([agentId, isDraft])
     @@index([agentId])
     @@index([organizationId])
     @@map("agent_version")
@@ -433,8 +422,6 @@ model AgentSession {
     organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
     agentId        String
     agent          Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
-    agentVersionId String
-    agentVersion   AgentVersion @relation(fields: [agentVersionId], references: [id], onDelete: Restrict)
 
     livekitRoomName String
     livekitRoomSid  String?
@@ -479,7 +466,6 @@ model AgentSession {
     toolCalls          ToolCallRecord[]
     usages             SessionUsage[]
     egressJobs         EgressJob[]
-    collectedFields    SessionCollectedField[]
     callbackSchedules  CallbackSchedule[]      @relation("CallbackOriginSession")
     completedCallbacks CallbackSchedule[]      @relation("CallbackCompletedSession")
 
@@ -493,6 +479,7 @@ model AgentSession {
     @@index([status])
     @@index([sipTrunkId])
     @@index([sipDispatchRuleId])
+    @@index([endUserId])
     @@map("agent_session")
 }
 
@@ -702,7 +689,6 @@ model Campaign {
     knowledgeBases    CampaignKnowledgeBase[]
     phoneNumbers      PhoneNumber[]
     dispatchRules     DispatchRule[]
-    usageMetrics      UsageMetric[]
     workflow          CampaignWorkflow?
     workflowRuns      WorkflowRun[]
     callbackSchedules CallbackSchedule[]
@@ -837,7 +823,6 @@ model CampaignSession {
     metadata Json @default("{}")
 
     egressJobs   EgressJob[]
-    usageMetrics UsageMetric[]
 
     @@index([campaignId, status])
     @@index([contactId, startedAt])
@@ -1286,22 +1271,6 @@ model DispatchRule {
     @@map("dispatch_rule")
 }
 
-model CustomVoice {
-    id                String       @id @default(cuid())
-    createdAt         DateTime     @default(now())
-    updatedAt         DateTime     @updatedAt
-    organizationId    String
-    organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    name              String
-    livekitVoiceId    String?
-    sampleStorageKeys String[]     @default([])
-    metadata          Json         @default("{}")
-
-    @@index([organizationId])
-    @@index([livekitVoiceId])
-    @@map("custom_voice")
-}
-
 model EgressJob {
     id                String           @id @default(cuid())
     createdAt         DateTime         @default(now())
@@ -1336,52 +1305,8 @@ model EgressJob {
 }
 
 // ------------------------------------------------------------
-// ----------------------------- Usage Metrics ----------------
+// ----------------------------- Session Usage ----------------
 // ------------------------------------------------------------
-
-enum UsageMetricSource {
-    AGENT
-    CAMPAIGN
-    SESSION
-}
-
-enum UsageMetricCategory {
-    LLM
-    STT
-    TTS
-    AVATAR
-    SIP
-    EGRESS
-    ROOM
-}
-
-model UsageMetric {
-    id                String           @id @default(cuid())
-    createdAt         DateTime         @default(now())
-    organizationId    String
-    organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    agentId           String?
-    agent             Agent?           @relation(fields: [agentId], references: [id], onDelete: SetNull)
-    campaignId        String?
-    campaign          Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-    campaignSessionId String?
-    campaignSession   CampaignSession? @relation(fields: [campaignSessionId], references: [id], onDelete: SetNull)
-
-    source     UsageMetricSource
-    category   UsageMetricCategory
-    provider   String?
-    metric     String
-    value      Decimal             @db.Decimal(20, 6)
-    unit       String
-    recordedAt DateTime            @default(now())
-    metadata   Json                @default("{}")
-
-    @@index([organizationId, recordedAt])
-    @@index([agentId, recordedAt])
-    @@index([campaignId, recordedAt])
-    @@index([campaignSessionId])
-    @@map("usage_metric")
-}
 
 model SessionUsage {
     id             String        @id @default(cuid())
@@ -1438,30 +1363,6 @@ model SessionUsage {
 // ------------------ Analytics platform extensions -----------
 // ------------------------------------------------------------
 
-model SessionCollectedField {
-    id             String       @id @default(cuid())
-    createdAt      DateTime     @default(now())
-    updatedAt      DateTime     @updatedAt
-    organizationId String
-    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-    sessionId      String
-    session        AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-    agentId        String
-    agent          Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
-
-    key        String
-    label      String?
-    fieldType  String   @default("string")
-    value      Json     @default("null")
-    required   Boolean  @default(false)
-    capturedAt DateTime @default(now())
-
-    @@unique([sessionId, key])
-    @@index([organizationId, capturedAt])
-    @@index([agentId, key])
-    @@map("session_collected_field")
-}
-
 enum CallbackScheduleStatus {
     PENDING
     QUEUED
@@ -1510,37 +1411,6 @@ model CallbackSchedule {
     @@map("callback_schedule")
 }
 
-enum ProviderRateUnit {
-    TOKEN
-    MINUTE
-    CHARACTER
-    REQUEST
-}
-
-model ProviderRate {
-    id             String        @id @default(cuid())
-    createdAt      DateTime      @default(now())
-    updatedAt      DateTime      @updatedAt
-    /// null = platform default rate
-    organizationId String?
-    organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-    modality         UsageModality
-    provider         String
-    model            String?
-    unit             ProviderRateUnit
-    /// Micros of currency per unit (1 USD = 1_000_000 micros)
-    unitAmountMicros Int
-    currency         String           @default("USD")
-    unitSource       UnitSource?
-    effectiveFrom    DateTime         @default(now())
-    effectiveTo      DateTime?
-
-    @@index([modality, provider, effectiveFrom])
-    @@index([organizationId, modality, provider])
-    @@map("provider_rate")
-}
-
 model SessionFile {
     id             String       @id @default(cuid())
     createdAt      DateTime     @default(now())
@@ -1572,6 +1442,7 @@ model EndUser {
 
     name     String
     identity String
+    email    String?
     phone    String?
     metadata Json     @default("{}")
     memory   String[] @default([])
@@ -1579,6 +1450,9 @@ model EndUser {
 
     sessions AgentSession[]
 
+    @@unique([agentId, identity])
     @@index([organizationId])
+    @@index([agentId])
+    @@index([organizationId, phone])
     @@map("end_user")
 }

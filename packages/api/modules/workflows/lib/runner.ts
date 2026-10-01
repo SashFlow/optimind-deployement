@@ -519,7 +519,8 @@ export async function resumeAgentSessionWait(sessionId: string) {
 		toNumber: session.toNumber,
 		channel: session.channel,
 		direction: session.direction,
-		externalUserId: session.externalUserId,
+		endUserId: session.endUserId,
+		endUserName: session.endUser?.name ?? null,
 		contactMetadata:
 			session.metadata &&
 			typeof session.metadata === "object" &&

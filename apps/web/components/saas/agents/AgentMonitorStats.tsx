@@ -38,12 +38,6 @@ type LatencyRow = {
 	p95_ms: number | null;
 };
 
-type VersionRow = {
-	agentVersionId: string;
-	sessions: number;
-	avg_duration_ms: number | null;
-};
-
 const latencyColumns: ColumnDef<LatencyRow>[] = [
 	{
 		accessorKey: "metric",
@@ -69,34 +63,6 @@ const latencyColumns: ColumnDef<LatencyRow>[] = [
 		cell: ({ row }) => (
 			<DataTableValuePill>
 				{formatDurationMs(row.original.p95_ms)}
-			</DataTableValuePill>
-		),
-	},
-];
-
-const versionColumns: ColumnDef<VersionRow>[] = [
-	{
-		accessorKey: "agentVersionId",
-		header: "Version",
-		cell: ({ row }) => (
-			<span className="font-mono text-xs text-foreground">
-				{row.original.agentVersionId.slice(0, 12)}…
-			</span>
-		),
-	},
-	{
-		accessorKey: "sessions",
-		header: "Sessions",
-		cell: ({ row }) => (
-			<DataTableValuePill>{row.original.sessions}</DataTableValuePill>
-		),
-	},
-	{
-		accessorKey: "avg_duration_ms",
-		header: "Avg duration",
-		cell: ({ row }) => (
-			<DataTableValuePill>
-				{formatDurationMs(row.original.avg_duration_ms)}
 			</DataTableValuePill>
 		),
 	},
@@ -128,12 +94,6 @@ export type AgentMonitorServerStats = {
 			p95_ms: number | null;
 		}>;
 	} | null;
-	versions?: VersionRow[];
-	collected_fields_sample?: Array<{
-		id: string;
-		key: string;
-		value: unknown;
-	}>;
 };
 
 export function AgentMonitorStats({
@@ -232,10 +192,6 @@ export function AgentMonitorBody({
 	const latencyRows = useMemo(
 		() => (server.latency?.metrics ?? []) as LatencyRow[],
 		[server.latency?.metrics],
-	);
-	const versionRows = useMemo(
-		() => (server.versions ?? []) as VersionRow[],
-		[server.versions],
 	);
 
 	const outcomeBreakdown = {
@@ -346,41 +302,6 @@ export function AgentMonitorBody({
 						getRowId={(row) => row.metric}
 						emptyMessage="No latency metrics collected yet."
 					/>
-				</section>
-			) : null}
-
-			{versionRows.length > 0 ? (
-				<section className="space-y-2">
-					<h3 className="text-base font-semibold">By version</h3>
-					<StandardDataTable
-						columns={versionColumns}
-						data={versionRows}
-						getRowId={(row) => row.agentVersionId}
-						emptyMessage="No version activity yet."
-					/>
-				</section>
-			) : null}
-
-			{(server.collected_fields_sample?.length ?? 0) > 0 ? (
-				<section className="space-y-2">
-					<h3 className="text-base font-semibold">
-						Collected fields
-					</h3>
-					<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-						{(server.collected_fields_sample ?? [])
-							.slice(0, 8)
-							.map((f) => (
-								<div
-									key={f.id}
-									className="rounded-xl border border-border/70 bg-card px-3 py-2 text-sm shadow-xs"
-								>
-									<span className="font-medium">{f.key}</span>
-									<span className="text-muted-foreground">
-										: {String(f.value)}
-									</span>
-								</div>
-							))}
-					</div>
 				</section>
 			) : null}
 		</div>

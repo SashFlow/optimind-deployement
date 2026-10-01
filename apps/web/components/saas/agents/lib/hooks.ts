@@ -27,11 +27,23 @@ export type SessionDetail = {
 		segments?: TranscriptSegmentRow[];
 	} | null;
 	egressJobs?: EgressJobRow[];
-	collectedFields?: Array<{
+	metadata?: {
+		collectedData?: Record<string, unknown>;
+	} | null;
+	endUser?: {
 		id: string;
-		key: string;
-		label?: string | null;
-		value: unknown;
+		name: string;
+		identity: string;
+		email?: string | null;
+		phone?: string | null;
+		memory?: string[];
+	} | null;
+	files?: Array<{
+		id: string;
+		name: string;
+		type: string;
+		size: number;
+		downloadUrl?: string | null;
 	}>;
 	campaignSession?: {
 		outcome?: string | null;

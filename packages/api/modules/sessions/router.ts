@@ -11,6 +11,7 @@ import {
 	startEgressInternal,
 	startSessionEgress,
 	startTrialSession,
+	uploadFileInternal,
 } from "./procedures";
 
 export const sessionsRouter = {
@@ -27,5 +28,6 @@ export const sessionsRouter = {
 		postToolCall,
 		postReport,
 		startEgress: startEgressInternal,
+		uploadFile: uploadFileInternal,
 	},
 };

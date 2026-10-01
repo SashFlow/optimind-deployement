@@ -8,6 +8,7 @@ import { logger } from "@repo/logs";
 import type {
 	GetSignedUploadUrlHandler,
 	GetSignedUrlHander,
+	UploadObjectHandler,
 } from "../../types";
 
 let s3Client: S3Client | null = null;
@@ -85,5 +86,26 @@ export const getSignedUrl: GetSignedUrlHander = async (
 	} catch (e) {
 		logger.error(e);
 		throw new Error("Could not get signed url");
+	}
+};
+
+export const uploadObject: UploadObjectHandler = async (
+	path,
+	body,
+	{ bucket, contentType },
+) => {
+	const s3Client = getS3Client();
+	try {
+		await s3Client.send(
+			new PutObjectCommand({
+				Bucket: bucket,
+				Key: path,
+				Body: body,
+				ContentType: contentType || "application/octet-stream",
+			}),
+		);
+	} catch (e) {
+		logger.error(e);
+		throw new Error("Could not upload object");
 	}
 };

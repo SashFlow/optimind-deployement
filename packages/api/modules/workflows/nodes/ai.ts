@@ -16,6 +16,10 @@ import {
 	buildDispatchMetadata,
 	serializeDispatchMetadata,
 } from "../../sessions/lib/dispatch-metadata";
+import {
+	resolveSessionEndUser,
+	toDispatchEndUser,
+} from "../../sessions/lib/end-user";
 import { resolveTemplate, resolveValue } from "../lib/template";
 import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 
@@ -164,10 +168,17 @@ export async function handleAgent(
 			? Boolean(cfg.recordingEnabled)
 			: configRecordingEnabled(configSnapshot);
 
+	const endUser = await resolveSessionEndUser(
+		{ organizationId: args.run.organizationId, agentId: agent.id },
+		phoneNumber
+			? { kind: "phone", phone: phoneNumber, contactMetadata }
+			: { kind: "anonymous" },
+	);
+
 	const session = await createAgentSession({
 		organizationId: args.run.organizationId,
 		agentId: agent.id,
-		agentVersionId: version.id,
+		endUserId: endUser.id,
 		livekitRoomName: roomName,
 		channel: channel as "WEB" | "SIP" | "PHONE",
 		direction,
@@ -199,6 +210,7 @@ export async function handleAgent(
 		direction,
 		channel: channel as "WEB" | "SIP" | "PHONE",
 		contact_metadata: contactMetadata,
+		end_user: toDispatchEndUser(endUser),
 		recording_enabled: recordingEnabled,
 	});
 

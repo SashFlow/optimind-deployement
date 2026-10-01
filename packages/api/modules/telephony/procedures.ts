@@ -1,6 +1,5 @@
 import { ORPCError } from "@orpc/client";
 import {
-	createCustomVoice,
 	createDispatchRule,
 	createEgressJob,
 	createSipTrunk,
@@ -8,7 +7,6 @@ import {
 	getEgressJobById,
 	getPhoneNumberById,
 	getSipTrunkById,
-	listCustomVoices,
 	listDispatchRules,
 	listEgressJobs,
 	listPhoneNumbers,
@@ -412,40 +410,6 @@ export const deleteRule = protectedProcedure
 			},
 		});
 		return { success: true };
-	});
-
-export const createVoice = protectedProcedure
-	.route({
-		method: "POST",
-		path: "/telephony/custom-voices",
-		tags: ["Telephony"],
-		summary: "Register custom voice",
-	})
-	.input(
-		z.object({
-			organizationId: z.string(),
-			name: z.string(),
-			livekitVoiceId: z.string().optional(),
-			sampleStorageKeys: z.array(z.string()).optional(),
-		}),
-	)
-	.handler(async ({ input, context }) => {
-		await requireOrgMembership(input.organizationId, context.user.id);
-		const voice = await createCustomVoice(input);
-		return { voice };
-	});
-
-export const listVoices = protectedProcedure
-	.route({
-		method: "GET",
-		path: "/telephony/custom-voices",
-		tags: ["Telephony"],
-		summary: "List custom voices",
-	})
-	.input(z.object({ organizationId: z.string() }))
-	.handler(async ({ input, context }) => {
-		await requireOrgMembership(input.organizationId, context.user.id);
-		return { voices: await listCustomVoices(input.organizationId) };
 	});
 
 export const mintToken = protectedProcedure

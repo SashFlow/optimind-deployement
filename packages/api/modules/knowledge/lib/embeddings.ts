@@ -2,7 +2,7 @@ import OpenAI from "openai";
 
 let client: OpenAI | null = null;
 
-function getOpenAIClient() {
+export function getOpenAIClient() {
 	if (client) {
 		return client;
 	}

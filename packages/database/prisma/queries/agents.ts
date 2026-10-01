@@ -1,11 +1,6 @@
 import { createId } from "@paralleldrive/cuid2";
 import { db } from "../client";
-import type {
-	AgentStatus,
-	AgentTrial,
-	AgentVersionStatus,
-	Prisma,
-} from "../generated/client";
+import type { AgentStatus, AgentTrial, Prisma } from "../generated/client";
 
 export async function listAgents(organizationId: string) {
 	return db.agent.findMany({
@@ -57,7 +52,6 @@ export async function createAgent(data: {
 				agentId,
 				organizationId: data.organizationId,
 				isDraft: true,
-				version: "DRAFT",
 				config: data.config ?? {},
 			},
 		});
@@ -108,8 +102,22 @@ export async function publishAgentVersion(agentId: string) {
 		throw new Error("Agent has no draft version");
 	}
 
-	const publishedId = createId();
+	const config = agent.draftVersion.config ?? {};
 
+	// An agent keeps a single published copy: overwrite it in place.
+	if (agent.publishedVersionId) {
+		await db.agentVersion.update({
+			where: { id: agent.publishedVersionId },
+			data: { config },
+		});
+		return db.agent.update({
+			where: { id: agentId },
+			data: { updatedAt: new Date() },
+			include: { draftVersion: true, publishedVersion: true },
+		});
+	}
+
+	const publishedId = createId();
 	return db.$transaction(async (tx) => {
 		await tx.agentVersion.create({
 			data: {
@@ -117,29 +125,13 @@ export async function publishAgentVersion(agentId: string) {
 				agentId,
 				organizationId: agent.organizationId,
 				isDraft: false,
-				version: "PUBLISHED" satisfies AgentVersionStatus,
-				config: agent.draftVersion?.config ?? {},
-			},
-		});
-
-		const newDraftId = createId();
-		await tx.agentVersion.create({
-			data: {
-				id: newDraftId,
-				agentId,
-				organizationId: agent.organizationId,
-				isDraft: true,
-				version: "DRAFT",
-				config: agent.draftVersion?.config ?? {},
+				config,
 			},
 		});
 
 		return tx.agent.update({
 			where: { id: agentId },
-			data: {
-				publishedVersionId: publishedId,
-				draftVersionId: newDraftId,
-			},
+			data: { publishedVersionId: publishedId },
 			include: { draftVersion: true, publishedVersion: true },
 		});
 	});

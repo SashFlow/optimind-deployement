@@ -19,3 +19,12 @@ export type GetSignedUrlHander = (
 		expiresIn?: number;
 	},
 ) => Promise<string>;
+
+export type UploadObjectHandler = (
+	path: string,
+	body: Uint8Array,
+	options: {
+		bucket: string;
+		contentType?: string;
+	},
+) => Promise<void>;

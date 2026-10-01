@@ -6,6 +6,7 @@ import {
 } from "@repo/database";
 import { createWebhookReceiver, getLiveKitConfig } from "@repo/livekit";
 import { logger } from "@repo/logs";
+import { generateEndUserMemoriesSafe } from "../lib/memories";
 import {
 	egressDurationMs,
 	mapLivekitEgressStatus,
@@ -82,6 +83,7 @@ export async function livekitWebhookHandler(
 				});
 			}
 			if (session) {
+				await generateEndUserMemoriesSafe(session.id);
 				try {
 					const { resumeAgentSessionWait } = await import(
 						"../../workflows/lib/runner"

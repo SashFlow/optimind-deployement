@@ -3,101 +3,13 @@ import type {
 	CallbackScheduleSource,
 	CallbackScheduleStatus,
 	Prisma,
-	ProviderRateUnit,
-	UnitSource,
 	UsageModality,
 } from "../generated/client";
 import { rescheduleCampaignContact } from "./campaigns";
+import type { ProviderRateUnit } from "./provider-rates";
 
 function toJson(value: unknown): Prisma.InputJsonValue {
 	return (value ?? {}) as Prisma.InputJsonValue;
-}
-
-// --- SessionCollectedField ---
-
-export async function upsertSessionCollectedFields(data: {
-	organizationId: string;
-	sessionId: string;
-	agentId: string;
-	fields: Array<{
-		key: string;
-		label?: string | null;
-		fieldType?: string;
-		value: unknown;
-		required?: boolean;
-	}>;
-}) {
-	const now = new Date();
-	const results = [];
-	for (const field of data.fields) {
-		const row = await db.sessionCollectedField.upsert({
-			where: {
-				sessionId_key: {
-					sessionId: data.sessionId,
-					key: field.key,
-				},
-			},
-			create: {
-				organizationId: data.organizationId,
-				sessionId: data.sessionId,
-				agentId: data.agentId,
-				key: field.key,
-				label: field.label ?? null,
-				fieldType: field.fieldType ?? "string",
-				value: toJson(field.value),
-				required: field.required ?? false,
-				capturedAt: now,
-			},
-			update: {
-				label: field.label ?? null,
-				fieldType: field.fieldType ?? "string",
-				value: toJson(field.value),
-				required: field.required ?? false,
-				capturedAt: now,
-			},
-		});
-		results.push(row);
-	}
-	return results;
-}
-
-export async function listSessionCollectedFields(opts: {
-	organizationId: string;
-	sessionId?: string;
-	agentId?: string;
-	key?: string;
-	from?: Date;
-	to?: Date;
-	limit?: number;
-}) {
-	return db.sessionCollectedField.findMany({
-		where: {
-			organizationId: opts.organizationId,
-			...(opts.sessionId ? { sessionId: opts.sessionId } : {}),
-			...(opts.agentId ? { agentId: opts.agentId } : {}),
-			...(opts.key ? { key: opts.key } : {}),
-			...(opts.from || opts.to
-				? {
-						capturedAt: {
-							...(opts.from ? { gte: opts.from } : {}),
-							...(opts.to ? { lte: opts.to } : {}),
-						},
-					}
-				: {}),
-		},
-		orderBy: { capturedAt: "desc" },
-		take: opts.limit ?? 100,
-		include: {
-			session: {
-				select: {
-					id: true,
-					status: true,
-					startedAt: true,
-					agentId: true,
-				},
-			},
-		},
-	});
 }
 
 // --- CallbackSchedule ---
@@ -183,110 +95,7 @@ export async function updateCallbackScheduleStatus(
 
 // --- ProviderRate ---
 
-export async function listProviderRates(opts?: {
-	organizationId?: string | null;
-	includePlatformDefaults?: boolean;
-}) {
-	const orgId = opts?.organizationId;
-	const includeDefaults = opts?.includePlatformDefaults !== false;
-
-	if (!orgId && !includeDefaults) {
-		return [];
-	}
-
-	return db.providerRate.findMany({
-		where: {
-			OR: [
-				...(orgId ? [{ organizationId: orgId }] : []),
-				...(includeDefaults ? [{ organizationId: null }] : []),
-			],
-		},
-		orderBy: [
-			{ modality: "asc" },
-			{ provider: "asc" },
-			{ effectiveFrom: "desc" },
-		],
-	});
-}
-
-export async function createProviderRate(data: {
-	organizationId?: string | null;
-	modality: UsageModality;
-	provider: string;
-	model?: string | null;
-	unit: ProviderRateUnit;
-	unitAmountMicros: number;
-	currency?: string;
-	unitSource?: UnitSource | null;
-	effectiveFrom?: Date;
-	effectiveTo?: Date | null;
-}) {
-	return db.providerRate.create({
-		data: {
-			organizationId: data.organizationId ?? null,
-			modality: data.modality,
-			provider: data.provider,
-			model: data.model ?? null,
-			unit: data.unit,
-			unitAmountMicros: data.unitAmountMicros,
-			currency: data.currency ?? "USD",
-			unitSource: data.unitSource ?? null,
-			effectiveFrom: data.effectiveFrom ?? new Date(),
-			effectiveTo: data.effectiveTo ?? null,
-		},
-	});
-}
-
-export async function updateProviderRate(
-	id: string,
-	data: {
-		unitAmountMicros?: number;
-		currency?: string;
-		model?: string | null;
-		effectiveTo?: Date | null;
-		unit?: ProviderRateUnit;
-		unitSource?: UnitSource | null;
-	},
-) {
-	return db.providerRate.update({ where: { id }, data });
-}
-
-export async function deleteProviderRate(id: string) {
-	return db.providerRate.delete({ where: { id } });
-}
-
-export async function getEffectiveProviderRates(
-	organizationId: string,
-	at: Date = new Date(),
-) {
-	const all = await db.providerRate.findMany({
-		where: {
-			OR: [{ organizationId }, { organizationId: null }],
-			effectiveFrom: { lte: at },
-		},
-		orderBy: { effectiveFrom: "desc" },
-	});
-
-	const active = all.filter(
-		(r) => r.effectiveTo == null || r.effectiveTo > at,
-	);
-
-	const map = new Map<string, (typeof active)[number]>();
-	for (const rate of active) {
-		const key = `${rate.modality}|${rate.provider}|${rate.model ?? ""}|${rate.unit}`;
-		const existing = map.get(key);
-		if (!existing) {
-			map.set(key, rate);
-			continue;
-		}
-		if (existing.organizationId == null && rate.organizationId != null) {
-			map.set(key, rate);
-		}
-	}
-	return Array.from(map.values());
-}
-
-/** Estimate cost micros from a SessionUsage row using effective rates. */
+/** Estimate cost micros from a SessionUsage row using the given rates. */
 export function estimateUsageCostMicros(
 	usage: {
 		modality: UsageModality;

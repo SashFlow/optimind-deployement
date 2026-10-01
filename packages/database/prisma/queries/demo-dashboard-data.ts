@@ -164,68 +164,15 @@ function buildSessionPlan(dayOffset: number, slot: number): SessionPlan {
 	};
 }
 
-async function ensureDemoProviderRates(organizationId: string) {
-	const existing = await db.providerRate.count({
-		where: {
-			OR: [{ organizationId }, { organizationId: null }],
-		},
-	});
-	if (existing > 0) {
-		return;
-	}
-
-	await db.providerRate.createMany({
-		data: [
-			{
-				organizationId,
-				modality: "LLM",
-				provider: "openai",
-				model: null,
-				unit: "TOKEN",
-				unitAmountMicros: 5,
-			},
-			{
-				organizationId,
-				modality: "TTS",
-				provider: "elevenlabs",
-				model: null,
-				unit: "CHARACTER",
-				unitAmountMicros: 30,
-			},
-			{
-				organizationId,
-				modality: "STT",
-				provider: "deepgram",
-				model: null,
-				unit: "MINUTE",
-				unitAmountMicros: 4300,
-			},
-		],
-	});
-}
-
 async function resolveDemoAgent(organizationId: string) {
 	const existing = await db.agent.findFirst({
 		where: { organizationId, status: { not: "DELETED" } },
 		orderBy: { updatedAt: "desc" },
-		select: {
-			id: true,
-			draftVersionId: true,
-			publishedVersionId: true,
-		},
+		select: { id: true },
 	});
 
 	if (existing) {
-		const agentVersionId =
-			existing.publishedVersionId ?? existing.draftVersionId;
-		if (!agentVersionId) {
-			throw new Error("Agent has no draft or published version");
-		}
-		return {
-			agentId: existing.id,
-			agentVersionId,
-			agentCreated: false,
-		};
+		return { agentId: existing.id, agentCreated: false };
 	}
 
 	const agent = await createAgent({
@@ -233,15 +180,7 @@ async function resolveDemoAgent(organizationId: string) {
 		name: "Demo Agent",
 		description: "Auto-created for dashboard demo data",
 	});
-	const agentVersionId = agent.publishedVersionId ?? agent.draftVersionId;
-	if (!agentVersionId) {
-		throw new Error("Failed to create demo agent version");
-	}
-	return {
-		agentId: agent.id,
-		agentVersionId,
-		agentCreated: true,
-	};
+	return { agentId: agent.id, agentCreated: true };
 }
 
 async function deletePriorDemoSessions(organizationId: string) {
@@ -267,11 +206,9 @@ export async function fillOrganizationDemoDashboardData(
 		throw new Error("Organization not found");
 	}
 
-	const { agentId, agentVersionId, agentCreated } =
-		await resolveDemoAgent(organizationId);
+	const { agentId, agentCreated } = await resolveDemoAgent(organizationId);
 
 	await deletePriorDemoSessions(organizationId);
-	await ensureDemoProviderRates(organizationId);
 
 	const plans: SessionPlan[] = [];
 	for (let day = 0; day < DAYS; day += 1) {
@@ -299,7 +236,6 @@ export async function fillOrganizationDemoDashboardData(
 			updatedAt: p.createdAt,
 			organizationId,
 			agentId,
-			agentVersionId,
 			livekitRoomName: p.livekitRoomName,
 			channel: p.channel,
 			direction: p.direction,

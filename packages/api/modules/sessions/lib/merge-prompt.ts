@@ -423,6 +423,26 @@ function prepareToolDefinitions(
 	});
 }
 
+export type DispatchEndUser = {
+	id: string;
+	name: string;
+	memory?: ReadonlyArray<string>;
+};
+
+/** Memories from earlier sessions with this end user (not template-substituted). */
+function endUserSection(endUser: DispatchEndUser | undefined): string {
+	const memory = (endUser?.memory ?? [])
+		.map((item) => item.trim())
+		.filter(Boolean);
+	if (!endUser || memory.length === 0) {
+		return "";
+	}
+	return [
+		`You are talking with ${endUser.name}. From previous conversations you remember:`,
+		...memory.map((item) => `- ${item}`),
+	].join("\n");
+}
+
 /**
  * Collapse prompt sections into `config.instructions` with variables resolved.
  * Clears `prompts` and embeds resolved `tool_definitions` for the worker.
@@ -432,6 +452,7 @@ export function prepareConfigForDispatch(
 	contactMetadata: Record<string, unknown> = {},
 	options: {
 		toolDefinitions?: ReadonlyArray<Record<string, unknown>>;
+		endUser?: DispatchEndUser;
 	} = {},
 ): Record<string, unknown> {
 	const environmentVariables = Object.fromEntries(
@@ -447,7 +468,10 @@ export function prepareConfigForDispatch(
 		values,
 		singleBraceKeys,
 	);
-	const instructions = mergePromptSections(substituted);
+	const aboutUser = endUserSection(options.endUser);
+	const instructions = aboutUser
+		? `${mergePromptSections(substituted)}\n\n## About the user\n${aboutUser}`
+		: mergePromptSections(substituted);
 	const toolDefinitions = prepareToolDefinitions(
 		options.toolDefinitions ?? [],
 		values,

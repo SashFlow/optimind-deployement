@@ -33,7 +33,6 @@ function clampInt4(value: number | undefined): number | undefined {
 
 const sessionDetailInclude = {
 	agent: true,
-	agentVersion: true,
 	transcript: {
 		include: { segments: { orderBy: { sequence: "asc" as const } } },
 	},
@@ -42,14 +41,14 @@ const sessionDetailInclude = {
 	toolCalls: { orderBy: { createdAt: "asc" as const } },
 	events: { orderBy: { sequence: "asc" as const }, take: 200 },
 	campaignSession: true,
-	collectedFields: { orderBy: { capturedAt: "asc" as const } },
+	endUser: true,
+	files: { orderBy: { createdAt: "desc" as const } },
 	callbackSchedules: { orderBy: { scheduledAt: "desc" as const }, take: 20 },
 } satisfies Prisma.AgentSessionInclude;
 
 export async function createAgentSession(data: {
 	organizationId: string;
 	agentId: string;
-	agentVersionId: string;
 	livekitRoomName: string;
 	livekitRoomSid?: string;
 	channel?: AgentSessionChannel;
@@ -62,7 +61,7 @@ export async function createAgentSession(data: {
 	sipAttrs?: unknown;
 	configSnapshot?: unknown;
 	recordingEnabled?: boolean;
-	externalUserId?: string;
+	endUserId?: string;
 	metadata?: unknown;
 	startedAt?: Date;
 }) {
@@ -70,7 +69,6 @@ export async function createAgentSession(data: {
 		data: {
 			organizationId: data.organizationId,
 			agentId: data.agentId,
-			agentVersionId: data.agentVersionId,
 			livekitRoomName: data.livekitRoomName,
 			livekitRoomSid: data.livekitRoomSid,
 			channel: data.channel ?? "WEB",
@@ -83,7 +81,7 @@ export async function createAgentSession(data: {
 			sipAttrs: toJson(data.sipAttrs),
 			configSnapshot: toJson(data.configSnapshot),
 			recordingEnabled: data.recordingEnabled ?? false,
-			externalUserId: data.externalUserId,
+			endUserId: data.endUserId,
 			metadata: toJson(data.metadata),
 			status: "QUEUED",
 			startedAt: data.startedAt ?? new Date(),
@@ -112,19 +110,44 @@ export async function listAgentSessions(
 	opts?: {
 		agentId?: string;
 		status?: AgentSessionStatus;
+		endUserId?: string;
+		q?: string;
 		take?: number;
 		skip?: number;
 	},
 ) {
+	const q = opts?.q?.trim();
+	const contains = { contains: q, mode: "insensitive" as const };
 	return db.agentSession.findMany({
 		where: {
 			organizationId,
 			agentId: opts?.agentId,
 			status: opts?.status,
+			endUserId: opts?.endUserId,
+			...(q
+				? {
+						OR: [
+							{ id: { contains: q } },
+							{ livekitRoomName: contains },
+							{ fromNumber: { contains: q } },
+							{ toNumber: { contains: q } },
+							{
+								endUser: {
+									OR: [
+										{ name: contains },
+										{ identity: contains },
+										{ email: contains },
+										{ phone: { contains: q } },
+									],
+								},
+							},
+						],
+					}
+				: {}),
 		},
 		include: {
 			agent: true,
-			agentVersion: true,
+			endUser: true,
 			transcript: true,
 			egressJobs: { take: 5, orderBy: { createdAt: "desc" } },
 		},

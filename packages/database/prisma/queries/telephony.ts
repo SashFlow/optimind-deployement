@@ -141,38 +141,6 @@ export async function updateDispatchRule(
 	return db.dispatchRule.update({ where: { id }, data });
 }
 
-export async function listCustomVoices(organizationId: string) {
-	return db.customVoice.findMany({
-		where: { organizationId },
-		orderBy: { createdAt: "desc" },
-	});
-}
-
-export async function createCustomVoice(data: {
-	organizationId: string;
-	name: string;
-	livekitVoiceId?: string;
-	sampleStorageKeys?: string[];
-	metadata?: Prisma.InputJsonValue;
-}) {
-	return db.customVoice.create({
-		data: {
-			organizationId: data.organizationId,
-			name: data.name,
-			livekitVoiceId: data.livekitVoiceId,
-			sampleStorageKeys: data.sampleStorageKeys ?? [],
-			metadata: data.metadata ?? {},
-		},
-	});
-}
-
-export async function updateCustomVoice(
-	id: string,
-	data: Prisma.CustomVoiceUpdateInput,
-) {
-	return db.customVoice.update({ where: { id }, data });
-}
-
 export async function createEgressJob(data: {
 	organizationId: string;
 	type: EgressJobType;
@@ -243,8 +211,4 @@ export async function getPhoneNumberById(id: string) {
 
 export async function getDispatchRuleById(id: string) {
 	return db.dispatchRule.findUnique({ where: { id } });
-}
-
-export async function getCustomVoiceById(id: string) {
-	return db.customVoice.findUnique({ where: { id } });
 }

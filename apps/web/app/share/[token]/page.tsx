@@ -151,6 +151,7 @@ export default function SharedTrialPage() {
 	const [variableValues, setVariableValues] = useState<
 		Record<string, string>
 	>({});
+	const [visitor, setVisitor] = useState({ name: "", email: "", phone: "" });
 	const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
 	const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
 	const [audioDeviceId, setAudioDeviceId] = useState("");
@@ -286,10 +287,16 @@ export default function SharedTrialPage() {
 			return;
 		}
 
+		const name = visitor.name.trim();
+		const email = visitor.email.trim();
+		const phone = visitor.phone.trim();
 		startMutation.mutate({
 			token,
-			participantName: "Guest",
+			participantName: name || "Guest",
 			contactMetadata,
+			name: name || undefined,
+			email: email || undefined,
+			contactPhone: phone || undefined,
 		});
 	}
 
@@ -500,6 +507,63 @@ export default function SharedTrialPage() {
 									) : null}
 								</div>
 							)}
+
+							<div className="space-y-3">
+								<p className="text-sm font-medium">
+									Your details{" "}
+									<span className="font-normal text-muted-foreground">
+										(optional)
+									</span>
+								</p>
+								<div className="grid gap-4 sm:grid-cols-3">
+									{(
+										[
+											["name", "Name", "text", "name"],
+											[
+												"email",
+												"Email",
+												"email",
+												"email",
+											],
+											["phone", "Phone", "tel", "tel"],
+										] as const
+									).map(
+										([
+											field,
+											label,
+											type,
+											autoComplete,
+										]) => (
+											<div
+												key={field}
+												className="min-w-0 space-y-2"
+											>
+												<Label
+													htmlFor={`share-visitor-${field}`}
+												>
+													{label}
+												</Label>
+												<Input
+													id={`share-visitor-${field}`}
+													type={type}
+													autoComplete={autoComplete}
+													value={visitor[field]}
+													onChange={(event) =>
+														setVisitor(
+															(current) => ({
+																...current,
+																[field]:
+																	event.target
+																		.value,
+															}),
+														)
+													}
+												/>
+											</div>
+										),
+									)}
+								</div>
+							</div>
 
 							{variables.length > 0 ? (
 								<div className="space-y-3">

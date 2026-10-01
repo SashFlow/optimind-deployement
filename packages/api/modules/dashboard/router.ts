@@ -1,7 +1,6 @@
 import {
 	actions,
 	analytics,
-	collectedFields,
 	cost,
 	latency,
 	quality,
@@ -17,5 +16,4 @@ export const dashboardRouter = {
 	quality,
 	actions,
 	latency,
-	collectedFields,
 };

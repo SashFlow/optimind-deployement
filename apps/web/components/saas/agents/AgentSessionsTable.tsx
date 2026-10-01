@@ -11,7 +11,7 @@ import {
 } from "@repo/ui/select";
 import type { ColumnDef } from "@tanstack/react-table";
 import { formatDistanceToNow } from "date-fns";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -68,6 +68,10 @@ export function AgentSessionsTable({
 }) {
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+	const [endUserFilter, setEndUserFilter] = useState<{
+		id: string;
+		name: string;
+	} | null>(null);
 	const [bulkBusy, setBulkBusy] = useState(false);
 	const selectedSessionsRef = useRef<AgentSessionRow[]>([]);
 	const clearSelectionRef = useRef<() => void>(() => {});
@@ -79,15 +83,22 @@ export function AgentSessionsTable({
 			if (statusFilter !== "all" && session.status !== statusFilter) {
 				return false;
 			}
+			if (endUserFilter && session.endUser?.id !== endUserFilter.id) {
+				return false;
+			}
 			if (!query) {
 				return true;
 			}
-			return (
-				session.id.toLowerCase().includes(query) ||
-				session.livekitRoomName.toLowerCase().includes(query)
-			);
+			const endUser = session.endUser;
+			return [
+				session.id,
+				session.livekitRoomName,
+				endUser?.name,
+				endUser?.email,
+				endUser?.phone,
+			].some((value) => value?.toLowerCase().includes(query));
 		});
-	}, [sessions, search, statusFilter]);
+	}, [sessions, search, statusFilter, endUserFilter]);
 
 	async function bulkEnd() {
 		const selectedEndable = selectedSessionsRef.current.filter((session) =>
@@ -125,6 +136,41 @@ export function AgentSessionsTable({
 								showAvatar={false}
 							/>
 						</Link>
+					);
+				},
+			},
+			{
+				id: "user",
+				header: "User",
+				cell: ({ row }) => {
+					const endUser = row.original.endUser;
+					if (!endUser) {
+						return (
+							<span className="text-muted-foreground text-sm">
+								—
+							</span>
+						);
+					}
+					return (
+						<button
+							type="button"
+							title="Show sessions for this user"
+							className="block min-w-0 text-left underline-offset-2 hover:underline"
+							onClick={() =>
+								setEndUserFilter({
+									id: endUser.id,
+									name: endUser.name,
+								})
+							}
+						>
+							<IdentityCell
+								name={endUser.name}
+								secondary={
+									endUser.email ?? endUser.phone ?? undefined
+								}
+								showAvatar={false}
+							/>
+						</button>
 					);
 				},
 			},
@@ -216,12 +262,23 @@ export function AgentSessionsTable({
 
 	const filters = (
 		<div className="ml-auto flex flex-col gap-2 sm:flex-row sm:items-center">
+			{endUserFilter ? (
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					onClick={() => setEndUserFilter(null)}
+				>
+					User: {endUserFilter.name}
+					<XIcon className="size-3.5" />
+				</Button>
+			) : null}
 			<div className="relative min-w-0 sm:w-72">
 				<SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 				<Input
 					value={search}
 					onChange={(event) => setSearch(event.target.value)}
-					placeholder="Search sessions..."
+					placeholder="Search sessions or users..."
 					className="pl-9"
 				/>
 			</div>
@@ -257,6 +314,7 @@ export function AgentSessionsTable({
 							headers={[
 								"",
 								"Session",
+								"User",
 								"Status",
 								"Channel",
 								"Started",
@@ -265,6 +323,7 @@ export function AgentSessionsTable({
 							]}
 							columns={[
 								{ type: "action" },
+								{ type: "text", width: "w-28" },
 								{ type: "text", width: "w-28" },
 								{ type: "pill" },
 								{ type: "text", width: "w-16" },
@@ -286,7 +345,7 @@ export function AgentSessionsTable({
 				</div>
 			) : (
 				<DataTable
-					key={`${search}-${statusFilter}`}
+					key={`${search}-${statusFilter}-${endUserFilter?.id ?? ""}`}
 					columns={columns}
 					data={filtered}
 					toolbar={filters}

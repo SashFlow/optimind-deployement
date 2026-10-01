@@ -24,8 +24,12 @@ Room/agent dispatch `metadata` is JSON matching:
   campaign_id?: string | null
   campaign_contact_id?: string | null
   contact_metadata?: object
+  end_user?: { id: string, name: string } | null
 }
 ```
+
+Every session belongs to an end user (`end_user`). Memories from that user's earlier sessions
+are already merged into `config.instructions` under `## About the user`.
 
 Parse this from the LiveKit job metadata when the worker joins.
 
@@ -117,7 +121,7 @@ X-Worker-Api-Key: ...
 
 `usage` may be either an object (`{ model_usage: [...] }`) or a raw array of model usage rows.
 
-`collectedData` is optional; when present, rows are upserted into `SessionCollectedField` and mirrored on `AgentSession.metadata.collectedData`.
+`collectedData` is optional; when present, it is stored on `AgentSession.metadata.collectedData` (key → value).
 
 Then:
 
@@ -132,6 +136,23 @@ X-Worker-Api-Key: ...
 When `config.tools_config.web_search` is true, the worker attaches the model provider’s
 native web-search tool (OpenAI `WebSearch` or Gemini `GoogleSearch`). No backend HTTP
 endpoint is involved. Unsupported conversation providers ignore the flag.
+
+### End-user files
+
+Push any file produced during the session (documents, images, summaries) for the session's end user:
+
+```http
+POST /api/internal/sessions/{session_id}/files
+X-Worker-Api-Key: ...
+Content-Type: multipart/form-data
+
+file=<binary>          (required, max 25 MB)
+name=<display name>    (optional, defaults to the uploaded file name)
+```
+
+Response: `{ file: { id, name, type, size, url } }` (`url` is the storage key). Stored in S3 under
+`end-users/{org}/{endUser}/{session}/…`, recorded as a `SessionFile` and appended to `EndUser.files`.
+Returns 400 when the session has no end user.
 
 ### Callbacks / reschedule
 
@@ -158,7 +179,8 @@ The report / terminal lifecycle handlers:
 - materializes `report.events` → `SessionEvent` (`agent.event.*`)
 - materializes function call items → `ToolCallRecord`
 - appends `metrics[]` → `SessionEvent` (`agent.metric.*`)
-- upserts `collectedData` → `SessionCollectedField`
+- stores `collectedData` → `AgentSession.metadata.collectedData`
+- on `COMPLETED`, updates the end user's memories from the transcript (once per session)
 - syncs linked `CampaignSession` outcome / duration / transcript / recording from the agent session
 
 ## Org-authenticated APIs

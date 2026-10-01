@@ -478,8 +478,6 @@ export const stats = protectedProcedure
 			aggregateQuality,
 			aggregateActions,
 			aggregateLatency,
-			listSessionCollectedFields,
-			db,
 		} = await import("@repo/database");
 
 		const [
@@ -489,7 +487,6 @@ export const stats = protectedProcedure
 			qualityAgg,
 			actionsAgg,
 			latencyAgg,
-			collected,
 		] = await Promise.all([
 			aggregateSessionStats({
 				organizationId: agent.organizationId,
@@ -521,23 +518,7 @@ export const stats = protectedProcedure
 				since,
 				agentId: agent.id,
 			}),
-			listSessionCollectedFields({
-				organizationId: agent.organizationId,
-				agentId: agent.id,
-				from: since,
-				limit: 50,
-			}),
 		]);
-
-		const versionRows = await db.agentSession.groupBy({
-			by: ["agentVersionId"],
-			where: {
-				agentId: agent.id,
-				createdAt: { gte: since },
-			},
-			_count: { _all: true },
-			_avg: { durationMs: true },
-		});
 
 		const { usages: _u, ...usageRest } = usageAgg;
 
@@ -552,14 +533,6 @@ export const stats = protectedProcedure
 				quality: qualityAgg,
 				actions: actionsAgg,
 				latency: latencyAgg,
-				versions: versionRows.map((v) => ({
-					agentVersionId: v.agentVersionId,
-					sessions: v._count._all,
-					avg_duration_ms: v._avg.durationMs
-						? Math.round(v._avg.durationMs)
-						: null,
-				})),
-				collected_fields_sample: collected,
 			},
 		};
 	});
