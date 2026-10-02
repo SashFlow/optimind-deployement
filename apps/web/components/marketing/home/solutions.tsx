@@ -32,8 +32,6 @@ import {
 } from "@/components/marketing/home/use-case-audio-timelines";
 import { useCases } from "@/components/marketing/home/use-cases-data";
 
-const CYCLE_MS = 5000;
-
 const useCaseIcons: Record<string, LucideIcon> = {
 	"health-reports": FileHeartIcon,
 	insurance: ShieldIcon,
@@ -296,24 +294,10 @@ function UseCaseMediaPanel({
 
 const Solutions = () => {
 	const [activeIndex, setActiveIndex] = useState(0);
-	const [paused, setPaused] = useState(false);
 	const active = useCases[activeIndex] ?? useCases[0];
-
-	// useEffect(() => {
-	// 	if (paused || useCases.length < 2) {
-	// 		return;
-	// 	}
-
-	// 	const timer = window.setInterval(() => {
-	// 		setActiveIndex((index) => (index + 1) % useCases.length);
-	// 	}, CYCLE_MS);
-
-	// 	return () => window.clearInterval(timer);
-	// }, [paused]);
 
 	const selectUseCase = (index: number) => {
 		setActiveIndex(index);
-		setPaused(false);
 	};
 
 	return (

@@ -822,7 +822,6 @@ function SessionNavigator({ session }: { session: SessionDetail }) {
 	}, [session.endUser?.id, session.id, sessionsQuery.data]);
 
 	const displayName = session.endUser?.name ?? "Unknown user";
-	const displayId = session.endUser?.id ?? session.id;
 
 	return (
 		<div className="flex items-center gap-3">

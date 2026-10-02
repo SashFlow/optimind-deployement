@@ -347,6 +347,7 @@ export default function AvatarVoiceAgent({
 						</span>
 					)}
 					<button
+						type="button"
 						onClick={handleToggleAvatarFullscreen}
 						className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
 					>
@@ -355,6 +356,7 @@ export default function AvatarVoiceAgent({
 							: "Fullscreen avatar"}
 					</button>
 					<button
+						type="button"
 						onClick={() => {
 							void handleDisconnect();
 						}}

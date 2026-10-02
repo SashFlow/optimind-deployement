@@ -126,8 +126,7 @@ export const get = protectedProcedure
 		await requireOrgMembership(existing.organizationId, context.user.id);
 
 		await reconcileOpenEgressJobs(existing.egressJobs);
-		const session =
-			(await getAgentSessionById(input.id)) ?? existing;
+		const session = (await getAgentSessionById(input.id)) ?? existing;
 
 		const egressJobs = await Promise.all(
 			session.egressJobs.map(async (job) => {
@@ -391,7 +390,9 @@ const DEFAULT_TRIAL_SESSION_MODALITIES = {
 	},
 };
 
-function normalizeTrialSessionModalities(raw: unknown): PublicAgentPreview["sessionModalities"] {
+function normalizeTrialSessionModalities(
+	raw: unknown,
+): PublicAgentPreview["sessionModalities"] {
 	const source =
 		raw && typeof raw === "object" && !Array.isArray(raw)
 			? (raw as Record<string, unknown>)

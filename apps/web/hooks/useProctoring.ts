@@ -123,7 +123,7 @@ function isGazeAway(
 	}
 
 	const blendshapes = result.faceBlendshapes?.[0]?.categories;
-	if (!blendshapes) return false;
+	if (!blendshapes) { return false; }
 	const score = (name: string) =>
 		blendshapes.find((c) => c.categoryName === name)?.score ?? 0;
 	const avg = (a: string, b: string) => (score(a) + score(b)) / 2;
@@ -183,7 +183,7 @@ async function sendContext(room: Room, context: AgentContext) {
 	const agent = Array.from(room.remoteParticipants.values()).find(
 		(p) => p.kind === ParticipantKind.AGENT,
 	);
-	if (!agent) return;
+	if (!agent) { return; }
 
 	try {
 		await room.localParticipant.performRpc({
@@ -309,14 +309,13 @@ export function useProctoring({
 				}
 				await push(captured);
 				// The candidate may have closed the overlay while the upload was in flight.
-				if (modeRef.current !== "ID_CAPTURE") return;
+				if (modeRef.current !== "ID_CAPTURE") { return; }
 
 				setIdCaptureStatus("captured");
 				setMode("PROCTORING");
 				toast.success("ID card captured");
 				void sendContext(room, {
-					state:
-						"ID card capture completed successfully. The candidate's ID images have been uploaded and submitted for verification. You may continue the conversation.",
+					state: "ID card capture completed successfully. The candidate's ID images have been uploaded and submitted for verification. You may continue the conversation.",
 					action: "generate_reply",
 					type: "id_captured",
 					details: {
@@ -327,7 +326,7 @@ export function useProctoring({
 				});
 			} catch (error) {
 				console.error("ID capture: upload failed", error);
-				if (modeRef.current !== "ID_CAPTURE") return;
+				if (modeRef.current !== "ID_CAPTURE") { return; }
 				setIdCaptureError(
 					"We could not upload your ID. Please try again.",
 				);
@@ -347,7 +346,7 @@ export function useProctoring({
 	} = config;
 
 	useEffect(() => {
-		if (!active || !videoTrack) return;
+		if (!active || !videoTrack) { return; }
 
 		let cancelled = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
@@ -394,7 +393,7 @@ export function useProctoring({
 		};
 
 		const tick = () => {
-			if (cancelled || !detectors) return;
+			if (cancelled || !detectors) { return; }
 			const cfg = configRef.current;
 
 			if (modeRef.current !== "PROCTORING") {
@@ -493,8 +492,9 @@ export function useProctoring({
 			!videoTrack ||
 			mode !== "ID_CAPTURE" ||
 			idCaptureStatus !== "scanning"
-		)
+		) {
 			return;
+		}
 
 		let cancelled = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
@@ -507,7 +507,7 @@ export function useProctoring({
 		let lastBox: NormalizedRect | null = null;
 
 		const tick = async () => {
-			if (cancelled) return;
+			if (cancelled) { return; }
 			const cfg = configRef.current.idCapture;
 
 			if (Date.now() - startedAt > cfg.timeoutMs) {
@@ -543,7 +543,7 @@ export function useProctoring({
 							{ ...detection, box: detection.box },
 							cfg,
 						);
-						if (cancelled) return;
+						if (cancelled) { return; }
 						setIdCapture(captured);
 						setIdCaptureStatus("uploading");
 						void submitIdCapture(captured);

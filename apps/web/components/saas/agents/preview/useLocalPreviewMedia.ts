@@ -151,19 +151,17 @@ export function useLocalPreviewMedia(options?: {
 			) {
 				throw new Error("Camera is not available in this browser");
 			}
-			const preferred =
-				deviceId || videoDeviceIdRef.current || undefined;
+			const preferred = deviceId || videoDeviceIdRef.current || undefined;
 			const stream = await navigator.mediaDevices.getUserMedia({
-				video: preferred
-					? { deviceId: { exact: preferred } }
-					: true,
+				video: preferred ? { deviceId: { exact: preferred } } : true,
 				audio: false,
 			});
 			stopStream(videoStreamRef.current);
 			videoStreamRef.current = stream;
 			setVideoStream(stream);
-			const trackDeviceId = stream.getVideoTracks()[0]?.getSettings()
-				.deviceId;
+			const trackDeviceId = stream
+				.getVideoTracks()[0]
+				?.getSettings().deviceId;
 			if (trackDeviceId) {
 				setVideoDeviceId(trackDeviceId);
 			}
@@ -181,19 +179,17 @@ export function useLocalPreviewMedia(options?: {
 			) {
 				throw new Error("Microphone is not available in this browser");
 			}
-			const preferred =
-				deviceId || audioDeviceIdRef.current || undefined;
+			const preferred = deviceId || audioDeviceIdRef.current || undefined;
 			const stream = await navigator.mediaDevices.getUserMedia({
-				audio: preferred
-					? { deviceId: { exact: preferred } }
-					: true,
+				audio: preferred ? { deviceId: { exact: preferred } } : true,
 				video: false,
 			});
 			// Keep a short-lived probe only to unlock labels; stop after refresh.
 			stopStream(audioProbeRef.current);
 			audioProbeRef.current = stream;
-			const trackDeviceId = stream.getAudioTracks()[0]?.getSettings()
-				.deviceId;
+			const trackDeviceId = stream
+				.getAudioTracks()[0]
+				?.getSettings().deviceId;
 			if (trackDeviceId) {
 				setAudioDeviceId(trackDeviceId);
 			}

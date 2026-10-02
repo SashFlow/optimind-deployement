@@ -356,9 +356,7 @@ export function AgentConfigurePreview({
 		toast.success(`Calling ${normalized}`);
 	}
 
-	async function handleStartSession(
-		selection: SessionPrejoinMediaSelection,
-	) {
+	async function handleStartSession(selection: SessionPrejoinMediaSelection) {
 		const contactMetadata = buildContactMetadata();
 		if (!contactMetadata) {
 			// Lobby restores the transferred camera track.
@@ -385,7 +383,9 @@ export function AgentConfigurePreview({
 		} catch (error) {
 			setJoinMedia(null);
 			const message =
-				error instanceof Error ? error.message : "Failed to start session";
+				error instanceof Error
+					? error.message
+					: "Failed to start session";
 			if (
 				message !== "Invalid session variables" &&
 				message !== "Phone sessions are disabled" &&
@@ -586,10 +586,7 @@ export function AgentConfigurePreview({
 						defaultValue={[]}
 						className="w-full gap-0"
 					>
-						<AccordionItem
-							value="variables"
-							className="border-b-0"
-						>
+						<AccordionItem value="variables" className="border-b-0">
 							<AccordionTrigger className="py-2.5 text-sm hover:no-underline [&>svg]:ml-2">
 								Variables
 							</AccordionTrigger>
@@ -624,9 +621,7 @@ export function AgentConfigurePreview({
 													) : null}
 													<span className="ml-1.5 font-normal">
 														(
-														{
-															variable.variable_type
-														}
+														{variable.variable_type}
 														)
 													</span>
 												</Label>

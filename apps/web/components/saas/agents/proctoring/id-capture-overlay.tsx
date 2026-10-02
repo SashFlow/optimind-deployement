@@ -18,7 +18,7 @@ export function IdCaptureOverlay() {
 	const room = useRoomContext();
 	const { cameraTrack } = useLocalParticipant();
 
-	if (!proctoring?.isIdCaptureActive) return null;
+	if (!proctoring?.isIdCaptureActive) { return null; }
 
 	const {
 		config,
@@ -65,7 +65,7 @@ export function IdCaptureOverlay() {
 					style={{ aspectRatio: `${width} / ${height}` }}
 				>
 					{showPreview ? (
-						// eslint-disable-next-line @next/next/no-img-element
+						// biome-ignore lint/performance/noImgElement: data URL from canvas capture
 						<img
 							src={idCapture.dataUrl}
 							alt="Captured ID card"

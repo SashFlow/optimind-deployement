@@ -125,7 +125,10 @@ function DevicePill({
 					className="w-(--radix-select-trigger-width) max-w-[min(24rem,90vw)] rounded-xl"
 				>
 					{devices.map((device) => (
-						<SelectItem key={device.deviceId} value={device.deviceId}>
+						<SelectItem
+							key={device.deviceId}
+							value={device.deviceId}
+						>
 							<span className="line-clamp-2">
 								{device.label?.trim() || placeholder}
 							</span>
@@ -413,7 +416,9 @@ export function SessionPrejoinLobby({
 								<div className="flex size-10 items-center justify-center rounded-full bg-background shadow-sm sm:size-14">
 									<PhoneIcon className="size-4 sm:size-6" />
 								</div>
-								<p className="text-xs sm:text-sm">Phone session</p>
+								<p className="text-xs sm:text-sm">
+									Phone session
+								</p>
 							</div>
 						</div>
 					)}

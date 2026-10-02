@@ -215,7 +215,7 @@ function LockedAddAvatarCard() {
 
 export function AvatarSection({
 	config,
-	organizationId,
+	organizationId: _organizationId,
 	onConfigChange,
 }: AvatarSectionProps) {
 	const providersQuery = useAvatarProvidersQuery();

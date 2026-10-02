@@ -218,6 +218,7 @@ function MermaidZoom({ svg, children }: MermaidZoomProps) {
 									transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
 									transformOrigin: "0 0",
 								}}
+								// biome-ignore lint/security/noDangerouslySetInnerHtml: Mermaid SVG output
 								dangerouslySetInnerHTML={{ __html: zoomSvg }}
 							/>
 						</div>
@@ -342,6 +343,7 @@ const MermaidDiagramImpl: FC<MermaidDiagramProps> = ({
 					"aui-mermaid-diagram bg-muted overflow-x-auto rounded-b-lg p-2 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full",
 					className,
 				)}
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: Mermaid SVG output
 				dangerouslySetInnerHTML={{ __html: result.svg }}
 			/>
 		</MermaidZoom>
