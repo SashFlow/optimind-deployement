@@ -120,7 +120,9 @@ interface EdgeResult {
 export function createIdCardDetector() {
 	const canvas = document.createElement("canvas");
 	const ctx = canvas.getContext("2d", { willReadFrequently: true });
-	if (!ctx) { throw new Error("Unable to create ID detection canvas"); }
+	if (!ctx) {
+		throw new Error("Unable to create ID detection canvas");
+	}
 
 	let gray = new Uint8ClampedArray(0);
 	let gradX = new Uint16Array(0);
@@ -244,7 +246,9 @@ export function createIdCardDetector() {
 							at(pos, along),
 							at(pos + 1, along),
 						);
-						if (strength >= threshold) { hits++; }
+						if (strength >= threshold) {
+							hits++;
+						}
 					}
 					const coverage = hits / (segTo - segFrom + 1);
 					if (coverage > best.coverage) {
@@ -331,7 +335,9 @@ export function createIdCardDetector() {
 					gray[i - W] -
 					gray[i + W];
 				brightnessSum += v;
-				if (v >= GLARE_LEVEL) { glareCount++; }
+				if (v >= GLARE_LEVEL) {
+					glareCount++;
+				}
 				lapSum += lap;
 				lapSqSum += lap * lap;
 				count++;
@@ -355,12 +361,19 @@ export function createIdCardDetector() {
 			: null;
 
 		let hint: IdCaptureHint;
-		if (brightness < config.minBrightness) { hint = "too_dark"; }
-		else if (!cardFound) { hint = sidesFound <= 1 ? "position" : "align"; }
-		else if (brightness > config.maxBrightness) { hint = "too_bright"; }
-		else if (glare > config.maxGlareRatio) { hint = "glare"; }
-		else if (sharpness < config.minSharpness) { hint = "blurry"; }
-		else { hint = "hold_steady"; }
+		if (brightness < config.minBrightness) {
+			hint = "too_dark";
+		} else if (!cardFound) {
+			hint = sidesFound <= 1 ? "position" : "align";
+		} else if (brightness > config.maxBrightness) {
+			hint = "too_bright";
+		} else if (glare > config.maxGlareRatio) {
+			hint = "glare";
+		} else if (sharpness < config.minSharpness) {
+			hint = "blurry";
+		} else {
+			hint = "hold_steady";
+		}
 
 		return {
 			detected: hint === "hold_steady",
@@ -398,7 +411,9 @@ export async function captureIdCard(
 	frameCanvas.width = video.videoWidth;
 	frameCanvas.height = video.videoHeight;
 	const frameCtx = frameCanvas.getContext("2d");
-	if (!frameCtx) { throw new Error("Unable to create capture canvas"); }
+	if (!frameCtx) {
+		throw new Error("Unable to create capture canvas");
+	}
 	frameCtx.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
 
 	const { box } = detection;
@@ -417,7 +432,9 @@ export async function captureIdCard(
 	cardCanvas.width = cx1 - cx0;
 	cardCanvas.height = cy1 - cy0;
 	const cardCtx = cardCanvas.getContext("2d");
-	if (!cardCtx) { throw new Error("Unable to create capture canvas"); }
+	if (!cardCtx) {
+		throw new Error("Unable to create capture canvas");
+	}
 	cardCtx.drawImage(
 		frameCanvas,
 		cx0,

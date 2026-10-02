@@ -18,7 +18,9 @@ export function IdCaptureOverlay() {
 	const room = useRoomContext();
 	const { cameraTrack } = useLocalParticipant();
 
-	if (!proctoring?.isIdCaptureActive) { return null; }
+	if (!proctoring?.isIdCaptureActive) {
+		return null;
+	}
 
 	const {
 		config,
