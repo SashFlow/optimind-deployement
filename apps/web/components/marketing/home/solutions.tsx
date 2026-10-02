@@ -324,7 +324,7 @@ const Solutions = () => {
 						title={getUseCaseLabel(active.category)}
 						snippet={active.snippet}
 						youtubeId={active.youtubeId}
-						onPlayingChange={setPaused}
+						onPlayingChange={() => {}}
 					/>
 				) : null}
 
