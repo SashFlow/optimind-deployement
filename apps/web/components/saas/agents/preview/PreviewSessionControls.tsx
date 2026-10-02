@@ -38,6 +38,7 @@ import { formatRemainingDuration } from "@/lib/session-modalities";
 import type { Agent } from "@/services/api/types";
 import MainStage from "./MainStage";
 import MessageList from "./MessageList";
+import PipStage from "./PipStage";
 import RpcCardList from "./RpcCardList";
 import SessionVoiceOrb from "./SessionVoiceOrb";
 import SpatialRealAvatarStage from "./SpatialRealAvatarStage";
@@ -163,7 +164,7 @@ export function PreviewSessionControls({
 		!hasAvatarVideo &&
 		!avatar.previewUrl;
 	const hasLocalCamera =
-		Boolean(cameraTrackRef) &&
+		Boolean(cameraTrackRef?.publication) &&
 		isCameraEnabled &&
 		!cameraTrackRef?.publication.isMuted;
 	const localVideoTrack = hasLocalCamera ? cameraTrackRef : undefined;
@@ -304,12 +305,16 @@ export function PreviewSessionControls({
 	) : null;
 
 	const localStage = localVideoTrack ? (
-		<VideoTrack trackRef={localVideoTrack} className={VIDEO_FILL_CLASS} />
+		<VideoTrack
+			trackRef={localVideoTrack}
+			className={cn(VIDEO_FILL_CLASS, "scale-x-[-1]")}
+		/>
 	) : null;
 
 	const showAvatarMain = Boolean(avatarMainStage);
 	const showCameraMain = !showAvatarMain && Boolean(localStage);
 	const showAudioOnlyMain = !showAvatarMain && !localStage;
+	const showLocalPip = showAvatarMain && Boolean(localStage);
 	const orbState = mapAgentStateToOrb(state, hasAgent);
 
 	const mainContent = (() => {
@@ -373,6 +378,13 @@ export function PreviewSessionControls({
 								)}
 							>
 								{mainContent}
+								{showLocalPip && localStage ? (
+									<div className="absolute right-3 bottom-3 z-10 sm:right-4 sm:bottom-4">
+										<PipStage className="ring-1 ring-white/20">
+											{localStage}
+										</PipStage>
+									</div>
+								) : null}
 							</MainStage>
 						</div>
 					</div>

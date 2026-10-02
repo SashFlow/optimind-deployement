@@ -134,6 +134,19 @@ export async function reconcileOpenEgressJobs(jobs: EgressJobLike[]) {
 	return jobs;
 }
 
+/** LiveKit rejects stop when egress is already terminal (common race on session end). */
+function isAlreadyTerminalEgressError(error: unknown): boolean {
+	const text =
+		error instanceof Error
+			? error.message
+			: typeof error === "object" && error !== null
+				? JSON.stringify(error)
+				: String(error);
+	return /cannot be stopped|EGRESS_(COMPLETE|FAILED|ABORTED|LIMIT_REACHED)/i.test(
+		text,
+	);
+}
+
 /** Best-effort stop + refresh for open egress jobs before room delete. */
 export async function finalizeSessionEgressJobs(jobs: EgressJobLike[]) {
 	const open = jobs.filter((job) => OPEN_STATUSES.has(job.status));
@@ -141,14 +154,23 @@ export async function finalizeSessionEgressJobs(jobs: EgressJobLike[]) {
 		if (!job.livekitEgressId) {
 			continue;
 		}
+
+		// Sync from LiveKit first — if egress already finished, skip stop.
+		const reconciled = await reconcileEgressJob(job);
+		if (reconciled && !OPEN_STATUSES.has(reconciled.status)) {
+			continue;
+		}
+
 		try {
 			await stopEgress(job.livekitEgressId);
 		} catch (error) {
-			logger.warn("Failed to stop egress before session end", {
-				egressJobId: job.id,
-				livekitEgressId: job.livekitEgressId,
-				error,
-			});
+			if (!isAlreadyTerminalEgressError(error)) {
+				logger.warn("Failed to stop egress before session end", {
+					egressJobId: job.id,
+					livekitEgressId: job.livekitEgressId,
+					error,
+				});
+			}
 		}
 	}
 	await Promise.all(open.map((job) => reconcileEgressJob(job)));

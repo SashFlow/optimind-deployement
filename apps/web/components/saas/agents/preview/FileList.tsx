@@ -1,5 +1,5 @@
 import { FileIcon } from "lucide-react";
-import { PreviewFileItem } from "./usePreviewRoomData";
+import type { PreviewFileItem } from "./usePreviewRoomData";
 
 export default function FileList({ files }: { files: PreviewFileItem[] }) {
 	if (files.length === 0) {

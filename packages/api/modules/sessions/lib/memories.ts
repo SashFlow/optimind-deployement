@@ -77,6 +77,13 @@ export async function generateEndUserMemories(sessionId: string) {
 	if (!session?.endUser || metadata.memoriesGeneratedAt) {
 		return;
 	}
+	const modalities = asRecord(
+		asRecord(session.configSnapshot).session_modalities,
+	);
+	// Missing flag keeps prior always-on behavior for older agent configs.
+	if (modalities.memory === false) {
+		return;
+	}
 	const transcript = transcriptText(session);
 	if (!transcript) {
 		return;

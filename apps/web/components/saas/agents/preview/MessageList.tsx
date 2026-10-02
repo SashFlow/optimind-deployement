@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { PreviewTextItem } from "./usePreviewRoomData";
-import { previewItemsToThreadMessages } from "../transcript/mapTranscriptMessages";
 import { AssistantTranscriptThread } from "../transcript/AssistantTranscriptThread";
+import { previewItemsToThreadMessages } from "../transcript/mapTranscriptMessages";
+import type { PreviewTextItem } from "./usePreviewRoomData";
 
 export default function MessageList({
 	messages,

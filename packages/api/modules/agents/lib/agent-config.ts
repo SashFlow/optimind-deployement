@@ -231,6 +231,7 @@ export const agentConfigSchema = z
 				audio_track: z.enum(["mandatory", "optional"]),
 				video_track: z.enum(["mandatory", "optional"]),
 				chat: z.enum(["mandatory", "optional"]),
+				memory: z.boolean().optional().default(true),
 				proctoring: z
 					.object({
 						enabled: z.boolean(),

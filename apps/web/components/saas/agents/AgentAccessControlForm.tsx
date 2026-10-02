@@ -9,17 +9,18 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@repo/ui/dialog";
-import {
-	FolderTabs,
-	FolderTabsActions,
-	FolderTabsBar,
-	FolderTabsContent,
-	FolderTabsList,
-	FolderTabsTrigger,
-} from "@repo/ui/folder-tabs";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@repo/ui/select";
 import { Switch } from "@repo/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
+import { cn } from "@repo/ui/utils";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -51,6 +52,13 @@ type TrialFormState = {
 	sessions: string;
 	expiresAt: string;
 };
+
+type AccessTab = "links" | "embed";
+
+const ACCESS_TABS: { value: AccessTab; label: string }[] = [
+	{ value: "links", label: "Links" },
+	{ value: "embed", label: "Embed" },
+];
 
 const EMPTY_FORM: TrialFormState = {
 	label: "",
@@ -115,7 +123,7 @@ async function copyTrialUrl(path: string) {
 
 export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	const queryClient = useQueryClient();
-	const [tab, setTab] = useState("links");
+	const [tab, setTab] = useState<AccessTab>("links");
 	const trialLinksQuery = useQuery(
 		orpc.agents.listTrialLinks.queryOptions({
 			input: { id: agentId },
@@ -471,33 +479,84 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	);
 
 	return (
-		<FolderTabs
+		<Tabs
 			value={tab}
-			onValueChange={setTab}
-			className="min-h-0 flex-1 bg-transparent rounded-none"
+			onValueChange={(value) => value && setTab(value as AccessTab)}
+			className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
 		>
-			<FolderTabsBar>
-				<FolderTabsList>
-					<FolderTabsTrigger value="links">Links</FolderTabsTrigger>
-					<FolderTabsTrigger value="embed">Embed</FolderTabsTrigger>
-				</FolderTabsList>
+			<div className="flex shrink-0 items-center gap-3">
+				<div className="min-w-0 flex-1">
+					<Select
+						value={tab}
+						onValueChange={(value) =>
+							value && setTab(value as AccessTab)
+						}
+					>
+						<SelectTrigger
+							aria-label="Access control section"
+							className="h-9 w-full rounded-full bg-sidebar shadow-sm ring-1 ring-black/5 min-[1250px]:hidden"
+						>
+							<SelectValue placeholder="Select section" />
+						</SelectTrigger>
+						<SelectContent>
+							{ACCESS_TABS.map((section) => (
+								<SelectItem
+									key={section.value}
+									value={section.value}
+								>
+									{section.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+
+					<div className="scrollbar-none hidden min-w-0 overflow-x-auto min-[1250px]:block">
+						<TabsList className="h-9 w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
+							{ACCESS_TABS.map((section) => {
+								const isActive = tab === section.value;
+								return (
+									<TabsTrigger
+										key={section.value}
+										value={section.value}
+										className={cn(
+											"h-7 flex-none gap-2 rounded-full px-4 py-0 shadow-none transition-colors",
+											isActive
+												? "bg-secondary text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground"
+												: "text-muted-foreground hover:text-foreground",
+										)}
+									>
+										{section.label}
+									</TabsTrigger>
+								);
+							})}
+						</TabsList>
+					</div>
+				</div>
 				{tab === "links" ? (
-					<FolderTabsActions>
-						<button type="button" onClick={openCreateDialog}>
-							<PlusIcon className="size-4" />
-							Create
-						</button>
-					</FolderTabsActions>
+					<Button
+						type="button"
+						className="h-9 shrink-0"
+						onClick={openCreateDialog}
+					>
+						<PlusIcon className="size-4" />
+						Create
+					</Button>
 				) : null}
-			</FolderTabsBar>
+			</div>
 
-			<FolderTabsContent value="links" scrollable={false}>
+			<TabsContent
+				value="links"
+				className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+			>
 				{linksContent}
-			</FolderTabsContent>
+			</TabsContent>
 
-			<FolderTabsContent value="embed">
+			<TabsContent
+				value="embed"
+				className="mt-0 min-h-0 flex-1 overflow-y-auto data-[state=inactive]:hidden"
+			>
 				<AgentEmbedPanel agentId={agentId} />
-			</FolderTabsContent>
+			</TabsContent>
 
 			<Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
 				<DialogContent className="max-w-md">
@@ -601,6 +660,6 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 					</form>
 				</DialogContent>
 			</Dialog>
-		</FolderTabs>
+		</Tabs>
 	);
 }

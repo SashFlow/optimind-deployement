@@ -468,7 +468,10 @@ export function prepareConfigForDispatch(
 		values,
 		singleBraceKeys,
 	);
-	const aboutUser = endUserSection(options.endUser);
+	const aboutUser =
+		asRecord(substituted.session_modalities).memory === false
+			? ""
+			: endUserSection(options.endUser);
 	const instructions = aboutUser
 		? `${mergePromptSections(substituted)}\n\n## About the user\n${aboutUser}`
 		: mergePromptSections(substituted);

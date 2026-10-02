@@ -1,7 +1,7 @@
 "use client";
 
+import type { Track } from "livekit-client";
 import { useEffect, useRef, useState } from "react";
-import { Track } from "livekit-client";
 
 interface AudioVisualizerProps {
 	track?: Track;

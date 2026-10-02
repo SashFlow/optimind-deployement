@@ -187,15 +187,18 @@ Payload (JSON string):
 ```
 
 - `proactive_response: false` forces `action: "silent"` for violation types.
-- `id_captured` is always sent with `action: "silent"` after a successful ID upload.
+- `id_captured` is sent with `action: "generate_reply"` after a successful ID upload so the
+  agent receives a system message and can acknowledge completion / continue the session.
 
 #### `start_id_capture`
 
 The agent may call this RPC on the **local (candidate) participant** to open the ID capture
 overlay. No payload required. Response: `{ "started": true }`.
 
-Used when `session_modalities.proctoring.id_verification` is true (client also auto-starts
-after connect) or when a tool such as identity verification needs a fresh capture.
+Registered only when `session_modalities.proctoring.id_verification` is true. The client does
+**not** auto-open the overlay on connect — use a tool (e.g. `verify_identity`) that
+`perform_rpc`s this method when identity verification is needed. See
+[ID_VERIFICATION.md](./ID_VERIFICATION.md) for a sample Python tool.
 
 ### Callbacks / reschedule
 

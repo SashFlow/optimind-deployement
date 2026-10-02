@@ -1,4 +1,4 @@
-import { TrackReference, useTrackVolume } from "@livekit/components-react";
+import { type TrackReference, useTrackVolume } from "@livekit/components-react";
 import { VoiceOrb, type VoiceOrbState } from "@repo/ui/assistant-ui";
 
 export default function SessionVoiceOrb({

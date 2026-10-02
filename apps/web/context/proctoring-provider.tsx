@@ -1,18 +1,8 @@
 "use client";
 
-import {
-	useConnectionState,
-	useLocalParticipant,
-} from "@livekit/components-react";
+import { useConnectionState } from "@livekit/components-react";
 import { ConnectionState } from "livekit-client";
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useEffect,
-	useMemo,
-	useRef,
-} from "react";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { IdCaptureOverlay } from "@/components/saas/agents/proctoring/id-capture-overlay";
 import { type ProctoringState, useProctoring } from "@/hooks/useProctoring";
 import type { ProctoringConfigOverrides } from "@/lib/proctoring/config";
@@ -54,7 +44,6 @@ export function ProctoringProvider({
 	children,
 }: ProctoringProviderProps) {
 	const connectionState = useConnectionState();
-	const { isCameraEnabled } = useLocalParticipant();
 	const isConnected = connectionState === ConnectionState.Connected;
 
 	const mergedConfig = useMemo<ProctoringConfigOverrides | undefined>(() => {
@@ -93,29 +82,10 @@ export function ProctoringProvider({
 
 	const proctoring = useProctoring({
 		enabled: enabled && isConnected,
+		idVerification,
 		config: mergedConfig,
 		onIdCapture,
 	});
-
-	const { startIdCapture, idCaptureStatus } = proctoring;
-	const idStartedRef = useRef(false);
-	useEffect(() => {
-		if (!idVerification || !enabled || !isConnected || !isCameraEnabled) {
-			return;
-		}
-		if (idStartedRef.current || idCaptureStatus !== "idle") {
-			return;
-		}
-		idStartedRef.current = true;
-		startIdCapture();
-	}, [
-		idVerification,
-		enabled,
-		isConnected,
-		isCameraEnabled,
-		idCaptureStatus,
-		startIdCapture,
-	]);
 
 	return (
 		<ProctoringContext.Provider value={proctoring}>

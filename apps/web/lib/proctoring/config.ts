@@ -148,7 +148,7 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 				"I can no longer see your face. Please stay in front of the camera.",
 		},
 		gaze: {
-			enabled: true,
+			enabled: false,
 			minDurationMs: 3_000,
 			cooldownMs: 20_000,
 			action: "say",

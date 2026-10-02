@@ -1,5 +1,5 @@
 import { cn } from "@repo/ui/utils";
-import { PreviewRpcCard } from "./usePreviewRoomData";
+import type { PreviewRpcCard } from "./usePreviewRoomData";
 
 export default function RpcCardList({ cards }: { cards: PreviewRpcCard[] }) {
 	if (cards.length === 0) {

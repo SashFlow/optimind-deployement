@@ -18,7 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/tabs";
 import { cn } from "@repo/ui/utils";
 import { ChevronDownIcon } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AgentConfigurePreview } from "@/components/saas/agents/AgentConfigurePreview";
 import { AdvancedSection } from "@/components/saas/agents/configure/sections/AdvancedSection";
 import { AvatarSection } from "@/components/saas/agents/configure/sections/AvatarSection";

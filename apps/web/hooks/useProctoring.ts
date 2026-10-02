@@ -220,6 +220,11 @@ function attachHiddenVideo(videoTrack: LocalVideoTrack, label: string) {
 
 interface UseProctoringOptions {
 	enabled?: boolean;
+	/**
+	 * When true, registers the `start_id_capture` RPC so the agent can open ID capture
+	 * via a tool call. Does not auto-open the overlay on connect.
+	 */
+	idVerification?: boolean;
 	config?: ProctoringConfigOverrides;
 	/**
 	 * Pushes a captured ID card to the backend.
@@ -234,10 +239,12 @@ interface UseProctoringOptions {
  *
  * Also runs ID card capture on the same camera track: while it is active, proctoring inference
  * pauses, frames are checked for a well-framed, sharp ID card, and the first good frame is pushed
- * via `onIdCapture`. Capture can be started from the UI or by the agent via `start_id_capture`.
+ * via `onIdCapture`. Capture starts when the agent calls `start_id_capture` (requires
+ * `idVerification`), or when the candidate retries from the overlay.
  */
 export function useProctoring({
 	enabled = true,
+	idVerification = false,
 	config: overrides,
 	onIdCapture,
 }: UseProctoringOptions = {}) {
@@ -308,12 +315,14 @@ export function useProctoring({
 				setMode("PROCTORING");
 				toast.success("ID card captured");
 				void sendContext(room, {
-					state: "The candidate's ID card was captured and submitted for verification.",
-					action: "silent",
+					state:
+						"ID card capture completed successfully. The candidate's ID images have been uploaded and submitted for verification. You may continue the conversation.",
+					action: "generate_reply",
 					type: "id_captured",
 					details: {
 						confidence: captured.confidence,
 						capturedAt: captured.timestamp,
+						status: "completed",
 					},
 				});
 			} catch (error) {
@@ -559,7 +568,9 @@ export function useProctoring({
 
 	// Lets the agent ask for the candidate's ID, e.g. from a `verify_identity` tool.
 	useEffect(() => {
-		if (!enabled) return;
+		if (!enabled || !idVerification) {
+			return;
+		}
 
 		try {
 			room.registerRpcMethod(START_ID_CAPTURE_RPC, async () => {
@@ -574,7 +585,7 @@ export function useProctoring({
 			return;
 		}
 		return () => room.unregisterRpcMethod(START_ID_CAPTURE_RPC);
-	}, [room, enabled, startIdCapture]);
+	}, [room, enabled, idVerification, startIdCapture]);
 
 	return {
 		config,

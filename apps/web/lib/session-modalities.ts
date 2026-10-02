@@ -9,6 +9,7 @@ export const DEFAULT_SESSION_MODALITIES: SessionModalitiesConfig = {
 	audio_track: "mandatory",
 	video_track: "optional",
 	chat: "optional",
+	memory: true,
 	proctoring: {
 		enabled: false,
 		proactive_response: false,
@@ -60,6 +61,10 @@ export function normalizeSessionModalities(
 			DEFAULT_SESSION_MODALITIES.video_track,
 		),
 		chat: asTrackRequirement(source.chat, DEFAULT_SESSION_MODALITIES.chat),
+		memory:
+			typeof source.memory === "boolean"
+				? source.memory
+				: DEFAULT_SESSION_MODALITIES.memory,
 		proctoring: {
 			enabled: Boolean(
 				proctoringRaw.enabled ??

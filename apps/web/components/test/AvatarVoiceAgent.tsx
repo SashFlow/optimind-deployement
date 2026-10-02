@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	AvatarManager,
 	AvatarSDK,
@@ -9,7 +8,8 @@ import {
 	Environment,
 } from "@spatialwalk/avatarkit";
 import { AvatarPlayer, LiveKitProvider } from "@spatialwalk/avatarkit-rtc";
-import { Room, RoomEvent, Track } from "livekit-client";
+import { type Room, RoomEvent, Track } from "livekit-client";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AudioVisualizer from "./AudioVisualizer";
 import ChatInput from "./ChatInput";
 import TranscriptView from "./TranscriptView";

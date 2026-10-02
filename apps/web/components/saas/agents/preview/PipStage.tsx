@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
 import { cn } from "@repo/ui/utils";
+import type { ReactNode } from "react";
 
 export default function PipStage({
 	children,

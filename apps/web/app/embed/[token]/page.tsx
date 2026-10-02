@@ -1,24 +1,31 @@
 "use client";
 
 import { LiveKitRoom } from "@livekit/components-react";
-import { Button } from "@repo/ui/button";
+import type {
+	GetEmbedAgentOutput,
+	StartEmbedSessionInput,
+	StartPublicSessionOutput,
+} from "@repo/api/modules/sessions/public-types";
 import { Spinner } from "@repo/ui/spinner";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "next/navigation";
-import {
-	Suspense,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { Suspense, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PreviewSessionControls } from "@/components/saas/agents/preview/PreviewSessionControls";
+import { PublishPrefetchedCamera } from "@/components/saas/agents/preview/PublishPrefetchedCamera";
+import {
+	releasePrefetchedCameraTrack,
+	resolveLiveKitAudioOption,
+	resolveLiveKitVideoOption,
+} from "@/components/saas/agents/preview/livekit-prejoin-media";
+import {
+	type SessionPrejoinMediaSelection,
+	SessionPrejoinLobby,
+} from "@/components/saas/agents/preview/SessionPrejoinLobby";
 import { ProctoringProvider } from "@/context/proctoring-provider";
-import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
+import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
 	DEFAULT_SESSION_MODALITIES,
 	isTrackMandatory,
@@ -66,7 +73,7 @@ export default function EmbedAgentPage() {
 function EmbedAgentPageContent() {
 	const params = useParams<{ token: string }>();
 	const searchParams = useSearchParams();
-	const token = params.token;
+	const token = typeof params.token === "string" ? params.token : "";
 	const name = searchParams.get("name")?.trim() || "";
 	const externalId = searchParams.get("id")?.trim() || "";
 	const contactMetadata = useMemo(
@@ -74,23 +81,20 @@ function EmbedAgentPageContent() {
 		[searchParams],
 	);
 
-	const [audioDeviceId, setAudioDeviceId] = useState("");
-	const [videoDeviceId, setVideoDeviceId] = useState("");
-	const [devicesReady, setDevicesReady] = useState(false);
-	const [permissionError, setPermissionError] = useState<string | null>(null);
+	const [joinMedia, setJoinMedia] =
+		useState<SessionPrejoinMediaSelection | null>(null);
 	const [credentials, setCredentials] = useState<{
 		sessionId: string;
 		token: string;
 		serverUrl: string;
 		spatialRealAppId: string | null;
 	} | null>(null);
-	const startAttempted = useRef(false);
 
 	const embedQuery = useQuery(
 		orpc.sessions.getEmbedAgent.queryOptions({
 			input: { token },
 		}),
-	);
+	) as ReturnType<typeof useQuery<GetEmbedAgentOutput>>;
 
 	const sessionModalities = normalizeSessionModalities(
 		embedQuery.data?.agent.sessionModalities ?? DEFAULT_SESSION_MODALITIES,
@@ -102,25 +106,10 @@ function EmbedAgentPageContent() {
 	const videoMandatory =
 		isTrackMandatory(sessionModalities.video_track) || proctoringEnabled;
 	const chatMandatory = isTrackMandatory(sessionModalities.chat);
-	const proctoringNotice = (() => {
-		if (!sessionModalities.proctoring.enabled) {
-			return null;
-		}
-		const details: string[] = [];
-		if (sessionModalities.proctoring.proactive_response) {
-			details.push("proactive response");
-		}
-		if (sessionModalities.proctoring.id_verification) {
-			details.push("ID verification");
-		}
-		return details.length > 0
-			? `Proctoring enabled · ${details.join(" · ")}`
-			: "Proctoring enabled";
-	})();
 
 	const startMutation = useMutation(
 		orpc.sessions.startEmbedSession.mutationOptions({
-			onSuccess: (data) => {
+			onSuccess: (data: StartPublicSessionOutput) => {
 				if (!data.participantToken || !data.serverUrl) {
 					toast.error("Could not start embed session");
 					return;
@@ -132,140 +121,40 @@ function EmbedAgentPageContent() {
 					spatialRealAppId: data.spatialRealAppId ?? null,
 				});
 			},
-			onError: (error) => {
-				startAttempted.current = false;
+			onError: (error: Error) => {
 				toast.error(error.message || "Could not start session");
 			},
 		}),
-	);
+	) as ReturnType<
+		typeof useMutation<
+			StartPublicSessionOutput,
+			Error,
+			StartEmbedSessionInput
+		>
+	>;
 
-	const loadDevices = useCallback(async () => {
-		if (
-			typeof navigator === "undefined" ||
-			!navigator.mediaDevices?.getUserMedia
-		) {
-			setPermissionError(
-				"This browser does not support microphone or camera access.",
-			);
-			setDevicesReady(true);
-			return;
-		}
-
-		setPermissionError(null);
+	async function handleStart(selection: SessionPrejoinMediaSelection) {
+		setJoinMedia(selection);
 		try {
-			if (audioMandatory) {
-				const stream = await navigator.mediaDevices.getUserMedia({
-					audio: true,
-				});
-				for (const track of stream.getTracks()) {
-					track.stop();
-				}
-			} else {
-				try {
-					const stream = await navigator.mediaDevices.getUserMedia({
-						audio: true,
-					});
-					for (const track of stream.getTracks()) {
-						track.stop();
-					}
-				} catch {
-					// optional audio can continue without a mic
-				}
-			}
-
-			if (videoMandatory) {
-				const videoStream = await navigator.mediaDevices.getUserMedia({
-					video: true,
-				});
-				for (const track of videoStream.getTracks()) {
-					track.stop();
-				}
-			}
-
-			const devices = await navigator.mediaDevices.enumerateDevices();
-			const mics = devices.filter(
-				(device) => device.kind === "audioinput" && device.deviceId,
-			);
-			const cameras = devices.filter(
-				(device) => device.kind === "videoinput" && device.deviceId,
-			);
-			setAudioDeviceId(mics[0]?.deviceId ?? "");
-			setVideoDeviceId(
-				videoMandatory ? (cameras[0]?.deviceId ?? "") : "",
-			);
-
-			if (audioMandatory && mics.length === 0) {
-				setPermissionError(
-					"No microphone found. Connect a mic and try again.",
-				);
-			} else if (videoMandatory && cameras.length === 0) {
-				setPermissionError(
-					"No camera found. Connect a camera and try again.",
-				);
+			const data = await startMutation.mutateAsync({
+				token,
+				participantName: name || "Guest",
+				name: name || undefined,
+				externalId: externalId || undefined,
+				contactMetadata:
+					Object.keys(contactMetadata).length > 0
+						? contactMetadata
+						: undefined,
+			});
+			if (!data.participantToken || !data.serverUrl) {
+				setJoinMedia(null);
+				throw new Error("Could not start embed session");
 			}
 		} catch (error) {
-			setPermissionError(
-				error instanceof Error
-					? error.message
-					: "Media permission is required to start a session.",
-			);
-		} finally {
-			setDevicesReady(true);
+			setJoinMedia(null);
+			throw error;
 		}
-	}, [audioMandatory, videoMandatory]);
-
-	useEffect(() => {
-		if (!embedQuery.data?.embed.available) {
-			return;
-		}
-		void loadDevices();
-	}, [embedQuery.data?.embed.available, loadDevices]);
-
-	useEffect(() => {
-		if (
-			!embedQuery.data?.embed.available ||
-			!devicesReady ||
-			permissionError ||
-			credentials ||
-			startAttempted.current ||
-			startMutation.isPending
-		) {
-			return;
-		}
-		if (audioMandatory && !audioDeviceId) {
-			return;
-		}
-		if (videoMandatory && !videoDeviceId) {
-			return;
-		}
-
-		startAttempted.current = true;
-		startMutation.mutate({
-			token,
-			participantName: name || "Guest",
-			name: name || undefined,
-			externalId: externalId || undefined,
-			contactMetadata:
-				Object.keys(contactMetadata).length > 0
-					? contactMetadata
-					: undefined,
-		});
-	}, [
-		embedQuery.data?.embed.available,
-		devicesReady,
-		permissionError,
-		credentials,
-		startMutation.isPending,
-		audioMandatory,
-		videoMandatory,
-		audioDeviceId,
-		videoDeviceId,
-		token,
-		name,
-		externalId,
-		contactMetadata,
-		startMutation.mutate,
-	]);
+	}
 
 	if (credentials) {
 		const controls = (
@@ -283,34 +172,33 @@ function EmbedAgentPageContent() {
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}
-				proctoringNotice={proctoringNotice}
 				onEnd={() => {
+					releasePrefetchedCameraTrack(joinMedia);
 					setCredentials(null);
-					startAttempted.current = false;
+					setJoinMedia(null);
 					void embedQuery.refetch();
 				}}
 			/>
 		);
+		const audio = resolveLiveKitAudioOption(joinMedia);
+		const video = resolveLiveKitVideoOption(joinMedia);
+		const prefetchedCamera = joinMedia?.cameraTrack;
 		return (
 			<div className="flex min-h-screen flex-col bg-background">
 				<LiveKitRoom
 					token={credentials.token}
 					serverUrl={credentials.serverUrl}
 					connect
-					audio={
-						audioDeviceId
-							? { deviceId: { exact: audioDeviceId } }
-							: audioMandatory
-								? true
-								: false
-					}
-					video={
-						videoDeviceId
-							? { deviceId: { exact: videoDeviceId } }
-							: false
-					}
+					audio={audio}
+					video={video}
 					className="flex min-h-screen flex-col"
 				>
+					{prefetchedCamera ? (
+						<PublishPrefetchedCamera
+							track={prefetchedCamera}
+							videoDeviceId={joinMedia?.videoDeviceId}
+						/>
+					) : null}
 					{proctoringEnabled ? (
 						<ProctoringProvider
 							enabled
@@ -383,40 +271,19 @@ function EmbedAgentPageContent() {
 		);
 	}
 
-	if (permissionError) {
-		return (
-			<div className="mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-6">
-				<div className="w-full space-y-4 rounded-3xl border bg-card p-6 text-center shadow-sm ring-1 ring-black/5">
-					<h1 className="font-semibold text-xl tracking-tight">
-						{embedQuery.data.agent.name}
-					</h1>
-					<p className="text-sm text-muted-foreground">
-						{permissionError}
-					</p>
-					<Button
-						type="button"
-						onClick={() => {
-							setDevicesReady(false);
-							setPermissionError(null);
-							startAttempted.current = false;
-							void loadDevices();
-						}}
-					>
-						Try again
-					</Button>
-				</div>
-			</div>
-		);
-	}
-
 	return (
-		<div className="mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-6">
-			<div className="flex items-center gap-2 text-sm text-muted-foreground">
-				<Spinner className="size-4" />
-				{startMutation.isPending
-					? "Starting session…"
-					: "Preparing session…"}
-			</div>
+		<div className="flex min-h-screen w-full flex-col bg-background">
+			<SessionPrejoinLobby
+				title={embedQuery.data.agent.name}
+				subtitle="Ready when you are"
+				audioMandatory={audioMandatory}
+				videoMandatory={videoMandatory}
+				showWebMedia
+				starting={startMutation.isPending}
+				startLabel="Start session"
+				startingLabel="Starting session…"
+				onStart={handleStart}
+			/>
 		</div>
 	);
 }

@@ -7,23 +7,13 @@ import {
 	AccordionItem,
 	AccordionTrigger,
 } from "@repo/ui/accordion";
-import { VoiceOrb, type VoiceOrbState } from "@repo/ui/assistant-ui";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
-import { Spinner } from "@repo/ui/spinner";
 import { Switch } from "@repo/ui/switch";
 import { cn } from "@repo/ui/utils";
-import {
-	MicIcon,
-	MicOffIcon,
-	PhoneIcon,
-	PlayIcon,
-	UploadIcon,
-	VideoIcon,
-	VideoOffIcon,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { PhoneIcon, UploadIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
@@ -47,42 +37,18 @@ import { fetchSessionCredentials } from "@/services/api/livekit";
 import { uploadPreviewAsset } from "@/services/api/preview-assets";
 import type { Agent } from "@/services/api/types";
 import { PreviewSessionControls } from "./preview/PreviewSessionControls";
+import { PublishPrefetchedCamera } from "./preview/PublishPrefetchedCamera";
+import {
+	releasePrefetchedCameraTrack,
+	resolveLiveKitAudioOption,
+	resolveLiveKitVideoOption,
+} from "./preview/livekit-prejoin-media";
+import {
+	type SessionPrejoinMediaSelection,
+	SessionPrejoinLobby,
+} from "./preview/SessionPrejoinLobby";
 
 type PreviewMedia = "web" | "phone";
-
-function buildProctoringNotice(
-	proctoring: SessionModalitiesConfig["proctoring"],
-): string | null {
-	if (!proctoring.enabled) {
-		return null;
-	}
-	const details: string[] = [];
-	if (proctoring.proactive_response) {
-		details.push("proactive response");
-	}
-	if (proctoring.id_verification) {
-		details.push("ID verification");
-	}
-	if (details.length === 0) {
-		return "Proctoring enabled";
-	}
-	return `Proctoring enabled · ${details.join(" · ")}`;
-}
-
-async function requestMediaPermission(
-	constraints: MediaStreamConstraints,
-): Promise<void> {
-	if (
-		typeof navigator === "undefined" ||
-		!navigator.mediaDevices?.getUserMedia
-	) {
-		throw new Error("Media devices are not available in this browser");
-	}
-	const stream = await navigator.mediaDevices.getUserMedia(constraints);
-	for (const track of stream.getTracks()) {
-		track.stop();
-	}
-}
 
 type AgentConfigurePreviewProps = {
 	agent: Agent;
@@ -243,18 +209,14 @@ export function AgentConfigurePreview({
 	);
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [starting, setStarting] = useState(false);
+	const [joinMedia, setJoinMedia] =
+		useState<SessionPrejoinMediaSelection | null>(null);
 	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
 	const proctoringEnabled = sessionModalities.proctoring.enabled;
 	const videoMandatory =
 		isTrackMandatory(sessionModalities.video_track) ||
 		(proctoringEnabled && media === "web");
 	const chatMandatory = isTrackMandatory(sessionModalities.chat);
-	const [micEnabled, setMicEnabled] = useState(false);
-	const [cameraEnabled, setCameraEnabled] = useState(false);
-	const [mediaPermissionPending, setMediaPermissionPending] = useState<
-		"mic" | "camera" | null
-	>(null);
-	const mediaPermissionPendingRef = useRef(false);
 	const [phoneDispatch, setPhoneDispatch] = useState<{
 		roomName: string;
 		sessionId?: string;
@@ -271,144 +233,12 @@ export function AgentConfigurePreview({
 	const allowPhone = sessionModalities.call_type !== "web";
 	const allowWeb = sessionModalities.call_type !== "phone";
 	const showMediaToggle = sessionModalities.call_type === "both";
-	const proctoringNotice = buildProctoringNotice(
-		sessionModalities.proctoring,
-	);
 
 	useEffect(() => {
 		setMedia((current) =>
 			resolvePreviewMedia(sessionModalities.call_type, current),
 		);
 	}, [sessionModalities.call_type]);
-
-	useEffect(() => {
-		if (media !== "web") {
-			return;
-		}
-
-		let cancelled = false;
-
-		async function ensureMandatoryPermissions() {
-			if (audioMandatory && !micEnabled) {
-				mediaPermissionPendingRef.current = true;
-				setMediaPermissionPending("mic");
-				try {
-					await requestMediaPermission({ audio: true });
-					if (!cancelled) {
-						setMicEnabled(true);
-					}
-				} catch (error) {
-					if (!cancelled) {
-						setMicEnabled(false);
-						toast.error(
-							error instanceof Error
-								? error.message
-								: "Microphone permission denied",
-						);
-					}
-				} finally {
-					mediaPermissionPendingRef.current = false;
-					if (!cancelled) {
-						setMediaPermissionPending(null);
-					}
-				}
-			}
-
-			if (cancelled) {
-				return;
-			}
-
-			if (videoMandatory && !cameraEnabled) {
-				mediaPermissionPendingRef.current = true;
-				setMediaPermissionPending("camera");
-				try {
-					await requestMediaPermission({ video: true });
-					if (!cancelled) {
-						setCameraEnabled(true);
-					}
-				} catch (error) {
-					if (!cancelled) {
-						setCameraEnabled(false);
-						toast.error(
-							error instanceof Error
-								? error.message
-								: "Camera permission denied",
-						);
-					}
-				} finally {
-					mediaPermissionPendingRef.current = false;
-					if (!cancelled) {
-						setMediaPermissionPending(null);
-					}
-				}
-			}
-		}
-
-		void ensureMandatoryPermissions();
-		return () => {
-			cancelled = true;
-		};
-	}, [audioMandatory, cameraEnabled, media, micEnabled, videoMandatory]);
-
-	async function toggleMic() {
-		if (mediaPermissionPendingRef.current) {
-			return;
-		}
-		if (micEnabled) {
-			if (audioMandatory) {
-				return;
-			}
-			setMicEnabled(false);
-			return;
-		}
-
-		mediaPermissionPendingRef.current = true;
-		setMediaPermissionPending("mic");
-		try {
-			await requestMediaPermission({ audio: true });
-			setMicEnabled(true);
-		} catch (error) {
-			setMicEnabled(false);
-			toast.error(
-				error instanceof Error
-					? error.message
-					: "Microphone permission denied",
-			);
-		} finally {
-			mediaPermissionPendingRef.current = false;
-			setMediaPermissionPending(null);
-		}
-	}
-
-	async function toggleCamera() {
-		if (mediaPermissionPendingRef.current) {
-			return;
-		}
-		if (cameraEnabled) {
-			if (videoMandatory) {
-				return;
-			}
-			setCameraEnabled(false);
-			return;
-		}
-
-		mediaPermissionPendingRef.current = true;
-		setMediaPermissionPending("camera");
-		try {
-			await requestMediaPermission({ video: true });
-			setCameraEnabled(true);
-		} catch (error) {
-			setCameraEnabled(false);
-			toast.error(
-				error instanceof Error
-					? error.message
-					: "Camera permission denied",
-			);
-		} finally {
-			mediaPermissionPendingRef.current = false;
-			setMediaPermissionPending(null);
-		}
-	}
 
 	function updateVariableValue(name: string, value: string) {
 		setVariableValues((current) => ({ ...current, [name]: value }));
@@ -526,21 +356,13 @@ export function AgentConfigurePreview({
 		toast.success(`Calling ${normalized}`);
 	}
 
-	async function handleStartSession() {
+	async function handleStartSession(
+		selection: SessionPrejoinMediaSelection,
+	) {
 		const contactMetadata = buildContactMetadata();
 		if (!contactMetadata) {
-			return;
-		}
-
-		if (media === "web") {
-			if (audioMandatory && !micEnabled) {
-				toast.error("Microphone is required before starting");
-				return;
-			}
-			if (videoMandatory && !cameraEnabled) {
-				toast.error("Camera is required before starting");
-				return;
-			}
+			// Lobby restores the transferred camera track.
+			throw new Error("Invalid session variables");
 		}
 
 		setStarting(true);
@@ -548,30 +370,41 @@ export function AgentConfigurePreview({
 			if (media === "phone") {
 				if (!allowPhone) {
 					toast.error("Phone sessions are disabled for this agent");
-					return;
+					throw new Error("Phone sessions are disabled");
 				}
+				releasePrefetchedCameraTrack(selection);
 				await handleStartPhoneSession(contactMetadata);
 			} else {
 				if (!allowWeb) {
 					toast.error("Web sessions are disabled for this agent");
-					return;
+					throw new Error("Web sessions are disabled");
 				}
+				setJoinMedia(selection);
 				await handleStartWebSession(contactMetadata);
 			}
 		} catch (error) {
-			toast.error(
-				error instanceof Error
-					? error.message
-					: "Failed to start session",
-			);
+			setJoinMedia(null);
+			const message =
+				error instanceof Error ? error.message : "Failed to start session";
+			if (
+				message !== "Invalid session variables" &&
+				message !== "Phone sessions are disabled" &&
+				message !== "Web sessions are disabled"
+			) {
+				toast.error(message);
+			}
+			// Rethrow so the lobby can put the camera preview back.
+			throw error instanceof Error ? error : new Error(message);
 		} finally {
 			setStarting(false);
 		}
 	}
 
 	function handleEndSession() {
+		releasePrefetchedCameraTrack(joinMedia);
 		setSessionCredentials(null);
 		setPhoneDispatch(null);
+		setJoinMedia(null);
 		onCancel?.();
 	}
 
@@ -588,18 +421,26 @@ export function AgentConfigurePreview({
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}
-				proctoringNotice={proctoringNotice}
 			/>
 		);
+		const audio = resolveLiveKitAudioOption(joinMedia);
+		const video = resolveLiveKitVideoOption(joinMedia);
+		const prefetchedCamera = joinMedia?.cameraTrack;
 		return (
 			<LiveKitRoom
 				token={sessionCredentials.token}
 				serverUrl={sessionCredentials.serverUrl}
 				connect
-				audio={micEnabled}
-				video={cameraEnabled}
+				audio={audio}
+				video={video}
 				className="flex min-h-0 flex-1 flex-col"
 			>
+				{prefetchedCamera ? (
+					<PublishPrefetchedCamera
+						track={prefetchedCamera}
+						videoDeviceId={joinMedia?.videoDeviceId}
+					/>
+				) : null}
 				{proctoringEnabled ? (
 					<ProctoringProvider
 						enabled
@@ -629,12 +470,10 @@ export function AgentConfigurePreview({
 	}, [
 		agent,
 		avatar,
-		cameraEnabled,
 		chatMandatory,
+		joinMedia,
 		maxDurationSeconds,
-		micEnabled,
 		onCancel,
-		proctoringNotice,
 		proctoringEnabled,
 		sessionCredentials,
 		sessionModalities.proctoring.id_verification,
@@ -678,345 +517,156 @@ export function AgentConfigurePreview({
 		);
 	}
 
-	const showAvatar = avatar.enabled && Boolean(avatar.previewUrl);
-	const orbState: VoiceOrbState = starting ? "connecting" : "idle";
-
 	return (
 		<div className={cn("flex min-h-0 flex-1 flex-col", className)}>
-			<div className="flex min-h-0 flex-1 items-center justify-center bg-muted/20 p-4 sm:p-6">
-				<div className="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border bg-card shadow-sm md:max-w-2xl md:flex-row">
-					{/* Visual stage — hidden on small screens */}
-					<div className="relative hidden min-h-0 shrink-0 items-center justify-center bg-muted/40 md:flex md:w-[42%] md:self-stretch">
-						{showAvatar ? (
-							<div className="relative aspect-3/4 w-full max-w-[200px] overflow-hidden rounded-xl border bg-muted m-5">
-								{/* Dynamic avatar URL from config; next/image domains vary. */}
-								{/* eslint-disable-next-line @next/next/no-img-element */}
-								{/* biome-ignore lint/performance/noImgElement: dynamic avatar URLs */}
-								<img
-									src={avatar.previewUrl ?? undefined}
-									alt="Selected avatar"
-									className="size-full object-cover"
-								/>
-							</div>
-						) : (
-							<div className="flex flex-col items-center gap-3 p-6">
-								<VoiceOrb
-									state={orbState}
-									variant="blue"
-									className="size-52"
-								/>
-								<p className="text-xs text-muted-foreground">
-									{orbState === "connecting"
-										? "Connecting…"
-										: "Ready"}
-								</p>
-							</div>
-						)}
-					</div>
-
-					{/* Controls */}
-					<div className="flex min-w-0 flex-1 flex-col gap-3 p-5 sm:p-6">
-						{sessionModalities.proctoring.enabled ? (
-							<p className="rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-								{proctoringNotice}
-							</p>
-						) : null}
-
-						{showMediaToggle ? (
-							<div className="flex items-center justify-between gap-3">
-								<div className="min-w-0">
-									<Label
-										htmlFor="preview-media-phone"
-										className="text-sm font-medium"
-									>
-										Phone
-									</Label>
-									<p className="text-xs text-muted-foreground">
-										{media === "phone"
-											? "Telephony outbound call"
-											: "Web browser session"}
-									</p>
-								</div>
-								<Switch
-									id="preview-media-phone"
-									checked={media === "phone"}
-									onCheckedChange={(checked) =>
-										setMedia(checked ? "phone" : "web")
-									}
-									disabled={starting}
-									aria-label="Use phone instead of web"
-								/>
-							</div>
-						) : (
-							<div className="space-y-1">
-								<p className="text-sm font-medium">
-									{media === "phone"
-										? "Phone session"
-										: "Web session"}
-								</p>
-								<p className="text-xs text-muted-foreground">
-									{media === "phone"
-										? "This agent is configured for phone calls only."
-										: "This agent is configured for web sessions only."}
-								</p>
-							</div>
-						)}
-
-						{media === "phone" ? (
-							<div className="space-y-1.5">
-								<Label
-									htmlFor="preview-phone"
-									className="text-xs text-muted-foreground"
-								>
-									Phone number
-								</Label>
-								<Input
-									id="preview-phone"
-									type="tel"
-									value={phoneNumber}
-									onChange={(e) =>
-										setPhoneNumber(e.target.value)
-									}
-									placeholder="+91 98765 43210"
-									className="bg-background"
-									disabled={starting}
-								/>
-							</div>
-						) : null}
-
-						{definedVariables.length > 0 ? (
-							<Accordion
-								type="multiple"
-								defaultValue={[]}
-								className="w-full gap-0"
+			<SessionPrejoinLobby
+				title={agent.name}
+				subtitle="Preview this agent before publishing"
+				audioMandatory={audioMandatory}
+				videoMandatory={videoMandatory}
+				showWebMedia={media === "web"}
+				starting={starting}
+				startLabel={media === "phone" ? "Place call" : "Start session"}
+				startingLabel={
+					media === "phone" ? "Placing call…" : "Starting session…"
+				}
+				onStart={handleStartSession}
+				onCancel={onCancel}
+			>
+				{showMediaToggle ? (
+					<div className="flex items-center justify-between gap-3">
+						<div className="min-w-0">
+							<Label
+								htmlFor="preview-media-phone"
+								className="text-sm font-medium"
 							>
-								<AccordionItem
-									value="variables"
-									className="border-b-0"
-								>
-									<AccordionTrigger className="py-2.5 text-sm hover:no-underline [&>svg]:ml-2">
-										Variables
-									</AccordionTrigger>
-									<AccordionContent className="pb-3">
-										<div className="space-y-3">
-											<p className="text-xs text-pretty text-muted-foreground">
-												Values for session variables
-												used in this preview.
-											</p>
-											{hasUnsavedVariables ? (
-												<p className="text-xs text-amber-600 dark:text-amber-500">
-													Save draft to test new
-													variables in preview.
-												</p>
-											) : null}
-											<div className="max-h-48 space-y-3 overflow-y-auto pr-1">
-												{definedVariables.map(
-													(variable) => (
-														<div
-															key={variable.name}
-															className="space-y-1.5"
-														>
-															<Label
-																htmlFor={`preview-var-${variable.name}`}
-																className="text-xs text-muted-foreground"
-															>
-																{variable.name}
-																{variable.required ? (
-																	<span className="text-destructive">
-																		{" "}
-																		*
-																	</span>
-																) : null}
-																<span className="ml-1.5 font-normal">
-																	(
-																	{
-																		variable.variable_type
-																	}
-																	)
-																</span>
-															</Label>
-															<VariableInput
-																variable={
-																	variable
-																}
-																value={
-																	variableValues[
-																		variable
-																			.name
-																	] ?? ""
-																}
-																onChange={(
-																	value,
-																) =>
-																	updateVariableValue(
-																		variable.name,
-																		value,
-																	)
-																}
-																onUpload={(
-																	file,
-																) =>
-																	void handleUpload(
-																		variable.name,
-																		file,
-																	)
-																}
-																uploading={
-																	uploadingField ===
-																	variable.name
-																}
-															/>
-														</div>
-													),
-												)}
-											</div>
-										</div>
-									</AccordionContent>
-								</AccordionItem>
-							</Accordion>
-						) : hasUnsavedVariables ? (
-							<p className="text-xs text-amber-600 dark:text-amber-500">
-								Save draft to test new variables in preview.
+								Phone
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								{media === "phone"
+									? "Telephony outbound call"
+									: "Web browser session"}
 							</p>
-						) : null}
-
-						<div className="mt-auto flex flex-col gap-2 border-t pt-3">
-							{media === "web" &&
-							(audioMandatory || videoMandatory) ? (
-								<p className="text-xs text-muted-foreground">
-									{[
-										audioMandatory
-											? "Microphone required"
-											: null,
-										videoMandatory
-											? "Camera required"
-											: null,
-									]
-										.filter(Boolean)
-										.join(" · ")}
-								</p>
-							) : null}
-							<div className="flex items-center gap-2">
-								{media === "web" ? (
-									<>
-										<Button
-											type="button"
-											variant="outline"
-											size="icon"
-											aria-label={
-												micEnabled
-													? "Mute microphone"
-													: "Unmute microphone"
-											}
-											aria-pressed={micEnabled}
-											disabled={
-												starting ||
-												mediaPermissionPending !==
-													null ||
-												(audioMandatory && micEnabled)
-											}
-											className={cn(
-												"size-10 shrink-0 rounded-full",
-												micEnabled
-													? "border-transparent bg-primary text-primary-foreground hover:bg-primary/90"
-													: "text-muted-foreground",
-											)}
-											onClick={() => void toggleMic()}
-										>
-											{mediaPermissionPending ===
-											"mic" ? (
-												<Spinner className="size-4" />
-											) : micEnabled ? (
-												<MicIcon className="size-4" />
-											) : (
-												<MicOffIcon className="size-4" />
-											)}
-										</Button>
-										<Button
-											type="button"
-											variant="outline"
-											size="icon"
-											aria-label={
-												cameraEnabled
-													? "Turn camera off"
-													: "Turn camera on"
-											}
-											aria-pressed={cameraEnabled}
-											disabled={
-												starting ||
-												mediaPermissionPending !==
-													null ||
-												(videoMandatory &&
-													cameraEnabled)
-											}
-											className={cn(
-												"size-10 shrink-0 rounded-full",
-												cameraEnabled
-													? "border-transparent bg-primary text-primary-foreground hover:bg-primary/90"
-													: "text-muted-foreground",
-											)}
-											onClick={() => void toggleCamera()}
-										>
-											{mediaPermissionPending ===
-											"camera" ? (
-												<Spinner className="size-4" />
-											) : cameraEnabled ? (
-												<VideoIcon className="size-4" />
-											) : (
-												<VideoOffIcon className="size-4" />
-											)}
-										</Button>
-									</>
-								) : null}
-								<Button
-									type="button"
-									className="min-w-0 flex-1 gap-2"
-									loading={starting}
-									disabled={
-										starting ||
-										(media === "web" &&
-											((audioMandatory && !micEnabled) ||
-												(videoMandatory &&
-													!cameraEnabled)))
-									}
-									onClick={() => void handleStartSession()}
-								>
-									{starting ? (
-										<>
-											<Spinner className="size-4" />
-											{media === "phone"
-												? "Placing call…"
-												: "Starting session…"}
-										</>
-									) : (
-										<>
-											{media === "phone" ? (
-												<PhoneIcon className="size-4" />
-											) : (
-												<PlayIcon className="size-4" />
-											)}
-											{media === "phone"
-												? "Place call"
-												: "Start session"}
-										</>
-									)}
-								</Button>
-							</div>
-							{onCancel ? (
-								<Button
-									type="button"
-									variant="outline"
-									className="w-full"
-									onClick={onCancel}
-									disabled={starting}
-								>
-									Cancel
-								</Button>
-							) : null}
 						</div>
+						<Switch
+							id="preview-media-phone"
+							checked={media === "phone"}
+							onCheckedChange={(checked) =>
+								setMedia(checked ? "phone" : "web")
+							}
+							disabled={starting}
+							aria-label="Use phone instead of web"
+						/>
 					</div>
-				</div>
-			</div>
+				) : null}
+
+				{media === "phone" ? (
+					<div className="space-y-1.5">
+						<Label
+							htmlFor="preview-phone"
+							className="text-xs text-muted-foreground"
+						>
+							Phone number
+						</Label>
+						<Input
+							id="preview-phone"
+							type="tel"
+							value={phoneNumber}
+							onChange={(e) => setPhoneNumber(e.target.value)}
+							placeholder="+91 98765 43210"
+							className="bg-background"
+							disabled={starting}
+						/>
+					</div>
+				) : null}
+
+				{definedVariables.length > 0 ? (
+					<Accordion
+						type="multiple"
+						defaultValue={[]}
+						className="w-full gap-0"
+					>
+						<AccordionItem
+							value="variables"
+							className="border-b-0"
+						>
+							<AccordionTrigger className="py-2.5 text-sm hover:no-underline [&>svg]:ml-2">
+								Variables
+							</AccordionTrigger>
+							<AccordionContent className="pb-3">
+								<div className="space-y-3">
+									<p className="text-xs text-pretty text-muted-foreground">
+										Values for session variables used in
+										this preview.
+									</p>
+									{hasUnsavedVariables ? (
+										<p className="text-xs text-amber-600 dark:text-amber-500">
+											Save draft to test new variables in
+											preview.
+										</p>
+									) : null}
+									<div className="max-h-48 space-y-3 overflow-y-auto pr-1">
+										{definedVariables.map((variable) => (
+											<div
+												key={variable.name}
+												className="space-y-1.5"
+											>
+												<Label
+													htmlFor={`preview-var-${variable.name}`}
+													className="text-xs text-muted-foreground"
+												>
+													{variable.name}
+													{variable.required ? (
+														<span className="text-destructive">
+															{" "}
+															*
+														</span>
+													) : null}
+													<span className="ml-1.5 font-normal">
+														(
+														{
+															variable.variable_type
+														}
+														)
+													</span>
+												</Label>
+												<VariableInput
+													variable={variable}
+													value={
+														variableValues[
+															variable.name
+														] ?? ""
+													}
+													onChange={(value) =>
+														updateVariableValue(
+															variable.name,
+															value,
+														)
+													}
+													onUpload={(file) =>
+														void handleUpload(
+															variable.name,
+															file,
+														)
+													}
+													uploading={
+														uploadingField ===
+														variable.name
+													}
+												/>
+											</div>
+										))}
+									</div>
+								</div>
+							</AccordionContent>
+						</AccordionItem>
+					</Accordion>
+				) : hasUnsavedVariables ? (
+					<p className="text-xs text-amber-600 dark:text-amber-500">
+						Save draft to test new variables in preview.
+					</p>
+				) : null}
+			</SessionPrejoinLobby>
 		</div>
 	);
 }

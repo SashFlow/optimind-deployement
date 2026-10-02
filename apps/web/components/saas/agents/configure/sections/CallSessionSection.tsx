@@ -161,7 +161,7 @@ export function CallSessionSection({
 			<div className="space-y-4 px-4 py-4 md:px-5">
 				<SectionHeader
 					title="Call modalities"
-					description="Channel, media track, and proctoring requirements for sessions."
+					description="Channel, media track, memory, and proctoring requirements for sessions."
 				/>
 				<div className="grid gap-4 sm:grid-cols-2">
 					<div className="space-y-2">
@@ -283,6 +283,19 @@ export function CallSessionSection({
 				</div>
 				<div className="rounded-lg border bg-background/60 px-3">
 					<ToggleField
+						label="Memory"
+						description="Remember facts about each end user across sessions and inject them into the agent prompt."
+						checked={config.session_modalities.memory !== false}
+						onCheckedChange={(memory) =>
+							onConfigChange({
+								session_modalities: {
+									...config.session_modalities,
+									memory,
+								},
+							})
+						}
+					/>
+					<ToggleField
 						label="Proctoring"
 						description="Enable proctoring controls for this agent’s sessions. Requires the camera on web sessions."
 						checked={config.session_modalities.proctoring.enabled}
@@ -327,7 +340,7 @@ export function CallSessionSection({
 							/>
 							<ToggleField
 								label="ID verification"
-								description="Require identity verification for proctored sessions."
+								description="Allow the agent to request ID card capture during the session (via a tool call)."
 								checked={
 									config.session_modalities.proctoring
 										.id_verification

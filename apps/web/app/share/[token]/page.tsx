@@ -1,30 +1,37 @@
 "use client";
 
 import { LiveKitRoom } from "@livekit/components-react";
+import type {
+	GetTrialLinkOutput,
+	StartPublicSessionOutput,
+	StartTrialSessionInput,
+} from "@repo/api/modules/sessions/public-types";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@repo/ui/select";
 import { Spinner } from "@repo/ui/spinner";
 import { Switch } from "@repo/ui/switch";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { MicIcon } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+	releasePrefetchedCameraTrack,
+	resolveLiveKitAudioOption,
+	resolveLiveKitVideoOption,
+} from "@/components/saas/agents/preview/livekit-prejoin-media";
 import { PreviewSessionControls } from "@/components/saas/agents/preview/PreviewSessionControls";
+import { PublishPrefetchedCamera } from "@/components/saas/agents/preview/PublishPrefetchedCamera";
+import {
+	SessionPrejoinLobby,
+	type SessionPrejoinMediaSelection,
+} from "@/components/saas/agents/preview/SessionPrejoinLobby";
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
 import { normalizePhoneNumber } from "@/lib/phone";
-import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
+import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
 	DEFAULT_SESSION_MODALITIES,
 	isTrackMandatory,
@@ -38,8 +45,6 @@ const UNAVAILABLE_MESSAGES = {
 	exhausted: "This shared link has no sessions left.",
 	unpublished: "This agent is not published yet.",
 } as const;
-
-const NO_CAMERA = "none";
 
 function isValidUrl(value: string) {
 	try {
@@ -101,6 +106,29 @@ function buildContactMetadata(
 	return contactMetadata;
 }
 
+/** Auto visitor identity for trial links — embeds link label + next session number. */
+function buildTrialVisitorDetails(trial: {
+	label: string;
+	usageCount: number;
+}) {
+	const sessionNumber = trial.usageCount + 1;
+	const label = trial.label.trim() || "Trial";
+	const name = `${label} · Session ${sessionNumber}`.slice(0, 120);
+	const labelSlug =
+		label
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "")
+			.slice(0, 40) || "trial";
+	const randomSuffix = Math.random().toString(36).slice(2, 8);
+	const email =
+		`${labelSlug}.s${sessionNumber}.${randomSuffix}@example.com`.slice(
+			0,
+			254,
+		);
+	return { name, email };
+}
+
 function VariableField({
 	variable,
 	value,
@@ -157,17 +185,12 @@ function VariableField({
 
 export default function SharedTrialPage() {
 	const params = useParams<{ token: string }>();
-	const token = params.token;
+	const token = typeof params.token === "string" ? params.token : "";
 	const [variableValues, setVariableValues] = useState<
 		Record<string, string>
 	>({});
-	const [visitor, setVisitor] = useState({ name: "", email: "", phone: "" });
-	const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-	const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
-	const [audioDeviceId, setAudioDeviceId] = useState("");
-	const [videoDeviceId, setVideoDeviceId] = useState("");
-	const [devicesLoading, setDevicesLoading] = useState(false);
-	const [permissionError, setPermissionError] = useState<string | null>(null);
+	const [joinMedia, setJoinMedia] =
+		useState<SessionPrejoinMediaSelection | null>(null);
 	const [sessionMedia, setSessionMedia] = useState<"web" | "phone">("web");
 	const [outboundPhone, setOutboundPhone] = useState("");
 	const [phoneDispatch, setPhoneDispatch] = useState<{
@@ -186,7 +209,7 @@ export default function SharedTrialPage() {
 		orpc.sessions.getTrialLink.queryOptions({
 			input: { token },
 		}),
-	);
+	) as ReturnType<typeof useQuery<GetTrialLinkOutput>>;
 
 	const sessionModalities = normalizeSessionModalities(
 		trialQuery.data?.agent.sessionModalities ?? DEFAULT_SESSION_MODALITIES,
@@ -199,24 +222,8 @@ export default function SharedTrialPage() {
 		isTrackMandatory(sessionModalities.video_track) ||
 		(proctoringEnabled && sessionMedia === "web");
 	const chatMandatory = isTrackMandatory(sessionModalities.chat);
-	const allowPhone = sessionModalities.call_type !== "web";
 	const allowWeb = sessionModalities.call_type !== "phone";
 	const showMediaToggle = sessionModalities.call_type === "both";
-	const proctoringNotice = (() => {
-		if (!sessionModalities.proctoring.enabled) {
-			return null;
-		}
-		const details: string[] = [];
-		if (sessionModalities.proctoring.proactive_response) {
-			details.push("proactive response");
-		}
-		if (sessionModalities.proctoring.id_verification) {
-			details.push("ID verification");
-		}
-		return details.length > 0
-			? `Proctoring enabled · ${details.join(" · ")}`
-			: "Proctoring enabled";
-	})();
 
 	useEffect(() => {
 		setSessionMedia((current) =>
@@ -226,7 +233,7 @@ export default function SharedTrialPage() {
 
 	const startMutation = useMutation(
 		orpc.sessions.startTrialSession.mutationOptions({
-			onSuccess: (data) => {
+			onSuccess: (data: StartPublicSessionOutput) => {
 				if (data.channel === "PHONE") {
 					setPhoneDispatch({
 						sessionId: data.sessionId,
@@ -255,161 +262,70 @@ export default function SharedTrialPage() {
 					spatialRealAppId: data.spatialRealAppId ?? null,
 				});
 			},
-			onError: (error) => {
+			onError: (error: Error) => {
 				toast.error(error.message || "Could not start session");
 				void trialQuery.refetch();
 			},
 		}),
-	);
+	) as ReturnType<
+		typeof useMutation<
+			StartPublicSessionOutput,
+			Error,
+			StartTrialSessionInput
+		>
+	>;
 
-	const loadDevices = useCallback(async () => {
-		if (
-			typeof navigator === "undefined" ||
-			!navigator.mediaDevices?.getUserMedia
-		) {
-			setPermissionError(
-				"This browser does not support microphone or camera access.",
-			);
-			return;
+	async function handleStart(selection: SessionPrejoinMediaSelection) {
+		if (!trialQuery.data?.trial.available) {
+			toast.error("This shared link is not available");
+			throw new Error("Shared link unavailable");
 		}
 
-		setDevicesLoading(true);
-		setPermissionError(null);
-		try {
-			if (audioMandatory) {
-				const stream = await navigator.mediaDevices.getUserMedia({
-					audio: true,
-				});
-				for (const track of stream.getTracks()) {
-					track.stop();
-				}
-			} else {
-				try {
-					const stream = await navigator.mediaDevices.getUserMedia({
-						audio: true,
-					});
-					for (const track of stream.getTracks()) {
-						track.stop();
-					}
-				} catch {
-					// optional audio can continue without a mic
-				}
-			}
-
-			try {
-				const videoStream = await navigator.mediaDevices.getUserMedia({
-					video: true,
-				});
-				for (const track of videoStream.getTracks()) {
-					track.stop();
-				}
-			} catch (error) {
-				if (videoMandatory) {
-					throw error instanceof Error
-						? error
-						: new Error(
-								"Camera permission is required to start a session.",
-							);
-				}
-			}
-
-			const devices = await navigator.mediaDevices.enumerateDevices();
-			const mics = devices.filter(
-				(device) => device.kind === "audioinput" && device.deviceId,
-			);
-			const cameras = devices.filter(
-				(device) => device.kind === "videoinput" && device.deviceId,
-			);
-			setAudioDevices(mics);
-			setVideoDevices(cameras);
-			setAudioDeviceId((current) =>
-				current && mics.some((device) => device.deviceId === current)
-					? current
-					: (mics[0]?.deviceId ?? ""),
-			);
-			setVideoDeviceId((current) => {
-				if (
-					current &&
-					cameras.some((device) => device.deviceId === current)
-				) {
-					return current;
-				}
-				return videoMandatory ? (cameras[0]?.deviceId ?? "") : "";
-			});
-			if (audioMandatory && mics.length === 0) {
-				setPermissionError(
-					"No microphone found. Connect a mic and try again.",
-				);
-			} else if (videoMandatory && cameras.length === 0) {
-				setPermissionError(
-					"No camera found. Connect a camera and try again.",
-				);
-			}
-		} catch (error) {
-			setPermissionError(
-				error instanceof Error
-					? error.message
-					: audioMandatory
-						? "Microphone permission is required to start a session."
-						: "Media permission is required to start a session.",
-			);
-			setAudioDevices([]);
-			setVideoDevices([]);
-			setAudioDeviceId("");
-			setVideoDeviceId("");
-		} finally {
-			setDevicesLoading(false);
-		}
-	}, [audioMandatory, videoMandatory]);
-
-	useEffect(() => {
-		if (!trialQuery.data?.trial.available || !allowWeb) {
-			return;
-		}
-		void loadDevices();
-	}, [trialQuery.data?.trial.available, allowWeb, loadDevices]);
-
-	function handleStart() {
 		const variables =
 			(trialQuery.data?.agent.variables as AgentVariableDefinition[]) ??
 			[];
 		const contactMetadata = buildContactMetadata(variables, variableValues);
 		if (!contactMetadata) {
-			return;
+			throw new Error("Invalid session variables");
 		}
 
-		if (sessionMedia === "web") {
-			if (audioMandatory && !audioDeviceId) {
-				toast.error("Select a microphone before starting");
-				return;
-			}
-			if (videoMandatory && !videoDeviceId) {
-				toast.error("Select a camera before starting");
-				return;
-			}
-		} else {
+		if (sessionMedia === "phone") {
 			const normalized = normalizePhoneNumber(outboundPhone);
 			if (!normalized) {
 				toast.error("Enter a valid phone number");
-				return;
+				throw new Error("Invalid phone number");
 			}
+			releasePrefetchedCameraTrack(selection);
+		} else {
+			setJoinMedia(selection);
 		}
 
-		const name = visitor.name.trim();
-		const email = visitor.email.trim();
-		const phone = visitor.phone.trim();
-		startMutation.mutate({
-			token,
-			participantName: name || "Guest",
-			contactMetadata,
-			name: name || undefined,
-			email: email || undefined,
-			contactPhone: phone || undefined,
-			phoneNumber:
-				sessionMedia === "phone"
-					? (normalizePhoneNumber(outboundPhone) ?? undefined)
-					: undefined,
-		});
+		const { name: visitorName, email: visitorEmail } =
+			buildTrialVisitorDetails(trialQuery.data.trial);
+
+		try {
+			const data = await startMutation.mutateAsync({
+				token,
+				participantName: visitorName,
+				contactMetadata,
+				name: visitorName,
+				email: visitorEmail,
+				phoneNumber:
+					sessionMedia === "phone"
+						? (normalizePhoneNumber(outboundPhone) ?? undefined)
+						: undefined,
+			});
+			if (
+				sessionMedia !== "phone" &&
+				(!data.participantToken || !data.serverUrl)
+			) {
+				setJoinMedia(null);
+				throw new Error("Could not start web session");
+			}
+		} catch (error) {
+			setJoinMedia(null);
+			throw error;
+		}
 	}
 
 	if (credentials) {
@@ -428,33 +344,33 @@ export default function SharedTrialPage() {
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}
-				proctoringNotice={proctoringNotice}
 				onEnd={() => {
+					releasePrefetchedCameraTrack(joinMedia);
 					setCredentials(null);
+					setJoinMedia(null);
 					void trialQuery.refetch();
 				}}
 			/>
 		);
+		const audio = resolveLiveKitAudioOption(joinMedia);
+		const video = resolveLiveKitVideoOption(joinMedia);
+		const prefetchedCamera = joinMedia?.cameraTrack;
 		return (
 			<div className="flex min-h-screen flex-col bg-background">
 				<LiveKitRoom
 					token={credentials.token}
 					serverUrl={credentials.serverUrl}
 					connect
-					audio={
-						audioDeviceId
-							? { deviceId: { exact: audioDeviceId } }
-							: audioMandatory
-								? true
-								: false
-					}
-					video={
-						videoDeviceId
-							? { deviceId: { exact: videoDeviceId } }
-							: false
-					}
+					audio={audio}
+					video={video}
 					className="flex min-h-screen flex-col"
 				>
+					{prefetchedCamera ? (
+						<PublishPrefetchedCamera
+							track={prefetchedCamera}
+							videoDeviceId={joinMedia?.videoDeviceId}
+						/>
+					) : null}
 					{proctoringEnabled ? (
 						<ProctoringProvider
 							enabled
@@ -542,364 +458,118 @@ export default function SharedTrialPage() {
 	const unavailableMessage = trial.unavailableReason
 		? UNAVAILABLE_MESSAGES[trial.unavailableReason]
 		: null;
-	const canStartWeb =
-		allowWeb &&
-		!devicesLoading &&
-		(!audioMandatory || Boolean(audioDeviceId)) &&
-		(!videoMandatory || Boolean(videoDeviceId)) &&
-		!permissionError;
-	const canStartPhone =
-		allowPhone && Boolean(normalizePhoneNumber(outboundPhone));
-	const canStart =
-		trial.available &&
-		!startMutation.isPending &&
-		(sessionMedia === "phone" ? canStartPhone : canStartWeb);
 
-	return (
-		<div className="mx-auto flex min-h-dvh w-full max-w-2xl items-stretch justify-center px-4 py-4 sm:items-center sm:px-6 sm:py-6">
-			<div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 ring-black/5">
-				<div className="shrink-0 space-y-1 border-b px-5 py-4 sm:px-6 sm:py-5">
-					<h1 className="font-semibold text-xl tracking-tight sm:text-2xl">
+	if (!trial.available) {
+		return (
+			<div className="mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-6">
+				<div className="w-full space-y-2 rounded-3xl border bg-card p-6 text-center shadow-sm ring-1 ring-black/5">
+					<h1 className="font-semibold text-xl tracking-tight">
 						{agent.name}
 					</h1>
 					<p className="text-sm text-muted-foreground">
-						Sessions left:{" "}
-						<span className="font-medium text-foreground">
-							{trial.remaining}
-						</span>
+						{unavailableMessage ||
+							"This shared link is not available."}
 					</p>
 				</div>
-
-				<div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
-					{unavailableMessage ? (
-						<div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-							{unavailableMessage}
-						</div>
-					) : (
-						<>
-							{sessionModalities.proctoring.enabled ? (
-								<div className="rounded-xl border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-									{proctoringNotice}
-								</div>
-							) : null}
-
-							{showMediaToggle ? (
-								<div className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3">
-									<div className="min-w-0">
-										<p className="text-sm font-medium">
-											Phone call
-										</p>
-										<p className="text-xs text-muted-foreground">
-											{sessionMedia === "phone"
-												? "Place an outbound phone call"
-												: "Join from this browser"}
-										</p>
-									</div>
-									<Switch
-										checked={sessionMedia === "phone"}
-										onCheckedChange={(checked) =>
-											setSessionMedia(
-												checked ? "phone" : "web",
-											)
-										}
-										aria-label="Use phone instead of web"
-									/>
-								</div>
-							) : (
-								<p className="text-sm text-muted-foreground">
-									{sessionMedia === "phone"
-										? "This shared link starts a phone call."
-										: "This shared link starts a web session."}
-								</p>
-							)}
-
-							{sessionMedia === "phone" ? (
-								<div className="space-y-2">
-									<Label htmlFor="share-outbound-phone">
-										Phone number
-									</Label>
-									<Input
-										id="share-outbound-phone"
-										type="tel"
-										value={outboundPhone}
-										onChange={(event) =>
-											setOutboundPhone(event.target.value)
-										}
-										placeholder="+91 98765 43210"
-									/>
-								</div>
-							) : devicesLoading ? (
-								<div className="flex items-center gap-2 text-sm text-muted-foreground">
-									<Spinner className="size-4" />
-									Requesting media access…
-								</div>
-							) : permissionError ? (
-								<div className="space-y-3">
-									<p className="text-sm text-destructive">
-										{permissionError}
-									</p>
-									<Button
-										type="button"
-										variant="outline"
-										className="w-full"
-										onClick={() => void loadDevices()}
-									>
-										<MicIcon className="size-4" />
-										Allow media access
-									</Button>
-								</div>
-							) : (
-								<div className="grid gap-4 sm:grid-cols-2">
-									{(audioMandatory ||
-										audioDevices.length > 0) && (
-										<div className="min-w-0 space-y-2">
-											<Label htmlFor="guest-mic">
-												Microphone
-												{audioMandatory ? null : (
-													<span className="text-muted-foreground">
-														{" "}
-														(optional)
-													</span>
-												)}
-											</Label>
-											<Select
-												value={
-													audioDeviceId ||
-													(audioMandatory
-														? ""
-														: NO_CAMERA)
-												}
-												onValueChange={(value) =>
-													setAudioDeviceId(
-														value === NO_CAMERA
-															? ""
-															: value,
-													)
-												}
-											>
-												<SelectTrigger
-													id="guest-mic"
-													className="w-full"
-												>
-													<SelectValue placeholder="Select microphone" />
-												</SelectTrigger>
-												<SelectContent>
-													{!audioMandatory ? (
-														<SelectItem
-															value={NO_CAMERA}
-														>
-															No microphone
-														</SelectItem>
-													) : null}
-													{audioDevices.map(
-														(device) => (
-															<SelectItem
-																key={
-																	device.deviceId
-																}
-																value={
-																	device.deviceId
-																}
-															>
-																{device.label ||
-																	"Microphone"}
-															</SelectItem>
-														),
-													)}
-												</SelectContent>
-											</Select>
-										</div>
-									)}
-
-									{(videoMandatory ||
-										videoDevices.length > 0) && (
-										<div className="min-w-0 space-y-2">
-											<Label htmlFor="guest-cam">
-												Camera
-												{videoMandatory ? null : (
-													<span className="text-muted-foreground">
-														{" "}
-														(optional)
-													</span>
-												)}
-											</Label>
-											<Select
-												value={
-													videoDeviceId || NO_CAMERA
-												}
-												onValueChange={(value) =>
-													setVideoDeviceId(
-														value === NO_CAMERA
-															? ""
-															: value,
-													)
-												}
-											>
-												<SelectTrigger
-													id="guest-cam"
-													className="w-full"
-												>
-													<SelectValue
-														placeholder={
-															videoMandatory
-																? "Select camera"
-																: "No camera"
-														}
-													/>
-												</SelectTrigger>
-												<SelectContent>
-													{!videoMandatory ? (
-														<SelectItem
-															value={NO_CAMERA}
-														>
-															No camera
-														</SelectItem>
-													) : null}
-													{videoDevices.map(
-														(device) => (
-															<SelectItem
-																key={
-																	device.deviceId
-																}
-																value={
-																	device.deviceId
-																}
-															>
-																{device.label ||
-																	"Camera"}
-															</SelectItem>
-														),
-													)}
-												</SelectContent>
-											</Select>
-										</div>
-									)}
-								</div>
-							)}
-
-							<div className="space-y-3">
-								<p className="text-sm font-medium">
-									Your details{" "}
-									<span className="font-normal text-muted-foreground">
-										(optional)
-									</span>
-								</p>
-								<div className="grid gap-4 sm:grid-cols-3">
-									{(
-										[
-											["name", "Name", "text", "name"],
-											[
-												"email",
-												"Email",
-												"email",
-												"email",
-											],
-											["phone", "Phone", "tel", "tel"],
-										] as const
-									).map(
-										([
-											field,
-											label,
-											type,
-											autoComplete,
-										]) => (
-											<div
-												key={field}
-												className="min-w-0 space-y-2"
-											>
-												<Label
-													htmlFor={`share-visitor-${field}`}
-												>
-													{label}
-												</Label>
-												<Input
-													id={`share-visitor-${field}`}
-													type={type}
-													autoComplete={autoComplete}
-													value={visitor[field]}
-													onChange={(event) =>
-														setVisitor(
-															(current) => ({
-																...current,
-																[field]:
-																	event.target
-																		.value,
-															}),
-														)
-													}
-												/>
-											</div>
-										),
-									)}
-								</div>
-							</div>
-
-							{variables.length > 0 ? (
-								<div className="space-y-3">
-									<p className="text-sm font-medium">
-										Enter the following
-									</p>
-									<div className="grid gap-4 sm:grid-cols-2">
-										{variables.map((variable) => (
-											<div
-												key={variable.name}
-												className="min-w-0 space-y-2"
-											>
-												<Label
-													htmlFor={`share-var-${variable.name}`}
-													className="block truncate"
-													title={variable.name}
-												>
-													{variable.name}
-													{variable.required ? (
-														<span className="text-destructive">
-															{" "}
-															*
-														</span>
-													) : null}
-												</Label>
-												<VariableField
-													variable={variable}
-													value={
-														variableValues[
-															variable.name
-														] ?? ""
-													}
-													onChange={(value) =>
-														setVariableValues(
-															(current) => ({
-																...current,
-																[variable.name]:
-																	value,
-															}),
-														)
-													}
-												/>
-											</div>
-										))}
-									</div>
-								</div>
-							) : null}
-						</>
-					)}
-				</div>
-
-				<div className="shrink-0 border-t bg-card px-5 py-4 sm:px-6">
-					<Button
-						type="button"
-						className="w-full"
-						loading={startMutation.isPending}
-						disabled={!canStart}
-						onClick={handleStart}
-					>
-						{!trial.available
-							? "Link unavailable"
-							: sessionMedia === "phone"
-								? "Place call"
-								: "Start session"}
-					</Button>
-				</div>
 			</div>
+		);
+	}
+
+	return (
+		<div className="flex min-h-dvh w-full flex-col bg-background">
+			<SessionPrejoinLobby
+				title={agent.name}
+				subtitle={`Sessions left: ${trial.remaining}`}
+				audioMandatory={audioMandatory}
+				videoMandatory={videoMandatory}
+				showWebMedia={sessionMedia === "web" && allowWeb}
+				starting={startMutation.isPending}
+				startLabel={
+					sessionMedia === "phone" ? "Place call" : "Start session"
+				}
+				startingLabel={
+					sessionMedia === "phone"
+						? "Placing call…"
+						: "Starting session…"
+				}
+				onStart={handleStart}
+			>
+				{showMediaToggle && (
+					<div className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3">
+						<div className="min-w-0">
+							<p className="text-sm font-medium">Phone call</p>
+							<p className="text-xs text-muted-foreground">
+								{sessionMedia === "phone"
+									? "Place an outbound phone call"
+									: "Join from this browser"}
+							</p>
+						</div>
+						<Switch
+							checked={sessionMedia === "phone"}
+							onCheckedChange={(checked) =>
+								setSessionMedia(checked ? "phone" : "web")
+							}
+							aria-label="Use phone instead of web"
+						/>
+					</div>
+				)}
+
+				{sessionMedia === "phone" ? (
+					<div className="space-y-2">
+						<Label htmlFor="share-outbound-phone">
+							Phone number
+						</Label>
+						<Input
+							id="share-outbound-phone"
+							type="tel"
+							value={outboundPhone}
+							onChange={(event) =>
+								setOutboundPhone(event.target.value)
+							}
+							placeholder="+91 98765 43210"
+						/>
+					</div>
+				) : null}
+
+				{variables.length > 0 ? (
+					<div className="space-y-3">
+						<div className="grid gap-4">
+							{variables.map((variable) => (
+								<div
+									key={variable.name}
+									className="min-w-0 space-y-2"
+								>
+									<Label
+										htmlFor={`share-var-${variable.name}`}
+										className="block truncate"
+										title={variable.name}
+									>
+										{variable.name}
+										{variable.required ? (
+											<span className="text-destructive">
+												{" "}
+												*
+											</span>
+										) : null}
+									</Label>
+									<VariableField
+										variable={variable}
+										value={
+											variableValues[variable.name] ?? ""
+										}
+										onChange={(value) =>
+											setVariableValues((current) => ({
+												...current,
+												[variable.name]: value,
+											}))
+										}
+									/>
+								</div>
+							))}
+						</div>
+					</div>
+				) : null}
+			</SessionPrejoinLobby>
 		</div>
 	);
 }

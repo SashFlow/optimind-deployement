@@ -1,4 +1,5 @@
 import { ORPCError } from "@orpc/client";
+import { type } from "@orpc/server";
 import {
 	consumeAgentTrialToken,
 	createAgentSession,
@@ -54,6 +55,12 @@ import {
 	reconcileOpenEgressJobs,
 } from "./lib/reconcile-egress";
 import { workerProcedure } from "./lib/worker-procedure";
+import type {
+	GetEmbedAgentOutput,
+	GetTrialLinkOutput,
+	PublicAgentPreview,
+	StartPublicSessionOutput,
+} from "./public-types";
 
 const AGENT_NAME = process.env.AGENT_NAME || "demo-agent";
 
@@ -112,14 +119,15 @@ export const get = protectedProcedure
 	})
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
-		let session = await getAgentSessionById(input.id);
-		if (!session) {
+		const existing = await getAgentSessionById(input.id);
+		if (!existing) {
 			throw new ORPCError("NOT_FOUND");
 		}
-		await requireOrgMembership(session.organizationId, context.user.id);
+		await requireOrgMembership(existing.organizationId, context.user.id);
 
-		await reconcileOpenEgressJobs(session.egressJobs);
-		session = (await getAgentSessionById(input.id)) ?? session;
+		await reconcileOpenEgressJobs(existing.egressJobs);
+		const session =
+			(await getAgentSessionById(input.id)) ?? existing;
 
 		const egressJobs = await Promise.all(
 			session.egressJobs.map(async (job) => {
@@ -375,6 +383,7 @@ const DEFAULT_TRIAL_SESSION_MODALITIES = {
 	audio_track: "mandatory" as const,
 	video_track: "optional" as const,
 	chat: "optional" as const,
+	memory: true,
 	proctoring: {
 		enabled: false,
 		proactive_response: false,
@@ -382,18 +391,21 @@ const DEFAULT_TRIAL_SESSION_MODALITIES = {
 	},
 };
 
-function normalizeTrialSessionModalities(raw: unknown) {
+function normalizeTrialSessionModalities(raw: unknown): PublicAgentPreview["sessionModalities"] {
 	const source =
 		raw && typeof raw === "object" && !Array.isArray(raw)
 			? (raw as Record<string, unknown>)
 			: {};
-	const callType =
+	const callType: PublicAgentPreview["sessionModalities"]["call_type"] =
 		source.call_type === "phone" ||
 		source.call_type === "web" ||
 		source.call_type === "both"
 			? source.call_type
 			: DEFAULT_TRIAL_SESSION_MODALITIES.call_type;
-	const asTrack = (value: unknown, fallback: "mandatory" | "optional") =>
+	const asTrack = (
+		value: unknown,
+		fallback: "mandatory" | "optional",
+	): "mandatory" | "optional" =>
 		value === "mandatory" || value === "optional" ? value : fallback;
 	const proctoringRaw =
 		source.proctoring &&
@@ -413,6 +425,10 @@ function normalizeTrialSessionModalities(raw: unknown) {
 			DEFAULT_TRIAL_SESSION_MODALITIES.video_track,
 		),
 		chat: asTrack(source.chat, DEFAULT_TRIAL_SESSION_MODALITIES.chat),
+		memory:
+			typeof source.memory === "boolean"
+				? source.memory
+				: DEFAULT_TRIAL_SESSION_MODALITIES.memory,
 		proctoring: {
 			enabled: Boolean(
 				proctoringRaw.enabled ??
@@ -472,6 +488,7 @@ export const getTrialLink = publicProcedure
 		summary: "Get public trial link details",
 	})
 	.input(z.object({ token: z.string().min(1) }))
+	.output(type<GetTrialLinkOutput>())
 	.handler(async ({ input }) => {
 		const trial = await getAgentTrialByToken(input.token);
 		if (!trial?.token) {
@@ -565,6 +582,7 @@ export const startTrialSession = publicProcedure
 			contactPhone: z.string().trim().max(32).optional(),
 		}),
 	)
+	.output(type<StartPublicSessionOutput>())
 	.handler(async ({ input }) => {
 		const existing = await getAgentTrialByToken(input.token);
 		if (!existing?.token) {
@@ -729,6 +747,7 @@ export const getEmbedAgent = publicProcedure
 		summary: "Get public embed agent details",
 	})
 	.input(z.object({ token: z.string().min(1) }))
+	.output(type<GetEmbedAgentOutput>())
 	.handler(async ({ input }) => {
 		const agent = await getAgentByEmbedToken(input.token);
 		if (!agent?.token) {
@@ -805,6 +824,7 @@ export const startEmbedSession = publicProcedure
 			name: z.string().trim().max(120).optional(),
 		}),
 	)
+	.output(type<StartPublicSessionOutput>())
 	.handler(async ({ input }) => {
 		const agent = await getAgentByEmbedToken(input.token);
 		if (!agent?.token) {
@@ -897,6 +917,7 @@ export const startEmbedSession = publicProcedure
 			channel: "WEB" as const,
 			serverUrl: cfg.url,
 			participantToken,
+			phoneNumber: null,
 			spatialRealAppId: getSpatialRealAppId(),
 		};
 	});

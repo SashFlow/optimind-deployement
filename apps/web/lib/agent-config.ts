@@ -151,6 +151,8 @@ export type SessionModalitiesConfig = {
 	audio_track: SessionTrackRequirement;
 	video_track: SessionTrackRequirement;
 	chat: SessionTrackRequirement;
+	/** Persist and inject end-user memories across sessions. */
+	memory: boolean;
 	proctoring: SessionProctoringConfig;
 };
 
@@ -372,6 +374,7 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 			audio_track: "mandatory",
 			video_track: "optional",
 			chat: "optional",
+			memory: true,
 			proctoring: {
 				enabled: false,
 				proactive_response: false,
