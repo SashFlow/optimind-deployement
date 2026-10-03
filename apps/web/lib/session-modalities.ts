@@ -14,6 +14,10 @@ export const DEFAULT_SESSION_MODALITIES: SessionModalitiesConfig = {
 		enabled: false,
 		proactive_response: false,
 		id_verification: false,
+		face_verification: false,
+	},
+	otp_input: {
+		enabled: false,
 	},
 };
 
@@ -46,6 +50,12 @@ export function normalizeSessionModalities(
 		!Array.isArray(source.proctoring)
 			? (source.proctoring as Record<string, unknown>)
 			: {};
+	const otpInputRaw =
+		source.otp_input &&
+		typeof source.otp_input === "object" &&
+		!Array.isArray(source.otp_input)
+			? (source.otp_input as Record<string, unknown>)
+			: {};
 
 	return {
 		call_type: asCallType(
@@ -77,6 +87,16 @@ export function normalizeSessionModalities(
 			id_verification: Boolean(
 				proctoringRaw.id_verification ??
 					DEFAULT_SESSION_MODALITIES.proctoring.id_verification,
+			),
+			face_verification: Boolean(
+				proctoringRaw.face_verification ??
+					DEFAULT_SESSION_MODALITIES.proctoring.face_verification,
+			),
+		},
+		otp_input: {
+			enabled: Boolean(
+				otpInputRaw.enabled ??
+					DEFAULT_SESSION_MODALITIES.otp_input.enabled,
 			),
 		},
 	};

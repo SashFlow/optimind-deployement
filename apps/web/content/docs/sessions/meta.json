@@ -1,0 +1,4 @@
+{
+	"title": "Sessions",
+	"pages": ["worker-contract", "id-verification", "face-capture", "otp-input"]
+}

@@ -76,6 +76,33 @@ export interface IdCaptureConfig {
 	cropPadding: number;
 }
 
+export interface FaceCaptureConfig {
+	/** How often a frame is analysed while face capture is active. */
+	intervalMs: number;
+	/** Give up and close face capture after this long without a good frame. */
+	timeoutMs: number;
+	/** Consecutive good, stable frames required before the frame is captured. */
+	requiredStableFrames: number;
+	/** Max movement of the detected face between frames, as a fraction of the frame size. */
+	stabilityTolerance: number;
+	/** Guide oval width as a fraction of the frame width. */
+	guideWidthRatio: number;
+	/** Guide oval height / width (portrait oval). */
+	aspectRatio: number;
+	/** Minimum face width relative to the guide width (0-1). */
+	minFaceWidthRatio: number;
+	/** Maximum face width relative to the guide width (0-1). */
+	maxFaceWidthRatio: number;
+	/** How far the face center may drift from the guide center (fraction of guide size). */
+	centerTolerance: number;
+	/** Minimum face detection confidence (0-1). */
+	minConfidence: number;
+	/** JPEG quality of the captured images (0-1). */
+	jpegQuality: number;
+	/** Padding added around the detected face when cropping, as a fraction of the face size. */
+	cropPadding: number;
+}
+
 export interface ProctoringConfig {
 	/** How often a camera frame is analysed. */
 	intervalMs: number;
@@ -93,10 +120,11 @@ export interface ProctoringConfig {
 		gaze: GazeCheckConfig;
 	};
 	idCapture: IdCaptureConfig;
+	faceCapture: FaceCaptureConfig;
 }
 
 export type ProctoringConfigOverrides = Partial<
-	Omit<ProctoringConfig, "checks" | "idCapture">
+	Omit<ProctoringConfig, "checks" | "idCapture" | "faceCapture">
 > & {
 	checks?: {
 		[K in keyof ProctoringConfig["checks"]]?: Partial<
@@ -104,6 +132,7 @@ export type ProctoringConfigOverrides = Partial<
 		>;
 	};
 	idCapture?: Partial<IdCaptureConfig>;
+	faceCapture?: Partial<FaceCaptureConfig>;
 };
 
 export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
@@ -177,12 +206,26 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 		jpegQuality: 0.92,
 		cropPadding: 0.04,
 	},
+	faceCapture: {
+		intervalMs: 150,
+		timeoutMs: 90_000,
+		requiredStableFrames: 5,
+		stabilityTolerance: 0.02,
+		guideWidthRatio: 0.45,
+		aspectRatio: 1.25,
+		minFaceWidthRatio: 0.55,
+		maxFaceWidthRatio: 1.15,
+		centerTolerance: 0.18,
+		minConfidence: 0.5,
+		jpegQuality: 0.92,
+		cropPadding: 0.2,
+	},
 };
 
 export function mergeProctoringConfig(
 	overrides: ProctoringConfigOverrides = {},
 ): ProctoringConfig {
-	const { checks = {}, idCapture, ...rest } = overrides;
+	const { checks = {}, idCapture, faceCapture, ...rest } = overrides;
 	const base = DEFAULT_PROCTORING_CONFIG;
 	return {
 		...base,
@@ -200,5 +243,6 @@ export function mergeProctoringConfig(
 			gaze: { ...base.checks.gaze, ...checks.gaze },
 		},
 		idCapture: { ...base.idCapture, ...idCapture },
+		faceCapture: { ...base.faceCapture, ...faceCapture },
 	};
 }

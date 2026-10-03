@@ -3,9 +3,11 @@
 import { useConnectionState } from "@livekit/components-react";
 import { ConnectionState } from "livekit-client";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { FaceCaptureOverlay } from "@/components/saas/agents/proctoring/face-capture-overlay";
 import { IdCaptureOverlay } from "@/components/saas/agents/proctoring/id-capture-overlay";
 import { type ProctoringState, useProctoring } from "@/hooks/useProctoring";
 import type { ProctoringConfigOverrides } from "@/lib/proctoring/config";
+import type { FaceCaptureResult } from "@/lib/proctoring/faceCapture";
 import type { IdCaptureResult } from "@/lib/proctoring/idCard";
 
 const ProctoringContext = createContext<ProctoringState | null>(null);
@@ -30,8 +32,10 @@ interface ProctoringProviderProps {
 	enabled?: boolean;
 	proactiveResponse?: boolean;
 	idVerification?: boolean;
+	faceVerification?: boolean;
 	config?: ProctoringConfigOverrides;
 	onIdCapture?: (result: IdCaptureResult) => Promise<unknown> | unknown;
+	onFaceCapture?: (result: FaceCaptureResult) => Promise<unknown> | unknown;
 	children: ReactNode;
 }
 
@@ -39,8 +43,10 @@ export function ProctoringProvider({
 	enabled = true,
 	proactiveResponse = true,
 	idVerification = false,
+	faceVerification = false,
 	config,
 	onIdCapture,
+	onFaceCapture,
 	children,
 }: ProctoringProviderProps) {
 	const connectionState = useConnectionState();
@@ -83,14 +89,17 @@ export function ProctoringProvider({
 	const proctoring = useProctoring({
 		enabled: enabled && isConnected,
 		idVerification,
+		faceVerification,
 		config: mergedConfig,
 		onIdCapture,
+		onFaceCapture,
 	});
 
 	return (
 		<ProctoringContext.Provider value={proctoring}>
 			{children}
 			<IdCaptureOverlay />
+			<FaceCaptureOverlay />
 		</ProctoringContext.Provider>
 	);
 }

@@ -24,8 +24,10 @@ import {
 	SessionPrejoinLobby,
 } from "@/components/saas/agents/preview/SessionPrejoinLobby";
 import { ProctoringProvider } from "@/context/proctoring-provider";
+import { SessionInteractionProvider } from "@/context/session-interaction-provider";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
+import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
 	DEFAULT_SESSION_MODALITIES,
@@ -225,28 +227,44 @@ function EmbedAgentPageContent() {
 							videoDeviceId={joinMedia?.videoDeviceId}
 						/>
 					) : null}
-					{proctoringEnabled ? (
-						<ProctoringProvider
-							enabled
-							proactiveResponse={
-								sessionModalities.proctoring.proactive_response
-							}
-							idVerification={
-								sessionModalities.proctoring.id_verification
-							}
-							onIdCapture={(result) =>
-								uploadIdCaptureFiles({
-									sessionId: credentials.sessionId,
-									participantToken: credentials.token,
-									result,
-								})
-							}
-						>
-							{controls}
-						</ProctoringProvider>
-					) : (
-						controls
-					)}
+					<SessionInteractionProvider
+						otpInputEnabled={sessionModalities.otp_input.enabled}
+					>
+						{proctoringEnabled ? (
+							<ProctoringProvider
+								enabled
+								proactiveResponse={
+									sessionModalities.proctoring
+										.proactive_response
+								}
+								idVerification={
+									sessionModalities.proctoring.id_verification
+								}
+								faceVerification={
+									sessionModalities.proctoring
+										.face_verification
+								}
+								onIdCapture={(result) =>
+									uploadIdCaptureFiles({
+										sessionId: credentials.sessionId,
+										participantToken: credentials.token,
+										result,
+									})
+								}
+								onFaceCapture={(result) =>
+									uploadFaceCaptureFiles({
+										sessionId: credentials.sessionId,
+										participantToken: credentials.token,
+										result,
+									})
+								}
+							>
+								{controls}
+							</ProctoringProvider>
+						) : (
+							controls
+						)}
+					</SessionInteractionProvider>
 				</LiveKitRoom>
 			</div>
 		);

@@ -237,8 +237,19 @@ export const agentConfigSchema = z
 						enabled: z.boolean(),
 						proactive_response: z.boolean(),
 						id_verification: z.boolean(),
+						face_verification: z
+							.boolean()
+							.optional()
+							.default(false),
 					})
 					.passthrough(),
+				otp_input: z
+					.object({
+						enabled: z.boolean(),
+					})
+					.passthrough()
+					.optional()
+					.default({ enabled: false }),
 			})
 			.passthrough()
 			.optional(),

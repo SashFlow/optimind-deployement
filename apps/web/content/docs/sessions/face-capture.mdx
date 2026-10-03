@@ -1,0 +1,108 @@
+---
+title: Face capture
+description: Tool-triggered face capture during web sessions via LiveKit RPC.
+---
+
+Face capture is **not** a mandatory popup on join. When proctoring and face
+verification are enabled, the agent opens the capture overlay by calling LiveKit RPC
+`start_face_capture` on the candidate (typically from a Python `@function_tool`).
+
+After a well-framed face is detected, the web client uploads two JPEGs to the backend and
+notifies the agent via `add_context`.
+
+## Setup
+
+1. In **Call Session**, enable **Proctoring** and **Face verification**
+   (“Allow the agent to request face capture during the session (via a tool call).”).
+2. Create an org **Python tool** (Tools → Create Python tool) and paste the sample below.
+3. Attach that tool to the agent so the model can call `verify_face` mid-session.
+4. Start a web (share / embed / preview) session with the camera on.
+
+## Flow
+
+```
+Agent tool verify_face
+  → perform_rpc("start_face_capture") on candidate
+  → Client opens face overlay and scans camera frames
+  → POST /sessions/{id}/participant-files  (face.jpg)
+  → POST /sessions/{id}/participant-files  (face-full.jpg)
+  → Client perform_rpc("add_context") with type "face_captured" (action: generate_reply)
+  → Agent chat gets a system message; agent acknowledges and continues
+```
+
+### RPC: `start_face_capture` (agent → candidate)
+
+- Registered only when `session_modalities.proctoring.face_verification` is true.
+- Payload: empty string (or unused).
+- Response: `{"started": true}` (JSON string).
+
+### Upload: participant files
+
+Authenticated with the candidate’s LiveKit participant JWT:
+
+| Name | Content |
+|------|---------|
+| `face.jpg` | Cropped face JPEG |
+| `face-full.jpg` | Full-frame evidence JPEG |
+
+Endpoint: `POST /sessions/{id}/participant-files` (see [worker contract](/docs/sessions/worker-contract)).
+
+### RPC: `add_context` (candidate → agent)
+
+```json
+{
+  "state": "Face capture completed successfully. The candidate's face images have been uploaded and submitted for verification. You may continue the conversation.",
+  "action": "generate_reply",
+  "type": "face_captured",
+  "details": {
+    "confidence": 0.0,
+    "capturedAt": 0,
+    "status": "completed"
+  }
+}
+```
+
+## Sample Python tool
+
+Paste into **Create Python Tool**. The worker injects `host` (`.agent`, `.ctx`, `.state`).
+
+```python
+@function_tool()
+async def verify_identity(self, context: RunContext) -> str:
+    """Ask the candidate to show their ID. Opens capture UI; returns when overlay starts."""
+    try:
+        room_io = context.session.room_io
+    except RuntimeError:
+        return "error: room not available yet"
+
+    participant = room_io.linked_participant
+    if participant is None:
+        return "error: no candidate participant in the room"
+
+    try:
+        response = await room_io.room.local_participant.perform_rpc(
+            destination_identity=participant.identity,
+            method="start_id_capture",
+            payload="",
+            # keep short if handler only acknowledges UI open
+        )
+    except Exception as e:
+        return f"error: RPC failed: {e}"
+
+    return f"ID capture started: {response}"
+```
+
+### How to test
+
+1. Enable proctoring + face verification on the agent.
+2. Add the Python tool above and attach it to the agent.
+3. Join a share/embed/preview session with camera enabled.
+4. Ask the agent to verify your face (or otherwise invoke `verify_face`).
+5. Center your face in the oval until capture succeeds.
+6. Confirm toast “Face captured” and that `face.jpg` / `face-full.jpg` appear on the session’s participant files.
+
+## Related
+
+- [Worker contract](/docs/sessions/worker-contract) (`start_face_capture`, `add_context`)
+- Client hook: `apps/web/hooks/useProctoring.ts`
+- Upload helper: `apps/web/lib/proctoring/upload-face-capture.ts`

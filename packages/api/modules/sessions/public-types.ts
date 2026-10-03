@@ -20,6 +20,10 @@ export type PublicAgentPreview = {
 			enabled: boolean;
 			proactive_response: boolean;
 			id_verification: boolean;
+			face_verification: boolean;
+		};
+		otp_input: {
+			enabled: boolean;
 		};
 	};
 	maxDurationSeconds: number | null;

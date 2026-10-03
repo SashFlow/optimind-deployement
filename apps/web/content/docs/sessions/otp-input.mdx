@@ -1,0 +1,133 @@
+---
+title: OTP input
+description: Tool-triggered OTP entry popover during web sessions via LiveKit RPC.
+---
+
+OTP input is **not** opened on join. When OTP input is enabled on the agent, the agent
+opens a centered popover by calling LiveKit RPC `start_otp_input` on the candidate
+(typically from a Python `@function_tool`).
+
+The web client does **not** generate or verify the OTP. Submit and resend notify the
+agent via `add_context`; the worker/agent owns sending the code out-of-band and validating
+`details.code`.
+
+## Setup
+
+1. In **Call Session**, enable **OTP input**
+   (“Allow the agent to open an OTP entry popover during the session (via a tool call).”).
+2. Create an org **Python tool** (Tools → Create Python tool) and paste the sample below.
+3. Attach that tool to the agent so the model can call `request_otp` mid-session.
+4. Start a web (share / embed / preview) session.
+
+## Flow
+
+```
+Agent tool request_otp
+  → (agent sends OTP out-of-band)
+  → perform_rpc("start_otp_input") on candidate
+  → Client opens OTP popover
+  → Candidate Submit → add_context type "otp_submitted" (details.code)
+  → Candidate Resend → add_context type "otp_resend_requested"
+  → Agent validates / resends and continues
+```
+
+### RPC: `start_otp_input` (agent → candidate)
+
+- Registered only when `session_modalities.otp_input.enabled` is true.
+- Optional payload (JSON string):
+
+```json
+{ "length": 6, "hint": "Enter the code sent to your phone" }
+```
+
+- `length` defaults to `6` (allowed 4–12).
+- Response: `{"started": true}` (JSON string).
+
+### RPC: `add_context` — submit
+
+```json
+{
+  "state": "The candidate submitted a one-time password. Validate the code and continue.",
+  "action": "generate_reply",
+  "type": "otp_submitted",
+  "details": {
+    "code": "123456",
+    "length": 6,
+    "submittedAt": 0
+  }
+}
+```
+
+### RPC: `add_context` — resend
+
+```json
+{
+  "state": "The candidate requested that the one-time password be resent.",
+  "action": "generate_reply",
+  "type": "otp_resend_requested",
+  "details": {
+    "requestedAt": 0
+  }
+}
+```
+
+Dismissing the popover does **not** send an `add_context` event.
+
+## Sample Python tool
+
+Paste into **Create Python Tool**. The worker injects `host` (`.agent`, `.ctx`, `.state`).
+
+```python
+
+
+@function_tool()
+async def request_otp(self, context: RunContext) -> str:
+	"""Open the candidate's OTP input popover in the browser.
+
+	Send the OTP out-of-band first (SMS/email), then call this.
+	Returns when the popover has opened — not when the OTP is submitted.
+	"""
+	import json
+	
+	try:
+		room_io = context.session.room_io
+	except RuntimeError:
+		return "error: room not available yet"
+
+	participant = room_io.linked_participant
+	if participant is None:
+		return "error: no candidate participant in the room"
+
+	# TODO: send OTP out-of-band using your delivery channel
+
+	payload = json.dumps({
+		"length": 6,
+		"hint": "Enter the code we just sent you",
+	})
+
+	try:
+		response = await room_io.room.local_participant.perform_rpc(
+			destination_identity=participant.identity,
+			method="start_otp_input",
+			payload=payload,
+		)
+	except Exception as e:
+		return f"error: RPC failed: {e}"
+
+	return f"OTP input started: {response}"
+```
+
+### How to test
+
+1. Enable OTP input on the agent.
+2. Add the Python tool above and attach it to the agent.
+3. Join a share/embed/preview session.
+4. Ask the agent to request an OTP (or otherwise invoke `request_otp`).
+5. Enter a code and click **Submit** — confirm toast “Code submitted”.
+6. Click **Resend** — confirm toast “Resend requested” and a cooldown.
+
+## Related
+
+- [Worker contract](/docs/sessions/worker-contract) (`start_otp_input`, `add_context`)
+- Client hook: `apps/web/hooks/useOtpInput.ts`
+- UI: `apps/web/components/saas/agents/session/otp-input-popover.tsx`

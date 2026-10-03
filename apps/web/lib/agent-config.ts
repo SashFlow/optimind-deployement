@@ -144,6 +144,11 @@ export type SessionProctoringConfig = {
 	enabled: boolean;
 	proactive_response: boolean;
 	id_verification: boolean;
+	face_verification: boolean;
+};
+
+export type SessionOtpInputConfig = {
+	enabled: boolean;
 };
 
 export type SessionModalitiesConfig = {
@@ -154,6 +159,7 @@ export type SessionModalitiesConfig = {
 	/** Persist and inject end-user memories across sessions. */
 	memory: boolean;
 	proctoring: SessionProctoringConfig;
+	otp_input: SessionOtpInputConfig;
 };
 
 export type AgentConfigDocument = {
@@ -379,6 +385,10 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 				enabled: false,
 				proactive_response: false,
 				id_verification: false,
+				face_verification: false,
+			},
+			otp_input: {
+				enabled: false,
 			},
 		},
 		tools: [],
@@ -492,6 +502,10 @@ export function normalizeAgentConfig(
 			proctoring: {
 				...defaults.session_modalities.proctoring,
 				...(c.session_modalities?.proctoring ?? {}),
+			},
+			otp_input: {
+				...defaults.session_modalities.otp_input,
+				...(c.session_modalities?.otp_input ?? {}),
 			},
 		},
 		tools_config: { ...defaults.tools_config, ...(c.tools_config ?? {}) },

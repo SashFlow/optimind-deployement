@@ -311,6 +311,7 @@ export function CallSessionSection({
 											: {
 													proactive_response: false,
 													id_verification: false,
+													face_verification: false,
 												}),
 									},
 								},
@@ -358,8 +359,46 @@ export function CallSessionSection({
 									})
 								}
 							/>
+							<ToggleField
+								label="Face verification"
+								description="Allow the agent to request face capture during the session (via a tool call)."
+								checked={
+									config.session_modalities.proctoring
+										.face_verification === true
+								}
+								onCheckedChange={(face_verification) =>
+									onConfigChange({
+										session_modalities: {
+											...config.session_modalities,
+											proctoring: {
+												...config.session_modalities
+													.proctoring,
+												face_verification,
+											},
+										},
+									})
+								}
+							/>
 						</div>
 					</ToggleField>
+					<ToggleField
+						label="OTP input"
+						description="Allow the agent to open an OTP entry popover during the session (via a tool call)."
+						checked={
+							config.session_modalities.otp_input?.enabled ===
+							true
+						}
+						onCheckedChange={(enabled) =>
+							onConfigChange({
+								session_modalities: {
+									...config.session_modalities,
+									otp_input: {
+										enabled,
+									},
+								},
+							})
+						}
+					/>
 				</div>
 			</div>
 

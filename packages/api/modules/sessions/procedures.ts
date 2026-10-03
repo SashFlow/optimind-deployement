@@ -500,6 +500,10 @@ const DEFAULT_TRIAL_SESSION_MODALITIES = {
 		enabled: false,
 		proactive_response: false,
 		id_verification: false,
+		face_verification: false,
+	},
+	otp_input: {
+		enabled: false,
 	},
 };
 
@@ -526,6 +530,12 @@ function normalizeTrialSessionModalities(
 		typeof source.proctoring === "object" &&
 		!Array.isArray(source.proctoring)
 			? (source.proctoring as Record<string, unknown>)
+			: {};
+	const otpInputRaw =
+		source.otp_input &&
+		typeof source.otp_input === "object" &&
+		!Array.isArray(source.otp_input)
+			? (source.otp_input as Record<string, unknown>)
 			: {};
 
 	return {
@@ -556,6 +566,17 @@ function normalizeTrialSessionModalities(
 			id_verification: Boolean(
 				proctoringRaw.id_verification ??
 					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring.id_verification,
+			),
+			face_verification: Boolean(
+				proctoringRaw.face_verification ??
+					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring
+						.face_verification,
+			),
+		},
+		otp_input: {
+			enabled: Boolean(
+				otpInputRaw.enabled ??
+					DEFAULT_TRIAL_SESSION_MODALITIES.otp_input.enabled,
 			),
 		},
 	};

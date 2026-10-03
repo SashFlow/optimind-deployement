@@ -18,6 +18,13 @@ import {
 	type ProctoringViolation,
 } from "@/lib/proctoring/config";
 import {
+	boxDelta as faceBoxDelta,
+	captureFace,
+	evaluateFaceFraming,
+	type FaceCaptureResult,
+	type FaceDetection,
+} from "@/lib/proctoring/faceCapture";
+import {
 	boxDelta,
 	captureIdCard,
 	createIdCardDetector,
@@ -26,7 +33,7 @@ import {
 	type NormalizedRect,
 } from "@/lib/proctoring/idCard";
 
-export type ProctoringMode = "PROCTORING" | "ID_CAPTURE";
+export type ProctoringMode = "PROCTORING" | "ID_CAPTURE" | "FACE_CAPTURE";
 
 export type IdCaptureStatus =
 	| "idle"
@@ -35,8 +42,13 @@ export type IdCaptureStatus =
 	| "captured"
 	| "failed";
 
+export type FaceCaptureStatus = IdCaptureStatus;
+
 /** RPC the agent can call on the candidate to open ID capture. */
 export const START_ID_CAPTURE_RPC = "start_id_capture";
+
+/** RPC the agent can call on the candidate to open face capture. */
+export const START_FACE_CAPTURE_RPC = "start_face_capture";
 
 interface Detectors {
 	face: FaceLandmarker;
@@ -177,7 +189,7 @@ interface AgentContext {
 	/** Sent as `state`; spoken verbatim when `action` is `say`. */
 	state: string;
 	action: ProctoringAction;
-	type: ProctoringViolation | "id_captured";
+	type: ProctoringViolation | "id_captured" | "face_captured";
 	details?: Record<string, unknown>;
 }
 
@@ -229,28 +241,39 @@ interface UseProctoringOptions {
 	 * via a tool call. Does not auto-open the overlay on connect.
 	 */
 	idVerification?: boolean;
+	/**
+	 * When true, registers the `start_face_capture` RPC so the agent can open face capture
+	 * via a tool call. Does not auto-open the overlay on connect.
+	 */
+	faceVerification?: boolean;
 	config?: ProctoringConfigOverrides;
 	/**
 	 * Pushes a captured ID card to the backend.
 	 * Throw to mark the capture as failed so the candidate can retry.
 	 */
 	onIdCapture?: (result: IdCaptureResult) => Promise<unknown> | unknown;
+	/**
+	 * Pushes a captured face to the backend.
+	 * Throw to mark the capture as failed so the candidate can retry.
+	 */
+	onFaceCapture?: (result: FaceCaptureResult) => Promise<unknown> | unknown;
 }
 
 /**
  * Analyses the local camera with MediaPipe and reports infractions (multiple people, extra
  * devices, missing face, looking away) as a toast and an `add_context` RPC to the agent.
  *
- * Also runs ID card capture on the same camera track: while it is active, proctoring inference
- * pauses, frames are checked for a well-framed, sharp ID card, and the first good frame is pushed
- * via `onIdCapture`. Capture starts when the agent calls `start_id_capture` (requires
- * `idVerification`), or when the candidate retries from the overlay.
+ * Also runs ID / face capture on the same camera track: while either is active, proctoring
+ * inference pauses. Capture starts when the agent calls `start_id_capture` /
+ * `start_face_capture`, or when the candidate retries from the overlay.
  */
 export function useProctoring({
 	enabled = true,
 	idVerification = false,
+	faceVerification = false,
 	config: overrides,
 	onIdCapture,
+	onFaceCapture,
 }: UseProctoringOptions = {}) {
 	const room = useRoomContext();
 	const { cameraTrack, isCameraEnabled } = useLocalParticipant();
@@ -269,6 +292,8 @@ export function useProctoring({
 	configRef.current = config;
 	const onIdCaptureRef = useRef(onIdCapture);
 	onIdCaptureRef.current = onIdCapture;
+	const onFaceCaptureRef = useRef(onFaceCapture);
+	onFaceCaptureRef.current = onFaceCapture;
 
 	const [mode, setModeState] = useState<ProctoringMode>("PROCTORING");
 	// The proctoring loop reads this rather than `mode` so pausing doesn't reload the models.
@@ -286,10 +311,24 @@ export function useProctoring({
 	);
 	const [idCapture, setIdCapture] = useState<IdCaptureResult | null>(null);
 
+	const [faceCaptureStatus, setFaceCaptureStatus] =
+		useState<FaceCaptureStatus>("idle");
+	const [faceCaptureError, setFaceCaptureError] = useState<string | null>(
+		null,
+	);
+	const [faceDetection, setFaceDetection] = useState<FaceDetection | null>(
+		null,
+	);
+	const [faceCapture, setFaceCapture] = useState<FaceCaptureResult | null>(
+		null,
+	);
+
 	const active = enabled && isCameraEnabled && videoTrack !== undefined;
 
 	/** Opens ID capture (or retries after a failure). The camera stays on; proctoring pauses. */
 	const startIdCapture = useCallback(() => {
+		setFaceCaptureStatus("idle");
+		setFaceCaptureError(null);
 		setIdCapture(null);
 		setIdDetection(null);
 		setIdCaptureError(null);
@@ -301,6 +340,24 @@ export function useProctoring({
 	const cancelIdCapture = useCallback(() => {
 		setIdCaptureStatus("idle");
 		setIdCaptureError(null);
+		setMode("PROCTORING");
+	}, [setMode]);
+
+	/** Opens face capture (or retries after a failure). The camera stays on; proctoring pauses. */
+	const startFaceCapture = useCallback(() => {
+		setIdCaptureStatus("idle");
+		setIdCaptureError(null);
+		setFaceCapture(null);
+		setFaceDetection(null);
+		setFaceCaptureError(null);
+		setFaceCaptureStatus("scanning");
+		setMode("FACE_CAPTURE");
+	}, [setMode]);
+
+	/** Closes face capture without submitting and resumes proctoring. */
+	const cancelFaceCapture = useCallback(() => {
+		setFaceCaptureStatus("idle");
+		setFaceCaptureError(null);
 		setMode("PROCTORING");
 	}, [setMode]);
 
@@ -339,6 +396,45 @@ export function useProctoring({
 					"We could not upload your ID. Please try again.",
 				);
 				setIdCaptureStatus("failed");
+			}
+		},
+		[room, setMode],
+	);
+
+	const submitFaceCapture = useCallback(
+		async (captured: FaceCaptureResult) => {
+			try {
+				const push = onFaceCaptureRef.current;
+				if (!push) {
+					throw new Error("Face capture upload is not configured");
+				}
+				await push(captured);
+				if (modeRef.current !== "FACE_CAPTURE") {
+					return;
+				}
+
+				setFaceCaptureStatus("captured");
+				setMode("PROCTORING");
+				toast.success("Face captured");
+				void sendContext(room, {
+					state: "Face capture completed successfully. The candidate's face images have been uploaded and submitted for verification. You may continue the conversation.",
+					action: "generate_reply",
+					type: "face_captured",
+					details: {
+						confidence: captured.confidence,
+						capturedAt: captured.timestamp,
+						status: "completed",
+					},
+				});
+			} catch (error) {
+				console.error("Face capture: upload failed", error);
+				if (modeRef.current !== "FACE_CAPTURE") {
+					return;
+				}
+				setFaceCaptureError(
+					"We could not upload your photo. Please try again.",
+				);
+				setFaceCaptureStatus("failed");
 			}
 		},
 		[room, setMode],
@@ -582,6 +678,138 @@ export function useProctoring({
 		};
 	}, [active, videoTrack, mode, idCaptureStatus, submitIdCapture]);
 
+	// Face capture loop. Uses a dedicated FaceLandmarker so it doesn't contend with proctoring.
+	useEffect(() => {
+		if (
+			!active ||
+			!videoTrack ||
+			mode !== "FACE_CAPTURE" ||
+			faceCaptureStatus !== "scanning"
+		) {
+			return;
+		}
+
+		let cancelled = false;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		let faceLandmarker: FaceLandmarker | undefined;
+		const video = attachHiddenVideo(videoTrack, "Face capture");
+		const startedAt = Date.now();
+		let stableFrames = 0;
+		let lastBox: NormalizedRect | null = null;
+
+		const tick = async () => {
+			if (cancelled || !faceLandmarker) {
+				return;
+			}
+			const cfg = configRef.current.faceCapture;
+
+			if (Date.now() - startedAt > cfg.timeoutMs) {
+				setFaceCaptureError(
+					"We could not get a clear photo of your face. Please try again.",
+				);
+				setFaceCaptureStatus("failed");
+				return;
+			}
+
+			if (isVideoReady(video)) {
+				try {
+					const result = faceLandmarker.detectForVideo(
+						video,
+						performance.now(),
+					);
+					const detection = evaluateFaceFraming(
+						result,
+						video.videoWidth,
+						video.videoHeight,
+						cfg,
+					);
+					const stable =
+						lastBox !== null &&
+						detection.box !== null &&
+						faceBoxDelta(lastBox, detection.box) <=
+							cfg.stabilityTolerance;
+					stableFrames = detection.detected
+						? stable
+							? stableFrames + 1
+							: 1
+						: 0;
+					lastBox = detection.box;
+					setFaceDetection(detection);
+
+					if (
+						stableFrames >= cfg.requiredStableFrames &&
+						detection.box
+					) {
+						const captured = await captureFace(
+							video,
+							{ ...detection, box: detection.box },
+							cfg,
+						);
+						if (cancelled) {
+							return;
+						}
+						setFaceCapture(captured);
+						setFaceCaptureStatus("uploading");
+						void submitFaceCapture(captured);
+						return;
+					}
+				} catch (error) {
+					console.error("Face capture: frame analysis failed", error);
+				}
+			}
+
+			timer = setTimeout(tick, cfg.intervalMs);
+		};
+
+		void (async () => {
+			try {
+				const { FilesetResolver, FaceLandmarker } = await import(
+					"@mediapipe/tasks-vision"
+				);
+				const cfg = configRef.current;
+				const vision = await FilesetResolver.forVisionTasks(
+					cfg.wasmBaseUrl,
+				);
+				const create = (delegate: "GPU" | "CPU") =>
+					FaceLandmarker.createFromOptions(vision, {
+						baseOptions: {
+							modelAssetPath: cfg.faceModelUrl,
+							delegate,
+						},
+						runningMode: "VIDEO",
+						numFaces: 2,
+						minFaceDetectionConfidence: cfg.faceConfidence,
+						minFacePresenceConfidence: cfg.faceConfidence,
+					});
+				try {
+					faceLandmarker = await create("GPU");
+				} catch {
+					faceLandmarker = await create("CPU");
+				}
+				if (cancelled) {
+					faceLandmarker.close();
+					return;
+				}
+				void tick();
+			} catch (error) {
+				console.error("Face capture: failed to load model", error);
+				if (!cancelled) {
+					setFaceCaptureError(
+						"Face capture could not start. Please try again.",
+					);
+					setFaceCaptureStatus("failed");
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+			videoTrack.detach(video);
+			faceLandmarker?.close();
+		};
+	}, [active, videoTrack, mode, faceCaptureStatus, submitFaceCapture]);
+
 	// Lets the agent ask for the candidate's ID, e.g. from a `verify_identity` tool.
 	useEffect(() => {
 		if (!enabled || !idVerification) {
@@ -603,18 +831,46 @@ export function useProctoring({
 		return () => room.unregisterRpcMethod(START_ID_CAPTURE_RPC);
 	}, [room, enabled, idVerification, startIdCapture]);
 
+	// Lets the agent ask for the candidate's face, e.g. from a `verify_face` tool.
+	useEffect(() => {
+		if (!enabled || !faceVerification) {
+			return;
+		}
+
+		try {
+			room.registerRpcMethod(START_FACE_CAPTURE_RPC, async () => {
+				startFaceCapture();
+				return JSON.stringify({ started: true });
+			});
+		} catch (error) {
+			console.warn(
+				`${START_FACE_CAPTURE_RPC} RPC already registered`,
+				error,
+			);
+			return;
+		}
+		return () => room.unregisterRpcMethod(START_FACE_CAPTURE_RPC);
+	}, [room, enabled, faceVerification, startFaceCapture]);
+
 	return {
 		config,
 		mode,
 		isCameraReady: active,
 		isProctoringPaused: mode !== "PROCTORING",
 		isIdCaptureActive: mode === "ID_CAPTURE",
+		isFaceCaptureActive: mode === "FACE_CAPTURE",
 		idCaptureStatus,
 		idCaptureError,
 		idDetection,
 		idCapture,
 		startIdCapture,
 		cancelIdCapture,
+		faceCaptureStatus,
+		faceCaptureError,
+		faceDetection,
+		faceCapture,
+		startFaceCapture,
+		cancelFaceCapture,
 	};
 }
 

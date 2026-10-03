@@ -2,9 +2,14 @@
 
 import { LinkedInLogoIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Logo } from "@/components/shared/components/Logo";
 
 export function Footer() {
+	const pathname = usePathname();
+	if (pathname?.includes("/docs")) {
+		return null;
+	}
 	return (
 		<footer className="bg-background w-full py-12 lg:py-20">
 			<div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 lg:gap-9 lg:px-8">

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { ProctoringProvider } from "@/context/proctoring-provider";
+import { SessionInteractionProvider } from "@/context/session-interaction-provider";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import type {
 	AgentVariableDefinition,
@@ -28,6 +29,7 @@ import {
 	DISABLED_PREVIEW_AVATAR,
 	type PreviewAvatar,
 } from "@/lib/preview-avatar";
+import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
 	DEFAULT_SESSION_MODALITIES,
@@ -470,28 +472,42 @@ export function AgentConfigurePreview({
 						videoDeviceId={joinMedia?.videoDeviceId}
 					/>
 				) : null}
-				{proctoringEnabled ? (
-					<ProctoringProvider
-						enabled
-						proactiveResponse={
-							sessionModalities.proctoring.proactive_response
-						}
-						idVerification={
-							sessionModalities.proctoring.id_verification
-						}
-						onIdCapture={(result) =>
-							uploadIdCaptureFiles({
-								sessionId: sessionCredentials.sessionId,
-								participantToken: sessionCredentials.token,
-								result,
-							})
-						}
-					>
-						{controls}
-					</ProctoringProvider>
-				) : (
-					controls
-				)}
+				<SessionInteractionProvider
+					otpInputEnabled={sessionModalities.otp_input.enabled}
+				>
+					{proctoringEnabled ? (
+						<ProctoringProvider
+							enabled
+							proactiveResponse={
+								sessionModalities.proctoring.proactive_response
+							}
+							idVerification={
+								sessionModalities.proctoring.id_verification
+							}
+							faceVerification={
+								sessionModalities.proctoring.face_verification
+							}
+							onIdCapture={(result) =>
+								uploadIdCaptureFiles({
+									sessionId: sessionCredentials.sessionId,
+									participantToken: sessionCredentials.token,
+									result,
+								})
+							}
+							onFaceCapture={(result) =>
+								uploadFaceCaptureFiles({
+									sessionId: sessionCredentials.sessionId,
+									participantToken: sessionCredentials.token,
+									result,
+								})
+							}
+						>
+							{controls}
+						</ProctoringProvider>
+					) : (
+						controls
+					)}
+				</SessionInteractionProvider>
 			</LiveKitRoom>
 		);
 		// handleEndSession closes over onCancel; include it explicitly.
@@ -505,6 +521,8 @@ export function AgentConfigurePreview({
 		onCancel,
 		proctoringEnabled,
 		sessionCredentials,
+		sessionModalities.otp_input.enabled,
+		sessionModalities.proctoring.face_verification,
 		sessionModalities.proctoring.id_verification,
 		sessionModalities.proctoring.proactive_response,
 	]);
