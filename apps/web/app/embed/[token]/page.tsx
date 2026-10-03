@@ -32,6 +32,7 @@ import {
 	isTrackMandatory,
 	normalizeSessionModalities,
 } from "@/lib/session-modalities";
+import { fetchEmbedSpatialRealWarmup } from "@/services/api/spatialreal-warmup";
 
 const UNAVAILABLE_MESSAGES = {
 	unpublished: "This agent is not published yet.",
@@ -119,10 +120,14 @@ function EmbedAgentPageContent() {
 	useSpatialRealAvatarWarmup({
 		enabled:
 			!credentials &&
+			Boolean(token) &&
 			Boolean(embedQuery.data?.embed.available) &&
 			previewAvatar.enabled &&
 			previewAvatar.provider === "spatialreal",
 		avatarId: previewAvatar.avatarId,
+		fetchCredentials: token
+			? () => fetchEmbedSpatialRealWarmup({ token })
+			: undefined,
 	});
 
 	const startMutation = useMutation(

@@ -7,6 +7,7 @@ import { ConnectionState, RoomEvent } from "livekit-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+	installSpatialRealBaseModelCache,
 	preloadSpatialRealSdk,
 	waitForSpatialRealWarmupIdle,
 } from "@/lib/spatialreal-preload";
@@ -282,6 +283,9 @@ export function useSpatialRealAvatar(
 			if (abort.signal.aborted) {
 				return;
 			}
+
+			// Ensure Join reuses any base_model already downloaded in the lobby.
+			installSpatialRealBaseModelCache();
 
 			// Wait for prejoin module preload to finish, then overlap any
 			// remaining SDK import with the user room connect.

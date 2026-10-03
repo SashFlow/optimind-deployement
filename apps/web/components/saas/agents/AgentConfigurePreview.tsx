@@ -36,6 +36,7 @@ import {
 } from "@/lib/session-modalities";
 import { fetchSessionCredentials } from "@/services/api/livekit";
 import { uploadPreviewAsset } from "@/services/api/preview-assets";
+import { fetchConfigureSpatialRealWarmup } from "@/services/api/spatialreal-warmup";
 import type { Agent } from "@/services/api/types";
 import { PreviewSessionControls } from "./preview/PreviewSessionControls";
 import { PublishPrefetchedCamera } from "./preview/PublishPrefetchedCamera";
@@ -246,9 +247,18 @@ export function AgentConfigurePreview({
 	useSpatialRealAvatarWarmup({
 		enabled:
 			!sessionCredentials &&
+			Boolean(activeOrganizationId) &&
 			avatar.enabled &&
 			avatar.provider === "spatialreal",
 		avatarId: avatar.avatarId,
+		fetchCredentials:
+			activeOrganizationId
+				? () =>
+						fetchConfigureSpatialRealWarmup({
+							organizationId: activeOrganizationId,
+							agentId: agent.id,
+						})
+				: undefined,
 	});
 
 	function updateVariableValue(name: string, value: string) {

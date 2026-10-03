@@ -39,6 +39,7 @@ import {
 	normalizeSessionModalities,
 	resolvePreviewMedia,
 } from "@/lib/session-modalities";
+import { fetchTrialSpatialRealWarmup } from "@/services/api/spatialreal-warmup";
 
 const UNAVAILABLE_MESSAGES = {
 	disabled: "This shared link has been disabled.",
@@ -244,11 +245,15 @@ export default function SharedTrialPage() {
 		enabled:
 			!credentials &&
 			!phoneDispatch &&
+			Boolean(token) &&
 			Boolean(trialQuery.data?.trial.available) &&
 			previewAvatar.enabled &&
 			previewAvatar.provider === "spatialreal" &&
 			sessionMedia === "web",
 		avatarId: previewAvatar.avatarId,
+		fetchCredentials: token
+			? () => fetchTrialSpatialRealWarmup({ token })
+			: undefined,
 	});
 
 	const startMutation = useMutation(

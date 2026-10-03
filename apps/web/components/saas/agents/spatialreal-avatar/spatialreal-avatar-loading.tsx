@@ -47,11 +47,11 @@ export function SpatialRealAvatarLoading({
 						<div className="size-9 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
 						<div>
 							<p className="text-sm font-medium">Connecting…</p>
-							{status !== "idle" ? (
+							{/* {status !== "idle" ? (
 								<p className="text-xs text-muted-foreground capitalize">
 									{status}
 								</p>
-							) : null}
+							) : null} */}
 						</div>
 					</div>
 
