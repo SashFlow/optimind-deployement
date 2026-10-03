@@ -59,6 +59,7 @@ import type {
 	GetEmbedAgentOutput,
 	GetTrialLinkOutput,
 	PublicAgentPreview,
+	SpatialRealWarmupCredentials,
 	StartPublicSessionOutput,
 } from "./public-types";
 
@@ -153,6 +154,22 @@ async function mintSpatialRealClientCredentials(opts: {
 		spatialRealAppId,
 		spatialRealSessionToken,
 		spatialRealRendererToken,
+	};
+}
+
+/** App id + session token only — enough for client-side avatar asset warmup. */
+async function mintSpatialRealWarmupCredentials(): Promise<SpatialRealWarmupCredentials> {
+	const spatialRealAppId = getSpatialRealAppId();
+	if (!spatialRealAppId) {
+		return {
+			spatialRealAppId: null,
+			spatialRealSessionToken: null,
+		};
+	}
+
+	return {
+		spatialRealAppId,
+		spatialRealSessionToken: await mintSpatialRealSessionToken(),
 	};
 }
 
@@ -1027,6 +1044,106 @@ export const startEmbedSession = publicProcedure
 			phoneNumber: null,
 			...spatialReal,
 		};
+	});
+
+/**
+ * Mint SpatialReal credentials for prejoin avatar asset warmup (configure preview).
+ * Does not create a LiveKit room or dispatch an agent.
+ */
+export const warmSpatialRealCredentials = protectedProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/spatialreal-warmup",
+		tags: ["Sessions"],
+		summary: "Mint SpatialReal credentials for avatar preload",
+	})
+	.input(
+		z.object({
+			organizationId: z.string(),
+			agentId: z.string(),
+		}),
+	)
+	.output(type<SpatialRealWarmupCredentials>())
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+
+		const agent = await getAgentById(input.agentId);
+		if (!agent || agent.organizationId !== input.organizationId) {
+			throw new ORPCError("NOT_FOUND", { message: "Agent not found" });
+		}
+
+		return mintSpatialRealWarmupCredentials();
+	});
+
+/**
+ * Mint SpatialReal credentials for prejoin avatar asset warmup (share / trial link).
+ */
+export const warmTrialSpatialRealCredentials = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/trial-links/{token}/spatialreal-warmup",
+		tags: ["Sessions"],
+		summary: "Mint SpatialReal credentials for trial-link avatar preload",
+	})
+	.input(z.object({ token: z.string().min(1) }))
+	.output(type<SpatialRealWarmupCredentials>())
+	.handler(async ({ input }) => {
+		const existing = await getAgentTrialByToken(input.token);
+		if (!existing?.token) {
+			throw new ORPCError("NOT_FOUND", {
+				message: "This shared link is invalid",
+			});
+		}
+
+		const precheckReason = trialUnavailableReason({
+			enabled: existing.enabled,
+			expiresAt: existing.expiresAt,
+			usageLimit: existing.usageLimit,
+			usageCount: existing.usageCount,
+			hasPublishedVersion: Boolean(existing.agent.publishedVersion),
+		});
+		if (precheckReason) {
+			const messages = {
+				disabled: "This shared link has been disabled",
+				expired: "This shared link has expired",
+				exhausted: "This shared link has no sessions left",
+				unpublished: "This agent is not published yet",
+			} as const;
+			throw new ORPCError("FORBIDDEN", {
+				message: messages[precheckReason],
+			});
+		}
+
+		return mintSpatialRealWarmupCredentials();
+	});
+
+/**
+ * Mint SpatialReal credentials for prejoin avatar asset warmup (embed link).
+ */
+export const warmEmbedSpatialRealCredentials = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/embed/{token}/spatialreal-warmup",
+		tags: ["Sessions"],
+		summary: "Mint SpatialReal credentials for embed avatar preload",
+	})
+	.input(z.object({ token: z.string().min(1) }))
+	.output(type<SpatialRealWarmupCredentials>())
+	.handler(async ({ input }) => {
+		const agent = await getAgentByEmbedToken(input.token);
+		if (!agent?.token) {
+			throw new ORPCError("NOT_FOUND", {
+				message: "This embed link is invalid",
+			});
+		}
+
+		if (!agent.publishedVersion) {
+			throw new ORPCError("FORBIDDEN", {
+				message: "This agent is not published yet",
+			});
+		}
+
+		return mintSpatialRealWarmupCredentials();
 	});
 
 async function startEgressForSession(

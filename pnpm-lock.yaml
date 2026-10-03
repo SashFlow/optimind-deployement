@@ -377,25 +377,6 @@ importers:
         specifier: workspace:*
         version: link:../tooling/typescript
 
-  packages/anam:
-    dependencies:
-      zod:
-        specifier: ^4.1.11
-        version: 4.3.6
-    devDependencies:
-      '@biomejs/biome':
-        specifier: 2.2.4
-        version: 2.2.4
-      '@repo/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/typescript
-      '@types/node':
-        specifier: ^24.6.0
-        version: 24.10.1
-      typescript:
-        specifier: 5.9.2
-        version: 5.9.2
-
   packages/api:
     dependencies:
       '@aws-sdk/client-s3':

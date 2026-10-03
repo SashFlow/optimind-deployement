@@ -84,3 +84,9 @@ export type StartTrialSessionInput = {
 	email?: string;
 	contactPhone?: string;
 };
+
+/** SpatialReal app id + session token for prejoin asset warmup (no LiveKit room). */
+export type SpatialRealWarmupCredentials = {
+	spatialRealAppId: string | null;
+	spatialRealSessionToken: string | null;
+};

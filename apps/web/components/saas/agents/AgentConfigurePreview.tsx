@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { ProctoringProvider } from "@/context/proctoring-provider";
+import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import type {
 	AgentVariableDefinition,
 	SessionModalitiesConfig,
@@ -241,6 +242,14 @@ export function AgentConfigurePreview({
 			resolvePreviewMedia(sessionModalities.call_type, current),
 		);
 	}, [sessionModalities.call_type]);
+
+	useSpatialRealAvatarWarmup({
+		enabled:
+			!sessionCredentials &&
+			avatar.enabled &&
+			avatar.provider === "spatialreal",
+		avatarId: avatar.avatarId,
+	});
 
 	function updateVariableValue(name: string, value: string) {
 		setVariableValues((current) => ({ ...current, [name]: value }));

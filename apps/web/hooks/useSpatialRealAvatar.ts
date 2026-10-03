@@ -6,6 +6,10 @@ import type { Room } from "livekit-client";
 import { ConnectionState, RoomEvent } from "livekit-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+	preloadSpatialRealSdk,
+	waitForSpatialRealWarmupIdle,
+} from "@/lib/spatialreal-preload";
 import type {
 	SpatialRealAvatarConnectionStatus,
 	SpatialRealAvatarState,
@@ -279,17 +283,22 @@ export function useSpatialRealAvatar(
 				return;
 			}
 
-			await waitForRoomConnected(userRoom, abort.signal);
+			// Wait for prejoin module preload to finish, then overlap any
+			// remaining SDK import with the user room connect.
+			await waitForSpatialRealWarmupIdle();
 			if (abort.signal.aborted) {
 				return;
 			}
 
-			const { SpatialReal, createUnlockedAudioContext } = await import(
-				"@spatialreal/web-sdk"
-			);
+			const [, sdk] = await Promise.all([
+				waitForRoomConnected(userRoom, abort.signal),
+				preloadSpatialRealSdk(),
+			]);
 			if (abort.signal.aborted) {
 				return;
 			}
+
+			const { SpatialReal, createUnlockedAudioContext } = sdk;
 
 			// Join click already happened; unlock audio before awaiting start().
 			const audioContext = createUnlockedAudioContext();

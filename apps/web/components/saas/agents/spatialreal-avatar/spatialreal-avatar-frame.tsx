@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
 
 const frameVariants = cva(
-	"relative isolate overflow-hidden rounded-[28px] border border-border/70 bg-card/95 text-card-foreground shadow-[0_28px_90px_-40px_hsl(var(--foreground)/0.45)] backdrop-blur-sm",
+	"relative isolate overflow-hidden rounded-[28px] border border-border/70 bg-card/95 text-card-foreground shadow-[0_28px_90px_-40px_hsl(var(--foreground)/0.45)]",
 	{
 		variants: {
 			tone: {
@@ -22,7 +22,7 @@ const frameVariants = cva(
 
 export interface SpatialRealAvatarFrameProps
 	extends HTMLAttributes<HTMLDivElement>,
-		VariantProps<typeof frameVariants> {}
+	VariantProps<typeof frameVariants> { }
 
 export function SpatialRealAvatarFrame({
 	className,

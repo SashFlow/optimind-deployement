@@ -15,6 +15,9 @@ import {
 	startTrialSession,
 	uploadFileInternal,
 	uploadParticipantFile,
+	warmEmbedSpatialRealCredentials,
+	warmSpatialRealCredentials,
+	warmTrialSpatialRealCredentials,
 } from "./procedures";
 
 export const sessionsRouter = {
@@ -24,8 +27,11 @@ export const sessionsRouter = {
 	end,
 	getTrialLink,
 	startTrialSession,
+	warmTrialSpatialRealCredentials,
 	getEmbedAgent,
 	startEmbedSession,
+	warmEmbedSpatialRealCredentials,
+	warmSpatialRealCredentials,
 	uploadParticipantFile,
 	startEgress: startSessionEgress,
 	internal: {

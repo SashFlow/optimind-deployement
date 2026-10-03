@@ -24,6 +24,7 @@ import {
 	SessionPrejoinLobby,
 } from "@/components/saas/agents/preview/SessionPrejoinLobby";
 import { ProctoringProvider } from "@/context/proctoring-provider";
+import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
@@ -109,6 +110,21 @@ function EmbedAgentPageContent() {
 		isTrackMandatory(sessionModalities.video_track) || proctoringEnabled;
 	const chatMandatory = isTrackMandatory(sessionModalities.chat);
 
+	const previewAvatar = resolvePreviewAvatar({
+		enabled: embedQuery.data?.agent.avatarEnabled ?? false,
+		provider_id: embedQuery.data?.agent.avatarProvider ?? null,
+		external_avatar_id: embedQuery.data?.agent.avatarId ?? null,
+	});
+
+	useSpatialRealAvatarWarmup({
+		enabled:
+			!credentials &&
+			Boolean(embedQuery.data?.embed.available) &&
+			previewAvatar.enabled &&
+			previewAvatar.provider === "spatialreal",
+		avatarId: previewAvatar.avatarId,
+	});
+
 	const startMutation = useMutation(
 		orpc.sessions.startEmbedSession.mutationOptions({
 			onSuccess: (data: StartPublicSessionOutput) => {
@@ -169,11 +185,7 @@ function EmbedAgentPageContent() {
 					id: embedQuery.data?.agent.id ?? "embed",
 					name: embedQuery.data?.agent.name ?? "Agent",
 				}}
-				avatar={resolvePreviewAvatar({
-					enabled: embedQuery.data?.agent.avatarEnabled ?? false,
-					provider_id: embedQuery.data?.agent.avatarProvider ?? null,
-					external_avatar_id: embedQuery.data?.agent.avatarId ?? null,
-				})}
+				avatar={previewAvatar}
 				spatialRealAppId={credentials.spatialRealAppId}
 				spatialRealSessionToken={credentials.spatialRealSessionToken}
 				spatialRealRendererToken={credentials.spatialRealRendererToken}

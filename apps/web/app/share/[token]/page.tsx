@@ -28,6 +28,7 @@ import {
 	type SessionPrejoinMediaSelection,
 } from "@/components/saas/agents/preview/SessionPrejoinLobby";
 import { ProctoringProvider } from "@/context/proctoring-provider";
+import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
 import { normalizePhoneNumber } from "@/lib/phone";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
@@ -233,6 +234,23 @@ export default function SharedTrialPage() {
 		);
 	}, [sessionModalities.call_type]);
 
+	const previewAvatar = resolvePreviewAvatar({
+		enabled: trialQuery.data?.agent.avatarEnabled ?? false,
+		provider_id: trialQuery.data?.agent.avatarProvider ?? null,
+		external_avatar_id: trialQuery.data?.agent.avatarId ?? null,
+	});
+
+	useSpatialRealAvatarWarmup({
+		enabled:
+			!credentials &&
+			!phoneDispatch &&
+			Boolean(trialQuery.data?.trial.available) &&
+			previewAvatar.enabled &&
+			previewAvatar.provider === "spatialreal" &&
+			sessionMedia === "web",
+		avatarId: previewAvatar.avatarId,
+	});
+
 	const startMutation = useMutation(
 		orpc.sessions.startTrialSession.mutationOptions({
 			onSuccess: (data: StartPublicSessionOutput) => {
@@ -341,11 +359,7 @@ export default function SharedTrialPage() {
 					id: trialQuery.data?.agent.id ?? "trial",
 					name: trialQuery.data?.agent.name ?? "Agent",
 				}}
-				avatar={resolvePreviewAvatar({
-					enabled: trialQuery.data?.agent.avatarEnabled ?? false,
-					provider_id: trialQuery.data?.agent.avatarProvider ?? null,
-					external_avatar_id: trialQuery.data?.agent.avatarId ?? null,
-				})}
+				avatar={previewAvatar}
 				spatialRealAppId={credentials.spatialRealAppId}
 				spatialRealSessionToken={credentials.spatialRealSessionToken}
 				spatialRealRendererToken={credentials.spatialRealRendererToken}
