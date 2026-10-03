@@ -50,6 +50,11 @@ const GREETING_TRIGGER_OPTIONS = [
 	{ value: "manual", label: "Manual" },
 ] as const;
 
+const GREETING_OPTIONS = [
+	{ value: "say", label: "Say greeting" },
+	{ value: "generate_reply", label: "Generate reply" },
+] as const;
+
 type GeneralSectionProps = {
 	config: AgentConfigDocument;
 	onConfigChange: (patch: Partial<AgentConfigDocument>) => void;
@@ -479,6 +484,32 @@ export function GeneralSection({
 								<span>Enabled</span>
 							</div>
 							<div className="space-y-2 w-full flex justify-end">
+								<Select
+									value={config.greeting.option}
+									onValueChange={(value) =>
+										value &&
+										update({
+											greeting: {
+												...config.greeting,
+												option: value as AgentConfigDocument["greeting"]["option"],
+											},
+										})
+									}
+								>
+									<SelectTrigger className="w-full bg-background sm:max-w-xs">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										{GREETING_OPTIONS.map((option) => (
+											<SelectItem
+												key={option.value}
+												value={option.value}
+											>
+												{option.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 								<Select
 									value={config.greeting.trigger}
 									onValueChange={(value) =>

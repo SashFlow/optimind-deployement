@@ -59,6 +59,7 @@ export const agentConfigSchema = z
 				enabled: z.boolean(),
 				text: z.string(),
 				trigger: z.enum(["on_join", "on_first_speech", "manual"]),
+				option: z.enum(["say", "generate_reply"]),
 				interruptible: z.boolean(),
 			})
 			.passthrough()

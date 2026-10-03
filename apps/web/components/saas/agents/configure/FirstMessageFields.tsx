@@ -13,9 +13,8 @@ import { Textarea } from "@repo/ui/textarea";
 import type { AgentConfigDocument } from "@/lib/agent-config";
 
 const GREETING_TRIGGER_OPTIONS = [
-	{ value: "on_join", label: "On join" },
-	{ value: "on_first_speech", label: "On first speech" },
-	{ value: "manual", label: "Manual" },
+	{ value: "say", label: "Say greeting" },
+	{ value: "generate_reply", label: "Generate reply" },
 ] as const;
 
 type FirstMessageFieldsProps = {

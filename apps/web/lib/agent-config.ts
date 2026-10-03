@@ -2,6 +2,7 @@ export type GreetingConfig = {
 	enabled: boolean;
 	text: string;
 	trigger: "on_join" | "on_first_speech" | "manual";
+	option: "say" | "generate_reply";
 	interruptible: boolean;
 };
 
@@ -311,6 +312,7 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 			enabled: true,
 			text: DEFAULT_FIRST_MESSAGE,
 			trigger: "on_join",
+			option: "say",
 			interruptible: false,
 		},
 		pipeline_mode: "cascaded",
