@@ -3,6 +3,7 @@ import {
 	AccessToken,
 	type AccessTokenOptions,
 	AgentDispatchClient,
+	DirectFileOutput,
 	EgressClient,
 	EncodedFileOutput,
 	EncodedFileType,
@@ -25,6 +26,7 @@ export {
 	buildS3Upload,
 	getEgressS3Config,
 	recordingFilepath,
+	recordingTrackFilepath,
 } from "./egress-s3";
 
 function clients(config?: LiveKitConfig) {
@@ -253,6 +255,21 @@ export async function createSipParticipant(opts: {
 	);
 }
 
+function resolveS3Upload(
+	s3?: EgressS3Config | S3Upload | null,
+): S3Upload | undefined {
+	if (s3 instanceof S3Upload) {
+		return s3;
+	}
+	if (s3 === null) {
+		return undefined;
+	}
+	if (s3) {
+		return buildS3Upload(s3);
+	}
+	return buildS3Upload();
+}
+
 export async function startRoomCompositeEgress(opts: {
 	roomName: string;
 	filepath: string;
@@ -261,16 +278,7 @@ export async function startRoomCompositeEgress(opts: {
 	config?: LiveKitConfig;
 }) {
 	const { egress } = clients(opts.config);
-	let s3: S3Upload | undefined;
-	if (opts.s3 instanceof S3Upload) {
-		s3 = opts.s3;
-	} else if (opts.s3 === null) {
-		s3 = undefined;
-	} else if (opts.s3) {
-		s3 = buildS3Upload(opts.s3);
-	} else {
-		s3 = buildS3Upload();
-	}
+	const s3 = resolveS3Upload(opts.s3);
 
 	const output = new EncodedFileOutput({
 		fileType: EncodedFileType.MP4,
@@ -280,6 +288,22 @@ export async function startRoomCompositeEgress(opts: {
 	return egress.startRoomCompositeEgress(opts.roomName, output, {
 		audioOnly: opts.audioOnly ?? false,
 	});
+}
+
+export async function startTrackEgress(opts: {
+	roomName: string;
+	trackId: string;
+	filepath: string;
+	s3?: EgressS3Config | S3Upload | null;
+	config?: LiveKitConfig;
+}) {
+	const { egress } = clients(opts.config);
+	const s3 = resolveS3Upload(opts.s3);
+	const output = new DirectFileOutput({
+		filepath: opts.filepath,
+		...(s3 ? { output: { case: "s3" as const, value: s3 } } : {}),
+	});
+	return egress.startTrackEgress(opts.roomName, output, opts.trackId);
 }
 
 export async function listEgress(opts?: {

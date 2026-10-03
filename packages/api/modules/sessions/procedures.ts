@@ -23,7 +23,9 @@ import {
 	getEgressS3Config,
 	getLiveKitConfig,
 	recordingFilepath,
+	recordingTrackFilepath,
 	startRoomCompositeEgress,
+	startTrackEgress,
 	verifyParticipantToken,
 } from "@repo/livekit";
 import { logger } from "@repo/logs";
@@ -1167,18 +1169,81 @@ export const warmEmbedSpatialRealCredentials = publicProcedure
 		return mintSpatialRealWarmupCredentials();
 	});
 
+const egressTrackSchema = z.object({
+	role: z.enum(["user_audio", "user_video", "agent_audio"]),
+	kind: z.literal("track").optional(),
+	trackId: z.string().min(1),
+	filepath: z.string().min(1).optional(),
+});
+
+type EgressTrackInput = z.infer<typeof egressTrackSchema>;
+
 async function startEgressForSession(
 	session: NonNullable<Awaited<ReturnType<typeof getAgentSessionById>>>,
 	audioOnly?: boolean,
+	tracks?: EgressTrackInput[],
 ) {
 	const s3 = getEgressS3Config();
+	const resolvedAudioOnly =
+		audioOnly ?? (session.channel === "SIP" || session.channel === "PHONE");
+
+	if (tracks && tracks.length > 0) {
+		const jobs = [];
+		const remotes = [];
+		for (const track of tracks) {
+			const filepath =
+				track.filepath ??
+				recordingTrackFilepath({
+					organizationId: session.organizationId,
+					sessionId: session.id,
+					roomName: session.livekitRoomName,
+					role: track.role,
+				});
+
+			const remote = await startTrackEgress({
+				roomName: session.livekitRoomName,
+				trackId: track.trackId,
+				filepath,
+				s3,
+			});
+			remotes.push(remote);
+			const job = await createEgressJob({
+				organizationId: session.organizationId,
+				type: "TRACK",
+				agentSessionId: session.id,
+				agentId: session.agentId,
+				campaignSessionId: session.campaignSession?.id,
+				livekitEgressId: remote.egressId,
+				roomName: session.livekitRoomName,
+				status: "ACTIVE",
+				startedAt: new Date(),
+				destination: s3
+					? {
+							bucket: s3.bucket,
+							region: s3.region,
+							filepath,
+							endpoint: s3.endpoint ?? null,
+						}
+					: { filepath },
+				fileUrl: s3 ? `s3://${s3.bucket}/${filepath}` : undefined,
+				outputUrls: s3 ? [`s3://${s3.bucket}/${filepath}`] : [],
+				metadata: {
+					audioOnly: resolvedAudioOnly,
+					role: track.role,
+					kind: "track",
+					trackId: track.trackId,
+				},
+			});
+			jobs.push(job);
+		}
+		return { jobs, remotes };
+	}
+
 	const filepath = recordingFilepath({
 		organizationId: session.organizationId,
 		sessionId: session.id,
 		roomName: session.livekitRoomName,
 	});
-	const resolvedAudioOnly =
-		audioOnly ?? (session.channel === "SIP" || session.channel === "PHONE");
 
 	const remote = await startRoomCompositeEgress({
 		roomName: session.livekitRoomName,
@@ -1196,6 +1261,7 @@ async function startEgressForSession(
 		livekitEgressId: remote.egressId,
 		roomName: session.livekitRoomName,
 		status: "ACTIVE",
+		startedAt: new Date(),
 		destination: s3
 			? {
 					bucket: s3.bucket,
@@ -1217,12 +1283,13 @@ export const startSessionEgress = protectedProcedure
 		method: "POST",
 		path: "/sessions/{id}/egress",
 		tags: ["Sessions"],
-		summary: "Start room-composite egress for a session",
+		summary: "Start track egress (or room-composite fallback) for a session",
 	})
 	.input(
 		z.object({
 			id: z.string(),
 			audioOnly: z.boolean().optional(),
+			tracks: z.array(egressTrackSchema).optional(),
 		}),
 	)
 	.handler(async ({ input, context }) => {
@@ -1231,7 +1298,7 @@ export const startSessionEgress = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 		await requireOrgMembership(session.organizationId, context.user.id);
-		return startEgressForSession(session, input.audioOnly);
+		return startEgressForSession(session, input.audioOnly, input.tracks);
 	});
 
 export const end = protectedProcedure
@@ -1570,6 +1637,7 @@ export const startEgressInternal = workerProcedure
 		z.object({
 			id: z.string(),
 			audioOnly: z.boolean().optional(),
+			tracks: z.array(egressTrackSchema).optional(),
 		}),
 	)
 	.handler(async ({ input }) => {
@@ -1577,7 +1645,7 @@ export const startEgressInternal = workerProcedure
 		if (!session) {
 			throw new ORPCError("NOT_FOUND");
 		}
-		return startEgressForSession(session, input.audioOnly);
+		return startEgressForSession(session, input.audioOnly, input.tracks);
 	});
 
 export const uploadFileInternal = workerProcedure

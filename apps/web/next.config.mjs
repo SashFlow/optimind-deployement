@@ -16,7 +16,9 @@ const nextConfig = {
 	serverExternalPackages: [
 		"@aws-sdk/client-s3",
 		"@aws-sdk/s3-request-presigner",
+		"bullmq",
 		"fast-xml-parser",
+		"ioredis",
 		"pdf-parse",
 		"strnum",
 	],
@@ -24,6 +26,7 @@ const nextConfig = {
 		"@repo/api",
 		"@repo/auth",
 		"@repo/database",
+		"@repo/jobs",
 		"@repo/utils",
 		"@repo/i18n",
 		"@repo/mail",
@@ -31,6 +34,7 @@ const nextConfig = {
 		"@repo/storage",
 		"@repo/ui",
 		"@repo/logs",
+		"@repo/livekit",
 	],
 	images: {
 		remotePatterns: [

@@ -9,8 +9,10 @@ export type EgressS3Config = {
 };
 
 /**
- * LiveKit room-composite recordings land at:
- *   s3://{S3_BUCKET_RECORDINGS}/{organizationId}/{sessionId}/{roomName}.mp4
+ * LiveKit recordings land at:
+ *   Composite (merged): s3://{S3_BUCKET_RECORDINGS}/{organizationId}/{sessionId}/{roomName}.mp4
+ *   Track roles:        s3://{S3_BUCKET_RECORDINGS}/{organizationId}/{sessionId}/{roomName}/{role}
+ *     role ∈ user_audio | user_video | agent_audio
  *
  * Credential resolution (first match wins):
  *   access/secret: S3_RECORDINGS_* → S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY
@@ -65,4 +67,14 @@ export function recordingFilepath(opts: {
 	roomName: string;
 }): string {
 	return `${opts.organizationId}/${opts.sessionId}/${opts.roomName}.mp4`;
+}
+
+/** Must stay in sync with voice worker `recording_track_filepath`. */
+export function recordingTrackFilepath(opts: {
+	organizationId: string;
+	sessionId: string;
+	roomName: string;
+	role: string;
+}): string {
+	return `${opts.organizationId}/${opts.sessionId}/${opts.roomName}/${opts.role}`;
 }

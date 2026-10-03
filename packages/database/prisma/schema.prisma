@@ -1291,6 +1291,8 @@ model EgressJob {
     outputUrls      String[]        @default([])
     destination     Json            @default("{}")
     fileUrl         String?
+    startedAt       DateTime?
+    endedAt         DateTime?
     durationMs      Int?
     sizeBytes       Int?
     errorMessage    String?

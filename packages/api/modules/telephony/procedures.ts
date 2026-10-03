@@ -539,6 +539,7 @@ export const startEgress = protectedProcedure
 			livekitEgressId: remote.egressId,
 			roomName: input.roomName,
 			status: "ACTIVE",
+			startedAt: new Date(),
 			destination: s3
 				? {
 						bucket: s3.bucket,

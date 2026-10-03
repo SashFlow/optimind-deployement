@@ -476,6 +476,8 @@ export async function fillOrganizationDemoDashboardData(
 				type,
 				status: chance(0.9) ? "COMPLETE" : "FAILED",
 				roomName: session.livekitRoomName,
+				startedAt: session.startedAt ?? session.createdAt,
+				endedAt: session.endedAt ?? capturedAt,
 				durationMs: Math.round(
 					durationMs * (0.6 + Math.random() * 0.4),
 				),

@@ -68,8 +68,8 @@ Paste into **Create Python Tool**. The worker injects `host` (`.agent`, `.ctx`, 
 
 ```python
 @function_tool()
-async def verify_identity(self, context: RunContext) -> str:
-    """Ask the candidate to show their ID. Opens capture UI; returns when overlay starts."""
+async def face_capture(self, context: RunContext) -> str:
+    """Ask the candidate to keep their Face still for face capture."""
     try:
         room_io = context.session.room_io
     except RuntimeError:
@@ -82,14 +82,14 @@ async def verify_identity(self, context: RunContext) -> str:
     try:
         response = await room_io.room.local_participant.perform_rpc(
             destination_identity=participant.identity,
-            method="start_id_capture",
+            method="start_face_capture",
             payload="",
             # keep short if handler only acknowledges UI open
         )
     except Exception as e:
         return f"error: RPC failed: {e}"
 
-    return f"ID capture started: {response}"
+    return f"Face capture started: {response}"
 ```
 
 ### How to test

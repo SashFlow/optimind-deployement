@@ -252,6 +252,8 @@ export type EgressJobRow = {
 	playableContentType?: string | null;
 	audioOnly?: boolean | null;
 	livekitEgressId?: string | null;
+	startedAt?: string | Date | null;
+	endedAt?: string | Date | null;
 	durationMs?: number | null;
 	sizeBytes?: number | null;
 	errorMessage?: string | null;
@@ -261,7 +263,11 @@ export type EgressJobRow = {
 		endpoint?: string | null;
 		region?: string;
 	} | null;
-	metadata?: { audioOnly?: boolean } | null;
+	metadata?: {
+		audioOnly?: boolean;
+		role?: string;
+		trackId?: string;
+	} | null;
 };
 
 function TranscriptStatusBadge({ status }: { status?: string }) {
@@ -427,6 +433,12 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 					status === "ENDING" ||
 					status === "STARTING";
 				const durationLabel = formatDuration(job.durationMs);
+				const startedLabel = formatDateTime(job.startedAt);
+				const trackRole =
+					(job.type === "TRACK" || job.type === "PARTICIPANT") &&
+					job.metadata?.role
+						? job.metadata.role.replace(/_/g, " ")
+						: null;
 				const FileIcon = audioOnly ? FileAudioIcon : FileVideoIcon;
 
 				return (
@@ -443,6 +455,11 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 											" ",
 										)}
 									</p>
+									{trackRole ? (
+										<span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[11px] capitalize text-muted-foreground">
+											{trackRole}
+										</span>
+									) : null}
 									{durationLabel !== "—" ? (
 										<span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
 											<ClockIcon className="size-3" />
@@ -450,6 +467,11 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 										</span>
 									) : null}
 								</div>
+								{startedLabel !== "—" ? (
+									<p className="text-xs text-muted-foreground">
+										Started {startedLabel}
+									</p>
+								) : null}
 							</div>
 							<EgressStatusBadge
 								status={status}

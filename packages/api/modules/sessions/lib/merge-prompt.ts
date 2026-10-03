@@ -69,7 +69,9 @@ export function substituteTemplate(
 	const withDouble = text.replace(
 		DOUBLE_BRACE_PATTERN,
 		(match, key: string) =>
-			Object.hasOwn(values, key) ? formatValue(values[key]) : match,
+			Object.prototype.hasOwnProperty.call(values, key)
+				? formatValue(values[key])
+				: match,
 	);
 
 	if (!singleBraceKeys || singleBraceKeys.size === 0) {
@@ -77,7 +79,10 @@ export function substituteTemplate(
 	}
 
 	return withDouble.replace(SINGLE_BRACE_PATTERN, (match, key: string) => {
-		if (!singleBraceKeys.has(key) || !Object.hasOwn(values, key)) {
+		if (
+			!singleBraceKeys.has(key) ||
+			!Object.prototype.hasOwnProperty.call(values, key)
+		) {
 			return match;
 		}
 		return formatValue(values[key]);

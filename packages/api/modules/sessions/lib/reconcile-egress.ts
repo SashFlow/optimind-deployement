@@ -2,6 +2,9 @@ import { EgressStatus } from "@livekit/protocol";
 import { updateEgressJob } from "@repo/database";
 import { listEgress, stopEgress } from "@repo/livekit";
 import { logger } from "@repo/logs";
+import { maybeEnqueueSessionTrackMerge } from "./enqueue-track-merge";
+
+const SOURCE_EGRESS_TYPES = new Set(["TRACK", "PARTICIPANT"]);
 
 export type EgressJobStatus =
 	| "STARTING"
@@ -50,6 +53,27 @@ function extractFileUrl(egressInfo: {
 const MAX_INT4 = 2_147_483_647;
 
 /**
+ * LiveKit reports startedAt/endedAt as nanosecond bigints. Converts to a Date,
+ * or undefined when missing / non-positive / non-finite.
+ */
+export function egressTimestampToDate(
+	value?: bigint | number,
+): Date | undefined {
+	if (value == null) {
+		return undefined;
+	}
+	const ns = Number(value);
+	if (!Number.isFinite(ns) || ns <= 0) {
+		return undefined;
+	}
+	const ms = Math.round(ns / 1_000_000);
+	if (!Number.isFinite(ms) || ms <= 0) {
+		return undefined;
+	}
+	return new Date(ms);
+}
+
+/**
  * LiveKit reports startedAt/endedAt as nanosecond bigints. Returns a whole
  * number of ms, or undefined when the timestamps are missing or nonsensical
  * (e.g. endedAt before startedAt), so we never write an out-of-range value.
@@ -70,17 +94,106 @@ export function egressDurationMs(info: {
 	return ms;
 }
 
+/** Fields we sync from LiveKit EgressInfo onto our EgressJob row. */
+export function egressTimingFields(info: {
+	startedAt?: bigint | number;
+	endedAt?: bigint | number;
+}): {
+	startedAt?: Date;
+	endedAt?: Date;
+	durationMs?: number;
+} {
+	const startedAt = egressTimestampToDate(info.startedAt);
+	const endedAt = egressTimestampToDate(info.endedAt);
+	const durationMs = egressDurationMs(info);
+	return {
+		...(startedAt ? { startedAt } : {}),
+		...(endedAt ? { endedAt } : {}),
+		...(durationMs != null ? { durationMs } : {}),
+	};
+}
+
 type EgressJobLike = {
 	id: string;
 	status: string;
+	type?: string;
+	agentSessionId?: string | null;
 	livekitEgressId?: string | null;
 	roomName?: string | null;
 	fileUrl?: string | null;
 	outputUrls?: string[] | null;
+	metadata?: unknown;
+	destination?: unknown;
 };
+
+function filepathFromLocation(location: string): string | undefined {
+	if (location.startsWith("s3://")) {
+		const without = location.slice("s3://".length);
+		const slash = without.indexOf("/");
+		return slash === -1 ? undefined : without.slice(slash + 1);
+	}
+	try {
+		return new URL(location).pathname.replace(/^\//, "") || undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+function withUpdatedDestinationFilepath(
+	destination: unknown,
+	filepath: string,
+) {
+	const prev =
+		destination &&
+		typeof destination === "object" &&
+		!Array.isArray(destination)
+			? (destination as Record<string, unknown>)
+			: {};
+	// Prisma InputJsonValue — cast through unknown for Record spreads.
+	return { ...prev, filepath } as unknown as {
+		[key: string]: string | number | boolean | null;
+	};
+}
+
+function isTrackMergeEgressJob(job: EgressJobLike): boolean {
+	if (
+		typeof job.livekitEgressId === "string" &&
+		job.livekitEgressId.startsWith("track-merge:")
+	) {
+		return true;
+	}
+	if (job.metadata && typeof job.metadata === "object") {
+		return (
+			(job.metadata as Record<string, unknown>).source === "track_merge"
+		);
+	}
+	return false;
+}
+
+async function maybeEnqueueMergesForJobs(jobs: EgressJobLike[]) {
+	const sessionIds = new Set<string>();
+	for (const job of jobs) {
+		if (
+			job.type &&
+			SOURCE_EGRESS_TYPES.has(job.type) &&
+			job.agentSessionId
+		) {
+			sessionIds.add(job.agentSessionId);
+		}
+	}
+	await Promise.all(
+		[...sessionIds].map((sessionId) =>
+			maybeEnqueueSessionTrackMerge(sessionId),
+		),
+	);
+}
 
 export async function reconcileEgressJob(job: EgressJobLike) {
 	if (!OPEN_STATUSES.has(job.status)) {
+		return null;
+	}
+	// Worker-owned merge jobs use a synthetic livekitEgressId — not in LiveKit.
+	if (isTrackMergeEgressJob(job)) {
 		return null;
 	}
 	if (!job.livekitEgressId && !job.roomName) {
@@ -107,12 +220,18 @@ export async function reconcileEgressJob(job: EgressJobLike) {
 			? Array.from(new Set([...(job.outputUrls ?? []), fileUrl]))
 			: (job.outputUrls ?? undefined);
 
+		const filepath = fileUrl ? filepathFromLocation(fileUrl) : undefined;
+		const destination = filepath
+			? withUpdatedDestinationFilepath(job.destination, filepath)
+			: undefined;
+
 		return await updateEgressJob(job.id, {
 			status: mapLivekitEgressStatus(info.status),
 			fileUrl: fileUrl ?? undefined,
 			outputUrls,
+			...(destination ? { destination } : {}),
 			errorMessage: info.error || undefined,
-			durationMs: egressDurationMs(info),
+			...egressTimingFields(info),
 		});
 	} catch (error) {
 		logger.warn("Failed to reconcile egress job", {
@@ -127,10 +246,12 @@ export async function reconcileEgressJob(job: EgressJobLike) {
 export async function reconcileOpenEgressJobs(jobs: EgressJobLike[]) {
 	const open = jobs.filter((job) => OPEN_STATUSES.has(job.status));
 	if (open.length === 0) {
+		await maybeEnqueueMergesForJobs(jobs);
 		return jobs;
 	}
 
 	await Promise.all(open.map((job) => reconcileEgressJob(job)));
+	await maybeEnqueueMergesForJobs(jobs);
 	return jobs;
 }
 
@@ -151,7 +272,7 @@ function isAlreadyTerminalEgressError(error: unknown): boolean {
 export async function finalizeSessionEgressJobs(jobs: EgressJobLike[]) {
 	const open = jobs.filter((job) => OPEN_STATUSES.has(job.status));
 	for (const job of open) {
-		if (!job.livekitEgressId) {
+		if (!job.livekitEgressId || isTrackMergeEgressJob(job)) {
 			continue;
 		}
 
@@ -174,4 +295,5 @@ export async function finalizeSessionEgressJobs(jobs: EgressJobLike[]) {
 		}
 	}
 	await Promise.all(open.map((job) => reconcileEgressJob(job)));
+	await maybeEnqueueMergesForJobs(jobs);
 }

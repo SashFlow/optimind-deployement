@@ -235,7 +235,7 @@ export type DispatchRuleScalarFieldEnum = z.infer<typeof DispatchRuleScalarField
 
 // File: EgressJobScalarFieldEnum.schema.ts
 
-export const EgressJobScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'campaignSessionId', 'agentSessionId', 'agentId', 'livekitEgressId', 'type', 'status', 'roomName', 'outputUrls', 'destination', 'fileUrl', 'durationMs', 'sizeBytes', 'errorMessage', 'metadata'])
+export const EgressJobScalarFieldEnumSchema = z.enum(['id', 'createdAt', 'updatedAt', 'organizationId', 'campaignSessionId', 'agentSessionId', 'agentId', 'livekitEgressId', 'type', 'status', 'roomName', 'outputUrls', 'destination', 'fileUrl', 'startedAt', 'endedAt', 'durationMs', 'sizeBytes', 'errorMessage', 'metadata'])
 
 export type EgressJobScalarFieldEnum = z.infer<typeof EgressJobScalarFieldEnumSchema>;
 
@@ -1287,6 +1287,8 @@ export const EgressJobSchema = z.object({
   outputUrls: z.array(z.string()),
   destination: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
   fileUrl: z.string().nullish(),
+  startedAt: z.date().nullish(),
+  endedAt: z.date().nullish(),
   durationMs: z.number().int().nullish(),
   sizeBytes: z.number().int().nullish(),
   errorMessage: z.string().nullish(),

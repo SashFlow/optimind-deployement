@@ -153,6 +153,8 @@ export async function createEgressJob(data: {
 	outputUrls?: string[];
 	destination?: Prisma.InputJsonValue;
 	fileUrl?: string;
+	startedAt?: Date;
+	endedAt?: Date;
 	durationMs?: number;
 	sizeBytes?: number;
 	errorMessage?: string;
@@ -171,6 +173,8 @@ export async function createEgressJob(data: {
 			outputUrls: data.outputUrls ?? [],
 			destination: data.destination ?? {},
 			fileUrl: data.fileUrl,
+			startedAt: data.startedAt,
+			endedAt: data.endedAt,
 			durationMs: data.durationMs,
 			sizeBytes: data.sizeBytes,
 			errorMessage: data.errorMessage,
@@ -191,6 +195,13 @@ export async function listEgressJobs(organizationId: string) {
 		where: { organizationId },
 		orderBy: { createdAt: "desc" },
 		take: 100,
+	});
+}
+
+export async function listEgressJobsByAgentSessionId(agentSessionId: string) {
+	return db.egressJob.findMany({
+		where: { agentSessionId },
+		orderBy: { createdAt: "asc" },
 	});
 }
 

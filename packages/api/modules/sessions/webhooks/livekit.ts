@@ -6,11 +6,14 @@ import {
 } from "@repo/database";
 import { createWebhookReceiver, getLiveKitConfig } from "@repo/livekit";
 import { logger } from "@repo/logs";
+import { maybeEnqueueSessionTrackMerge } from "../lib/enqueue-track-merge";
 import { generateEndUserMemoriesSafe } from "../lib/memories";
 import {
-	egressDurationMs,
+	egressTimingFields,
 	mapLivekitEgressStatus,
 } from "../lib/reconcile-egress";
+
+const TERMINAL_EGRESS_STATUSES = new Set(["COMPLETE", "FAILED", "ABORTED"]);
 
 function extractFileUrl(egressInfo: {
 	file?: { location?: string };
@@ -57,13 +60,65 @@ export async function livekitWebhookHandler(
 							)
 						: job.outputUrls;
 
+					const status = mapLivekitEgressStatus(info.status);
+					// LiveKit appends the real container extension to track
+					// filepaths; persist that onto destination so merge/download
+					// don't use the extensionless template key.
+					const destinationUpdate = (() => {
+						if (!fileUrl) {
+							return undefined;
+						}
+						let filepath: string | undefined;
+						if (fileUrl.startsWith("s3://")) {
+							const without = fileUrl.slice("s3://".length);
+							const slash = without.indexOf("/");
+							if (slash !== -1) {
+								filepath = without.slice(slash + 1);
+							}
+						} else {
+							try {
+								filepath = new URL(fileUrl).pathname.replace(
+									/^\//,
+									"",
+								);
+							} catch {
+								filepath = undefined;
+							}
+						}
+						if (!filepath) {
+							return undefined;
+						}
+						const prev =
+							job.destination &&
+							typeof job.destination === "object" &&
+							!Array.isArray(job.destination)
+								? (job.destination as Record<string, unknown>)
+								: {};
+						return { ...prev, filepath };
+					})();
+
 					await updateEgressJob(job.id, {
-						status: mapLivekitEgressStatus(info.status),
+						status,
 						fileUrl: fileUrl ?? undefined,
 						outputUrls,
+						...(destinationUpdate
+							? {
+									destination: destinationUpdate as unknown as {
+										[key: string]: string | number | boolean | null;
+									},
+								}
+							: {}),
 						errorMessage: info.error || undefined,
-						durationMs: egressDurationMs(info),
+						...egressTimingFields(info),
 					});
+
+					if (
+						(job.type === "TRACK" || job.type === "PARTICIPANT") &&
+						job.agentSessionId &&
+						TERMINAL_EGRESS_STATUSES.has(status)
+					) {
+						await maybeEnqueueSessionTrackMerge(job.agentSessionId);
+					}
 				}
 			}
 		}
