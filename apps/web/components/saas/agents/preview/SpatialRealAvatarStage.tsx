@@ -86,7 +86,11 @@ export default function SpatialRealAvatarStage({
 					minHeight="100%"
 				/>
 				<SpatialRealAvatarLoading
-					className={compact ? "bg-background/70 p-0 backdrop-blur-sm" : undefined}
+					className={
+						compact
+							? "bg-background/70 p-0 backdrop-blur-sm"
+							: undefined
+					}
 				>
 					{compact ? (
 						<div className="size-6 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />

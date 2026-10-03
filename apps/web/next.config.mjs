@@ -92,4 +92,6 @@ const nextConfig = {
 
 // withSpatialReal must wrap the config directly so its webpack hook chains into
 // the one above rather than replacing it.
-export default withContentCollections(withNextIntl(withSpatialReal(nextConfig)));
+export default withContentCollections(
+	withNextIntl(withSpatialReal(nextConfig)),
+);
