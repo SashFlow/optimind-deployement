@@ -371,21 +371,21 @@ export function UseCaseAudioDemo({
 							"border-background/20 bg-background/10 text-background hover:bg-background/15 focus-visible:ring-background/40 flex shrink-0 items-center justify-center self-center rounded-full border transition-colors focus-visible:ring-2 focus-visible:outline-none",
 							compact
 								? "size-10 sm:size-8"
-								: "size-11 sm:mt-1 sm:size-11",
+								: "size-10 sm:mt-1 sm:size-8",
 						)}
 					>
 						{playing ? (
 							<PauseIcon
 								className={cn(
 									"fill-current",
-									compact ? "size-4 sm:size-3" : "size-4",
+									compact ? "size-3 sm:size-3" : "size-3",
 								)}
 							/>
 						) : (
 							<PlayIcon
 								className={cn(
 									"translate-x-px fill-current",
-									compact ? "size-4 sm:size-3" : "size-4",
+									compact ? "size-3 sm:size-3" : "size-3",
 								)}
 							/>
 						)}

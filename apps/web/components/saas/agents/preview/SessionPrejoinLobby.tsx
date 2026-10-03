@@ -257,7 +257,7 @@ function PreviewStage({
 					aria-pressed={media.micEnabled}
 					disabled={busy}
 					className={cn(
-						"size-9 rounded-full shadow-md sm:size-11",
+						"size-9 rounded-full shadow-md sm:size-8",
 						media.micEnabled
 							? "bg-white text-zinc-900 hover:bg-white/90"
 							: "bg-red-600 text-white hover:bg-red-600/90",
@@ -265,11 +265,11 @@ function PreviewStage({
 					onClick={() => void media.toggleMic()}
 				>
 					{media.permissionPending === "mic" ? (
-						<Spinner className="size-4 sm:size-5" />
+						<Spinner className="size-4 sm:size-3" />
 					) : media.micEnabled ? (
-						<MicIcon className="size-4 sm:size-5" />
+						<MicIcon className="size-4 sm:size-3" />
 					) : (
-						<MicOffIcon className="size-4 sm:size-5" />
+						<MicOffIcon className="size-4 sm:size-3" />
 					)}
 				</Button>
 				<Button
@@ -284,7 +284,7 @@ function PreviewStage({
 					aria-pressed={media.cameraEnabled}
 					disabled={busy}
 					className={cn(
-						"size-9 rounded-full shadow-md sm:size-11",
+						"size-9 rounded-full shadow-md sm:size-8",
 						media.cameraEnabled
 							? "bg-white text-zinc-900 hover:bg-white/90"
 							: "bg-red-600 text-white hover:bg-red-600/90",
@@ -292,11 +292,11 @@ function PreviewStage({
 					onClick={() => void media.toggleCamera()}
 				>
 					{media.permissionPending === "camera" ? (
-						<Spinner className="size-4 sm:size-5" />
+						<Spinner className="size-4 sm:size-3" />
 					) : media.cameraEnabled ? (
-						<VideoIcon className="size-4 sm:size-5" />
+						<VideoIcon className="size-4 sm:size-3" />
 					) : (
-						<VideoOffIcon className="size-4 sm:size-5" />
+						<VideoOffIcon className="size-4 sm:size-3" />
 					)}
 				</Button>
 			</div>

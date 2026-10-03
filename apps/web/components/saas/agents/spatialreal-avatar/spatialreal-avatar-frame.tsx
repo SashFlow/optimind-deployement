@@ -22,7 +22,7 @@ const frameVariants = cva(
 
 export interface SpatialRealAvatarFrameProps
 	extends HTMLAttributes<HTMLDivElement>,
-	VariantProps<typeof frameVariants> { }
+		VariantProps<typeof frameVariants> {}
 
 export function SpatialRealAvatarFrame({
 	className,

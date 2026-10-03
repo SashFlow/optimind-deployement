@@ -251,14 +251,13 @@ export function AgentConfigurePreview({
 			avatar.enabled &&
 			avatar.provider === "spatialreal",
 		avatarId: avatar.avatarId,
-		fetchCredentials:
-			activeOrganizationId
-				? () =>
-						fetchConfigureSpatialRealWarmup({
-							organizationId: activeOrganizationId,
-							agentId: agent.id,
-						})
-				: undefined,
+		fetchCredentials: activeOrganizationId
+			? () =>
+					fetchConfigureSpatialRealWarmup({
+						organizationId: activeOrganizationId,
+						agentId: agent.id,
+					})
+			: undefined,
 	});
 
 	function updateVariableValue(name: string, value: string) {

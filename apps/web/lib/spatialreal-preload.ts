@@ -254,9 +254,7 @@ export function warmSpatialRealRuntime(
 /**
  * Run work on the warmup gate so Join can wait until it settles.
  */
-export function runSpatialRealWarmup(
-	work: () => Promise<void>,
-): Promise<void> {
+export function runSpatialRealWarmup(work: () => Promise<void>): Promise<void> {
 	const run = warmupGate.then(work, work);
 	warmupGate = run.then(
 		() => undefined,
