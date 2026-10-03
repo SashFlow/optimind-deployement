@@ -21,7 +21,15 @@ export function SpatialRealAvatarLoading({
 			? Math.max(0, Math.min(100, downloadProgress * 100))
 			: null;
 
-	if (!isLoading) {
+	// Idle covers the gap before the connect effect marks initializing —
+	// otherwise the white canvas sits empty with no feedback.
+	const showOverlay =
+		isLoading ||
+		status === "idle" ||
+		status === "initializing" ||
+		status === "connecting";
+
+	if (!showOverlay) {
 		return null;
 	}
 
@@ -38,9 +46,12 @@ export function SpatialRealAvatarLoading({
 					<div className="flex items-center gap-3">
 						<div className="size-9 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
 						<div>
-							<p className="text-xs text-muted-foreground capitalize">
-								{status}
-							</p>
+							<p className="text-sm font-medium">Connecting…</p>
+							{status !== "idle" ? (
+								<p className="text-xs text-muted-foreground capitalize">
+									{status}
+								</p>
+							) : null}
 						</div>
 					</div>
 

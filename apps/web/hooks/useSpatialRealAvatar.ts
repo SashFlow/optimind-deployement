@@ -1,16 +1,11 @@
 "use client";
 
 import { useMaybeRoomContext } from "@livekit/components-react";
-import type { AvatarView } from "@spatialwalk/avatarkit";
-import type { AvatarPlayer } from "@spatialwalk/avatarkit-rtc";
+import type { LiveKitAvatarSession, SessionState } from "@spatialreal/web-sdk";
 import type { Room } from "livekit-client";
+import { ConnectionState, RoomEvent } from "livekit-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-	createSharedRoomProvider,
-	SHARED_ROOM_CREDENTIAL,
-	waitForRoomConnected,
-} from "@/components/saas/agents/spatialreal-avatar/shared-room-provider";
 import type {
 	SpatialRealAvatarConnectionStatus,
 	SpatialRealAvatarState,
@@ -18,68 +13,26 @@ import type {
 	UseSpatialRealAvatarResult,
 } from "@/types/spatialreal-avatar";
 
-/** The SDK touches WebGPU/WASM at import time, so it is only loaded in the browser. */
-type AvatarKit = typeof import("@spatialwalk/avatarkit");
-
-type SdkOptions = Pick<
-	UseSpatialRealAvatarOptions,
-	| "appId"
-	| "characterApiBaseUrl"
-	| "drivingServiceMode"
-	| "environment"
-	| "sdkLogLevel"
-	| "sessionToken"
-	| "userId"
->;
-
-/**
- * The SDK jitter buffer holds only 4 frames at a fixed 25fps and evicts the
- * oldest — the very frame it needs next — on overflow, so any burst or slight
- * rate mismatch drops ~1 in 4 frames. Render frames as they arrive instead.
- */
-const DEFAULT_PLAYER_OPTIONS: NonNullable<
-	UseSpatialRealAvatarOptions["playerOptions"]
-> = { logLevel: "warning", enableJitterBuffer: false };
-
 function toError(error: unknown, fallbackMessage: string) {
 	return error instanceof Error ? error : new Error(fallbackMessage);
 }
 
-function sameSdkConfiguration(avatarkit: AvatarKit, options: SdkOptions) {
-	const configuration = avatarkit.AvatarSDK.configuration;
-
-	return (
-		avatarkit.AvatarSDK.appId === options.appId &&
-		configuration?.environment ===
-			(options.environment ?? avatarkit.Environment.intl) &&
-		configuration?.drivingServiceMode ===
-			(options.drivingServiceMode ?? avatarkit.DrivingServiceMode.host) &&
-		configuration?.characterApiBaseUrl === options.characterApiBaseUrl &&
-		configuration?.logLevel === options.sdkLogLevel
-	);
-}
-
-async function ensureAvatarSdk(avatarkit: AvatarKit, options: SdkOptions) {
-	if (!avatarkit.AvatarSDK.isInitialized) {
-		await avatarkit.AvatarSDK.initialize(options.appId, {
-			characterApiBaseUrl: options.characterApiBaseUrl,
-			drivingServiceMode:
-				options.drivingServiceMode ?? avatarkit.DrivingServiceMode.host,
-			environment: options.environment ?? avatarkit.Environment.intl,
-			logLevel: options.sdkLogLevel,
-		});
-	} else if (!sameSdkConfiguration(avatarkit, options)) {
-		throw new Error(
-			"AvatarSDK is already initialized with a different configuration. Keep appId and SDK options stable across mounted SpatialReal avatars.",
-		);
-	}
-
-	if (options.sessionToken) {
-		avatarkit.AvatarSDK.setSessionToken(options.sessionToken);
-	}
-
-	if (options.userId) {
-		avatarkit.AvatarSDK.setUserId(options.userId);
+function mapSessionState(
+	state: SessionState,
+): SpatialRealAvatarConnectionStatus | null {
+	switch (state) {
+		case "connecting":
+			return "connecting";
+		case "live":
+			return "connected";
+		case "ending":
+			return "disconnecting";
+		case "idle":
+			return "idle";
+		case "disposed":
+			return "idle";
+		default:
+			return null;
 	}
 }
 
@@ -94,11 +47,27 @@ function createIdleState(): SpatialRealAvatarState {
 	};
 }
 
+function waitForRoomConnected(room: Room, signal: AbortSignal) {
+	return new Promise<void>((resolve) => {
+		if (room.state === ConnectionState.Connected || signal.aborted) {
+			resolve();
+			return;
+		}
+		const done = () => {
+			room.off(RoomEvent.Connected, done);
+			signal.removeEventListener("abort", done);
+			resolve();
+		};
+		room.on(RoomEvent.Connected, done);
+		signal.addEventListener("abort", done);
+	});
+}
+
 /**
- * Renders a SpatialReal avatar from the animation data track of an existing
- * LiveKit room. The room is owned by the caller (normally <LiveKitRoom>), which
- * also owns microphone/camera publishing and agent audio playback — this hook
- * only drives the avatar canvas.
+ * Renders a SpatialReal avatar via a subscribe-only LiveKit participant while
+ * the caller-owned <LiveKitRoom> keeps mic, proctoring, and session chrome.
+ * Avatar audio is played by the SpatialReal SDK (lip-sync clock); mute the
+ * avatar identity in the user room's audio renderer to avoid double playback.
  */
 export function useSpatialRealAvatar(
 	options: UseSpatialRealAvatarOptions,
@@ -106,20 +75,16 @@ export function useSpatialRealAvatar(
 	const {
 		appId,
 		avatarId,
-		characterApiBaseUrl,
-		drivingServiceMode,
 		enabled = true,
-		environment,
 		onAvatarError,
 		onConnected,
 		onDisconnected,
-		onLoadProgress,
 		onStateChange,
-		playerOptions,
+		rendererToken,
 		room: roomOption,
-		sdkLogLevel,
+		sdkLogLevel = "warning",
+		serverUrl,
 		sessionToken,
-		userId,
 	} = options;
 
 	const contextRoom = useMaybeRoomContext();
@@ -130,21 +95,13 @@ export function useSpatialRealAvatar(
 	const [containerReady, setContainerReady] = useState(false);
 	const [state, setState] = useState<SpatialRealAvatarState>(createIdleState);
 
-	const avatarViewRef = useRef<AvatarView | null>(null);
-	const playerRef = useRef<AvatarPlayer | null>(null);
-	/**
-	 * Teardown releases the animation receiver transform on the shared room, so
-	 * the next connect has to wait for it — otherwise the new player installs
-	 * its transform first and the old teardown pulls it straight back off.
-	 */
+	const sessionRef = useRef<LiveKitAvatarSession | null>(null);
 	const teardownRef = useRef<Promise<void>>(Promise.resolve());
 	const callbacksRef = useRef({
 		onAvatarError,
 		onConnected,
 		onDisconnected,
-		onLoadProgress,
 		onStateChange,
-		playerOptions,
 	});
 
 	useEffect(() => {
@@ -152,18 +109,9 @@ export function useSpatialRealAvatar(
 			onAvatarError,
 			onConnected,
 			onDisconnected,
-			onLoadProgress,
 			onStateChange,
-			playerOptions,
 		};
-	}, [
-		onAvatarError,
-		onConnected,
-		onDisconnected,
-		onLoadProgress,
-		onStateChange,
-		playerOptions,
-	]);
+	}, [onAvatarError, onConnected, onDisconnected, onStateChange]);
 
 	const updateStatus = useCallback(
 		(
@@ -183,26 +131,24 @@ export function useSpatialRealAvatar(
 		[],
 	);
 
-	const teardownInstance = useCallback(
-		async (player: AvatarPlayer | null, view: AvatarView | null) => {
-			if (playerRef.current === player) {
-				playerRef.current = null;
+	const teardownSession = useCallback(
+		async (session: LiveKitAvatarSession | null) => {
+			if (sessionRef.current === session) {
+				sessionRef.current = null;
 			}
 
-			if (avatarViewRef.current === view) {
-				avatarViewRef.current = null;
+			if (!session) {
+				return;
 			}
 
 			try {
-				// The shared provider nulls its room first, so this leaves the
-				// caller-owned LiveKit room connected.
-				await player?.disconnect();
+				await session.end();
 			} catch {
 				// Ignore teardown errors so unmounts stay predictable.
 			}
 
 			try {
-				view?.dispose();
+				await session.dispose();
 			} catch {
 				// Ignore teardown errors so unmounts stay predictable.
 			}
@@ -218,31 +164,30 @@ export function useSpatialRealAvatar(
 	}, []);
 
 	const disconnect = useCallback(async () => {
-		const player = playerRef.current;
-		const view = avatarViewRef.current;
+		const session = sessionRef.current;
 
-		if (!player && !view) {
+		if (!session) {
 			setState(createIdleState());
 			return;
 		}
 
 		updateStatus("disconnecting");
-		await teardownInstance(player, view);
+		await teardownSession(session);
 		setState(createIdleState());
-	}, [teardownInstance, updateStatus]);
+	}, [teardownSession, updateStatus]);
 
 	const reconnect = useCallback(async () => {
-		const player = playerRef.current;
+		const session = sessionRef.current;
 
-		if (!player) {
-			throw new Error("Avatar player is not ready yet.");
+		if (!session) {
+			throw new Error("Avatar session is not ready yet.");
 		}
 
 		updateStatus("connecting");
 
 		try {
-			await player.reconnect();
-			updateStatus("connected");
+			await session.reconnect();
+			updateStatus("connected", session.room);
 		} catch (error) {
 			const normalizedError = toError(
 				error,
@@ -261,7 +206,6 @@ export function useSpatialRealAvatar(
 		}
 	}, [updateStatus]);
 
-	// The canvas must have a non-zero box before the renderer attaches to it.
 	useEffect(() => {
 		if (!containerElement) {
 			return;
@@ -285,14 +229,22 @@ export function useSpatialRealAvatar(
 	}, [containerElement]);
 
 	useEffect(() => {
-		if (!enabled || !room || !containerReady || !containerElement) {
+		if (
+			!enabled ||
+			!room ||
+			!containerReady ||
+			!containerElement ||
+			!sessionToken ||
+			!serverUrl ||
+			!rendererToken
+		) {
 			return;
 		}
 
 		const abort = new AbortController();
 		const pendingTeardown = teardownRef.current;
-		let player: AvatarPlayer | null = null;
-		let view: AvatarView | null = null;
+		let session: LiveKitAvatarSession | null = null;
+		const unsubscribers: Array<() => void> = [];
 
 		const handleError = (error: unknown) => {
 			if (abort.signal.aborted) {
@@ -311,30 +263,11 @@ export function useSpatialRealAvatar(
 			callbacksRef.current.onStateChange?.("error");
 		};
 
-		const handleDisconnected = () => {
-			if (abort.signal.aborted) {
-				return;
-			}
-
-			setState(createIdleState());
-			callbacksRef.current.onStateChange?.("idle");
-			callbacksRef.current.onDisconnected?.();
-		};
-
-		const cleanupHandlers = () => {
-			if (!player) {
-				return;
-			}
-
-			player.off("disconnected", handleDisconnected);
-			player.off("error", handleError);
-		};
-
 		async function connectAvatar(
 			container: HTMLDivElement,
-			activeRoom: Room,
+			userRoom: Room,
 		) {
-			updateStatus("initializing", activeRoom);
+			updateStatus("initializing", userRoom);
 			setState((previous) => ({
 				...previous,
 				downloadProgress: null,
@@ -346,118 +279,107 @@ export function useSpatialRealAvatar(
 				return;
 			}
 
-			const [avatarkit, { AvatarPlayer: Player }] = await Promise.all([
-				import("@spatialwalk/avatarkit"),
-				import("@spatialwalk/avatarkit-rtc"),
-			]);
+			await waitForRoomConnected(userRoom, abort.signal);
 			if (abort.signal.aborted) {
 				return;
 			}
 
-			await ensureAvatarSdk(avatarkit, {
-				appId,
-				characterApiBaseUrl,
-				drivingServiceMode,
-				environment,
-				sdkLogLevel,
-				sessionToken,
-				userId,
-			});
+			const { SpatialReal, createUnlockedAudioContext } = await import(
+				"@spatialreal/web-sdk"
+			);
 			if (abort.signal.aborted) {
 				return;
 			}
 
-			const avatar = await avatarkit.AvatarManager.shared.load(
+			// Join click already happened; unlock audio before awaiting start().
+			const audioContext = createUnlockedAudioContext();
+			const sr = new SpatialReal({ appId, logLevel: sdkLogLevel });
+
+			updateStatus("connecting", userRoom);
+			session = await sr.createSession({
 				avatarId,
-				(progress) => {
-					callbacksRef.current.onLoadProgress?.(progress);
-
-					setState((previous) => ({
-						...previous,
-						downloadProgress:
-							progress.type === avatarkit.LoadProgress.downloading
-								? (progress.progress ?? null)
-								: progress.type ===
-										avatarkit.LoadProgress.completed
-									? 1
-									: previous.downloadProgress,
-					}));
-				},
-			);
-			if (abort.signal.aborted) {
-				return;
-			}
-
-			view = new avatarkit.AvatarView(avatar, container);
-			avatarViewRef.current = view;
-
-			const provider = await createSharedRoomProvider(activeRoom);
-			await waitForRoomConnected(activeRoom, abort.signal);
-			// From here the view exists, so an abort has to dispose it: the
-			// effect cleanup already ran with nothing to tear down.
-			if (abort.signal.aborted) {
-				await teardownInstance(null, view);
-				return;
-			}
-
-			updateStatus("connecting", activeRoom);
-			player = new Player(
-				provider,
-				view,
-				callbacksRef.current.playerOptions ?? DEFAULT_PLAYER_OPTIONS,
-			);
-			playerRef.current = player;
-			player.on("disconnected", handleDisconnected);
-			player.on("error", handleError);
-			// No "stalled" handler: the SDK fires it after 5s without frames, i.e.
-			// whenever the agent is silent, and already falls back to idle and
-			// resumes on the next frame. Reconnecting there tore down the
-			// animation pipeline on every pause and dropped the next turn's start.
-
-			await player.connect({
-				url: SHARED_ROOM_CREDENTIAL,
-				token: SHARED_ROOM_CREDENTIAL,
-				roomName: activeRoom.name,
+				credential: sessionToken,
+				container,
+				livekit: { url: serverUrl, token: rendererToken },
+				mic: "manual",
+				audioContext,
+				signal: abort.signal,
 			});
 			if (abort.signal.aborted) {
-				cleanupHandlers();
-				await teardownInstance(player, view);
+				await teardownSession(session);
+				session = null;
 				return;
 			}
 
-			updateStatus("connected", activeRoom);
-			callbacksRef.current.onConnected?.(activeRoom);
+			sessionRef.current = session;
+
+			unsubscribers.push(
+				session.on("state", ({ current }) => {
+					if (abort.signal.aborted) {
+						return;
+					}
+					const mapped = mapSessionState(current);
+					if (!mapped) {
+						return;
+					}
+					if (mapped === "idle" && current === "idle") {
+						setState(createIdleState());
+						callbacksRef.current.onStateChange?.("idle");
+						callbacksRef.current.onDisconnected?.();
+						return;
+					}
+					updateStatus(mapped, session?.room ?? userRoom);
+				}),
+			);
+
+			unsubscribers.push(
+				session.on("error", ({ error }) => {
+					handleError(error);
+				}),
+			);
+
+			await session.start();
+			if (abort.signal.aborted) {
+				await teardownSession(session);
+				session = null;
+				return;
+			}
+
+			updateStatus("connected", session.room);
+			callbacksRef.current.onConnected?.(session.room);
 		}
 
 		void connectAvatar(containerElement, room).catch((error: unknown) => {
 			if (!abort.signal.aborted) {
 				handleError(toError(error, "Failed to initialize avatar."));
 			}
-			cleanupHandlers();
-			teardownRef.current = teardownInstance(player, view);
+			for (const unsubscribe of unsubscribers) {
+				unsubscribe();
+			}
+			teardownRef.current = teardownSession(session);
 		});
 
 		return () => {
 			abort.abort();
-			cleanupHandlers();
+			for (const unsubscribe of unsubscribers) {
+				unsubscribe();
+			}
 			setState(createIdleState());
-			teardownRef.current = teardownInstance(player, view);
+			teardownRef.current = teardownSession(session);
 		};
 	}, [
 		appId,
 		avatarId,
-		characterApiBaseUrl,
 		containerElement,
 		containerReady,
-		drivingServiceMode,
 		enabled,
-		environment,
+		rendererToken,
 		room,
 		sdkLogLevel,
+		serverUrl,
 		sessionToken,
-		teardownInstance,
+		teardownSession,
 		updateStatus,
-		userId,
 	]);
 
 	return useMemo(

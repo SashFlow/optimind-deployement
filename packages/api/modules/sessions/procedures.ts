@@ -72,6 +72,90 @@ function getSpatialRealAppId(): string | null {
 	return process.env.SPATIALREAL_APP_ID?.trim() || null;
 }
 
+function getSpatialRealApiKey(): string | null {
+	return process.env.SPATIALREAL_API_KEY?.trim() || null;
+}
+
+async function mintSpatialRealSessionToken(): Promise<string | null> {
+	const apiKey = getSpatialRealApiKey();
+	if (!apiKey) {
+		return null;
+	}
+
+	try {
+		const res = await fetch(
+			"https://api.spatialreal.com/v1/auth/session-token",
+			{
+				method: "POST",
+				headers: {
+					"X-API-KEY": apiKey,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					expire_at: Math.floor(Date.now() / 1000) + 3600,
+				}),
+			},
+		);
+
+		if (!res.ok) {
+			logger.error("SpatialReal session-token mint failed", {
+				status: res.status,
+				body: await res.text().catch(() => null),
+			});
+			return null;
+		}
+
+		const data = (await res.json()) as { session_token?: unknown };
+		return typeof data.session_token === "string"
+			? data.session_token
+			: null;
+	} catch (error) {
+		logger.error("SpatialReal session-token mint error", { error });
+		return null;
+	}
+}
+
+async function mintSpatialRealClientCredentials(opts: {
+	sessionId: string;
+	roomName: string;
+}): Promise<{
+	spatialRealAppId: string | null;
+	spatialRealSessionToken: string | null;
+	spatialRealRendererToken: string | null;
+}> {
+	const spatialRealAppId = getSpatialRealAppId();
+	if (!spatialRealAppId) {
+		return {
+			spatialRealAppId: null,
+			spatialRealSessionToken: null,
+			spatialRealRendererToken: null,
+		};
+	}
+
+	const spatialRealSessionToken = await mintSpatialRealSessionToken();
+
+	let spatialRealRendererToken: string | null = null;
+	try {
+		spatialRealRendererToken = await createParticipantToken({
+			identity: `spatialreal-renderer-${opts.sessionId}`,
+			name: "SpatialReal Renderer",
+			roomName: opts.roomName,
+		});
+	} catch (error) {
+		logger.error("SpatialReal renderer LiveKit token mint failed", {
+			error,
+			sessionId: opts.sessionId,
+			roomName: opts.roomName,
+		});
+	}
+
+	return {
+		spatialRealAppId,
+		spatialRealSessionToken,
+		spatialRealRendererToken,
+	};
+}
+
 function configRecordingEnabled(config: unknown): boolean {
 	if (!config || typeof config !== "object") {
 		return false;
@@ -309,13 +393,25 @@ export const create = protectedProcedure
 			});
 		}
 
+		const spatialReal =
+			input.channel === "WEB"
+				? await mintSpatialRealClientCredentials({
+						sessionId: session.id,
+						roomName,
+					})
+				: {
+						spatialRealAppId: null,
+						spatialRealSessionToken: null,
+						spatialRealRendererToken: null,
+					};
+
 		return {
 			session,
 			roomName,
 			serverUrl: cfg.url,
 			participantToken,
 			dispatchMetadata,
-			spatialRealAppId: getSpatialRealAppId(),
+			...spatialReal,
 		};
 	});
 
@@ -719,6 +815,8 @@ export const startTrialSession = publicProcedure
 				participantToken: null,
 				phoneNumber: normalizedPhone,
 				spatialRealAppId: null,
+				spatialRealSessionToken: null,
+				spatialRealRendererToken: null,
 			};
 		}
 
@@ -729,6 +827,10 @@ export const startTrialSession = publicProcedure
 		});
 
 		const cfg = getLiveKitConfig();
+		const spatialReal = await mintSpatialRealClientCredentials({
+			sessionId: session.id,
+			roomName,
+		});
 		return {
 			sessionId: session.id,
 			roomName,
@@ -736,7 +838,7 @@ export const startTrialSession = publicProcedure
 			serverUrl: cfg.url,
 			participantToken,
 			phoneNumber: null,
-			spatialRealAppId: getSpatialRealAppId(),
+			...spatialReal,
 		};
 	});
 
@@ -912,6 +1014,10 @@ export const startEmbedSession = publicProcedure
 		});
 
 		const cfg = getLiveKitConfig();
+		const spatialReal = await mintSpatialRealClientCredentials({
+			sessionId: session.id,
+			roomName,
+		});
 		return {
 			sessionId: session.id,
 			roomName,
@@ -919,7 +1025,7 @@ export const startEmbedSession = publicProcedure
 			serverUrl: cfg.url,
 			participantToken,
 			phoneNumber: null,
-			spatialRealAppId: getSpatialRealAppId(),
+			...spatialReal,
 		};
 	});
 

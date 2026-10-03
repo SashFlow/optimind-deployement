@@ -1,13 +1,6 @@
 "use client";
 
-import {
-	AvatarManager,
-	AvatarSDK,
-	AvatarView,
-	DrivingServiceMode,
-	Environment,
-} from "@spatialwalk/avatarkit";
-import { AvatarPlayer, LiveKitProvider } from "@spatialwalk/avatarkit-rtc";
+import type { LiveKitAvatarSession } from "@spatialreal/web-sdk";
 import { type Room, RoomEvent, Track } from "livekit-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import AudioVisualizer from "./AudioVisualizer";
@@ -19,35 +12,26 @@ interface AvatarVoiceAgentProps {
 	token: string;
 	serverUrl: string;
 	roomName: string;
+	/** SpatialReal session token from your server (or a Studio temporary token). */
+	sessionToken: string;
 	onDisconnect: () => void;
 }
 
 function readSpatialrealConfig() {
-	const appId = "app_muipa6l3_1pb8l4x";
-	const avatarId = "6aed28f9-674c-4ffb-89ee-b447b28aa3ed";
-
-	if (!appId || !avatarId) {
-		throw new Error(
-			"Missing NEXT_PUBLIC_SPATIALREAL_APP_ID or NEXT_PUBLIC_SPATIALREAL_AVATAR_ID",
-		);
-	}
-
 	return {
-		appId,
-		avatarId,
-		environment: Environment.intl,
+		appId: "app_muipa6l3_1pb8l4x",
+		avatarId: "6aed28f9-674c-4ffb-89ee-b447b28aa3ed",
 	};
 }
 
 export default function AvatarVoiceAgent({
 	token,
 	serverUrl,
-	roomName,
+	sessionToken,
 	onDisconnect,
 }: AvatarVoiceAgentProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
-	const avatarViewRef = useRef<AvatarView | null>(null);
-	const avatarPlayerRef = useRef<AvatarPlayer | null>(null);
+	const sessionRef = useRef<LiveKitAvatarSession | null>(null);
 	const roomRef = useRef<Room | null>(null);
 	const initializedRef = useRef(false);
 	const roomListenersSetupRef = useRef(false);
@@ -70,28 +54,26 @@ export default function AvatarVoiceAgent({
 			return;
 		}
 
-		const player = avatarPlayerRef.current;
-		const view = avatarViewRef.current;
+		const session = sessionRef.current;
 
-		avatarPlayerRef.current = null;
-		avatarViewRef.current = null;
+		sessionRef.current = null;
 		roomRef.current = null;
 		roomListenersSetupRef.current = false;
 		initializedRef.current = false;
 
 		teardownTaskRef.current = (async () => {
-			if (player) {
-				try {
-					await player.disconnect();
-				} catch {
-					// Ignore cleanup errors during teardown.
-				}
+			if (!session) {
+				return;
 			}
-
 			try {
-				view?.dispose?.();
+				await session.end();
+			} catch {
+				// Ignore cleanup errors during teardown.
+			}
+			try {
+				await session.dispose();
 			} catch (disposeError) {
-				console.warn("Failed to dispose avatar view:", disposeError);
+				console.warn("Failed to dispose avatar session:", disposeError);
 			}
 		})();
 
@@ -200,84 +182,59 @@ export default function AvatarVoiceAgent({
 			setError(null);
 
 			const config = readSpatialrealConfig();
-
-			if (!AvatarSDK.isInitialized) {
-				await AvatarSDK.initialize(config.appId, {
-					environment: config.environment,
-					drivingServiceMode: DrivingServiceMode.host,
-				});
-			}
-
-			const avatarManager = AvatarManager.shared;
-			if (!avatarManager) {
-				throw new Error("Failed to get avatar manager");
-			}
-
-			const avatar = await avatarManager.load(config.avatarId);
-			const avatarView = new AvatarView(avatar, containerRef.current);
-			avatarViewRef.current = avatarView;
-
-			const provider = new LiveKitProvider();
-			const player = new AvatarPlayer(
-				provider as unknown as ConstructorParameters<
-					typeof AvatarPlayer
-				>[0],
-				avatarView,
-				{
-					logLevel: "info",
-				},
+			const { SpatialReal, createUnlockedAudioContext } = await import(
+				"@spatialreal/web-sdk"
 			);
 
-			player.on("connected", () => {
-				setIsLoading(false);
-				const room = player.getNativeClient() as Room | null;
-				if (room) {
-					roomRef.current = room;
-					setupRoomEventListeners(room);
-				}
+			const audioContext = createUnlockedAudioContext();
+			const sr = new SpatialReal({
+				appId: config.appId,
+				logLevel: "warning",
 			});
 
-			player.on("disconnected", () => {
-				if (!disconnectingRef.current) {
+			const session = await sr.createSession({
+				avatarId: config.avatarId,
+				credential: sessionToken,
+				container: containerRef.current,
+				livekit: { url: serverUrl, token },
+				mic: "required",
+				audioContext,
+			});
+
+			sessionRef.current = session;
+
+			session.on("state", ({ current }) => {
+				if (current === "live") {
+					setIsLoading(false);
+					const room = session.room;
+					if (room) {
+						roomRef.current = room;
+						setupRoomEventListeners(room);
+						const micPub =
+							room.localParticipant.getTrackPublication(
+								Track.Source.Microphone,
+							);
+						if (micPub?.track) {
+							setMicTrack(micPub.track);
+						}
+					}
+				}
+				if (current === "idle" && !disconnectingRef.current) {
 					onDisconnect();
 				}
 			});
 
-			player.on("error", (eventError: unknown) => {
-				setError(
-					eventError instanceof Error
-						? eventError.message
-						: String(eventError),
-				);
+			session.on("error", ({ error: eventError }) => {
+				setError(eventError.message || String(eventError));
 			});
 
-			player.on("stalled", async () => {
-				try {
-					await player.reconnect();
-				} catch {
+			session.on("stalled", () => {
+				void session.reconnect().catch(() => {
 					setError("Avatar stream disconnected");
-				}
+				});
 			});
 
-			await player.connect({
-				url: serverUrl,
-				token,
-				roomName,
-			});
-
-			avatarPlayerRef.current = player;
-
-			await player.startPublishing();
-
-			const room = player.getNativeClient() as Room | null;
-			if (room?.localParticipant) {
-				const micPub = room.localParticipant.getTrackPublication(
-					Track.Source.Microphone,
-				);
-				if (micPub?.track) {
-					setMicTrack(micPub.track);
-				}
-			}
+			await session.start();
 		} catch (initError) {
 			setError(
 				initError instanceof Error
@@ -286,7 +243,7 @@ export default function AvatarVoiceAgent({
 			);
 			setIsLoading(false);
 		}
-	}, [onDisconnect, roomName, serverUrl, setupRoomEventListeners, token]);
+	}, [onDisconnect, serverUrl, sessionToken, setupRoomEventListeners, token]);
 
 	useEffect(() => {
 		if (!containerReady) {

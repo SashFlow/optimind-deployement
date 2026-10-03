@@ -11,11 +11,12 @@ export interface SpatialRealAvatarProviderProps
 }
 
 /**
- * Drives a SpatialReal avatar from the surrounding LiveKit room and exposes its
- * state to <SpatialRealAvatarCanvas>, <SpatialRealAvatarLoading> and friends.
+ * Drives a SpatialReal LiveKit avatar session and exposes its state to
+ * <SpatialRealAvatarCanvas>, <SpatialRealAvatarLoading> and friends.
  *
- * Session concerns — connecting the room, publishing the microphone, playing
- * agent audio — belong to the host (<LiveKitRoom>), not to the avatar.
+ * Session concerns — connecting the user room, publishing the microphone —
+ * belong to the host (<LiveKitRoom>). The avatar joins as a subscribe-only
+ * renderer participant; its audio is played by the SpatialReal SDK.
  */
 export function SpatialRealAvatarProvider({
 	children,

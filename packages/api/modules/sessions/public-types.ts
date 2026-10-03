@@ -63,6 +63,8 @@ export type StartPublicSessionOutput = {
 	participantToken: string | null;
 	phoneNumber: string | null;
 	spatialRealAppId: string | null;
+	spatialRealSessionToken: string | null;
+	spatialRealRendererToken: string | null;
 };
 
 export type StartEmbedSessionInput = {

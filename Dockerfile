@@ -36,7 +36,7 @@ ENV PORT=3000
 
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 
-# Owned by nextjs: withAvatarkit writes into its package's .cache on config
+# Owned by nextjs: withSpatialReal writes into its package's .cache on config
 # load, and Next writes to apps/web/.next/cache at runtime.
 COPY --from=installer --chown=nextjs:nodejs /app/apps/web ./apps/web
 COPY --from=installer --chown=nextjs:nodejs /app/packages ./packages

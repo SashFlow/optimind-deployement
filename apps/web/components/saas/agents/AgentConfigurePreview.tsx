@@ -226,6 +226,8 @@ export function AgentConfigurePreview({
 		token: string;
 		serverUrl: string;
 		spatialRealAppId: string | null;
+		spatialRealSessionToken: string | null;
+		spatialRealRendererToken: string | null;
 		contactMetadata: Record<string, unknown>;
 	} | null>(null);
 
@@ -310,6 +312,8 @@ export function AgentConfigurePreview({
 			token: credentials.participantToken,
 			serverUrl: credentials.serverUrl,
 			spatialRealAppId: credentials.spatialRealAppId,
+			spatialRealSessionToken: credentials.spatialRealSessionToken,
+			spatialRealRendererToken: credentials.spatialRealRendererToken,
 			contactMetadata,
 		});
 	}
@@ -417,6 +421,13 @@ export function AgentConfigurePreview({
 				agent={agent}
 				avatar={avatar}
 				spatialRealAppId={sessionCredentials.spatialRealAppId}
+				spatialRealSessionToken={
+					sessionCredentials.spatialRealSessionToken
+				}
+				spatialRealRendererToken={
+					sessionCredentials.spatialRealRendererToken
+				}
+				serverUrl={sessionCredentials.serverUrl}
 				onEnd={handleEndSession}
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}

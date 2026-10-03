@@ -1,10 +1,3 @@
-import type {
-	LogLevel as AvatarSdkLogLevel,
-	DrivingServiceMode,
-	Environment,
-	LoadProgressInfo,
-} from "@spatialwalk/avatarkit";
-import type { AvatarPlayerOptions } from "@spatialwalk/avatarkit-rtc";
 import type { Room } from "livekit-client";
 
 export type SpatialRealAvatarConnectionStatus =
@@ -15,33 +8,27 @@ export type SpatialRealAvatarConnectionStatus =
 	| "disconnecting"
 	| "error";
 
-interface SpatialRealAvatarSdkOptions {
+export interface UseSpatialRealAvatarOptions {
 	appId: string;
 	avatarId: string;
-	characterApiBaseUrl?: string;
-	drivingServiceMode?: DrivingServiceMode;
-	environment?: Environment;
-	sessionToken?: string;
-	sdkLogLevel?: AvatarSdkLogLevel;
-	userId?: string;
-}
-
-export interface UseSpatialRealAvatarOptions
-	extends SpatialRealAvatarSdkOptions {
+	/** SpatialReal session token from the session-start API. */
+	sessionToken: string;
+	/** LiveKit URL for the subscribe-only renderer participant. */
+	serverUrl: string;
+	/** LiveKit token for the subscribe-only renderer participant. */
+	rendererToken: string;
 	/**
-	 * LiveKit room carrying the avatar animation track. Defaults to the room
-	 * provided by <LiveKitRoom>. The avatar attaches to this room — it never
-	 * creates or disconnects one — so the same session drives a SpatialReal
-	 * canvas and a provider-published avatar video track alike.
+	 * User session room from <LiveKitRoom>. Used only to wait until the
+	 * conversation room is connected before starting the avatar session — the
+	 * SDK joins with its own renderer identity and never owns this Room.
 	 */
 	room?: Room | null;
 	enabled?: boolean;
+	sdkLogLevel?: "off" | "error" | "warning" | "all";
 	onAvatarError?: (error: Error) => void;
-	onConnected?: (room: Room) => void;
+	onConnected?: (room: Room | null) => void;
 	onDisconnected?: () => void;
-	onLoadProgress?: (progress: LoadProgressInfo) => void;
 	onStateChange?: (status: SpatialRealAvatarConnectionStatus) => void;
-	playerOptions?: AvatarPlayerOptions;
 }
 
 export interface SpatialRealAvatarState {

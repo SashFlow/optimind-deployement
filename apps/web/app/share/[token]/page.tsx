@@ -203,6 +203,8 @@ export default function SharedTrialPage() {
 		token: string;
 		serverUrl: string;
 		spatialRealAppId: string | null;
+		spatialRealSessionToken: string | null;
+		spatialRealRendererToken: string | null;
 	} | null>(null);
 
 	const trialQuery = useQuery(
@@ -260,6 +262,10 @@ export default function SharedTrialPage() {
 					token: data.participantToken,
 					serverUrl: data.serverUrl,
 					spatialRealAppId: data.spatialRealAppId ?? null,
+					spatialRealSessionToken:
+						data.spatialRealSessionToken ?? null,
+					spatialRealRendererToken:
+						data.spatialRealRendererToken ?? null,
 				});
 			},
 			onError: (error: Error) => {
@@ -341,6 +347,9 @@ export default function SharedTrialPage() {
 					external_avatar_id: trialQuery.data?.agent.avatarId ?? null,
 				})}
 				spatialRealAppId={credentials.spatialRealAppId}
+				spatialRealSessionToken={credentials.spatialRealSessionToken}
+				spatialRealRendererToken={credentials.spatialRealRendererToken}
+				serverUrl={credentials.serverUrl}
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}

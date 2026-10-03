@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	AudioTrack,
 	RoomAudioRenderer,
 	type TrackReference,
 	TrackToggle,
@@ -21,6 +22,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@repo/ui/dialog";
+import { Spinner } from "@repo/ui/spinner";
 import { cn } from "@repo/ui/utils";
 import { ConnectionState, RoomEvent, Track } from "livekit-client";
 import {
@@ -43,6 +45,47 @@ import RpcCardList from "./RpcCardList";
 import SessionVoiceOrb from "./SessionVoiceOrb";
 import SpatialRealAvatarStage from "./SpatialRealAvatarStage";
 import { usePreviewRoomData } from "./usePreviewRoomData";
+
+/** Default SpatialReal avatar identity; SDK owns its audio for lip-sync. */
+const SPATIALREAL_AVATAR_IDENTITY = "spatialreal-avatar";
+
+function isSpatialRealOwnedAudioIdentity(identity: string) {
+	return (
+		identity === SPATIALREAL_AVATAR_IDENTITY ||
+		identity.startsWith("spatialreal-renderer-")
+	);
+}
+
+/**
+ * Like RoomAudioRenderer, but skips the SpatialReal avatar participant so the
+ * SDK keeps the master clock (and we avoid double playback).
+ */
+function SpatialRealSafeRoomAudio() {
+	const tracks = useTracks(
+		[
+			Track.Source.Microphone,
+			Track.Source.ScreenShareAudio,
+			Track.Source.Unknown,
+		],
+		{ updateOnlyOn: [], onlySubscribed: true },
+	).filter(
+		(ref) =>
+			!ref.participant.isLocal &&
+			ref.publication.kind === Track.Kind.Audio &&
+			!isSpatialRealOwnedAudioIdentity(ref.participant.identity),
+	);
+
+	return (
+		<div style={{ display: "none" }}>
+			{tracks.map((trackRef) => (
+				<AudioTrack
+					key={trackRef.publication.trackSid}
+					trackRef={trackRef}
+				/>
+			))}
+		</div>
+	);
+}
 
 function isUserParticipant(identity: string) {
 	return (
@@ -89,6 +132,9 @@ export function PreviewSessionControls({
 	agent,
 	avatar,
 	spatialRealAppId,
+	spatialRealSessionToken,
+	spatialRealRendererToken,
+	serverUrl,
 	onEnd,
 	maxDurationSeconds = null,
 	chatMandatory = false,
@@ -99,6 +145,9 @@ export function PreviewSessionControls({
 	avatar: PreviewAvatar;
 	/** Returned by the session-start API; required for SpatialReal avatars. */
 	spatialRealAppId?: string | null;
+	spatialRealSessionToken?: string | null;
+	spatialRealRendererToken?: string | null;
+	serverUrl?: string | null;
 	onEnd: () => void;
 	maxDurationSeconds?: number | null;
 	chatMandatory?: boolean;
@@ -270,29 +319,64 @@ export function PreviewSessionControls({
 		return "Waiting for agent…";
 	})();
 
+	const localStage = localVideoTrack ? (
+		<VideoTrack
+			trackRef={localVideoTrack}
+			className={cn(VIDEO_FILL_CLASS, "scale-x-[-1]")}
+		/>
+	) : null;
+
+	// User camera stays in focus whenever it's enabled; avatar falls back to PiP.
+	const preferUserVideo = isCameraEnabled;
+	const hasAvatarStage =
+		avatar.enabled &&
+		(isSpatialReal ||
+			hasAvatarVideo ||
+			showAvatarFallback ||
+			showAvatarWaiting);
+	const showCameraMain = preferUserVideo;
+	const showAvatarMain = !preferUserVideo && hasAvatarStage;
+	const showAudioOnlyMain = !preferUserVideo && !hasAvatarStage;
+	const showAvatarPip = preferUserVideo && hasAvatarStage;
+
 	// Both avatar kinds occupy the same stage; only the source differs.
 	const avatarVideo = isSpatialReal ? (
 		<SpatialRealAvatarStage
 			room={room}
 			appId={spatialRealAppId}
+			sessionToken={spatialRealSessionToken}
+			rendererToken={spatialRealRendererToken}
+			serverUrl={serverUrl}
 			avatarId={avatar.avatarId}
+			compact={showAvatarPip}
 		/>
 	) : hasAvatarVideo ? (
 		<VideoTrack trackRef={videoTrack} className={VIDEO_FILL_CLASS} />
-	) : showAvatarFallback ? (
-		// biome-ignore lint/performance/noImgElement: dynamic avatar URLs
-		<img
-			src={avatar.previewUrl ?? undefined}
-			alt="Avatar preview"
-			className={cn(VIDEO_FILL_CLASS, "opacity-90")}
-		/>
-	) : showAvatarWaiting ? (
-		<div className="flex size-full items-center justify-center bg-black">
-			<p className="text-xs text-white/70">Waiting for avatar…</p>
+	) : showAvatarFallback || showAvatarWaiting ? (
+		<div className="flex size-full flex-col items-center justify-center gap-3 bg-muted/40">
+			<Spinner
+				className={cn(
+					"text-muted-foreground",
+					showAvatarPip ? "size-5" : "size-8",
+				)}
+			/>
+			{showAvatarPip ? null : (
+				<p className="text-sm text-muted-foreground">Connecting…</p>
+			)}
 		</div>
 	) : null;
+	const orbState = mapAgentStateToOrb(state, hasAgent);
 
-	const avatarMainStage = avatarVideo ? (
+	const connectingContent = (
+		<div className="flex size-full min-h-56 flex-col items-center justify-center gap-3 px-4 sm:min-h-72">
+			<Spinner className="size-8 text-muted-foreground" />
+			<p className="text-center text-sm text-muted-foreground">
+				Connecting…
+			</p>
+		</div>
+	);
+
+	const avatarMainContent = avatarVideo ? (
 		<>
 			{avatarVideo}
 			{showAvatarFallback ||
@@ -304,40 +388,47 @@ export function PreviewSessionControls({
 		</>
 	) : null;
 
-	const localStage = localVideoTrack ? (
-		<VideoTrack
-			trackRef={localVideoTrack}
-			className={cn(VIDEO_FILL_CLASS, "scale-x-[-1]")}
-		/>
-	) : null;
+	const cameraMainContent = (
+		<>
+			{localStage ?? connectingContent}
+			{localStage && !hasAgent ? (
+				<div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/55 to-transparent p-3">
+					<p className="text-xs text-white/90">{statusLabel}</p>
+				</div>
+			) : null}
+		</>
+	);
 
-	const showAvatarMain = Boolean(avatarMainStage);
-	const showCameraMain = !showAvatarMain && Boolean(localStage);
-	const showAudioOnlyMain = !showAvatarMain && !localStage;
-	const showLocalPip = showAvatarMain && Boolean(localStage);
-	const orbState = mapAgentStateToOrb(state, hasAgent);
+	const orbMainContent = (
+		<div className="flex size-full min-h-56 flex-col items-center justify-center gap-5 px-4 sm:min-h-72">
+			<SessionVoiceOrb
+				state={orbState}
+				agentAudioTrack={audioTrack}
+				localMicTrack={
+					isMicrophoneEnabled ? microphoneTrackRef : undefined
+				}
+			/>
+			<p className="text-center text-sm text-muted-foreground">
+				{statusLabel}
+			</p>
+		</div>
+	);
 
 	const mainContent = (() => {
-		if (avatarMainStage) {
-			return avatarMainStage;
+		if (showCameraMain) {
+			return cameraMainContent;
 		}
-		if (localStage) {
-			return localStage;
+		if (!isConnected && !showAvatarMain) {
+			return connectingContent;
 		}
-		return (
-			<div className="flex size-full min-h-56 flex-col items-center justify-center gap-5 px-4 sm:min-h-72">
-				<SessionVoiceOrb
-					state={orbState}
-					agentAudioTrack={audioTrack}
-					localMicTrack={
-						isMicrophoneEnabled ? microphoneTrackRef : undefined
-					}
-				/>
-				<p className="text-center text-sm text-muted-foreground">
-					{statusLabel}
-				</p>
-			</div>
-		);
+		// Keep SpatialReal mounted while connecting so it can init in parallel.
+		if (showAvatarMain) {
+			return avatarMainContent ?? connectingContent;
+		}
+		if (!isConnected) {
+			return connectingContent;
+		}
+		return orbMainContent;
 	})();
 
 	return (
@@ -378,10 +469,10 @@ export function PreviewSessionControls({
 								)}
 							>
 								{mainContent}
-								{showLocalPip && localStage ? (
+								{showAvatarPip && avatarVideo ? (
 									<div className="absolute right-3 bottom-3 z-10 sm:right-4 sm:bottom-4">
 										<PipStage className="ring-1 ring-white/20">
-											{localStage}
+											{avatarVideo}
 										</PipStage>
 									</div>
 								) : null}
@@ -507,7 +598,11 @@ export function PreviewSessionControls({
 				</DialogContent>
 			</Dialog>
 
-			<RoomAudioRenderer />
+			{isSpatialReal ? (
+				<SpatialRealSafeRoomAudio />
+			) : (
+				<RoomAudioRenderer />
+			)}
 		</div>
 	);
 }

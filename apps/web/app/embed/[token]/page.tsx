@@ -88,6 +88,8 @@ function EmbedAgentPageContent() {
 		token: string;
 		serverUrl: string;
 		spatialRealAppId: string | null;
+		spatialRealSessionToken: string | null;
+		spatialRealRendererToken: string | null;
 	} | null>(null);
 
 	const embedQuery = useQuery(
@@ -119,6 +121,10 @@ function EmbedAgentPageContent() {
 					token: data.participantToken,
 					serverUrl: data.serverUrl,
 					spatialRealAppId: data.spatialRealAppId ?? null,
+					spatialRealSessionToken:
+						data.spatialRealSessionToken ?? null,
+					spatialRealRendererToken:
+						data.spatialRealRendererToken ?? null,
 				});
 			},
 			onError: (error: Error) => {
@@ -169,6 +175,9 @@ function EmbedAgentPageContent() {
 					external_avatar_id: embedQuery.data?.agent.avatarId ?? null,
 				})}
 				spatialRealAppId={credentials.spatialRealAppId}
+				spatialRealSessionToken={credentials.spatialRealSessionToken}
+				spatialRealRendererToken={credentials.spatialRealRendererToken}
+				serverUrl={credentials.serverUrl}
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}
