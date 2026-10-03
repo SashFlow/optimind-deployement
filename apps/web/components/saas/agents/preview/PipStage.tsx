@@ -11,7 +11,7 @@ export default function PipStage({
 	return (
 		<div
 			className={cn(
-				"relative h-20 w-28 overflow-hidden rounded-lg border bg-background shadow-md sm:h-24 sm:w-36",
+				"relative h-20 w-28 overflow-hidden border bg-white",
 				className,
 			)}
 		>
