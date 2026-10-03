@@ -61,6 +61,31 @@ export async function createCampaign(data: {
 	});
 }
 
+/** Shallow copy: settings + KB links. No contacts, sessions, or access links. */
+export async function duplicateCampaign(id: string) {
+	const source = await getCampaignById(id);
+	if (!source) {
+		return null;
+	}
+
+	const campaign = await createCampaign({
+		organizationId: source.organizationId,
+		agentId: source.agentId,
+		name: `${source.name} (copy)`,
+		description: source.description ?? undefined,
+		mode: source.mode,
+		channel: source.channel,
+		priority: source.priority,
+		contextSchema: (source.contextSchema ?? []) as Prisma.InputJsonValue,
+	});
+
+	for (const row of source.knowledgeBases) {
+		await attachKnowledgeBaseToCampaign(campaign.id, row.knowledgeBaseId);
+	}
+
+	return getCampaignById(campaign.id);
+}
+
 export async function updateCampaign(
 	id: string,
 	data: {

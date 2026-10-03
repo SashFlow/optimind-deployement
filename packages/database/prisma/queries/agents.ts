@@ -64,6 +64,31 @@ export async function createAgent(data: {
 	});
 }
 
+/** Shallow copy: name/description, draft config, and KB links. No trials/embed/published. */
+export async function duplicateAgent(id: string) {
+	const source = await getAgentById(id);
+	if (!source) {
+		return null;
+	}
+
+	const config = (source.draftVersion?.config ?? {}) as Prisma.InputJsonValue;
+	const agent = await createAgent({
+		organizationId: source.organizationId,
+		name: `${source.name} (copy)`,
+		description: source.description ?? undefined,
+		config,
+	});
+
+	const knowledgeBaseIds = source.knowledgeBases.map(
+		(row) => row.knowledgeBaseId,
+	);
+	if (knowledgeBaseIds.length > 0) {
+		await syncAgentKnowledgeBases(agent.id, knowledgeBaseIds);
+	}
+
+	return getAgentById(agent.id);
+}
+
 export async function updateAgent(
 	id: string,
 	data: {

@@ -6,6 +6,7 @@ import {
 	createCampaignAccessLink,
 	createCampaignContact,
 	createCampaignSession,
+	duplicateCampaign,
 	enqueueCampaignContacts,
 	getCampaignById,
 	getCampaignContactById,
@@ -104,6 +105,39 @@ export const create = protectedProcedure
 				channel: campaign.channel,
 				agentId: campaign.agentId,
 				status: campaign.status,
+			},
+		});
+		return { campaign };
+	});
+
+export const duplicate = protectedProcedure
+	.route({
+		method: "POST",
+		path: "/campaigns/{id}/duplicate",
+		tags: ["Campaigns"],
+		summary: "Duplicate campaign",
+	})
+	.input(z.object({ id: z.string() }))
+	.handler(async ({ input, context }) => {
+		const existing = await requireCampaign(input.id, context.user.id);
+		const campaign = await duplicateCampaign(input.id);
+		if (!campaign) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: campaign.organizationId,
+			actionType: "CREATE",
+			resourceType: "campaign",
+			resourceId: campaign.id,
+			after: {
+				name: campaign.name,
+				mode: campaign.mode,
+				channel: campaign.channel,
+				agentId: campaign.agentId,
+				status: campaign.status,
+				duplicatedFrom: existing.id,
 			},
 		});
 		return { campaign };

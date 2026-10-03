@@ -56,6 +56,7 @@ export type ResourceItem = {
 	icon?: React.ReactNode;
 	href?: string;
 	onEdit?: (name: string, description: string) => void | Promise<void>;
+	onDuplicate?: () => void | Promise<void>;
 	onDelete?: () => void | Promise<void>;
 };
 
@@ -136,10 +137,13 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 		item.description,
 	);
 	const [saving, setSaving] = React.useState(false);
+	const [duplicating, setDuplicating] = React.useState(false);
 	const [confirmDelete, setConfirmDelete] = React.useState(false);
 	const [deleting, setDeleting] = React.useState(false);
 	const isInteractive = Boolean(item.href);
-	const hasActions = Boolean(item.href || item.onEdit || item.onDelete);
+	const hasActions = Boolean(
+		item.href || item.onEdit || item.onDuplicate || item.onDelete,
+	);
 
 	function openEditDialog() {
 		setEditName(item.title);
@@ -160,6 +164,16 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 			setEditOpen(false);
 		} finally {
 			setSaving(false);
+		}
+	}
+
+	async function handleDuplicate() {
+		if (!item.onDuplicate || duplicating) return;
+		setDuplicating(true);
+		try {
+			await item.onDuplicate();
+		} finally {
+			setDuplicating(false);
 		}
 	}
 
@@ -267,9 +281,21 @@ function ResourceCard({ item }: { item: ResourceItem }) {
 										Edit
 									</DropdownMenuItem>
 								) : null}
+								{item.onDuplicate ? (
+									<DropdownMenuItem
+										disabled={duplicating}
+										onClick={handleDuplicate}
+									>
+										{duplicating
+											? "Duplicating…"
+											: "Duplicate"}
+									</DropdownMenuItem>
+								) : null}
 								{item.onDelete ? (
 									<>
-										{item.href || item.onEdit ? (
+										{item.href ||
+										item.onEdit ||
+										item.onDuplicate ? (
 											<DropdownMenuSeparator />
 										) : null}
 										<DropdownMenuItem

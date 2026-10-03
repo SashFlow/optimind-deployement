@@ -71,6 +71,18 @@ export function KnowledgeListPage() {
 		}),
 	);
 
+	const duplicateMutation = useMutation(
+		orpc.knowledge.duplicate.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: listQueryKey,
+				});
+				toast.success("Knowledge base duplicated");
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
 	const items = query.data?.knowledgeBases ?? [];
 	const isLoading = !organizationId || query.isPending;
 
@@ -128,6 +140,9 @@ export function KnowledgeListPage() {
 								name,
 								description: description || null,
 							});
+						},
+						onDuplicate: async () => {
+							await duplicateMutation.mutateAsync({ id: kb.id });
 						},
 						onDelete: async () => {
 							await deleteMutation.mutateAsync({

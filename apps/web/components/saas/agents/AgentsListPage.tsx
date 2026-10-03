@@ -78,6 +78,20 @@ export function AgentsListPage() {
 		}),
 	);
 
+	const duplicateMutation = useMutation(
+		orpc.agents.duplicate.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: listQueryKey,
+				});
+				toast.success("Agent duplicated");
+			},
+			onError: (error) => {
+				toast.error(error.message || "Failed to duplicate agent");
+			},
+		}),
+	);
+
 	const agents = agentsQuery.data?.agents ?? [];
 	const isLoading = !organizationId || agentsQuery.isPending;
 
@@ -134,6 +148,11 @@ export function AgentsListPage() {
 								id: agent.id,
 								name,
 								description: description || null,
+							});
+						},
+						onDuplicate: async () => {
+							await duplicateMutation.mutateAsync({
+								id: agent.id,
 							});
 						},
 						onDelete: async () => {

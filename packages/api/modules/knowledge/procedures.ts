@@ -4,6 +4,7 @@ import {
 	createDocumentChunks,
 	createKnowledgeBase,
 	deleteDocument,
+	duplicateKnowledgeBase,
 	getDocumentById,
 	getKnowledgeBaseById,
 	listKnowledgeBases,
@@ -99,6 +100,36 @@ export const create = protectedProcedure
 			after: {
 				name: knowledgeBase.name,
 				status: knowledgeBase.status,
+			},
+		});
+		return { knowledgeBase };
+	});
+
+export const duplicate = protectedProcedure
+	.route({
+		method: "POST",
+		path: "/knowledge-bases/{id}/duplicate",
+		tags: ["Knowledge"],
+		summary: "Duplicate knowledge base",
+	})
+	.input(z.object({ id: z.string() }))
+	.handler(async ({ input, context }) => {
+		const existing = await requireKb(input.id, context.user.id);
+		const knowledgeBase = await duplicateKnowledgeBase(input.id);
+		if (!knowledgeBase) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: knowledgeBase.organizationId,
+			actionType: "CREATE",
+			resourceType: "knowledge_source",
+			resourceId: knowledgeBase.id,
+			after: {
+				name: knowledgeBase.name,
+				status: knowledgeBase.status,
+				duplicatedFrom: existing.id,
 			},
 		});
 		return { knowledgeBase };

@@ -61,6 +61,22 @@ export async function createKnowledgeBase(data: {
 	});
 }
 
+/** Shallow copy: name/description and embedding settings. No documents or chunks. */
+export async function duplicateKnowledgeBase(id: string) {
+	const source = await getKnowledgeBaseById(id);
+	if (!source) {
+		return null;
+	}
+
+	return createKnowledgeBase({
+		organizationId: source.organizationId,
+		name: `${source.name} (copy)`,
+		description: source.description ?? undefined,
+		embeddingModel: source.embeddingModel,
+		embeddingDim: source.embeddingDim,
+	});
+}
+
 export async function updateKnowledgeBase(
 	id: string,
 	data: {

@@ -47,6 +47,18 @@ export function CampaignsListPage() {
 		}),
 	);
 
+	const duplicateMutation = useMutation(
+		orpc.campaigns.duplicate.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: listQueryKey,
+				});
+				toast.success("Campaign duplicated");
+			},
+			onError: (error) => toast.error(error.message),
+		}),
+	);
+
 	const campaigns = query.data?.campaigns ?? [];
 	const isLoading = !organizationId || query.isPending;
 
@@ -67,6 +79,9 @@ export function CampaignsListPage() {
 						name,
 						description: description || null,
 					});
+				},
+				onDuplicate: async () => {
+					await duplicateMutation.mutateAsync({ id: campaign.id });
 				},
 				onDelete: async () => {
 					await deleteMutation.mutateAsync({

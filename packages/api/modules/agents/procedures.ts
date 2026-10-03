@@ -5,6 +5,7 @@ import {
 	createAgentTrial,
 	deleteAgentTrial,
 	detachKnowledgeBaseFromAgent,
+	duplicateAgent,
 	ensureAgentEmbedToken,
 	getAgentById,
 	getAgentTrialById,
@@ -87,6 +88,41 @@ export const create = protectedProcedure
 				name: agent.name,
 				description: agent.description,
 				status: agent.status,
+			},
+		});
+		return { agent };
+	});
+
+export const duplicate = protectedProcedure
+	.route({
+		method: "POST",
+		path: "/agents/{id}/duplicate",
+		tags: ["Agents"],
+		summary: "Duplicate agent",
+	})
+	.input(z.object({ id: z.string() }))
+	.handler(async ({ input, context }) => {
+		const existing = await getAgentById(input.id);
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		await requireOrgMembership(existing.organizationId, context.user.id);
+		const agent = await duplicateAgent(input.id);
+		if (!agent) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		await recordAudit({
+			headers: context.headers,
+			userId: context.user.id,
+			organizationId: agent.organizationId,
+			actionType: "CREATE",
+			resourceType: "agent",
+			resourceId: agent.id,
+			after: {
+				name: agent.name,
+				description: agent.description,
+				status: agent.status,
+				duplicatedFrom: existing.id,
 			},
 		});
 		return { agent };
