@@ -129,13 +129,13 @@ export function FaceCaptureOverlay() {
 						className={cn(
 							"flex items-center gap-2 text-sm",
 							faceCaptureStatus === "failed" &&
-								"text-destructive",
+							"text-destructive",
 						)}
 					>
 						{(faceCaptureStatus === "uploading" ||
 							faceCaptureStatus === "captured") && (
-							<Loader className="size-4 animate-spin" />
-						)}
+								<Loader className="size-4 animate-spin" />
+							)}
 						{faceCaptureStatus === "uploading"
 							? "Uploading your photo…"
 							: faceCaptureStatus === "captured"

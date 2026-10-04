@@ -124,9 +124,12 @@ function useLocalTrackRef(source: Track.Source) {
 	}, [localParticipant.identity, tracks]);
 }
 
-const VIDEO_FILL_CLASS = "size-full object-cover";
-const AVATAR_STAGE_CLASS = "aspect-video w-full max-h-[700px] max-w-5xl";
-const CAMERA_STAGE_CLASS = "aspect-video w-full max-h-[420px] max-w-3xl";
+const VIDEO_FILL_CLASS = "size-full object-contain";
+/** Largest 16:9 that fits the available stage without overflowing. */
+const AVATAR_STAGE_CLASS =
+	"aspect-video h-full max-h-full w-auto max-w-full shadow-none";
+const CAMERA_STAGE_CLASS =
+	"aspect-video h-full max-h-full w-auto max-w-full shadow-none";
 
 export function PreviewSessionControls({
 	agent,
@@ -379,23 +382,23 @@ export function PreviewSessionControls({
 	const avatarMainContent = avatarVideo ? (
 		<>
 			{avatarVideo}
-			{showAvatarFallback ||
-			((hasAvatarVideo || isSpatialReal) && !hasAgent) ? (
+			{/* {showAvatarFallback ||
+				((hasAvatarVideo || isSpatialReal) && !hasAgent) ? (
 				<div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/55 to-transparent p-3">
 					<p className="text-xs text-white/90">{statusLabel}</p>
 				</div>
-			) : null}
+			) : null} */}
 		</>
 	) : null;
 
 	const cameraMainContent = (
 		<>
 			{localStage ?? connectingContent}
-			{localStage && !hasAgent ? (
+			{/* {localStage && !hasAgent ? (
 				<div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/55 to-transparent p-3">
 					<p className="text-xs text-white/90">{statusLabel}</p>
 				</div>
-			) : null}
+			) : null} */}
 		</>
 	);
 
@@ -408,9 +411,9 @@ export function PreviewSessionControls({
 					isMicrophoneEnabled ? microphoneTrackRef : undefined
 				}
 			/>
-			<p className="text-center text-sm text-muted-foreground">
+			{/* <p className="text-center text-sm text-muted-foreground">
 				{statusLabel}
-			</p>
+			</p> */}
 		</div>
 	);
 
@@ -434,26 +437,28 @@ export function PreviewSessionControls({
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4 md:p-5">
-				<div className="relative flex h-full max-h-full min-h-0 w-full max-w-3xl flex-col overflow-hidden rounded-xl border bg-card shadow-sm lg:max-w-4xl xl:max-w-5xl">
-					{(proctoringEnabled || remainingSeconds != null) && (
-						<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-							{proctoringEnabled ? (
-								<span>
-									{proctoringNotice?.trim() ||
-										"Proctoring enabled"}
-								</span>
-							) : (
-								<span />
-							)}
-							{remainingSeconds != null ? (
-								<span className="font-medium text-foreground">
-									{formatRemainingDuration(remainingSeconds)}{" "}
-									left
-								</span>
-							) : null}
-						</div>
-					)}
-					<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 p-3 sm:p-4">
+				<div className="relative flex h-full max-h-full min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-xl border bg-card shadow-sm xl:max-w-6xl">
+					<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30">
+						{(proctoringEnabled || remainingSeconds != null) && (
+							<div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-center justify-between gap-2 bg-linear-to-b from-black/60 to-transparent px-3 py-2.5 text-xs text-white/90">
+								{proctoringEnabled ? (
+									<span>
+										{proctoringNotice?.trim() ||
+											"Proctoring enabled"}
+									</span>
+								) : (
+									<span />
+								)}
+								{remainingSeconds != null ? (
+									<span className="font-medium text-white">
+										{formatRemainingDuration(
+											remainingSeconds,
+										)}{" "}
+										left
+									</span>
+								) : null}
+							</div>
+						)}
 						<div
 							className={cn(
 								"relative flex h-full max-h-full w-full items-center justify-center",
@@ -465,13 +470,18 @@ export function PreviewSessionControls({
 									showAvatarMain && AVATAR_STAGE_CLASS,
 									showCameraMain && CAMERA_STAGE_CLASS,
 									showAudioOnlyMain &&
-										"aspect-auto h-auto w-full max-w-md bg-transparent shadow-none",
+									"aspect-auto h-auto w-full bg-transparent shadow-none",
 								)}
 							>
 								{mainContent}
 								{showAvatarPip && avatarVideo ? (
 									<div className="absolute right-3 bottom-3 z-10 sm:right-4 sm:bottom-4">
-										<PipStage className="ring-1 ring-white/20">
+										<PipStage
+											className="rounded-lg"
+											// SpatialReal sizes its WebGL canvas to the
+											// container; render 2× and scale down for sharpness.
+											renderScale={isSpatialReal ? 2 : 1}
+										>
 											{avatarVideo}
 										</PipStage>
 									</div>
@@ -513,7 +523,7 @@ export function PreviewSessionControls({
 									? "border-transparent bg-primary text-primary-foreground"
 									: "bg-muted text-muted-foreground",
 								proctoringEnabled &&
-									"cursor-not-allowed opacity-80",
+								"cursor-not-allowed opacity-80",
 							)}
 						>
 							{isCameraEnabled ? (
@@ -532,7 +542,7 @@ export function PreviewSessionControls({
 							className={cn(
 								"relative size-9 rounded-full",
 								chatOpen &&
-									"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+								"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 							)}
 							onClick={() => setChatOpen(true)}
 						>

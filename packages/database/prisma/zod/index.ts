@@ -3,6 +3,7 @@
  * Auto-generated. Do not edit.
  */
 
+import { createId as generateCuid } from "@paralleldrive/cuid2";
 import * as z from 'zod';
 // File: TransactionIsolationLevel.schema.ts
 
