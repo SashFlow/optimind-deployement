@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	type TrackReference,
 	useLocalParticipant,
 	useRoomContext,
 	VideoTrack,
@@ -9,6 +10,7 @@ import { Button } from "@repo/ui/button";
 import { cn } from "@repo/ui/utils";
 import { Track } from "livekit-client";
 import { Loader } from "lucide-react";
+import { useMemo } from "react";
 import { useProctoringContext } from "@/context/proctoring-provider";
 import { guideRect, ID_CAPTURE_HINTS } from "@/lib/proctoring/idCard";
 
@@ -17,6 +19,17 @@ export function IdCaptureOverlay() {
 	const proctoring = useProctoringContext();
 	const room = useRoomContext();
 	const { cameraTrack } = useLocalParticipant();
+
+	const trackRef = useMemo<TrackReference | undefined>(() => {
+		if (!cameraTrack) {
+			return undefined;
+		}
+		return {
+			participant: room.localParticipant,
+			publication: cameraTrack,
+			source: Track.Source.Camera,
+		};
+	}, [cameraTrack, room.localParticipant]);
 
 	if (!proctoring?.isIdCaptureActive) {
 		return null;
@@ -73,14 +86,10 @@ export function IdCaptureOverlay() {
 							alt="Captured ID card"
 							className="absolute inset-0 size-full object-contain"
 						/>
-					) : isCameraReady && cameraTrack?.track ? (
+					) : isCameraReady && trackRef?.publication.track ? (
 						<>
 							<VideoTrack
-								trackRef={{
-									participant: room.localParticipant,
-									publication: cameraTrack,
-									source: Track.Source.Camera,
-								}}
+								trackRef={trackRef}
 								className="absolute inset-0 size-full object-cover"
 							/>
 							<div

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	type TrackReference,
 	useLocalParticipant,
 	useRoomContext,
 	VideoTrack,
@@ -9,6 +10,7 @@ import { Button } from "@repo/ui/button";
 import { cn } from "@repo/ui/utils";
 import { Track } from "livekit-client";
 import { Loader } from "lucide-react";
+import { useMemo } from "react";
 import { useProctoringContext } from "@/context/proctoring-provider";
 import {
 	FACE_CAPTURE_HINTS,
@@ -20,6 +22,17 @@ export function FaceCaptureOverlay() {
 	const proctoring = useProctoringContext();
 	const room = useRoomContext();
 	const { cameraTrack } = useLocalParticipant();
+
+	const trackRef = useMemo<TrackReference | undefined>(() => {
+		if (!cameraTrack) {
+			return undefined;
+		}
+		return {
+			participant: room.localParticipant,
+			publication: cameraTrack,
+			source: Track.Source.Camera,
+		};
+	}, [cameraTrack, room.localParticipant]);
 
 	if (!proctoring?.isFaceCaptureActive) {
 		return null;
@@ -76,20 +89,16 @@ export function FaceCaptureOverlay() {
 							alt="Captured face"
 							className="absolute inset-0 size-full object-contain"
 						/>
-					) : isCameraReady && cameraTrack?.track ? (
+					) : isCameraReady && trackRef?.publication.track ? (
 						<>
 							<VideoTrack
-								trackRef={{
-									participant: room.localParticipant,
-									publication: cameraTrack,
-									source: Track.Source.Camera,
-								}}
+								trackRef={trackRef}
 								className="absolute inset-0 size-full object-cover"
 							/>
 							<div
 								aria-hidden
 								className={cn(
-									"absolute rounded-[50%] border-2 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] transition-colors",
+									"absolute rounded-lg border-2 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] transition-colors",
 									faceDetection?.detected
 										? "border-emerald-400"
 										: faceDetection?.faceFound
@@ -97,10 +106,10 @@ export function FaceCaptureOverlay() {
 											: "border-white/80",
 								)}
 								style={{
-									left: `${guide.x * 100}%`,
-									top: `${guide.y * 100}%`,
-									width: `${guide.width * 100}%`,
-									height: `${guide.height * 100}%`,
+									left: `13.5%`,
+									top: '11%',
+									width: '74%',
+									height: '74%',
 								}}
 							/>
 						</>
