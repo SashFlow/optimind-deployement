@@ -294,6 +294,11 @@ export function useProctoring({
 	onIdCaptureRef.current = onIdCapture;
 	const onFaceCaptureRef = useRef(onFaceCapture);
 	onFaceCaptureRef.current = onFaceCapture;
+	/** Sync guards so overlapping ticks / double submits can't fire add_context twice. */
+	const idSubmitInFlightRef = useRef(false);
+	const idContextSentRef = useRef(false);
+	const faceSubmitInFlightRef = useRef(false);
+	const faceContextSentRef = useRef(false);
 
 	const [mode, setModeState] = useState<ProctoringMode>("PROCTORING");
 	// The proctoring loop reads this rather than `mode` so pausing doesn't reload the models.
@@ -327,6 +332,10 @@ export function useProctoring({
 
 	/** Opens ID capture (or retries after a failure). The camera stays on; proctoring pauses. */
 	const startIdCapture = useCallback(() => {
+		idSubmitInFlightRef.current = false;
+		idContextSentRef.current = false;
+		faceSubmitInFlightRef.current = false;
+		faceContextSentRef.current = false;
 		setFaceCaptureStatus("idle");
 		setFaceCaptureError(null);
 		setIdCapture(null);
@@ -338,6 +347,8 @@ export function useProctoring({
 
 	/** Closes ID capture without submitting and resumes proctoring. */
 	const cancelIdCapture = useCallback(() => {
+		idSubmitInFlightRef.current = false;
+		idContextSentRef.current = false;
 		setIdCaptureStatus("idle");
 		setIdCaptureError(null);
 		setMode("PROCTORING");
@@ -345,6 +356,10 @@ export function useProctoring({
 
 	/** Opens face capture (or retries after a failure). The camera stays on; proctoring pauses. */
 	const startFaceCapture = useCallback(() => {
+		faceSubmitInFlightRef.current = false;
+		faceContextSentRef.current = false;
+		idSubmitInFlightRef.current = false;
+		idContextSentRef.current = false;
 		setIdCaptureStatus("idle");
 		setIdCaptureError(null);
 		setFaceCapture(null);
@@ -356,6 +371,8 @@ export function useProctoring({
 
 	/** Closes face capture without submitting and resumes proctoring. */
 	const cancelFaceCapture = useCallback(() => {
+		faceSubmitInFlightRef.current = false;
+		faceContextSentRef.current = false;
 		setFaceCaptureStatus("idle");
 		setFaceCaptureError(null);
 		setMode("PROCTORING");
@@ -363,6 +380,10 @@ export function useProctoring({
 
 	const submitIdCapture = useCallback(
 		async (captured: IdCaptureResult) => {
+			if (idSubmitInFlightRef.current || idContextSentRef.current) {
+				return;
+			}
+			idSubmitInFlightRef.current = true;
 			try {
 				const push = onIdCaptureRef.current;
 				if (!push) {
@@ -373,11 +394,15 @@ export function useProctoring({
 				if (modeRef.current !== "ID_CAPTURE") {
 					return;
 				}
+				if (idContextSentRef.current) {
+					return;
+				}
+				idContextSentRef.current = true;
 
 				setIdCaptureStatus("captured");
 				setMode("PROCTORING");
 				toast.success("ID card captured");
-				void sendContext(room, {
+				await sendContext(room, {
 					state: "ID card capture completed successfully. The candidate's ID images have been uploaded and submitted for verification. You may continue the conversation.",
 					action: "generate_reply",
 					type: "id_captured",
@@ -389,6 +414,7 @@ export function useProctoring({
 				});
 			} catch (error) {
 				console.error("ID capture: upload failed", error);
+				idContextSentRef.current = false;
 				if (modeRef.current !== "ID_CAPTURE") {
 					return;
 				}
@@ -402,6 +428,8 @@ export function useProctoring({
 						: "We could not upload your ID. Please try again.",
 				);
 				setIdCaptureStatus("failed");
+			} finally {
+				idSubmitInFlightRef.current = false;
 			}
 		},
 		[room, setMode],
@@ -409,6 +437,10 @@ export function useProctoring({
 
 	const submitFaceCapture = useCallback(
 		async (captured: FaceCaptureResult) => {
+			if (faceSubmitInFlightRef.current || faceContextSentRef.current) {
+				return;
+			}
+			faceSubmitInFlightRef.current = true;
 			try {
 				const push = onFaceCaptureRef.current;
 				if (!push) {
@@ -418,6 +450,10 @@ export function useProctoring({
 				if (modeRef.current !== "FACE_CAPTURE") {
 					return;
 				}
+				if (faceContextSentRef.current) {
+					return;
+				}
+				faceContextSentRef.current = true;
 
 				setFaceCaptureStatus("captured");
 				// Notify the agent before closing so it can continue the turn.
@@ -438,6 +474,7 @@ export function useProctoring({
 				toast.success("Face captured");
 			} catch (error) {
 				console.error("Face capture: upload failed", error);
+				faceContextSentRef.current = false;
 				if (modeRef.current !== "FACE_CAPTURE") {
 					return;
 				}
@@ -451,6 +488,8 @@ export function useProctoring({
 						: "We could not upload your photo. Please try again.",
 				);
 				setFaceCaptureStatus("failed");
+			} finally {
+				faceSubmitInFlightRef.current = false;
 			}
 		},
 		[room, setMode],
@@ -621,6 +660,7 @@ export function useProctoring({
 		}
 
 		let cancelled = false;
+		let capturing = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		const video = attachHiddenVideo(videoTrack, "ID capture");
 		const detect = createIdCardDetector();
@@ -631,7 +671,7 @@ export function useProctoring({
 		let lastBox: NormalizedRect | null = null;
 
 		const tick = async () => {
-			if (cancelled) {
+			if (cancelled || capturing) {
 				return;
 			}
 			const cfg = configRef.current.idCapture;
@@ -664,6 +704,7 @@ export function useProctoring({
 						stableFrames >= cfg.requiredStableFrames &&
 						detection.box
 					) {
+						capturing = true;
 						const captured = await captureIdCard(
 							video,
 							{ ...detection, box: detection.box },
@@ -678,6 +719,7 @@ export function useProctoring({
 						return;
 					}
 				} catch (error) {
+					capturing = false;
 					console.error("ID capture: frame analysis failed", error);
 				}
 			}
@@ -706,6 +748,7 @@ export function useProctoring({
 		}
 
 		let cancelled = false;
+		let capturing = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		let faceLandmarker: FaceLandmarker | undefined;
 		const video = attachHiddenVideo(videoTrack, "Face capture");
@@ -714,7 +757,7 @@ export function useProctoring({
 		let lastBox: NormalizedRect | null = null;
 
 		const tick = async () => {
-			if (cancelled || !faceLandmarker) {
+			if (cancelled || capturing || !faceLandmarker) {
 				return;
 			}
 			const cfg = configRef.current.faceCapture;
@@ -756,6 +799,7 @@ export function useProctoring({
 						stableFrames >= cfg.requiredStableFrames &&
 						detection.box
 					) {
+						capturing = true;
 						const captured = await captureFace(
 							video,
 							{ ...detection, box: detection.box },
@@ -770,6 +814,7 @@ export function useProctoring({
 						return;
 					}
 				} catch (error) {
+					capturing = false;
 					console.error("Face capture: frame analysis failed", error);
 				}
 			}

@@ -1,6 +1,6 @@
 import { useRoomContext } from "@livekit/components-react";
 import { ParticipantKind, type Room } from "livekit-client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 /** RPC the agent can call on the candidate to open the OTP input popover. */
@@ -83,6 +83,13 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 	const [resending, setResending] = useState(false);
 	const [resendAvailableAt, setResendAvailableAt] = useState(0);
 	const [now, setNow] = useState(() => Date.now());
+	/** Sync guards — React state alone can miss rapid double-clicks before re-render. */
+	const submitInFlightRef = useRef(false);
+	const resendInFlightRef = useRef(false);
+	const contextSentRef = useRef<{
+		submit: boolean;
+		resendAt: number;
+	}>({ submit: false, resendAt: 0 });
 
 	useEffect(() => {
 		if (resendAvailableAt <= Date.now()) {
@@ -93,6 +100,9 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 	}, [resendAvailableAt]);
 
 	const openOtpInput = useCallback((next: OtpInputOptions) => {
+		submitInFlightRef.current = false;
+		resendInFlightRef.current = false;
+		contextSentRef.current = { submit: false, resendAt: 0 };
 		setOptions(next);
 		setCode("");
 		setSubmitting(false);
@@ -102,6 +112,8 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 	}, []);
 
 	const dismiss = useCallback(() => {
+		submitInFlightRef.current = false;
+		resendInFlightRef.current = false;
 		setOpen(false);
 		setCode("");
 		setSubmitting(false);
@@ -109,9 +121,14 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 	}, []);
 
 	const submit = useCallback(async () => {
-		if (code.length !== options.length || submitting) {
+		if (
+			code.length !== options.length ||
+			submitInFlightRef.current ||
+			contextSentRef.current.submit
+		) {
 			return;
 		}
+		submitInFlightRef.current = true;
 		setSubmitting(true);
 		try {
 			await sendContext(room, {
@@ -124,6 +141,7 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 					submittedAt: Date.now(),
 				},
 			});
+			contextSentRef.current.submit = true;
 			toast.success("Code submitted");
 			dismiss();
 		} catch (error) {
@@ -133,14 +151,21 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 					? error.message.trim()
 					: "Please try again.";
 			toast.error(`Could not submit the code: ${detail}`);
+			submitInFlightRef.current = false;
 			setSubmitting(false);
 		}
-	}, [code, dismiss, options.length, room, submitting]);
+	}, [code, dismiss, options.length, room]);
 
 	const resend = useCallback(async () => {
-		if (resending || Date.now() < resendAvailableAt) {
+		const nowMs = Date.now();
+		if (
+			resendInFlightRef.current ||
+			nowMs < resendAvailableAt ||
+			nowMs - contextSentRef.current.resendAt < RESEND_COOLDOWN_MS
+		) {
 			return;
 		}
+		resendInFlightRef.current = true;
 		setResending(true);
 		try {
 			await sendContext(room, {
@@ -148,18 +173,20 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 				action: "generate_reply",
 				type: "otp_resend_requested",
 				details: {
-					requestedAt: Date.now(),
+					requestedAt: nowMs,
 				},
 			});
-			setResendAvailableAt(Date.now() + RESEND_COOLDOWN_MS);
+			contextSentRef.current.resendAt = nowMs;
+			setResendAvailableAt(nowMs + RESEND_COOLDOWN_MS);
 			toast.success("Resend requested");
 		} catch (error) {
 			console.error("OTP resend failed", error);
 			toast.error("Could not request a resend. Please try again.");
 		} finally {
+			resendInFlightRef.current = false;
 			setResending(false);
 		}
-	}, [resendAvailableAt, resending, room]);
+	}, [resendAvailableAt, room]);
 
 	useEffect(() => {
 		if (!enabled) {
