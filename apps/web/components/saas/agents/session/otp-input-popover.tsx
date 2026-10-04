@@ -97,11 +97,10 @@ export function OtpInputPopover() {
 			<div className="bg-background border-input/50 flex w-full max-w-md flex-col gap-5 rounded-lg border p-5 drop-shadow-md/3">
 				<div>
 					<h2 id="otp-input-title" className="text-lg font-semibold">
-						Enter verification code
+						Enter OTP
 					</h2>
 					<p className="text-muted-foreground text-sm">
-						{options.hint ??
-							`Enter the ${options.length}-digit code you received.`}
+						Enter the 6-digit code you received via SMS. Check Spam folder if you don't see it.
 					</p>
 				</div>
 
@@ -118,28 +117,7 @@ export function OtpInputPopover() {
 				</div>
 
 				<div className="flex items-center justify-between gap-3">
-					<Button
-						type="button"
-						variant="ghost"
-						disabled={!canResend || submitting}
-						onClick={() => void resend()}
-					>
-						{resending && (
-							<Loader className="mr-2 size-4 animate-spin" />
-						)}
-						{resendCooldownSeconds > 0
-							? `Resend in ${resendCooldownSeconds}s`
-							: "Resend"}
-					</Button>
 					<div className="flex gap-2">
-						<Button
-							type="button"
-							variant="outline"
-							disabled={submitting}
-							onClick={dismiss}
-						>
-							Cancel
-						</Button>
 						<Button
 							type="button"
 							disabled={
