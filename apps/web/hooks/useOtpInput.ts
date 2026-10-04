@@ -26,7 +26,7 @@ async function sendContext(room: Room, context: AgentContext) {
 		(p) => p.kind === ParticipantKind.AGENT,
 	);
 	if (!agent) {
-		return;
+		throw new Error("Agent is not connected");
 	}
 
 	try {
@@ -128,7 +128,11 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 			dismiss();
 		} catch (error) {
 			console.error("OTP submit failed", error);
-			toast.error("Could not submit the code. Please try again.");
+			const detail =
+				error instanceof Error && error.message.trim()
+					? error.message.trim()
+					: "Please try again.";
+			toast.error(`Could not submit the code: ${detail}`);
 			setSubmitting(false);
 		}
 	}, [code, dismiss, options.length, room, submitting]);

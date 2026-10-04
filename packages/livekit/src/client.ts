@@ -76,7 +76,9 @@ export async function createParticipantToken(opts: {
 	const at = new AccessToken(cfg.apiKey, cfg.apiSecret, {
 		identity: opts.identity,
 		name: opts.name,
-		ttl: opts.ttl ?? "15m",
+		// Web sessions (incl. face/ID capture uploads) reuse this JWT after join.
+		// LiveKit room stay-alive does not keep the original JWT valid for our API.
+		ttl: opts.ttl ?? "6h",
 		metadata: opts.metadata,
 	} satisfies AccessTokenOptions);
 

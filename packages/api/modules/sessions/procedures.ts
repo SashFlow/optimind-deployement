@@ -44,6 +44,7 @@ import {
 import { resolveSessionEndUser, toDispatchEndUser } from "./lib/end-user";
 import {
 	MAX_END_USER_FILE_BYTES,
+	uploadEndUserBytes,
 	uploadEndUserFile,
 	withSignedFileUrls,
 } from "./lib/end-user-files";
@@ -1706,6 +1707,22 @@ function readParticipantToken(
 	return match?.[1]?.trim() || null;
 }
 
+function decodeBase64Payload(value: string): Uint8Array {
+	const trimmed = value.trim();
+	const comma = trimmed.indexOf(",");
+	const raw =
+		trimmed.startsWith("data:") && comma !== -1
+			? trimmed.slice(comma + 1)
+			: trimmed;
+	const buf = Buffer.from(raw, "base64");
+	if (buf.byteLength === 0) {
+		throw new ORPCError("BAD_REQUEST", {
+			message: "Empty file payload",
+		});
+	}
+	return new Uint8Array(buf);
+}
+
 export const uploadParticipantFile = publicProcedure
 	.route({
 		method: "POST",
@@ -1717,7 +1734,15 @@ export const uploadParticipantFile = publicProcedure
 	.input(
 		z.object({
 			id: z.string(),
-			file: z.file(),
+			/**
+			 * Base64 (or data-URL) payload. Prefer this over `file` so the client
+			 * can use JSON RPC without multipart/FormData, which is flaky in some
+			 * Next/Hono runtimes.
+			 */
+			contentBase64: z.string().min(1).optional(),
+			contentType: z.string().max(200).optional(),
+			/** @deprecated Prefer contentBase64 — kept for older clients. */
+			file: z.file().optional(),
 			name: z.string().max(200).optional(),
 			/** Optional when Authorization: Bearer <livekit-jwt> is set. */
 			participantToken: z.string().min(1).optional(),
@@ -1739,7 +1764,7 @@ export const uploadParticipantFile = publicProcedure
 			claims = await verifyParticipantToken(token);
 		} catch {
 			throw new ORPCError("UNAUTHORIZED", {
-				message: "Invalid participant token",
+				message: "Invalid or expired participant token",
 			});
 		}
 
@@ -1754,7 +1779,7 @@ export const uploadParticipantFile = publicProcedure
 		}
 		if (session.status !== "QUEUED" && session.status !== "ACTIVE") {
 			throw new ORPCError("BAD_REQUEST", {
-				message: "Session is no longer accepting uploads",
+				message: `Session is no longer accepting uploads (status: ${session.status})`,
 			});
 		}
 		if (!session.endUserId) {
@@ -1762,20 +1787,47 @@ export const uploadParticipantFile = publicProcedure
 				message: "Session has no end user",
 			});
 		}
-		if (input.file.size > MAX_PARTICIPANT_FILE_BYTES) {
+
+		let bytes: Uint8Array;
+		let contentType =
+			input.contentType?.trim() || "application/octet-stream";
+		let name = input.name?.trim() || "file";
+
+		if (input.contentBase64) {
+			bytes = decodeBase64Payload(input.contentBase64);
+		} else if (input.file) {
+			bytes = new Uint8Array(await input.file.arrayBuffer());
+			contentType = input.file.type || contentType;
+			name = input.name?.trim() || input.file.name || name;
+		} else {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "contentBase64 or file is required",
+			});
+		}
+
+		if (bytes.byteLength > MAX_PARTICIPANT_FILE_BYTES) {
 			throw new ORPCError("BAD_REQUEST", {
 				message: "File is larger than 5 MB",
 			});
 		}
 
-		const file = await uploadEndUserFile({
-			session: {
-				id: session.id,
-				organizationId: session.organizationId,
-				endUserId: session.endUserId,
-			},
-			file: input.file,
-			name: input.name,
-		});
-		return { file };
+		try {
+			const file = await uploadEndUserBytes({
+				session: {
+					id: session.id,
+					organizationId: session.organizationId,
+					endUserId: session.endUserId,
+				},
+				bytes,
+				name,
+				contentType,
+			});
+			return { file };
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Upload failed";
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message: message.slice(0, 500),
+			});
+		}
 	});

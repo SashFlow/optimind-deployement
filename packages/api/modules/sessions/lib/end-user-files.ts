@@ -15,14 +15,15 @@ function safeFileName(name: string) {
 	return cleaned.slice(-120) || "file";
 }
 
-/** Store a worker-provided file in S3 and record it for the session's end user. */
-export async function uploadEndUserFile(args: {
+/** Store raw bytes in S3 and record a SessionFile for the session's end user. */
+export async function uploadEndUserBytes(args: {
 	session: { id: string; organizationId: string; endUserId: string };
-	file: File;
-	name?: string;
+	bytes: Uint8Array;
+	name: string;
+	contentType?: string;
 }) {
-	const name = safeFileName(args.name || args.file.name);
-	const type = args.file.type || "application/octet-stream";
+	const name = safeFileName(args.name);
+	const type = args.contentType || "application/octet-stream";
 	const key = [
 		"end-users",
 		args.session.organizationId,
@@ -31,7 +32,7 @@ export async function uploadEndUserFile(args: {
 		`${nanoid(10)}-${name}`,
 	].join("/");
 
-	await uploadObject(key, new Uint8Array(await args.file.arrayBuffer()), {
+	await uploadObject(key, args.bytes, {
 		bucket: bucket(),
 		contentType: type,
 	});
@@ -43,7 +44,21 @@ export async function uploadEndUserFile(args: {
 		name,
 		storageKey: key,
 		type,
-		size: args.file.size,
+		size: args.bytes.byteLength,
+	});
+}
+
+/** Store a worker-provided file in S3 and record it for the session's end user. */
+export async function uploadEndUserFile(args: {
+	session: { id: string; organizationId: string; endUserId: string };
+	file: File;
+	name?: string;
+}) {
+	return uploadEndUserBytes({
+		session: args.session,
+		bytes: new Uint8Array(await args.file.arrayBuffer()),
+		name: args.name || args.file.name,
+		contentType: args.file.type || "application/octet-stream",
 	});
 }
 

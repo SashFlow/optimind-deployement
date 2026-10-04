@@ -33,7 +33,6 @@ export function FaceCaptureOverlay() {
 		faceDetection,
 		faceCapture,
 		startFaceCapture,
-		cancelFaceCapture,
 	} = proctoring;
 
 	const width = cameraTrack?.dimensions?.width || 1280;
@@ -61,7 +60,7 @@ export function FaceCaptureOverlay() {
 						Verify your face
 					</h2>
 					<p className="text-muted-foreground text-sm">
-						Center your face in the oval. It is captured
+						Center your face in the oval. We capture and submit
 						automatically once you hold still.
 					</p>
 				</div>
@@ -133,26 +132,27 @@ export function FaceCaptureOverlay() {
 								"text-destructive",
 						)}
 					>
-						{faceCaptureStatus === "uploading" && (
+						{(faceCaptureStatus === "uploading" ||
+							faceCaptureStatus === "captured") && (
 							<Loader className="size-4 animate-spin" />
 						)}
 						{faceCaptureStatus === "uploading"
 							? "Uploading your photo…"
-							: faceCaptureStatus === "failed"
-								? faceCaptureError
-								: isCameraReady && hint}
+							: faceCaptureStatus === "captured"
+								? "Photo captured. Continuing…"
+								: faceCaptureStatus === "failed"
+									? faceCaptureError
+									: isCameraReady && hint}
 					</p>
 
-					<div className="flex shrink-0 gap-2">
-						<Button variant="outline" onClick={cancelFaceCapture}>
-							Cancel
+					{faceCaptureStatus === "failed" ? (
+						<Button
+							className="shrink-0"
+							onClick={startFaceCapture}
+						>
+							Try again
 						</Button>
-						{faceCaptureStatus === "failed" && (
-							<Button onClick={startFaceCapture}>
-								Try again
-							</Button>
-						)}
-					</div>
+					) : null}
 				</div>
 			</div>
 		</div>

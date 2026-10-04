@@ -392,8 +392,14 @@ export function useProctoring({
 				if (modeRef.current !== "ID_CAPTURE") {
 					return;
 				}
+				const detail =
+					error instanceof Error && error.message.trim()
+						? error.message.trim()
+						: null;
 				setIdCaptureError(
-					"We could not upload your ID. Please try again.",
+					detail
+						? `We could not upload your ID: ${detail}`
+						: "We could not upload your ID. Please try again.",
 				);
 				setIdCaptureStatus("failed");
 			}
@@ -414,9 +420,8 @@ export function useProctoring({
 				}
 
 				setFaceCaptureStatus("captured");
-				setMode("PROCTORING");
-				toast.success("Face captured");
-				void sendContext(room, {
+				// Notify the agent before closing so it can continue the turn.
+				await sendContext(room, {
 					state: "Face capture completed successfully. The candidate's face images have been uploaded and submitted for verification. You may continue the conversation.",
 					action: "generate_reply",
 					type: "face_captured",
@@ -426,13 +431,24 @@ export function useProctoring({
 						status: "completed",
 					},
 				});
+				if (modeRef.current !== "FACE_CAPTURE") {
+					return;
+				}
+				setMode("PROCTORING");
+				toast.success("Face captured");
 			} catch (error) {
 				console.error("Face capture: upload failed", error);
 				if (modeRef.current !== "FACE_CAPTURE") {
 					return;
 				}
+				const detail =
+					error instanceof Error && error.message.trim()
+						? error.message.trim()
+						: null;
 				setFaceCaptureError(
-					"We could not upload your photo. Please try again.",
+					detail
+						? `We could not upload your photo: ${detail}`
+						: "We could not upload your photo. Please try again.",
 				);
 				setFaceCaptureStatus("failed");
 			}
