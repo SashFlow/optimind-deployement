@@ -13,7 +13,7 @@ import { CheckIcon, LockIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { ConfigureSectionToggle } from "@/components/saas/agents/configure/ConfigureSectionToggle";
 import type { AgentConfigDocument } from "@/lib/agent-config";
-import { AVATAR_MAX_DURATION_SECONDS } from "@/lib/agent-pipeline";
+import { ANAM_AVATAR_MAX_DURATION_SECONDS } from "@/lib/agent-pipeline";
 import { useAvatarProvidersQuery } from "@/services/api/hooks";
 
 type AvatarSectionProps = {
@@ -253,10 +253,15 @@ export function AvatarSection({
 				provider_id: option.providerId,
 				external_avatar_id: option.externalAvatarId,
 			},
-			call_ending: {
-				...config.call_ending,
-				max_duration_seconds: AVATAR_MAX_DURATION_SECONDS,
-			},
+			...(option.providerId === "anam"
+				? {
+						call_ending: {
+							...config.call_ending,
+							max_duration_seconds:
+								ANAM_AVATAR_MAX_DURATION_SECONDS,
+						},
+					}
+				: {}),
 		});
 	}
 
@@ -272,7 +277,7 @@ export function AvatarSection({
 			<div className="px-4 py-4 md:px-5">
 				<ConfigureSectionToggle
 					title="Enable avatar"
-					description="Show a live avatar video stream alongside the assistant voice in web sessions. Maximum call duration is set to 5 minutes while avatar is enabled."
+					description="Show a live avatar video stream alongside the assistant voice in web sessions. Anam avatars are limited to a 5-minute call duration."
 					checked={config.avatar?.enabled ?? false}
 					onCheckedChange={(enabled) =>
 						onConfigChange({
@@ -280,12 +285,12 @@ export function AvatarSection({
 								...(config.avatar ?? { params: {} }),
 								enabled,
 							},
-							...(enabled
+							...(enabled && configuredProviderId === "anam"
 								? {
 										call_ending: {
 											...config.call_ending,
 											max_duration_seconds:
-												AVATAR_MAX_DURATION_SECONDS,
+												ANAM_AVATAR_MAX_DURATION_SECONDS,
 										},
 									}
 								: {}),

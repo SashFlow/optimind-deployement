@@ -17,8 +17,14 @@ import * as React from "react";
 import { ConfigureRadioCard } from "@/components/saas/agents/configure/ConfigureRadioCard";
 import { LocaleCombobox } from "@/components/saas/agents/configure/LocaleCombobox";
 import type { AgentConfigDocument } from "@/lib/agent-config";
-import { AVATAR_MAX_DURATION_SECONDS } from "@/lib/agent-pipeline";
-import { useTimezonesQuery } from "@/services/api/hooks";
+import {
+	ANAM_AVATAR_MAX_DURATION_SECONDS,
+	isAnamAvatarDurationLimited,
+} from "@/lib/agent-pipeline";
+import {
+	useAvatarProvidersQuery,
+	useTimezonesQuery,
+} from "@/services/api/hooks";
 
 const DURATION_OPTIONS = [
 	{ value: "240", label: "4 minutes" },
@@ -97,37 +103,41 @@ export function CallSessionSection({
 }: CallSessionSectionProps) {
 	const [keywordInput, setKeywordInput] = React.useState("");
 	const timezonesQuery = useTimezonesQuery();
-	const avatarEnabled = config.avatar?.enabled ?? false;
-	const durationOptions = avatarEnabled
+	const avatarProvidersQuery = useAvatarProvidersQuery();
+	const anamDurationLimited = isAnamAvatarDurationLimited(
+		config.avatar,
+		avatarProvidersQuery.data ?? [],
+	);
+	const durationOptions = anamDurationLimited
 		? DURATION_OPTIONS.filter(
-				(opt) => Number(opt.value) <= AVATAR_MAX_DURATION_SECONDS,
+				(opt) => Number(opt.value) <= ANAM_AVATAR_MAX_DURATION_SECONDS,
 			)
 		: DURATION_OPTIONS;
 
 	const maxDuration = String(
-		avatarEnabled
+		anamDurationLimited
 			? Math.min(
 					config.call_ending.max_duration_seconds ??
-						AVATAR_MAX_DURATION_SECONDS,
-					AVATAR_MAX_DURATION_SECONDS,
+						ANAM_AVATAR_MAX_DURATION_SECONDS,
+					ANAM_AVATAR_MAX_DURATION_SECONDS,
 				)
 			: (config.call_ending.max_duration_seconds ?? "480"),
 	);
 
 	React.useEffect(() => {
-		if (!avatarEnabled) {
+		if (!anamDurationLimited) {
 			return;
 		}
 		const current = config.call_ending.max_duration_seconds;
-		if (current == null || current > AVATAR_MAX_DURATION_SECONDS) {
+		if (current == null || current > ANAM_AVATAR_MAX_DURATION_SECONDS) {
 			onConfigChange({
 				call_ending: {
 					...config.call_ending,
-					max_duration_seconds: AVATAR_MAX_DURATION_SECONDS,
+					max_duration_seconds: ANAM_AVATAR_MAX_DURATION_SECONDS,
 				},
 			});
 		}
-	}, [avatarEnabled, config.call_ending.max_duration_seconds]);
+	}, [anamDurationLimited, config.call_ending.max_duration_seconds]);
 	const inactivityWarning = String(
 		config.call_ending.inactivity_warning_seconds ?? "20",
 	);
@@ -439,9 +449,10 @@ export function CallSessionSection({
 								))}
 							</SelectContent>
 						</Select>
-						{avatarEnabled ? (
+						{anamDurationLimited ? (
 							<p className="text-xs text-muted-foreground">
-								Limited to 5 minutes while avatar is enabled.
+								Limited to 5 minutes while Anam avatar is
+								enabled.
 							</p>
 						) : null}
 					</div>

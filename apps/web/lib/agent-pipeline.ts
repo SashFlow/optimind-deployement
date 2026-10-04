@@ -297,5 +297,49 @@ export function conversationModelSupportsWebSearch(
 	);
 }
 
-/** Max session length (seconds) when a visual avatar is enabled. */
-export const AVATAR_MAX_DURATION_SECONDS = 300;
+/** Max session length (seconds) when Anam avatar is enabled. Other providers have no special limit. */
+export const ANAM_AVATAR_MAX_DURATION_SECONDS = 300;
+
+type AvatarDurationRef = {
+	enabled?: boolean;
+	provider_id?: string | null;
+	external_avatar_id?: string | null;
+};
+
+type AvatarCatalogProvider = {
+	id: string;
+	avatars: readonly { id: string }[];
+};
+
+/**
+ * True when the configured avatar is Anam (the only provider with a hard
+ * 5-minute call-duration cap). Resolves older configs that omit provider_id
+ * via the avatar catalog when available.
+ */
+export function isAnamAvatarDurationLimited(
+	avatar: AvatarDurationRef | null | undefined,
+	catalog: readonly AvatarCatalogProvider[] = [],
+): boolean {
+	if (!avatar?.enabled) {
+		return false;
+	}
+
+	if (avatar.provider_id === "anam") {
+		return true;
+	}
+
+	if (avatar.provider_id) {
+		return false;
+	}
+
+	const externalAvatarId = avatar.external_avatar_id;
+	if (!externalAvatarId) {
+		return false;
+	}
+
+	return (
+		catalog.find((provider) =>
+			provider.avatars.some((item) => item.id === externalAvatarId),
+		)?.id === "anam"
+	);
+}
