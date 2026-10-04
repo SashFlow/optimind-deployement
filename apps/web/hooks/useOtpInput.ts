@@ -100,6 +100,10 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 	}, [resendAvailableAt]);
 
 	const openOtpInput = useCallback((next: OtpInputOptions) => {
+		// Do not clear guards while a submit RPC is still in flight.
+		if (submitInFlightRef.current) {
+			return;
+		}
 		submitInFlightRef.current = false;
 		resendInFlightRef.current = false;
 		contextSentRef.current = { submit: false, resendAt: 0 };
@@ -129,6 +133,7 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 			return;
 		}
 		submitInFlightRef.current = true;
+		contextSentRef.current.submit = true;
 		setSubmitting(true);
 		try {
 			await sendContext(room, {
@@ -141,11 +146,11 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 					submittedAt: Date.now(),
 				},
 			});
-			contextSentRef.current.submit = true;
 			toast.success("Code submitted");
 			dismiss();
 		} catch (error) {
 			console.error("OTP submit failed", error);
+			contextSentRef.current.submit = false;
 			const detail =
 				error instanceof Error && error.message.trim()
 					? error.message.trim()

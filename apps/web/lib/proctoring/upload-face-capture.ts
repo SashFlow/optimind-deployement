@@ -12,24 +12,14 @@ async function blobToBase64(blob: Blob): Promise<string> {
 	return btoa(binary);
 }
 
-/** Upload face crop + full-frame evidence as SessionFiles for the live participant. */
+/** Upload the full-frame face capture as a SessionFile for the live participant. */
 export async function uploadFaceCaptureFiles(args: {
 	sessionId: string;
 	participantToken: string;
 	result: FaceCaptureResult;
 }) {
-	const [faceBase64, frameBase64] = await Promise.all([
-		blobToBase64(args.result.face),
-		blobToBase64(args.result.frame),
-	]);
+	const frameBase64 = await blobToBase64(args.result.frame);
 
-	const face = await orpcClient.sessions.uploadParticipantFile({
-		id: args.sessionId,
-		contentBase64: faceBase64,
-		contentType: args.result.face.type || "image/jpeg",
-		name: "face.jpg",
-		participantToken: args.participantToken,
-	});
 	const frame = await orpcClient.sessions.uploadParticipantFile({
 		id: args.sessionId,
 		contentBase64: frameBase64,
@@ -37,5 +27,5 @@ export async function uploadFaceCaptureFiles(args: {
 		name: "face-full.jpg",
 		participantToken: args.participantToken,
 	});
-	return { face: face.file, frame: frame.file };
+	return { frame: frame.file };
 }

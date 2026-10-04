@@ -33,11 +33,9 @@ export interface FaceDetection {
 }
 
 export interface FaceCaptureResult {
-	/** JPEG cropped around the face. */
-	face: Blob;
 	/** Full JPEG frame as evidence. */
 	frame: Blob;
-	/** Data URL of `face`, for previews. */
+	/** Data URL of `frame`, for previews. */
 	dataUrl: string;
 	box: NormalizedRect;
 	confidence: number;
@@ -173,7 +171,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, quality: number) {
 	});
 }
 
-/** Grabs the current frame at full resolution and crops it around the face. */
+/** Grabs the current camera frame at full resolution. */
 export async function captureFace(
 	video: HTMLVideoElement,
 	detection: FaceDetection & { box: NormalizedRect },
@@ -188,47 +186,12 @@ export async function captureFace(
 	}
 	frameCtx.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
 
-	const { box } = detection;
-	const padX = box.width * config.cropPadding;
-	const padY = box.height * config.cropPadding;
-	const cx0 = Math.round(clamp(box.x - padX, 0, 1) * frameCanvas.width);
-	const cy0 = Math.round(clamp(box.y - padY, 0, 1) * frameCanvas.height);
-	const cx1 = Math.round(
-		clamp(box.x + box.width + padX, 0, 1) * frameCanvas.width,
-	);
-	const cy1 = Math.round(
-		clamp(box.y + box.height + padY, 0, 1) * frameCanvas.height,
-	);
-
-	const faceCanvas = document.createElement("canvas");
-	faceCanvas.width = Math.max(1, cx1 - cx0);
-	faceCanvas.height = Math.max(1, cy1 - cy0);
-	const faceCtx = faceCanvas.getContext("2d");
-	if (!faceCtx) {
-		throw new Error("Unable to create capture canvas");
-	}
-	faceCtx.drawImage(
-		frameCanvas,
-		cx0,
-		cy0,
-		faceCanvas.width,
-		faceCanvas.height,
-		0,
-		0,
-		faceCanvas.width,
-		faceCanvas.height,
-	);
-
-	const [face, frame] = await Promise.all([
-		canvasToBlob(faceCanvas, config.jpegQuality),
-		canvasToBlob(frameCanvas, config.jpegQuality),
-	]);
+	const frame = await canvasToBlob(frameCanvas, config.jpegQuality);
 
 	return {
-		face,
 		frame,
-		dataUrl: faceCanvas.toDataURL("image/jpeg", config.jpegQuality),
-		box,
+		dataUrl: frameCanvas.toDataURL("image/jpeg", config.jpegQuality),
+		box: detection.box,
 		confidence: detection.confidence,
 		timestamp: Date.now(),
 	};

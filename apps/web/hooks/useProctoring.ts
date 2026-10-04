@@ -299,6 +299,10 @@ export function useProctoring({
 	const idContextSentRef = useRef(false);
 	const faceSubmitInFlightRef = useRef(false);
 	const faceContextSentRef = useRef(false);
+	/** Bumped on each intentional face-capture start; stale submits bail if it changes. */
+	const faceCaptureAttemptRef = useRef(0);
+	/** Set synchronously when a frame is committed so effect remounts can't double-capture. */
+	const faceCaptureCommittedRef = useRef(false);
 
 	const [mode, setModeState] = useState<ProctoringMode>("PROCTORING");
 	// The proctoring loop reads this rather than `mode` so pausing doesn't reload the models.
@@ -356,7 +360,12 @@ export function useProctoring({
 
 	/** Opens face capture (or retries after a failure). The camera stays on; proctoring pauses. */
 	const startFaceCapture = useCallback(() => {
-		faceSubmitInFlightRef.current = false;
+		// Do not clear guards / restart scanning while an upload or add_context is in flight.
+		if (faceSubmitInFlightRef.current) {
+			return;
+		}
+		faceCaptureAttemptRef.current += 1;
+		faceCaptureCommittedRef.current = false;
 		faceContextSentRef.current = false;
 		idSubmitInFlightRef.current = false;
 		idContextSentRef.current = false;
@@ -373,6 +382,7 @@ export function useProctoring({
 	const cancelFaceCapture = useCallback(() => {
 		faceSubmitInFlightRef.current = false;
 		faceContextSentRef.current = false;
+		faceCaptureCommittedRef.current = false;
 		setFaceCaptureStatus("idle");
 		setFaceCaptureError(null);
 		setMode("PROCTORING");
@@ -440,6 +450,7 @@ export function useProctoring({
 			if (faceSubmitInFlightRef.current || faceContextSentRef.current) {
 				return;
 			}
+			const attempt = faceCaptureAttemptRef.current;
 			faceSubmitInFlightRef.current = true;
 			try {
 				const push = onFaceCaptureRef.current;
@@ -447,6 +458,9 @@ export function useProctoring({
 					throw new Error("Face capture upload is not configured");
 				}
 				await push(captured);
+				if (attempt !== faceCaptureAttemptRef.current) {
+					return;
+				}
 				if (modeRef.current !== "FACE_CAPTURE") {
 					return;
 				}
@@ -458,7 +472,7 @@ export function useProctoring({
 				setFaceCaptureStatus("captured");
 				// Notify the agent before closing so it can continue the turn.
 				await sendContext(room, {
-					state: "Face capture completed successfully. The candidate's face images have been uploaded and submitted for verification. You may continue the conversation.",
+					state: "Face capture completed successfully. The candidate's face image has been uploaded and submitted for verification. You may continue the conversation.",
 					action: "generate_reply",
 					type: "face_captured",
 					details: {
@@ -475,6 +489,7 @@ export function useProctoring({
 			} catch (error) {
 				console.error("Face capture: upload failed", error);
 				faceContextSentRef.current = false;
+				faceCaptureCommittedRef.current = false;
 				if (modeRef.current !== "FACE_CAPTURE") {
 					return;
 				}
@@ -799,6 +814,14 @@ export function useProctoring({
 						stableFrames >= cfg.requiredStableFrames &&
 						detection.box
 					) {
+						if (
+							faceCaptureCommittedRef.current ||
+							faceSubmitInFlightRef.current ||
+							faceContextSentRef.current
+						) {
+							return;
+						}
+						faceCaptureCommittedRef.current = true;
 						capturing = true;
 						const captured = await captureFace(
 							video,
@@ -806,6 +829,7 @@ export function useProctoring({
 							cfg,
 						);
 						if (cancelled) {
+							faceCaptureCommittedRef.current = false;
 							return;
 						}
 						setFaceCapture(captured);
