@@ -409,6 +409,8 @@ export const CATALOG_VOICES: CatalogVoice[] = [
 		"gemini-2.5-flash-native-audio-preview-12-2025",
 		GEMINI_VOICES,
 	),
+	...voicesFor("gemini-3.8-live", GEMINI_VOICES),
+	...voicesFor("gemini-3.8-live-extended-thinking", GEMINI_VOICES),
 	...voicesFor("sarvam:bulbul:v3", SARVAM_V3_SPEAKERS),
 	...voicesFor("sarvam:bulbul:v2", SARVAM_V2_SPEAKERS),
 	...voicesFor("inworld-tts-1.5-max", INWORLD_VOICES),
