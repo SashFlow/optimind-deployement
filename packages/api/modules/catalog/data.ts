@@ -133,6 +133,24 @@ export const CATALOG_MODELS: CatalogModel[] = [
 
 	// Realtime — Gemini
 	model(
+		"gemini-3.8-live",
+		"Gemini 3.8 Live",
+		"gemini",
+		"realtime",
+		{
+			supports_text_output: false,
+		},
+	),
+	model(
+		"gemini-3.8-live-extended-thinking",
+		"Gemini 3.8 Live Extended Thinking",
+		"gemini",
+		"realtime",
+		{
+			supports_text_output: false,
+		},
+	),
+	model(
 		"gemini-3.1-flash-live-preview",
 		"Gemini 3.1 Flash Live",
 		"gemini",

@@ -119,6 +119,17 @@ export function isTrackMandatory(requirement: SessionTrackRequirement) {
 	return requirement === "mandatory";
 }
 
+/** True when the session needs the shared camera provider (proctoring and/or capture). */
+export function hasCameraSessionFeatures(
+	proctoring: SessionModalitiesConfig["proctoring"],
+) {
+	return (
+		proctoring.enabled ||
+		proctoring.id_verification ||
+		proctoring.face_verification
+	);
+}
+
 export function formatRemainingDuration(totalSeconds: number): string {
 	const clamped = Math.max(0, Math.floor(totalSeconds));
 	const minutes = Math.floor(clamped / 60);

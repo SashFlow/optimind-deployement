@@ -33,6 +33,7 @@ import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
 	DEFAULT_SESSION_MODALITIES,
+	hasCameraSessionFeatures,
 	isTrackMandatory,
 	resolvePreviewMedia,
 } from "@/lib/session-modalities";
@@ -217,6 +218,13 @@ export function AgentConfigurePreview({
 		useState<SessionPrejoinMediaSelection | null>(null);
 	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
 	const proctoringEnabled = sessionModalities.proctoring.enabled;
+	const idVerificationEnabled =
+		sessionModalities.proctoring.id_verification;
+	const faceVerificationEnabled =
+		sessionModalities.proctoring.face_verification;
+	const cameraFeaturesEnabled = hasCameraSessionFeatures(
+		sessionModalities.proctoring,
+	);
 	const videoMandatory =
 		isTrackMandatory(sessionModalities.video_track) ||
 		(proctoringEnabled && media === "web");
@@ -475,18 +483,14 @@ export function AgentConfigurePreview({
 				<SessionInteractionProvider
 					otpInputEnabled={sessionModalities.otp_input.enabled}
 				>
-					{proctoringEnabled ? (
+					{cameraFeaturesEnabled ? (
 						<ProctoringProvider
-							enabled
+							enabled={proctoringEnabled}
 							proactiveResponse={
 								sessionModalities.proctoring.proactive_response
 							}
-							idVerification={
-								sessionModalities.proctoring.id_verification
-							}
-							faceVerification={
-								sessionModalities.proctoring.face_verification
-							}
+							idVerification={idVerificationEnabled}
+							faceVerification={faceVerificationEnabled}
 							onIdCapture={(result) =>
 								uploadIdCaptureFiles({
 									sessionId: sessionCredentials.sessionId,
@@ -515,15 +519,16 @@ export function AgentConfigurePreview({
 	}, [
 		agent,
 		avatar,
+		cameraFeaturesEnabled,
 		chatMandatory,
+		faceVerificationEnabled,
+		idVerificationEnabled,
 		joinMedia,
 		maxDurationSeconds,
 		onCancel,
 		proctoringEnabled,
 		sessionCredentials,
 		sessionModalities.otp_input.enabled,
-		sessionModalities.proctoring.face_verification,
-		sessionModalities.proctoring.id_verification,
 		sessionModalities.proctoring.proactive_response,
 	]);
 

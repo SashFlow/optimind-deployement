@@ -307,7 +307,7 @@ export function CallSessionSection({
 					/>
 					<ToggleField
 						label="Proctoring"
-						description="Enable proctoring controls for this agent’s sessions. Requires the camera on web sessions."
+						description="Enable continuous camera proctoring for this agent’s sessions. Requires the camera on web sessions."
 						checked={config.session_modalities.proctoring.enabled}
 						onCheckedChange={(enabled) =>
 							onConfigChange({
@@ -320,8 +320,6 @@ export function CallSessionSection({
 											? {}
 											: {
 													proactive_response: false,
-													id_verification: false,
-													face_verification: false,
 												}),
 									},
 								},
@@ -349,48 +347,48 @@ export function CallSessionSection({
 									})
 								}
 							/>
-							<ToggleField
-								label="ID verification"
-								description="Allow the agent to request ID card capture during the session (via a tool call)."
-								checked={
-									config.session_modalities.proctoring
-										.id_verification
-								}
-								onCheckedChange={(id_verification) =>
-									onConfigChange({
-										session_modalities: {
-											...config.session_modalities,
-											proctoring: {
-												...config.session_modalities
-													.proctoring,
-												id_verification,
-											},
-										},
-									})
-								}
-							/>
-							<ToggleField
-								label="Face verification"
-								description="Allow the agent to request face capture during the session (via a tool call)."
-								checked={
-									config.session_modalities.proctoring
-										.face_verification === true
-								}
-								onCheckedChange={(face_verification) =>
-									onConfigChange({
-										session_modalities: {
-											...config.session_modalities,
-											proctoring: {
-												...config.session_modalities
-													.proctoring,
-												face_verification,
-											},
-										},
-									})
-								}
-							/>
 						</div>
 					</ToggleField>
+					<ToggleField
+						label="ID verification"
+						description="Allow the agent to request ID card capture during the session (via a tool call). Independent of proctoring."
+						checked={
+							config.session_modalities.proctoring
+								.id_verification
+						}
+						onCheckedChange={(id_verification) =>
+							onConfigChange({
+								session_modalities: {
+									...config.session_modalities,
+									proctoring: {
+										...config.session_modalities
+											.proctoring,
+										id_verification,
+									},
+								},
+							})
+						}
+					/>
+					<ToggleField
+						label="Face verification"
+						description="Allow the agent to request face capture during the session (via a tool call). Independent of proctoring."
+						checked={
+							config.session_modalities.proctoring
+								.face_verification === true
+						}
+						onCheckedChange={(face_verification) =>
+							onConfigChange({
+								session_modalities: {
+									...config.session_modalities,
+									proctoring: {
+										...config.session_modalities
+											.proctoring,
+										face_verification,
+									},
+								},
+							})
+						}
+					/>
 					<ToggleField
 						label="OTP input"
 						description="Allow the agent to open an OTP entry popover during the session (via a tool call)."

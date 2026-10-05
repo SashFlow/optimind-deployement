@@ -3,17 +3,18 @@ title: Face capture
 description: Tool-triggered face capture during web sessions via LiveKit RPC.
 ---
 
-Face capture is **not** a mandatory popup on join. When proctoring and face
-verification are enabled, the agent opens the capture overlay by calling LiveKit RPC
-`start_face_capture` on the candidate (typically from a Python `@function_tool`).
+Face capture is **not** a mandatory popup on join. When face verification is
+enabled (independently of proctoring), the agent opens the capture overlay by calling
+LiveKit RPC `start_face_capture` on the candidate (typically from a Python `@function_tool`).
 
 After a well-framed face is detected, the web client uploads a full-frame JPEG to the backend and
 notifies the agent via `add_context`.
 
 ## Setup
 
-1. In **Call Session**, enable **Proctoring** and **Face verification**
+1. In **Call Session**, enable **Face verification**
    (“Allow the agent to request face capture during the session (via a tool call).”).
+   Proctoring does **not** need to be enabled.
 2. Create an org **Python tool** (Tools → Create Python tool) and paste the sample below.
 3. Attach that tool to the agent so the model can call `verify_face` mid-session.
 4. Start a web (share / embed / preview) session with the camera on.
@@ -92,7 +93,7 @@ async def face_capture(self, context: RunContext) -> str:
 
 ### How to test
 
-1. Enable proctoring + face verification on the agent.
+1. Enable face verification on the agent (proctoring optional).
 2. Add the Python tool above and attach it to the agent.
 3. Join a share/embed/preview session with camera enabled.
 4. Ask the agent to verify your face (or otherwise invoke `verify_face`).

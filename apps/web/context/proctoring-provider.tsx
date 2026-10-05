@@ -29,9 +29,18 @@ function silentCheckOverrides(): ProctoringConfigOverrides {
 }
 
 interface ProctoringProviderProps {
+	/**
+	 * Continuous proctoring / violation detection. Independent of ID and face capture.
+	 */
 	enabled?: boolean;
 	proactiveResponse?: boolean;
+	/**
+	 * Registers ID capture RPC. Works with or without proctoring enabled.
+	 */
 	idVerification?: boolean;
+	/**
+	 * Registers face capture RPC. Works with or without proctoring enabled.
+	 */
 	faceVerification?: boolean;
 	config?: ProctoringConfigOverrides;
 	onIdCapture?: (result: IdCaptureResult) => Promise<unknown> | unknown;
@@ -40,7 +49,7 @@ interface ProctoringProviderProps {
 }
 
 export function ProctoringProvider({
-	enabled = true,
+	enabled = false,
 	proactiveResponse = true,
 	idVerification = false,
 	faceVerification = false,
@@ -87,9 +96,9 @@ export function ProctoringProvider({
 	}, [config, proactiveResponse]);
 
 	const proctoring = useProctoring({
-		enabled: enabled && isConnected,
-		idVerification,
-		faceVerification,
+		proctoringEnabled: enabled && isConnected,
+		idVerification: idVerification && isConnected,
+		faceVerification: faceVerification && isConnected,
 		config: mergedConfig,
 		onIdCapture,
 		onFaceCapture,

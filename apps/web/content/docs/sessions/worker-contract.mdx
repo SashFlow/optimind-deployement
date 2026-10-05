@@ -176,8 +176,9 @@ Token `video.room` must match the session's LiveKit room. Session must be `QUEUE
 ### `add_context` (candidate → agent)
 
 When `config.session_modalities.proctoring.enabled` is true, the web client runs MediaPipe
-checks and may call this RPC on the agent participant. OTP submit/resend also uses
-`add_context` when `session_modalities.otp_input.enabled` is true.
+checks and may call this RPC on the agent participant. ID / face capture completion and OTP
+submit/resend also use `add_context` when their respective flags are enabled — those do not
+require proctoring.
 
 Payload (JSON string):
 

@@ -31,6 +31,7 @@ import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
 	DEFAULT_SESSION_MODALITIES,
+	hasCameraSessionFeatures,
 	isTrackMandatory,
 	normalizeSessionModalities,
 } from "@/lib/session-modalities";
@@ -109,6 +110,13 @@ function EmbedAgentPageContent() {
 		embedQuery.data?.agent.maxDurationSeconds ?? null;
 	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
 	const proctoringEnabled = sessionModalities.proctoring.enabled;
+	const idVerificationEnabled =
+		sessionModalities.proctoring.id_verification;
+	const faceVerificationEnabled =
+		sessionModalities.proctoring.face_verification;
+	const cameraFeaturesEnabled = hasCameraSessionFeatures(
+		sessionModalities.proctoring,
+	);
 	const videoMandatory =
 		isTrackMandatory(sessionModalities.video_track) || proctoringEnabled;
 	const chatMandatory = isTrackMandatory(sessionModalities.chat);
@@ -230,20 +238,15 @@ function EmbedAgentPageContent() {
 					<SessionInteractionProvider
 						otpInputEnabled={sessionModalities.otp_input.enabled}
 					>
-						{proctoringEnabled ? (
+						{cameraFeaturesEnabled ? (
 							<ProctoringProvider
-								enabled
+								enabled={proctoringEnabled}
 								proactiveResponse={
 									sessionModalities.proctoring
 										.proactive_response
 								}
-								idVerification={
-									sessionModalities.proctoring.id_verification
-								}
-								faceVerification={
-									sessionModalities.proctoring
-										.face_verification
-								}
+								idVerification={idVerificationEnabled}
+								faceVerification={faceVerificationEnabled}
 								onIdCapture={(result) =>
 									uploadIdCaptureFiles({
 										sessionId: credentials.sessionId,

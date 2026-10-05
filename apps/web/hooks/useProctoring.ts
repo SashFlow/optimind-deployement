@@ -235,15 +235,21 @@ function attachHiddenVideo(videoTrack: LocalVideoTrack, label: string) {
 }
 
 interface UseProctoringOptions {
-	enabled?: boolean;
+	/**
+	 * Continuous MediaPipe proctoring (violation detection). Independent of ID / face
+	 * capture — those are gated solely by `idVerification` / `faceVerification`.
+	 */
+	proctoringEnabled?: boolean;
 	/**
 	 * When true, registers the `start_id_capture` RPC so the agent can open ID capture
-	 * via a tool call. Does not auto-open the overlay on connect.
+	 * via a tool call. Does not auto-open the overlay on connect. Does not require
+	 * proctoring to be enabled.
 	 */
 	idVerification?: boolean;
 	/**
 	 * When true, registers the `start_face_capture` RPC so the agent can open face capture
-	 * via a tool call. Does not auto-open the overlay on connect.
+	 * via a tool call. Does not auto-open the overlay on connect. Does not require
+	 * proctoring to be enabled.
 	 */
 	faceVerification?: boolean;
 	config?: ProctoringConfigOverrides;
@@ -264,11 +270,11 @@ interface UseProctoringOptions {
  * devices, missing face, looking away) as a toast and an `add_context` RPC to the agent.
  *
  * Also runs ID / face capture on the same camera track: while either is active, proctoring
- * inference pauses. Capture starts when the agent calls `start_id_capture` /
- * `start_face_capture`, or when the candidate retries from the overlay.
+ * inference pauses. Capture is independent of proctoring — it starts when the agent calls
+ * `start_id_capture` / `start_face_capture`, or when the candidate retries from the overlay.
  */
 export function useProctoring({
-	enabled = true,
+	proctoringEnabled = false,
 	idVerification = false,
 	faceVerification = false,
 	config: overrides,
@@ -332,7 +338,10 @@ export function useProctoring({
 		null,
 	);
 
-	const active = enabled && isCameraEnabled && videoTrack !== undefined;
+	/** Camera is published; required for inference and capture loops, not for RPC registration. */
+	const cameraReady = isCameraEnabled && videoTrack !== undefined;
+	/** Continuous proctoring only — independent of ID / face capture. */
+	const proctoringActive = proctoringEnabled && cameraReady;
 
 	/** Opens ID capture (or retries after a failure). The camera stays on; proctoring pauses. */
 	const startIdCapture = useCallback(() => {
@@ -520,7 +529,7 @@ export function useProctoring({
 	} = config;
 
 	useEffect(() => {
-		if (!active || !videoTrack) {
+		if (!proctoringActive || !videoTrack) {
 			return;
 		}
 
@@ -653,7 +662,7 @@ export function useProctoring({
 			detectors?.objects.close();
 		};
 	}, [
-		active,
+		proctoringActive,
 		videoTrack,
 		room,
 		wasmBaseUrl,
@@ -666,7 +675,7 @@ export function useProctoring({
 	// ID capture loop. Reuses the published camera track rather than opening a second stream.
 	useEffect(() => {
 		if (
-			!active ||
+			!cameraReady ||
 			!videoTrack ||
 			mode !== "ID_CAPTURE" ||
 			idCaptureStatus !== "scanning"
@@ -749,12 +758,12 @@ export function useProctoring({
 			clearTimeout(timer);
 			videoTrack.detach(video);
 		};
-	}, [active, videoTrack, mode, idCaptureStatus, submitIdCapture]);
+	}, [cameraReady, videoTrack, mode, idCaptureStatus, submitIdCapture]);
 
 	// Face capture loop. Uses a dedicated FaceLandmarker so it doesn't contend with proctoring.
 	useEffect(() => {
 		if (
-			!active ||
+			!cameraReady ||
 			!videoTrack ||
 			mode !== "FACE_CAPTURE" ||
 			faceCaptureStatus !== "scanning"
@@ -893,11 +902,12 @@ export function useProctoring({
 			videoTrack.detach(video);
 			faceLandmarker?.close();
 		};
-	}, [active, videoTrack, mode, faceCaptureStatus, submitFaceCapture]);
+	}, [cameraReady, videoTrack, mode, faceCaptureStatus, submitFaceCapture]);
 
 	// Lets the agent ask for the candidate's ID, e.g. from a `verify_identity` tool.
+	// Independent of proctoring — only requires idVerification.
 	useEffect(() => {
-		if (!enabled || !idVerification) {
+		if (!idVerification) {
 			return;
 		}
 
@@ -914,11 +924,12 @@ export function useProctoring({
 			return;
 		}
 		return () => room.unregisterRpcMethod(START_ID_CAPTURE_RPC);
-	}, [room, enabled, idVerification, startIdCapture]);
+	}, [room, idVerification, startIdCapture]);
 
 	// Lets the agent ask for the candidate's face, e.g. from a `verify_face` tool.
+	// Independent of proctoring — only requires faceVerification.
 	useEffect(() => {
-		if (!enabled || !faceVerification) {
+		if (!faceVerification) {
 			return;
 		}
 
@@ -935,12 +946,12 @@ export function useProctoring({
 			return;
 		}
 		return () => room.unregisterRpcMethod(START_FACE_CAPTURE_RPC);
-	}, [room, enabled, faceVerification, startFaceCapture]);
+	}, [room, faceVerification, startFaceCapture]);
 
 	return {
 		config,
 		mode,
-		isCameraReady: active,
+		isCameraReady: cameraReady,
 		isProctoringPaused: mode !== "PROCTORING",
 		isIdCaptureActive: mode === "ID_CAPTURE",
 		isFaceCaptureActive: mode === "FACE_CAPTURE",
