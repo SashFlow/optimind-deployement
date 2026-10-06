@@ -11,6 +11,11 @@
  * use its Cache API for the unified model path. We install a page-level fetch
  * interceptor so prefetch, warmup init, Join, and re-entry all share one
  * in-memory (and Cache API) copy of the ~28 MB file.
+ *
+ * The same interceptor rewrites the SDK's ~1.3MB `data:application/wasm`
+ * fetch to `/_spatialreal/*.wasm` (copied by withSpatialReal). Bundlers and
+ * browsers are unreliable with that data URL; a failed rewrite surfaces as
+ * `wasm-load-failed` / "Failed to load the avatar runtime (WASM/templates)."
  */
 
 type SpatialRealSdk = typeof import("@spatialreal/web-sdk");
@@ -25,10 +30,14 @@ let runtimeWarmKey: string | null = null;
 const PRODUCTION_BASE_MODEL_URL =
 	"https://cdn.spatialreal.cloud/sdk/base_model.pb.gz";
 const BASE_MODEL_CACHE_NAME = "optimind-spatialreal-base-model-v1";
+const SPATIALREAL_WASM_MANIFEST_URL = "/_spatialreal/manifest.json";
 
 let baseModelFetchInstalled = false;
 let baseModelBytes: ArrayBuffer | null = null;
 let baseModelInflight: Promise<ArrayBuffer> | null = null;
+/** Resolved `/_spatialreal/avatar_core_wasm-*.wasm` public URL. */
+let spatialRealWasmPublicUrl: string | null = null;
+let spatialRealWasmPublicUrlPromise: Promise<string | null> | null = null;
 /** Native fetch captured before we patch window.fetch. */
 let nativeFetch: typeof fetch | null = null;
 
@@ -48,6 +57,41 @@ function isBaseModelUrl(url: string): boolean {
 		url.endsWith("/sdk/base_model.pb.gz") ||
 		url.includes("/sdk/base_model.pb.gz?")
 	);
+}
+
+function isEmbeddedWasmDataUrl(url: string): boolean {
+	return url.startsWith("data:application/wasm");
+}
+
+async function resolveSpatialRealWasmPublicUrl(
+	fetchImpl: typeof fetch,
+): Promise<string | null> {
+	if (spatialRealWasmPublicUrl) {
+		return spatialRealWasmPublicUrl;
+	}
+	if (!spatialRealWasmPublicUrlPromise) {
+		spatialRealWasmPublicUrlPromise = (async () => {
+			try {
+				const response = await fetchImpl(SPATIALREAL_WASM_MANIFEST_URL, {
+					cache: "force-cache",
+				});
+				if (!response.ok) {
+					return null;
+				}
+				const body = (await response.json()) as { wasm?: unknown };
+				if (typeof body.wasm !== "string" || !body.wasm.endsWith(".wasm")) {
+					return null;
+				}
+				spatialRealWasmPublicUrl = `/_spatialreal/${body.wasm}`;
+				return spatialRealWasmPublicUrl;
+			} catch {
+				return null;
+			} finally {
+				spatialRealWasmPublicUrlPromise = null;
+			}
+		})();
+	}
+	return spatialRealWasmPublicUrlPromise;
 }
 
 function baseModelResponse(bytes: ArrayBuffer): Response {
@@ -137,6 +181,8 @@ async function loadBaseModelBytes(
 /**
  * Patch window.fetch so every base_model.pb.gz request (ours or the SDK's)
  * shares one in-flight download and then serves from memory / Cache API.
+ * Also rewrite the SDK's embedded WASM data: URL to the public/_spatialreal
+ * copy that withSpatialReal emits (avoids wasm-load-failed in Next/Turbopack).
  */
 export function installSpatialRealBaseModelCache(): void {
 	if (baseModelFetchInstalled || typeof window === "undefined") {
@@ -151,6 +197,23 @@ export function installSpatialRealBaseModelCache(): void {
 		init?: RequestInit,
 	): Promise<Response> => {
 		const url = resolveRequestUrl(input);
+
+		if (isEmbeddedWasmDataUrl(url)) {
+			return resolveSpatialRealWasmPublicUrl(fetchNetwork).then(
+				(publicUrl) => {
+					if (!publicUrl) {
+						return fetchNetwork(input, init);
+					}
+					return fetchNetwork(publicUrl, {
+						...init,
+						// Public WASM is cross-path same-origin; drop credentials
+						// mode that some browsers reject on data: URLs.
+						credentials: "same-origin",
+					});
+				},
+			);
+		}
+
 		if (!isBaseModelUrl(url)) {
 			return fetchNetwork(input, init);
 		}
