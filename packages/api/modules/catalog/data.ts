@@ -86,6 +86,7 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("gemini-3.6-flash", "Gemini 3.6 Flash", "gemini", "llm"),
 	model("gemini-3.7-flash", "Gemini 3.7 Flash", "gemini", "llm"),
 	model("gemini-3.8-flash", "Gemini 3.8 Flash", "gemini", "llm"),
+	model("gemma-4-31b-it", "Gemma 4 31B IT", "gemini", "llm"),
 
 	// Realtime — OpenAI
 	model("gpt-realtime-2.1", "GPT Realtime 2.1", "openai", "realtime", {
