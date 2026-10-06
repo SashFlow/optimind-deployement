@@ -6,6 +6,7 @@ import { PrismaPlugin } from "@prisma/nextjs-monorepo-workaround-plugin";
 // "require" condition), which is why this config is .mjs rather than .ts —
 // Next loads a .ts config as CommonJS and the subpath fails to resolve.
 import { withSpatialReal } from "@spatialreal/web-sdk/next";
+import { withAvatarkit } from "@spatius/avatarkit/next";
 import nextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = nextIntlPlugin("./i18n/request.ts");
@@ -94,8 +95,8 @@ const nextConfig = {
 	},
 };
 
-// withSpatialReal must wrap the config directly so its webpack hook chains into
-// the one above rather than replacing it.
+// withAvatarkit / withSpatialReal wrap the config so WASM assets land under
+// /_avatarkit and /_spatialreal. Outer wrappers chain webpack/headers correctly.
 export default withContentCollections(
-	withNextIntl(withSpatialReal(nextConfig)),
+	withNextIntl(withAvatarkit(withSpatialReal(nextConfig))),
 );

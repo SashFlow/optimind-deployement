@@ -40,7 +40,7 @@ export const dispatchMetadataSchema = z.object({
 export type DispatchMetadata = z.infer<typeof dispatchMetadataSchema>;
 
 /**
- * Resolve which avatar plugin (anam / spatialreal) an avatar id belongs to.
+ * Resolve which avatar plugin (anam / spatialreal / spatius) an avatar id belongs to.
  * Catalog avatars resolve from the catalog; older configs may have saved the
  * avatar id without a provider id, so fall back to whatever was stored.
  */

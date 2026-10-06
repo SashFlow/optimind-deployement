@@ -24,6 +24,7 @@ export async function fetchSessionCredentials({
 	spatialRealAppId: string | null;
 	spatialRealSessionToken: string | null;
 	spatialRealRendererToken: string | null;
+	spatiusAppId: string | null;
 }> {
 	const result = await orpcClient.sessions.create({
 		organizationId,
@@ -51,5 +52,6 @@ export async function fetchSessionCredentials({
 		spatialRealAppId: result.spatialRealAppId ?? null,
 		spatialRealSessionToken: result.spatialRealSessionToken ?? null,
 		spatialRealRendererToken: result.spatialRealRendererToken ?? null,
+		spatiusAppId: result.spatiusAppId ?? null,
 	};
 }

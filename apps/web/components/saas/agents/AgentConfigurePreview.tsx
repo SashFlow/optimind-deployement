@@ -20,6 +20,7 @@ import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
+import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import type {
 	AgentVariableDefinition,
 	SessionModalitiesConfig,
@@ -240,6 +241,7 @@ export function AgentConfigurePreview({
 		spatialRealAppId: string | null;
 		spatialRealSessionToken: string | null;
 		spatialRealRendererToken: string | null;
+		spatiusAppId: string | null;
 		contactMetadata: Record<string, unknown>;
 	} | null>(null);
 
@@ -342,6 +344,7 @@ export function AgentConfigurePreview({
 			spatialRealAppId: credentials.spatialRealAppId,
 			spatialRealSessionToken: credentials.spatialRealSessionToken,
 			spatialRealRendererToken: credentials.spatialRealRendererToken,
+			spatiusAppId: credentials.spatiusAppId,
 			contactMetadata,
 		});
 	}
@@ -440,6 +443,12 @@ export function AgentConfigurePreview({
 		onCancel?.();
 	}
 
+	const spatiusSessionActive =
+		Boolean(sessionCredentials) &&
+		avatar.enabled &&
+		avatar.provider === "spatius";
+	const spatiusHost = useSpatiusHostRoom(spatiusSessionActive);
+
 	const roomContent = useMemo(() => {
 		if (!sessionCredentials) {
 			return null;
@@ -455,6 +464,8 @@ export function AgentConfigurePreview({
 				spatialRealRendererToken={
 					sessionCredentials.spatialRealRendererToken
 				}
+				spatiusAppId={sessionCredentials.spatiusAppId}
+				onSpatiusAttached={spatiusHost.markAttached}
 				serverUrl={sessionCredentials.serverUrl}
 				onEnd={handleEndSession}
 				maxDurationSeconds={maxDurationSeconds}
@@ -469,7 +480,8 @@ export function AgentConfigurePreview({
 			<LiveKitRoom
 				token={sessionCredentials.token}
 				serverUrl={sessionCredentials.serverUrl}
-				connect
+				room={spatiusHost.room}
+				connect={spatiusHost.connect}
 				audio={audio}
 				video={video}
 				className="flex min-h-0 flex-1 flex-col"
@@ -530,6 +542,9 @@ export function AgentConfigurePreview({
 		sessionCredentials,
 		sessionModalities.otp_input.enabled,
 		sessionModalities.proctoring.proactive_response,
+		spatiusHost.connect,
+		spatiusHost.markAttached,
+		spatiusHost.room,
 	]);
 
 	if (sessionCredentials) {

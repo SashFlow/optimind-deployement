@@ -30,6 +30,7 @@ import {
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
+import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
 import { normalizePhoneNumber } from "@/lib/phone";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
@@ -210,6 +211,7 @@ export default function SharedTrialPage() {
 		spatialRealAppId: string | null;
 		spatialRealSessionToken: string | null;
 		spatialRealRendererToken: string | null;
+		spatiusAppId: string | null;
 	} | null>(null);
 
 	const trialQuery = useQuery(
@@ -266,6 +268,12 @@ export default function SharedTrialPage() {
 			: undefined,
 	});
 
+	const spatiusSessionActive =
+		Boolean(credentials) &&
+		previewAvatar.enabled &&
+		previewAvatar.provider === "spatius";
+	const spatiusHost = useSpatiusHostRoom(spatiusSessionActive);
+
 	const startMutation = useMutation(
 		orpc.sessions.startTrialSession.mutationOptions({
 			onSuccess: (data: StartPublicSessionOutput) => {
@@ -299,6 +307,7 @@ export default function SharedTrialPage() {
 						data.spatialRealSessionToken ?? null,
 					spatialRealRendererToken:
 						data.spatialRealRendererToken ?? null,
+					spatiusAppId: data.spatiusAppId ?? null,
 				});
 			},
 			onError: (error: Error) => {
@@ -378,6 +387,8 @@ export default function SharedTrialPage() {
 				spatialRealAppId={credentials.spatialRealAppId}
 				spatialRealSessionToken={credentials.spatialRealSessionToken}
 				spatialRealRendererToken={credentials.spatialRealRendererToken}
+				spatiusAppId={credentials.spatiusAppId}
+				onSpatiusAttached={spatiusHost.markAttached}
 				serverUrl={credentials.serverUrl}
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
@@ -398,7 +409,8 @@ export default function SharedTrialPage() {
 				<LiveKitRoom
 					token={credentials.token}
 					serverUrl={credentials.serverUrl}
-					connect
+					room={spatiusHost.room}
+					connect={spatiusHost.connect}
 					audio={audio}
 					video={video}
 					className="flex min-h-screen flex-col"

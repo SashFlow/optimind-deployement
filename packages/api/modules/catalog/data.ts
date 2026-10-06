@@ -517,4 +517,18 @@ export const AVATARS_PROVIDERS: {
 			},
 		],
 	},
+	{
+		id: "spatius",
+		display_name: "Spatius",
+		avatars: [
+			{
+				id: "e06640cb-e011-4806-bd3e-6b07575eff2e",
+				display_name: "Samir",
+			},
+			{
+				id: "9078fde3-8e55-4311-a8d6-7740185b5b0d",
+				display_name: "Nadia",
+			},
+		],
+	},
 ];

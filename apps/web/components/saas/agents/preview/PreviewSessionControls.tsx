@@ -35,7 +35,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { PreviewAvatar } from "@/lib/preview-avatar";
+import {
+	isClientRenderedAvatar,
+	type PreviewAvatar,
+} from "@/lib/preview-avatar";
 import { formatRemainingDuration } from "@/lib/session-modalities";
 import type { Agent } from "@/services/api/types";
 import MainStage from "./MainStage";
@@ -44,15 +47,25 @@ import PipStage from "./PipStage";
 import RpcCardList from "./RpcCardList";
 import SessionVoiceOrb from "./SessionVoiceOrb";
 import SpatialRealAvatarStage from "./SpatialRealAvatarStage";
+import SpatiusAvatarStage from "./SpatiusAvatarStage";
 import { usePreviewRoomData } from "./usePreviewRoomData";
 
 /** Default SpatialReal avatar identity; SDK owns its audio for lip-sync. */
 const SPATIALREAL_AVATAR_IDENTITY = "spatialreal-avatar";
+/** Spatius avatar worker identity (see livekit-plugins-spatius). */
+const SPATIUS_AVATAR_IDENTITY = "spatius-avatar-agent";
 
 function isSpatialRealOwnedAudioIdentity(identity: string) {
 	return (
 		identity === SPATIALREAL_AVATAR_IDENTITY ||
 		identity.startsWith("spatialreal-renderer-")
+	);
+}
+
+function isAvatarWorkerIdentity(identity: string) {
+	return (
+		isSpatialRealOwnedAudioIdentity(identity) ||
+		identity === SPATIUS_AVATAR_IDENTITY
 	);
 }
 
@@ -137,6 +150,8 @@ export function PreviewSessionControls({
 	spatialRealAppId,
 	spatialRealSessionToken,
 	spatialRealRendererToken,
+	spatiusAppId,
+	onSpatiusAttached,
 	serverUrl,
 	onEnd,
 	maxDurationSeconds = null,
@@ -150,6 +165,10 @@ export function PreviewSessionControls({
 	spatialRealAppId?: string | null;
 	spatialRealSessionToken?: string | null;
 	spatialRealRendererToken?: string | null;
+	/** Returned by the session-start API; required for Spatius avatars. */
+	spatiusAppId?: string | null;
+	/** Unlock LiveKitRoom connect after Spatius AvatarKit attach. */
+	onSpatiusAttached?: () => void;
 	serverUrl?: string | null;
 	onEnd: () => void;
 	maxDurationSeconds?: number | null;
@@ -172,7 +191,10 @@ export function PreviewSessionControls({
 	const isConnected = connectionState === ConnectionState.Connected;
 	const localIdentity = room.localParticipant?.identity ?? "";
 	const hasAgent = participants.some(
-		(p) => p.identity !== localIdentity && !isUserParticipant(p.identity),
+		(p) =>
+			p.identity !== localIdentity &&
+			!isUserParticipant(p.identity) &&
+			!isAvatarWorkerIdentity(p.identity),
 	);
 	const [agentWaitTimedOut, setAgentWaitTimedOut] = useState(false);
 	const [chatOpen, setChatOpen] = useState(chatMandatory);
@@ -200,19 +222,21 @@ export function PreviewSessionControls({
 	}, [proctoringEnabled, isConnected, isCameraEnabled, room]);
 
 	const shouldWaitForAgent = isConnected && !hasAgent;
-	// SpatialReal renders the avatar client-side from an animation data track on
-	// this room, so there is no avatar video track to show; anam publishes one.
+	// SpatialReal / Spatius render client-side from motion data on this room;
+	// anam publishes a conventional avatar video track.
 	const isSpatialReal = avatar.enabled && avatar.provider === "spatialreal";
+	const isSpatius = avatar.enabled && avatar.provider === "spatius";
+	const isClientAvatar = isClientRenderedAvatar(avatar.provider);
 	const hasAvatarVideo =
-		avatar.enabled && !isSpatialReal && Boolean(videoTrack);
+		avatar.enabled && !isClientAvatar && Boolean(videoTrack);
 	const showAvatarFallback =
 		avatar.enabled &&
-		!isSpatialReal &&
+		!isClientAvatar &&
 		!hasAvatarVideo &&
 		Boolean(avatar.previewUrl);
 	const showAvatarWaiting =
 		avatar.enabled &&
-		!isSpatialReal &&
+		!isClientAvatar &&
 		!hasAvatarVideo &&
 		!avatar.previewUrl;
 	const hasLocalCamera =
@@ -333,7 +357,7 @@ export function PreviewSessionControls({
 	const preferUserVideo = isCameraEnabled;
 	const hasAvatarStage =
 		avatar.enabled &&
-		(isSpatialReal ||
+		(isClientAvatar ||
 			hasAvatarVideo ||
 			showAvatarFallback ||
 			showAvatarWaiting);
@@ -342,7 +366,9 @@ export function PreviewSessionControls({
 	const showAudioOnlyMain = !preferUserVideo && !hasAvatarStage;
 	const showAvatarPip = preferUserVideo && hasAvatarStage;
 
-	// Both avatar kinds occupy the same stage; only the source differs.
+	// Client-rendered avatars and anam video share the same stage slot.
+	// Spatius is mounted once below (never swapped main↔pip) so AvatarKit
+	// attach survives camera toggles without disconnecting the LiveKit room.
 	const avatarVideo = isSpatialReal ? (
 		<SpatialRealAvatarStage
 			room={room}
@@ -353,7 +379,7 @@ export function PreviewSessionControls({
 			avatarId={avatar.avatarId}
 			compact={showAvatarPip}
 		/>
-	) : hasAvatarVideo ? (
+	) : isSpatius ? null : hasAvatarVideo ? (
 		<VideoTrack trackRef={videoTrack} className={VIDEO_FILL_CLASS} />
 	) : showAvatarFallback || showAvatarWaiting ? (
 		<div className="flex size-full flex-col items-center justify-center gap-3 bg-muted/40">
@@ -368,6 +394,17 @@ export function PreviewSessionControls({
 			)}
 		</div>
 	) : null;
+
+	const spatiousStage =
+		isSpatius && hasAvatarStage ? (
+			<SpatiusAvatarStage
+				room={room}
+				appId={spatiusAppId}
+				avatarId={avatar.avatarId}
+				compact={showAvatarPip}
+				onAttached={onSpatiusAttached}
+			/>
+		) : null;
 	const orbState = mapAgentStateToOrb(state, hasAgent);
 
 	const connectingContent = (
@@ -418,13 +455,29 @@ export function PreviewSessionControls({
 	);
 
 	const mainContent = (() => {
+		if (isSpatius) {
+			// Spatius renders in the stable overlay below; main slot is camera or empty.
+			if (showCameraMain) {
+				return cameraMainContent;
+			}
+			if (!isConnected && !showAvatarMain) {
+				return connectingContent;
+			}
+			if (showAvatarMain) {
+				return null;
+			}
+			if (!isConnected) {
+				return connectingContent;
+			}
+			return orbMainContent;
+		}
 		if (showCameraMain) {
 			return cameraMainContent;
 		}
 		if (!isConnected && !showAvatarMain) {
 			return connectingContent;
 		}
-		// Keep SpatialReal mounted while connecting so it can init in parallel.
+		// Keep client-rendered avatars mounted while connecting so they can init.
 		if (showAvatarMain) {
 			return avatarMainContent ?? connectingContent;
 		}
@@ -467,20 +520,48 @@ export function PreviewSessionControls({
 						>
 							<MainStage
 								className={cn(
-									showAvatarMain && AVATAR_STAGE_CLASS,
+									(showAvatarMain || isSpatius) &&
+										!showCameraMain &&
+										AVATAR_STAGE_CLASS,
 									showCameraMain && CAMERA_STAGE_CLASS,
 									showAudioOnlyMain &&
-									"aspect-auto h-auto w-full bg-transparent shadow-none",
+										!isSpatius &&
+										"aspect-auto h-auto w-full bg-transparent shadow-none",
 								)}
 							>
 								{mainContent}
-								{showAvatarPip && avatarVideo ? (
+								{spatiousStage ? (
+									// Same React parent for main and PiP — only CSS changes —
+									// so AvatarKit attach is not torn down on camera toggle.
+									<div
+										className={cn(
+											"absolute overflow-hidden",
+											showAvatarPip
+												? "right-3 bottom-3 z-10 h-36 aspect-square rounded-lg border bg-white sm:right-4 sm:bottom-4"
+												: "inset-0 z-0 bg-white",
+										)}
+									>
+										<div
+											className="absolute top-0 left-0 size-full origin-top-left"
+											style={
+												showAvatarPip
+													? {
+															width: "200%",
+															height: "200%",
+															transform:
+																"scale(0.5)",
+														}
+													: undefined
+											}
+										>
+											{spatiousStage}
+										</div>
+									</div>
+								) : showAvatarPip && avatarVideo ? (
 									<div className="absolute right-3 bottom-3 z-10 sm:right-4 sm:bottom-4">
 										<PipStage
 											className="rounded-lg"
-											// SpatialReal sizes its WebGL canvas to the
-											// container; render 2× and scale down for sharpness.
-											renderScale={isSpatialReal ? 2 : 1}
+											renderScale={isClientAvatar ? 2 : 1}
 										>
 											{avatarVideo}
 										</PipStage>

@@ -80,6 +80,14 @@ function getSpatialRealApiKey(): string | null {
 	return process.env.SPATIALREAL_API_KEY?.trim() || null;
 }
 
+/**
+ * Spatius App ID for AvatarKit. Returned with web sessions; the API key stays
+ * on the voice worker (never exposed to the browser).
+ */
+function getSpatiusAppId(): string | null {
+	return process.env.SPATIUS_APP_ID?.trim() || null;
+}
+
 async function mintSpatialRealSessionToken(): Promise<string | null> {
 	const apiKey = getSpatialRealApiKey();
 	if (!apiKey) {
@@ -158,6 +166,10 @@ async function mintSpatialRealClientCredentials(opts: {
 		spatialRealSessionToken,
 		spatialRealRendererToken,
 	};
+}
+
+function getSpatiusClientCredentials(): { spatiusAppId: string | null } {
+	return { spatiusAppId: getSpatiusAppId() };
 }
 
 /** App id + session token only — enough for client-side avatar asset warmup. */
@@ -424,6 +436,10 @@ export const create = protectedProcedure
 						spatialRealSessionToken: null,
 						spatialRealRendererToken: null,
 					};
+		const spatious =
+			input.channel === "WEB"
+				? getSpatiusClientCredentials()
+				: { spatiusAppId: null };
 
 		return {
 			session,
@@ -432,6 +448,7 @@ export const create = protectedProcedure
 			participantToken,
 			dispatchMetadata,
 			...spatialReal,
+			...spatious,
 		};
 	});
 
@@ -682,7 +699,7 @@ export const getTrialLink = publicProcedure
 				name: trial.agent.name,
 				avatarEnabled: Boolean(avatarConfig?.enabled),
 				// The share page needs these to pick the avatar renderer:
-				// anam publishes a video track, spatialreal renders a canvas.
+				// anam publishes a video track; spatialreal/spatius render a canvas.
 				avatarProvider: resolveAvatarProviderId(
 					avatarConfig?.external_avatar_id,
 					avatarConfig?.provider_id,
@@ -858,6 +875,7 @@ export const startTrialSession = publicProcedure
 				spatialRealAppId: null,
 				spatialRealSessionToken: null,
 				spatialRealRendererToken: null,
+				spatiusAppId: null,
 			};
 		}
 
@@ -880,6 +898,7 @@ export const startTrialSession = publicProcedure
 			participantToken,
 			phoneNumber: null,
 			...spatialReal,
+			...getSpatiusClientCredentials(),
 		};
 	});
 
@@ -1067,6 +1086,7 @@ export const startEmbedSession = publicProcedure
 			participantToken,
 			phoneNumber: null,
 			...spatialReal,
+			...getSpatiusClientCredentials(),
 		};
 	});
 

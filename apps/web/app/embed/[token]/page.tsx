@@ -26,6 +26,7 @@ import {
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
+import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
 import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
@@ -95,6 +96,7 @@ function EmbedAgentPageContent() {
 		spatialRealAppId: string | null;
 		spatialRealSessionToken: string | null;
 		spatialRealRendererToken: string | null;
+		spatiusAppId: string | null;
 	} | null>(null);
 
 	const embedQuery = useQuery(
@@ -140,6 +142,12 @@ function EmbedAgentPageContent() {
 			: undefined,
 	});
 
+	const spatiusSessionActive =
+		Boolean(credentials) &&
+		previewAvatar.enabled &&
+		previewAvatar.provider === "spatius";
+	const spatiusHost = useSpatiusHostRoom(spatiusSessionActive);
+
 	const startMutation = useMutation(
 		orpc.sessions.startEmbedSession.mutationOptions({
 			onSuccess: (data: StartPublicSessionOutput) => {
@@ -156,6 +164,7 @@ function EmbedAgentPageContent() {
 						data.spatialRealSessionToken ?? null,
 					spatialRealRendererToken:
 						data.spatialRealRendererToken ?? null,
+					spatiusAppId: data.spatiusAppId ?? null,
 				});
 			},
 			onError: (error: Error) => {
@@ -204,6 +213,8 @@ function EmbedAgentPageContent() {
 				spatialRealAppId={credentials.spatialRealAppId}
 				spatialRealSessionToken={credentials.spatialRealSessionToken}
 				spatialRealRendererToken={credentials.spatialRealRendererToken}
+				spatiusAppId={credentials.spatiusAppId}
+				onSpatiusAttached={spatiusHost.markAttached}
 				serverUrl={credentials.serverUrl}
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
@@ -224,7 +235,8 @@ function EmbedAgentPageContent() {
 				<LiveKitRoom
 					token={credentials.token}
 					serverUrl={credentials.serverUrl}
-					connect
+					room={spatiusHost.room}
+					connect={spatiusHost.connect}
 					audio={audio}
 					video={video}
 					className="flex min-h-screen flex-col"

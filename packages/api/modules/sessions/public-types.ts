@@ -69,6 +69,8 @@ export type StartPublicSessionOutput = {
 	spatialRealAppId: string | null;
 	spatialRealSessionToken: string | null;
 	spatialRealRendererToken: string | null;
+	/** Spatius App ID for AvatarKit; API key stays on the worker. */
+	spatiusAppId: string | null;
 };
 
 export type StartEmbedSessionInput = {
