@@ -282,13 +282,13 @@ export function VoiceSection({ config, onConfigChange }: VoiceSectionProps) {
 							value: "vad",
 							label: "VAD",
 							description:
-								"Uses voice activity detection to end turns.",
+								"Uses TurnDetector (v1-mini) with VAD for end-of-turn.",
 						},
 						{
 							value: "stt",
 							label: "STT",
 							description:
-								"Uses speech-to-text endpointing to end turns.",
+								"Uses the STT model's built-in VAD / turn detection.",
 						},
 						{
 							value: "manual",
@@ -300,7 +300,7 @@ export function VoiceSection({ config, onConfigChange }: VoiceSectionProps) {
 							value: "realtime_multimodal",
 							label: "Realtime",
 							description:
-								"Uses the realtime model's built-in turn detection.",
+								"Uses the realtime model's built-in VAD / turn detection.",
 						},
 					]}
 				/>

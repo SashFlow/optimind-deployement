@@ -3,8 +3,9 @@
  * substitute {{variable}} / declared {variable} placeholders.
  *
  * Owns all prompt assembly for the voice worker: section merge, variable
- * substitution, timezone datetime, greeting / call-ending / transfer notes.
- * The worker should use config.instructions as-is.
+ * substitution, timezone datetime, and transfer notes.
+ * Greeting and call-ending stay on config for runtime use; they are not
+ * embedded in the mega prompt. The worker should use config.instructions as-is.
  */
 
 const DOUBLE_BRACE_PATTERN = /\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g;
@@ -208,83 +209,6 @@ function readPromptField(
 	return "";
 }
 
-function greetingSection(greeting: Record<string, unknown>): string | null {
-	if (greeting.enabled === false) {
-		return null;
-	}
-	const text = asString(greeting.text).trim();
-	if (!text) {
-		return null;
-	}
-
-	const trigger = asString(greeting.trigger) || "on_join";
-	if (trigger === "manual") {
-		return (
-			"Deliver the following as your opening message when the conversation begins:\n\n" +
-			text
-		);
-	}
-
-	const triggerNote =
-		trigger === "on_join"
-			? "at session start"
-			: "after the user's first message";
-	const interruptible =
-		greeting.interruptible === false
-			? "not interruptible"
-			: "interruptible";
-	return (
-		`Your opening greeting will be spoken automatically ${triggerNote} ` +
-		`(${interruptible}). Do not repeat it verbatim afterward; continue naturally ` +
-		"once the user responds.\n\n" +
-		`Greeting text:\n${text}`
-	);
-}
-
-function callEndingSection(callEnding: Record<string, unknown>): string | null {
-	if (callEnding.enabled === false) {
-		return null;
-	}
-
-	const parts: string[] = [];
-	const farewell = asString(callEnding.farewell_message).trim();
-	if (farewell) {
-		parts.push(
-			"When ending the call, deliver this farewell before invoking end_call:\n\n" +
-				farewell,
-		);
-	}
-	const maxDuration = callEnding.max_duration_seconds;
-	if (typeof maxDuration === "number" && maxDuration > 0) {
-		parts.push(
-			`End the call if the conversation exceeds ${maxDuration} seconds.`,
-		);
-	}
-	const endOnSilence = callEnding.end_on_silence_seconds;
-	if (typeof endOnSilence === "number" && endOnSilence > 0) {
-		parts.push(
-			`End the call after ${endOnSilence} seconds of user silence.`,
-		);
-	}
-	const inactivityEnd = callEnding.inactivity_end_seconds;
-	const inactivityWarn = callEnding.inactivity_warning_seconds;
-	if (
-		typeof inactivityEnd === "number" &&
-		inactivityEnd > 0 &&
-		typeof inactivityWarn === "number" &&
-		inactivityWarn > 0
-	) {
-		parts.push(
-			`If the user is inactive, warn them after ${inactivityWarn} seconds and end the session after ${inactivityEnd} seconds of inactivity.`,
-		);
-	}
-
-	if (parts.length === 0) {
-		return null;
-	}
-	return parts.join("\n\n");
-}
-
 function transferSection(config: Record<string, unknown>): string | null {
 	const toolsConfig = asRecord(config.tools_config);
 	if (!toolsConfig.transfer_call) {
@@ -311,11 +235,6 @@ function mergePromptSections(config: Record<string, unknown>): string {
 	const prompts = asRecord(config.prompts);
 	const timezone = resolveTimezone(config);
 
-	const greeting = greetingSection(asRecord(config.greeting));
-	if (greeting) {
-		appendSection(sections, "Greeting", greeting);
-	}
-
 	for (const { heading, field, aliases } of PROMPT_SECTIONS) {
 		appendSection(
 			sections,
@@ -330,11 +249,6 @@ function mergePromptSections(config: Record<string, unknown>): string {
 				formatCurrentDateTimeSection(timezone),
 			);
 		}
-	}
-
-	const callEnding = callEndingSection(asRecord(config.call_ending));
-	if (callEnding) {
-		appendSection(sections, "Call ending", callEnding);
 	}
 
 	const transfer = transferSection(config);
