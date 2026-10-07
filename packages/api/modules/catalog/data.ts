@@ -524,6 +524,10 @@ export const AVATARS_PROVIDERS: {
 				id: "9078fde3-8e55-4311-a8d6-7740185b5b0d",
 				display_name: "Nadia",
 			},
+			{
+				id: "f0c7f7b2-2f47-4622-bc3f-4b54c0904fb9",
+				display_name: "Sanjay",
+			}
 		],
 	},
 ];
