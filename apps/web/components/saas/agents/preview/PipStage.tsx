@@ -16,7 +16,9 @@ export default function PipStage({
 	return (
 		<div
 			className={cn(
-				"relative h-36 aspect-square overflow-hidden border bg-slate-200",
+				"relative aspect-square overflow-hidden border bg-slate-200",
+				// Default size; callers can override with h-*.
+				!className?.includes("h-") && "h-36",
 				className,
 			)}
 		>

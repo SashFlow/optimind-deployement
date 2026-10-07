@@ -112,8 +112,7 @@ function EmbedAgentPageContent() {
 		embedQuery.data?.agent.maxDurationSeconds ?? null;
 	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
 	const proctoringEnabled = sessionModalities.proctoring.enabled;
-	const idVerificationEnabled =
-		sessionModalities.proctoring.id_verification;
+	const idVerificationEnabled = sessionModalities.proctoring.id_verification;
 	const faceVerificationEnabled =
 		sessionModalities.proctoring.face_verification;
 	const cameraFeaturesEnabled = hasCameraSessionFeatures(
@@ -231,7 +230,7 @@ function EmbedAgentPageContent() {
 		const video = resolveLiveKitVideoOption(joinMedia);
 		const prefetchedCamera = joinMedia?.cameraTrack;
 		return (
-			<div className="flex min-h-screen flex-col bg-background">
+			<div className="flex h-dvh flex-col overflow-hidden bg-black sm:h-auto sm:min-h-dvh sm:bg-background">
 				<LiveKitRoom
 					token={credentials.token}
 					serverUrl={credentials.serverUrl}
@@ -239,7 +238,7 @@ function EmbedAgentPageContent() {
 					connect={spatiusHost.connect}
 					audio={audio}
 					video={video}
-					className="flex min-h-screen flex-col"
+					className="flex h-full min-h-0 flex-1 flex-col"
 				>
 					{prefetchedCamera ? (
 						<PublishPrefetchedCamera

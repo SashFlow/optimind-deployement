@@ -132,15 +132,18 @@ export function useSpatiusAvatar(
 		};
 	}, [onAttached, onAvatarError, onConnected, onDisconnected, onStateChange]);
 
-	const updateStatus = useCallback((status: SpatiusAvatarConnectionStatus) => {
-		setState((previous) => ({
-			...previous,
-			isConnected: status === "connected",
-			isLoading: status === "initializing" || status === "connecting",
-			status,
-		}));
-		callbacksRef.current.onStateChange?.(status);
-	}, []);
+	const updateStatus = useCallback(
+		(status: SpatiusAvatarConnectionStatus) => {
+			setState((previous) => ({
+				...previous,
+				isConnected: status === "connected",
+				isLoading: status === "initializing" || status === "connecting",
+				status,
+			}));
+			callbacksRef.current.onStateChange?.(status);
+		},
+		[],
+	);
 
 	const notifyAttached = useCallback(() => {
 		if (attachedNotifiedRef.current) {

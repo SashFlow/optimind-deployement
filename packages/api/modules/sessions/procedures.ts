@@ -1304,7 +1304,8 @@ export const startSessionEgress = protectedProcedure
 		method: "POST",
 		path: "/sessions/{id}/egress",
 		tags: ["Sessions"],
-		summary: "Start track egress (or room-composite fallback) for a session",
+		summary:
+			"Start track egress (or room-composite fallback) for a session",
 	})
 	.input(
 		z.object({

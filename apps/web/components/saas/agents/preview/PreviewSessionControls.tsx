@@ -137,12 +137,15 @@ function useLocalTrackRef(source: Track.Source) {
 	}, [localParticipant.identity, tracks]);
 }
 
-const VIDEO_FILL_CLASS = "size-full object-contain";
-/** Largest 16:9 that fits the available stage without overflowing. */
+const VIDEO_FILL_CLASS =
+	"absolute inset-0 size-full object-cover sm:static sm:inset-auto sm:object-contain";
+/**
+ * Mobile: absolute fill of the stage. Desktop: largest 16:9 that fits.
+ */
 const AVATAR_STAGE_CLASS =
-	"aspect-video h-full max-h-full w-auto max-w-full shadow-none";
+	"absolute inset-0 size-auto rounded-none shadow-none sm:relative sm:inset-auto sm:aspect-video sm:h-full sm:max-h-full sm:w-auto sm:max-w-full sm:rounded-xl";
 const CAMERA_STAGE_CLASS =
-	"aspect-video h-full max-h-full w-auto max-w-full shadow-none";
+	"absolute inset-0 size-auto rounded-none shadow-none sm:relative sm:inset-auto sm:aspect-video sm:h-full sm:max-h-full sm:w-auto sm:max-w-full sm:rounded-xl";
 
 export function PreviewSessionControls({
 	agent,
@@ -158,6 +161,8 @@ export function PreviewSessionControls({
 	chatMandatory = false,
 	proctoringEnabled = false,
 	proctoringNotice = null,
+	/** Inside the app shell — fill parent instead of locking to viewport height. */
+	embedded = false,
 }: {
 	agent: Agent;
 	avatar: PreviewAvatar;
@@ -175,6 +180,7 @@ export function PreviewSessionControls({
 	chatMandatory?: boolean;
 	proctoringEnabled?: boolean;
 	proctoringNotice?: string | null;
+	embedded?: boolean;
 }) {
 	const room = useRoomContext();
 	const connectionState = useConnectionState();
@@ -408,7 +414,7 @@ export function PreviewSessionControls({
 	const orbState = mapAgentStateToOrb(state, hasAgent);
 
 	const connectingContent = (
-		<div className="flex size-full min-h-56 flex-col items-center justify-center gap-3 px-4 sm:min-h-72">
+		<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 sm:static sm:inset-auto sm:min-h-72 sm:size-full">
 			<Spinner className="size-8 text-muted-foreground" />
 			<p className="text-center text-sm text-muted-foreground">
 				Connecting…
@@ -440,7 +446,7 @@ export function PreviewSessionControls({
 	);
 
 	const orbMainContent = (
-		<div className="flex size-full min-h-56 flex-col items-center justify-center gap-5 px-4 sm:min-h-72">
+		<div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-4 sm:static sm:inset-auto sm:min-h-72 sm:size-full">
 			<SessionVoiceOrb
 				state={orbState}
 				agentAudioTrack={audioTrack}
@@ -487,15 +493,31 @@ export function PreviewSessionControls({
 		return orbMainContent;
 	})();
 
+	const controlButtonClass =
+		"inline-flex size-10 md:size-12 items-center justify-center rounded-full border shadow-lg backdrop-blur-md transition-colors";
+
 	return (
-		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-			<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3 sm:p-4 md:p-5">
-				<div className="relative flex h-full max-h-full min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-xl border bg-card shadow-sm xl:max-w-6xl">
-					<div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30">
+		<div
+			className={cn(
+				"flex flex-col overflow-hidden bg-black sm:bg-transparent",
+				embedded
+					? "min-h-0 flex-1"
+					: "h-dvh sm:h-auto sm:min-h-0 sm:flex-1",
+			)}
+		>
+			<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden sm:items-center sm:justify-center sm:p-4 md:p-5">
+				<div
+					className={cn(
+						"relative flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-black sm:h-full sm:max-h-full sm:max-w-5xl sm:rounded-xl sm:border sm:bg-card sm:shadow-sm xl:max-w-6xl",
+						embedded && "sm:max-w-none",
+					)}
+				>
+					{/* Full-bleed stage; controls float over the video */}
+					<div className="relative min-h-0 flex-1 overflow-hidden bg-black sm:bg-muted/30">
 						{(proctoringEnabled || remainingSeconds != null) && (
-							<div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-center justify-between gap-2 bg-linear-to-b from-black/60 to-transparent px-3 py-2.5 text-xs text-white/90">
+							<div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-start justify-between gap-2 bg-linear-to-b from-black/70 via-black/30 to-transparent px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-8 text-xs text-white/90 sm:items-center sm:px-3 sm:pt-2.5 sm:pb-2.5">
 								{proctoringEnabled ? (
-									<span>
+									<span className="rounded-full bg-black/35 px-2.5 py-1 backdrop-blur-sm">
 										{proctoringNotice?.trim() ||
 											"Proctoring enabled"}
 									</span>
@@ -503,7 +525,7 @@ export function PreviewSessionControls({
 									<span />
 								)}
 								{remainingSeconds != null ? (
-									<span className="font-medium text-white">
+									<span className="rounded-full bg-black/45 px-2.5 py-1 font-medium text-white backdrop-blur-sm">
 										{formatRemainingDuration(
 											remainingSeconds,
 										)}{" "}
@@ -514,7 +536,7 @@ export function PreviewSessionControls({
 						)}
 						<div
 							className={cn(
-								"relative flex h-full max-h-full w-full items-center justify-center",
+								"absolute inset-0 flex items-center justify-center sm:relative sm:inset-auto sm:h-full sm:w-full",
 								showAudioOnlyMain && "min-h-48",
 							)}
 						>
@@ -526,7 +548,7 @@ export function PreviewSessionControls({
 									showCameraMain && CAMERA_STAGE_CLASS,
 									showAudioOnlyMain &&
 										!isSpatius &&
-										"aspect-auto h-auto w-full bg-transparent shadow-none",
+										"absolute inset-0 aspect-auto h-auto w-full bg-transparent shadow-none sm:relative sm:inset-auto",
 								)}
 							>
 								{mainContent}
@@ -537,7 +559,7 @@ export function PreviewSessionControls({
 										className={cn(
 											"absolute overflow-hidden",
 											showAvatarPip
-												? "right-3 bottom-3 z-10 h-36 aspect-square rounded-lg border bg-white sm:right-4 sm:bottom-4"
+												? "top-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))] right-3 z-10 h-28 aspect-square rounded-xl border border-white/20 bg-white shadow-lg sm:right-4 sm:h-36 sm:rounded-lg"
 												: "inset-0 z-0 bg-white",
 										)}
 									>
@@ -558,9 +580,9 @@ export function PreviewSessionControls({
 										</div>
 									</div>
 								) : showAvatarPip && avatarVideo ? (
-									<div className="absolute right-3 bottom-3 z-10 sm:right-4 sm:bottom-4">
+									<div className="absolute top-[max(3.5rem,calc(env(safe-area-inset-top)+2.75rem))] right-3 z-10 sm:right-4">
 										<PipStage
-											className="rounded-lg"
+											className="h-28 rounded-xl border-white/20 shadow-lg sm:h-36 sm:rounded-lg"
 											renderScale={isClientAvatar ? 2 : 1}
 										>
 											{avatarVideo}
@@ -569,84 +591,91 @@ export function PreviewSessionControls({
 								) : null}
 							</MainStage>
 						</div>
-					</div>
 
-					<div className="flex shrink-0 items-center justify-center gap-2 border-t bg-background/90 px-3 py-2.5 backdrop-blur">
-						<TrackToggle
-							source={Track.Source.Microphone}
-							showIcon={false}
-							className={cn(
-								"inline-flex size-9 items-center justify-center rounded-full border transition-colors",
-								isMicrophoneEnabled
-									? "border-transparent bg-primary text-primary-foreground"
-									: "bg-muted text-muted-foreground",
-							)}
-						>
-							{isMicrophoneEnabled ? (
-								<MicIcon className="size-4" />
-							) : (
-								<MicOffIcon className="size-4" />
-							)}
-						</TrackToggle>
+						{/* Floating controls over video */}
+						<div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-linear-to-t from-black/55 via-black/20 to-transparent pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-5">
+							<div className="pointer-events-auto flex items-center justify-center gap-3 px-4 sm:gap-2.5">
+								<TrackToggle
+									source={Track.Source.Microphone}
+									showIcon={false}
+									className={cn(
+										controlButtonClass,
+										isMicrophoneEnabled
+											? "border-transparent bg-primary text-primary-foreground shadow-primary/25"
+											: "border-white/20 bg-black/45 text-white hover:bg-black/60",
+									)}
+								>
+									{isMicrophoneEnabled ? (
+										<MicIcon className="size-4 md:size-5" />
+									) : (
+										<MicOffIcon className="size-4 md:size-5" />
+									)}
+								</TrackToggle>
 
-						<TrackToggle
-							source={Track.Source.Camera}
-							showIcon={false}
-							disabled={proctoringEnabled}
-							title={
-								proctoringEnabled
-									? "Camera is required for proctoring"
-									: undefined
-							}
-							className={cn(
-								"inline-flex size-9 items-center justify-center rounded-full border transition-colors",
-								isCameraEnabled
-									? "border-transparent bg-primary text-primary-foreground"
-									: "bg-muted text-muted-foreground",
-								proctoringEnabled &&
-								"cursor-not-allowed opacity-80",
-							)}
-						>
-							{isCameraEnabled ? (
-								<VideoIcon className="size-4" />
-							) : (
-								<VideoOffIcon className="size-4" />
-							)}
-						</TrackToggle>
+								<TrackToggle
+									source={Track.Source.Camera}
+									showIcon={false}
+									disabled={proctoringEnabled}
+									title={
+										proctoringEnabled
+											? "Camera is required for proctoring"
+											: undefined
+									}
+									className={cn(
+										controlButtonClass,
+										isCameraEnabled
+											? "border-transparent bg-primary text-primary-foreground shadow-primary/25"
+											: "border-white/20 bg-black/45 text-white hover:bg-black/60",
+										proctoringEnabled &&
+											"cursor-not-allowed opacity-80",
+									)}
+								>
+									{isCameraEnabled ? (
+										<VideoIcon className="size-4 md:size-5" />
+									) : (
+										<VideoOffIcon className="size-5 sm:size-4" />
+									)}
+								</TrackToggle>
 
-						<Button
-							type="button"
-							variant="outline"
-							size="icon"
-							aria-label="Show conversation"
-							aria-pressed={chatOpen}
-							className={cn(
-								"relative size-9 rounded-full",
-								chatOpen &&
-								"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
-							)}
-							onClick={() => setChatOpen(true)}
-						>
-							<MessageSquareIcon className="size-4" />
-							{hasChatContent && !chatOpen ? (
-								<span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary" />
-							) : null}
-						</Button>
+								<Button
+									type="button"
+									variant="outline"
+									size="icon"
+									aria-label="Show conversation"
+									aria-pressed={chatOpen}
+									className={cn(
+										controlButtonClass,
+										"relative border-white/20 bg-black/45 text-white hover:bg-black/60 hover:text-white",
+										chatOpen &&
+											"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+									)}
+									onClick={() => setChatOpen(true)}
+								>
+									<MessageSquareIcon className="size-4 md:size-5" />
+									{hasChatContent && !chatOpen ? (
+										<span className="absolute top-2 right-2 size-2 rounded-full bg-primary sm:top-1.5 sm:right-1.5 sm:size-1.5" />
+									) : null}
+								</Button>
 
-						<Button
-							type="button"
-							variant="outline"
-							size="icon"
-							aria-label="End preview session"
-							className="size-9 rounded-full border-destructive/30 text-destructive hover:bg-destructive/10"
-							onClick={() => {
-								isEndingRef.current = true;
-								void room.disconnect();
-								onEnd();
-							}}
-						>
-							<PhoneOffIcon className="size-4" />
-						</Button>
+								<Button
+									type="button"
+									variant="outline"
+									size="icon"
+									aria-label="End preview session"
+									className={cn(
+										controlButtonClass,
+										"border-red-400/40 bg-red-600/90 text-white hover:bg-red-600 hover:text-white",
+									)}
+									onClick={() => {
+										isEndingRef.current = true;
+										void room.disconnect();
+										onEnd();
+									}}
+								>
+									<PhoneOffIcon className="size-4 md:size-5" />
+								</Button>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -660,8 +689,8 @@ export function PreviewSessionControls({
 					setChatOpen(open);
 				}}
 			>
-				<DialogContent className="flex! max-h-[min(85dvh,40rem)] w-[calc(100%-2rem)] max-w-lg flex-col gap-0 overflow-hidden p-0">
-					<DialogHeader className="shrink-0 border-b px-6 py-4 pr-12 text-left">
+				<DialogContent className="flex! max-h-[min(90dvh,40rem)] w-[calc(100%-1.5rem)] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:w-[calc(100%-2rem)]">
+					<DialogHeader className="shrink-0 border-b px-4 py-3 pr-12 text-left sm:px-6 sm:py-4">
 						<DialogTitle>Conversation</DialogTitle>
 						<DialogDescription>
 							Live transcript, files, and agent messages for this
@@ -669,7 +698,7 @@ export function PreviewSessionControls({
 						</DialogDescription>
 					</DialogHeader>
 					<div className="min-h-0 flex-1 overflow-y-auto">
-						<div className="space-y-4 px-6 py-4">
+						<div className="space-y-4 px-4 py-4 sm:px-6">
 							<section className="space-y-2">
 								<MessageList
 									messages={messages}

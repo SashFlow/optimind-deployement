@@ -61,14 +61,24 @@ function isValidUrl(value: string) {
 	}
 }
 
+/** Turn machine ids like `caller_name` into readable labels. */
+function formatVariableLabel(name: string) {
+	return name
+		.replace(/[_-]+/g, " ")
+		.replace(/\s+/g, " ")
+		.trim()
+		.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function validateVariableValues(
 	variables: AgentVariableDefinition[],
 	values: Record<string, string>,
 ): string | null {
 	for (const variable of variables) {
 		const value = values[variable.name]?.trim() ?? "";
+		const label = formatVariableLabel(variable.name);
 		if (variable.required && !value) {
-			return `${variable.name} is required`;
+			return `${label} is required`;
 		}
 		if (!value) {
 			continue;
@@ -77,14 +87,14 @@ function validateVariableValues(
 			variable.variable_type === "number" &&
 			Number.isNaN(Number(value))
 		) {
-			return `${variable.name} must be a number`;
+			return `${label} must be a number`;
 		}
 		if (
 			(variable.variable_type === "link" ||
 				variable.variable_type === "file") &&
 			!isValidUrl(value)
 		) {
-			return `${variable.name} must be a valid URL`;
+			return `${label} must be a valid URL`;
 		}
 	}
 	return null;
@@ -139,13 +149,17 @@ function VariableField({
 	variable,
 	value,
 	onChange,
+	label,
 }: {
 	variable: AgentVariableDefinition;
 	value: string;
 	onChange: (value: string) => void;
+	label: string;
 }) {
 	const id = `share-var-${variable.name}`;
-	const placeholder = variable.required ? "Required" : "Optional";
+	const placeholder = variable.required
+		? `Enter ${label.toLowerCase()}`
+		: "Optional";
 
 	if (variable.variable_type === "number") {
 		return (
@@ -155,6 +169,7 @@ function VariableField({
 				value={value}
 				onChange={(event) => onChange(event.target.value)}
 				placeholder={placeholder}
+				className="h-11 rounded-xl sm:h-10"
 			/>
 		);
 	}
@@ -174,6 +189,7 @@ function VariableField({
 						? "Paste file URL"
 						: "https://"
 				}
+				className="h-11 rounded-xl sm:h-10"
 			/>
 		);
 	}
@@ -185,6 +201,9 @@ function VariableField({
 			value={value}
 			onChange={(event) => onChange(event.target.value)}
 			placeholder={placeholder}
+			className="h-11 rounded-xl sm:h-10"
+			autoComplete="name"
+			autoCapitalize="words"
 		/>
 	);
 }
@@ -227,8 +246,7 @@ export default function SharedTrialPage() {
 		trialQuery.data?.agent.maxDurationSeconds ?? null;
 	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
 	const proctoringEnabled = sessionModalities.proctoring.enabled;
-	const idVerificationEnabled =
-		sessionModalities.proctoring.id_verification;
+	const idVerificationEnabled = sessionModalities.proctoring.id_verification;
 	const faceVerificationEnabled =
 		sessionModalities.proctoring.face_verification;
 	const cameraFeaturesEnabled = hasCameraSessionFeatures(
@@ -405,7 +423,7 @@ export default function SharedTrialPage() {
 		const video = resolveLiveKitVideoOption(joinMedia);
 		const prefetchedCamera = joinMedia?.cameraTrack;
 		return (
-			<div className="flex min-h-screen flex-col bg-background">
+			<div className="flex h-dvh flex-col overflow-hidden bg-black sm:h-auto sm:min-h-dvh sm:bg-background">
 				<LiveKitRoom
 					token={credentials.token}
 					serverUrl={credentials.serverUrl}
@@ -413,7 +431,7 @@ export default function SharedTrialPage() {
 					connect={spatiusHost.connect}
 					audio={audio}
 					video={video}
-					className="flex min-h-screen flex-col"
+					className="flex h-full min-h-0 flex-1 flex-col"
 				>
 					{prefetchedCamera ? (
 						<PublishPrefetchedCamera
@@ -540,7 +558,7 @@ export default function SharedTrialPage() {
 		<div className="flex min-h-dvh w-full flex-col bg-background">
 			<SessionPrejoinLobby
 				title={agent.name}
-				subtitle={`Sessions left: ${trial.remaining}`}
+				badge={`${trial.remaining} session${trial.remaining === 1 ? "" : "s"} left`}
 				audioMandatory={audioMandatory}
 				videoMandatory={videoMandatory}
 				showWebMedia={sessionMedia === "web" && allowWeb}
@@ -556,7 +574,7 @@ export default function SharedTrialPage() {
 				onStart={handleStart}
 			>
 				{showMediaToggle && (
-					<div className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3">
+					<div className="flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3">
 						<div className="min-w-0">
 							<p className="text-sm font-medium">Phone call</p>
 							<p className="text-xs text-muted-foreground">
@@ -588,45 +606,55 @@ export default function SharedTrialPage() {
 								setOutboundPhone(event.target.value)
 							}
 							placeholder="+91 98765 43210"
+							className="h-11 rounded-xl sm:h-10"
 						/>
 					</div>
 				) : null}
 
 				{variables.length > 0 ? (
 					<div className="space-y-3">
-						<div className="grid gap-4">
-							{variables.map((variable) => (
-								<div
-									key={variable.name}
-									className="min-w-0 space-y-2"
-								>
-									<Label
-										htmlFor={`share-var-${variable.name}`}
-										className="block truncate"
-										title={variable.name}
+						<div className="grid gap-3 sm:gap-4">
+							{variables.map((variable) => {
+								const label = formatVariableLabel(
+									variable.name,
+								);
+								return (
+									<div
+										key={variable.name}
+										className="min-w-0 space-y-1.5"
 									>
-										{variable.name}
-										{variable.required ? (
-											<span className="text-destructive">
-												{" "}
-												*
-											</span>
-										) : null}
-									</Label>
-									<VariableField
-										variable={variable}
-										value={
-											variableValues[variable.name] ?? ""
-										}
-										onChange={(value) =>
-											setVariableValues((current) => ({
-												...current,
-												[variable.name]: value,
-											}))
-										}
-									/>
-								</div>
-							))}
+										<Label
+											htmlFor={`share-var-${variable.name}`}
+											className="block truncate text-sm font-medium"
+											title={label}
+										>
+											{label}
+											{variable.required ? (
+												<span className="text-destructive">
+													{" "}
+													*
+												</span>
+											) : null}
+										</Label>
+										<VariableField
+											variable={variable}
+											label={label}
+											value={
+												variableValues[variable.name] ??
+												""
+											}
+											onChange={(value) =>
+												setVariableValues(
+													(current) => ({
+														...current,
+														[variable.name]: value,
+													}),
+												)
+											}
+										/>
+									</div>
+								);
+							})}
 						</div>
 					</div>
 				) : null}

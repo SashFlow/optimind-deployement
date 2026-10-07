@@ -55,6 +55,8 @@ export type SessionPrejoinLobbyHandle = {
 export type SessionPrejoinLobbyProps = {
 	title: string;
 	subtitle?: string | null;
+	/** Compact status chip shown under the title (e.g. trial sessions remaining). */
+	badge?: string | null;
 	audioMandatory?: boolean;
 	videoMandatory?: boolean;
 	/** When false (phone mode), hide camera preview and device pills. */
@@ -65,6 +67,11 @@ export type SessionPrejoinLobbyProps = {
 	onStart: (media: SessionPrejoinMediaSelection) => void | Promise<void>;
 	onCancel?: () => void;
 	cancelLabel?: string;
+	/**
+	 * Pin Start to the viewport bottom on mobile. Keep true on standalone
+	 * share/embed pages; set false inside the app shell (floating bottom nav).
+	 */
+	stickyMobileCta?: boolean;
 	children?: ReactNode;
 	className?: string;
 	lobbyRef?: Ref<SessionPrejoinLobbyHandle>;
@@ -111,7 +118,7 @@ function DevicePill({
 			>
 				<SelectTrigger
 					title={fullLabel}
-					className="h-10 w-full min-w-0 max-w-full gap-2 overflow-hidden rounded-full border-border/70 bg-card px-3.5 text-sm shadow-none hover:bg-muted/50 data-[state=open]:bg-muted/50 [&>span]:line-clamp-none [&>span]:overflow-hidden [&>span:first-of-type]:w-auto [&>span:first-of-type]:flex-none [&>span:first-of-type]:shrink-0"
+					className="h-11 w-full min-w-0 max-w-full gap-2 overflow-hidden rounded-full border-border/70 bg-card px-3.5 text-sm shadow-none hover:bg-muted/50 data-[state=open]:bg-muted/50 sm:h-10 [&>span]:line-clamp-none [&>span]:overflow-hidden [&>span:first-of-type]:w-auto [&>span:first-of-type]:flex-none [&>span:first-of-type]:shrink-0"
 				>
 					<span className="inline-flex shrink-0 items-center text-muted-foreground">
 						{icon}
@@ -225,7 +232,7 @@ function PreviewStage({
 	}, [media.audioOutputDeviceId]);
 
 	return (
-		<div className="relative mx-auto aspect-video w-full max-w-xl overflow-hidden rounded-2xl bg-zinc-900 shadow-sm ring-1 ring-black/10 sm:max-w-2xl lg:mx-0 lg:w-full lg:max-w-none">
+		<div className="relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-2xl bg-zinc-900 shadow-sm ring-1 ring-black/10 sm:aspect-video sm:max-w-2xl lg:mx-0 lg:w-full lg:max-w-none">
 			<video
 				ref={videoRef}
 				autoPlay
@@ -237,14 +244,16 @@ function PreviewStage({
 				)}
 			/>
 			{!media.cameraEnabled ? (
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-zinc-900 text-zinc-300">
-					<div className="flex size-10 items-center justify-center rounded-full bg-zinc-800 sm:size-14">
-						<VideoOffIcon className="size-4 sm:size-6" />
+				<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-zinc-900 pb-14 text-zinc-300 sm:pb-0">
+					<div className="flex size-12 items-center justify-center rounded-full bg-zinc-800 sm:size-14">
+						<VideoOffIcon className="size-5 sm:size-6" />
 					</div>
-					<p className="text-xs sm:text-sm">Camera is off</p>
+					<p className="text-xs text-zinc-400 sm:hidden">
+						Camera is off
+					</p>
 				</div>
 			) : null}
-			<div className="absolute inset-x-0 bottom-2.5 flex items-center justify-center gap-2 sm:bottom-4 sm:gap-3">
+			<div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-3 sm:bottom-4">
 				<Button
 					type="button"
 					size="icon"
@@ -257,7 +266,7 @@ function PreviewStage({
 					aria-pressed={media.micEnabled}
 					disabled={busy}
 					className={cn(
-						"size-9 rounded-full shadow-md sm:size-8",
+						"size-11 rounded-full shadow-md sm:size-9",
 						media.micEnabled
 							? "bg-white text-zinc-900 hover:bg-white/90"
 							: "bg-red-600 text-white hover:bg-red-600/90",
@@ -265,11 +274,11 @@ function PreviewStage({
 					onClick={() => void media.toggleMic()}
 				>
 					{media.permissionPending === "mic" ? (
-						<Spinner className="size-4 sm:size-3" />
+						<Spinner className="size-4" />
 					) : media.micEnabled ? (
-						<MicIcon className="size-4 sm:size-3" />
+						<MicIcon className="size-4" />
 					) : (
-						<MicOffIcon className="size-4 sm:size-3" />
+						<MicOffIcon className="size-4" />
 					)}
 				</Button>
 				<Button
@@ -284,7 +293,7 @@ function PreviewStage({
 					aria-pressed={media.cameraEnabled}
 					disabled={busy}
 					className={cn(
-						"size-9 rounded-full shadow-md sm:size-8",
+						"size-11 rounded-full shadow-md sm:size-9",
 						media.cameraEnabled
 							? "bg-white text-zinc-900 hover:bg-white/90"
 							: "bg-red-600 text-white hover:bg-red-600/90",
@@ -292,11 +301,11 @@ function PreviewStage({
 					onClick={() => void media.toggleCamera()}
 				>
 					{media.permissionPending === "camera" ? (
-						<Spinner className="size-4 sm:size-3" />
+						<Spinner className="size-4" />
 					) : media.cameraEnabled ? (
-						<VideoIcon className="size-4 sm:size-3" />
+						<VideoIcon className="size-4" />
 					) : (
-						<VideoOffIcon className="size-4 sm:size-3" />
+						<VideoOffIcon className="size-4" />
 					)}
 				</Button>
 			</div>
@@ -307,6 +316,7 @@ function PreviewStage({
 export function SessionPrejoinLobby({
 	title,
 	subtitle,
+	badge,
 	audioMandatory = false,
 	videoMandatory = false,
 	showWebMedia = true,
@@ -316,6 +326,7 @@ export function SessionPrejoinLobby({
 	onStart,
 	onCancel,
 	cancelLabel = "Cancel",
+	stickyMobileCta = true,
 	children,
 	className,
 	lobbyRef,
@@ -398,6 +409,33 @@ export function SessionPrejoinLobby({
 	const busy = starting || media.permissionPending !== null;
 	const isPhoneStart = /call/i.test(startLabel);
 
+	const startButton = (
+		<Button
+			type="button"
+			size="lg"
+			className="h-12 w-full rounded-full text-base sm:h-11 sm:text-sm"
+			loading={starting}
+			disabled={starting}
+			onClick={() => void handleStart()}
+		>
+			{starting ? (
+				<>
+					<Spinner className="size-4" />
+					{startingLabel}
+				</>
+			) : (
+				<>
+					{isPhoneStart ? (
+						<PhoneIcon className="size-4" />
+					) : (
+						<PlayIcon className="size-4" />
+					)}
+					{startLabel}
+				</>
+			)}
+		</Button>
+	);
+
 	return (
 		<div
 			className={cn(
@@ -405,20 +443,26 @@ export function SessionPrejoinLobby({
 				className,
 			)}
 		>
-			<div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-3 pb-28 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:gap-5 sm:p-5 sm:pb-32 lg:flex-row lg:items-stretch lg:gap-8 lg:overflow-hidden lg:p-6 lg:pb-6">
+			<div
+				className={cn(
+					"mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:gap-5 sm:p-5 sm:pb-8 lg:flex-row lg:items-stretch lg:gap-8 lg:overflow-hidden lg:p-6 lg:pb-6",
+					// Sticky CTA: room for the fixed start bar. In-app: clear the floating bottom nav.
+					stickyMobileCta
+						? "pb-28"
+						: "pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-8",
+				)}
+			>
 				{/* Preview column */}
 				<div className="flex min-w-0 shrink-0 flex-col justify-center gap-3 lg:min-h-0 lg:flex-1 lg:shrink">
 					{showWebMedia ? (
 						<PreviewStage media={media} busy={busy} />
 					) : (
-						<div className="mx-auto flex aspect-video w-full max-w-xl items-center justify-center rounded-2xl bg-muted/40 sm:max-w-2xl lg:mx-0 lg:w-full lg:max-w-none">
+						<div className="mx-auto flex aspect-[4/3] w-full max-w-xl items-center justify-center rounded-2xl bg-muted/40 sm:aspect-video sm:max-w-2xl lg:mx-0 lg:w-full lg:max-w-none">
 							<div className="flex flex-col items-center gap-2 text-muted-foreground sm:gap-3">
-								<div className="flex size-10 items-center justify-center rounded-full bg-background shadow-sm sm:size-14">
-									<PhoneIcon className="size-4 sm:size-6" />
+								<div className="flex size-12 items-center justify-center rounded-full bg-background shadow-sm sm:size-14">
+									<PhoneIcon className="size-5 sm:size-6" />
 								</div>
-								<p className="text-xs sm:text-sm">
-									Phone session
-								</p>
+								<p className="text-sm">Phone session</p>
 							</div>
 						</div>
 					)}
@@ -435,10 +479,15 @@ export function SessionPrejoinLobby({
 
 				{/* Details + CTA — sits right under preview on mobile so Start stays reachable */}
 				<div className="flex w-full shrink-0 flex-col gap-3 sm:gap-4 lg:w-[22rem] lg:justify-center xl:w-sm">
-					<div className="space-y-1 text-center">
+					<div className="space-y-2 text-center">
 						<h1 className="font-semibold text-xl tracking-tight text-balance sm:text-2xl">
 							{title}
 						</h1>
+						{badge ? (
+							<span className="inline-flex items-center rounded-full border border-border/80 bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm">
+								{badge}
+							</span>
+						) : null}
 						{subtitle ? (
 							<p className="text-sm text-muted-foreground">
 								{subtitle}
@@ -447,7 +496,7 @@ export function SessionPrejoinLobby({
 					</div>
 
 					{children ? (
-						<div className="max-h-[22vh] space-y-3 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:max-h-[28vh] lg:max-h-[50vh] lg:space-y-4">
+						<div className="space-y-3 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:max-h-[28vh] lg:max-h-[50vh] lg:space-y-4">
 							{children}
 						</div>
 					) : null}
@@ -455,7 +504,7 @@ export function SessionPrejoinLobby({
 					{showWebMedia && missingNotices.length > 0 ? (
 						<p
 							className={cn(
-								"text-center text-xs w-full",
+								"text-center text-xs",
 								highlightMissing
 									? "font-medium text-destructive"
 									: "text-muted-foreground",
@@ -465,31 +514,14 @@ export function SessionPrejoinLobby({
 						</p>
 					) : null}
 
-					<div className="flex flex-col gap-2">
-						<Button
-							type="button"
-							size="lg"
-							className="w-full rounded-full"
-							loading={starting}
-							disabled={starting}
-							onClick={() => void handleStart()}
-						>
-							{starting ? (
-								<>
-									<Spinner className="size-4" />
-									{startingLabel}
-								</>
-							) : (
-								<>
-									{isPhoneStart ? (
-										<PhoneIcon className="size-4" />
-									) : (
-										<PlayIcon className="size-4" />
-									)}
-									{startLabel}
-								</>
-							)}
-						</Button>
+					{/* Inline CTA — always on desktop; also on mobile when sticky bar is off (app shell) */}
+					<div
+						className={cn(
+							"flex flex-col gap-2",
+							stickyMobileCta && "hidden sm:flex",
+						)}
+					>
+						{startButton}
 						{onCancel ? (
 							<Button
 								type="button"
@@ -513,6 +545,26 @@ export function SessionPrejoinLobby({
 					) : null}
 				</div>
 			</div>
+
+			{/* Sticky mobile start bar — standalone share/embed only (no app bottom nav) */}
+			{stickyMobileCta ? (
+				<div className="fixed inset-x-0 bottom-0 z-20 border-t border-border/60 bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:hidden">
+					<div className="mx-auto flex w-full max-w-xl flex-col gap-2">
+						{startButton}
+						{onCancel ? (
+							<Button
+								type="button"
+								variant="ghost"
+								className="w-full rounded-full"
+								onClick={onCancel}
+								disabled={starting}
+							>
+								{cancelLabel}
+							</Button>
+						) : null}
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
 }

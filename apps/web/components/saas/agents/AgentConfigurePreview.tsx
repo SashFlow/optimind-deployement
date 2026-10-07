@@ -15,6 +15,7 @@ import { cn } from "@repo/ui/utils";
 import { PhoneIcon, UploadIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useOptionalAppHeader } from "@/components/shared/app-header-provider";
 import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { ProctoringProvider } from "@/context/proctoring-provider";
@@ -204,6 +205,7 @@ export function AgentConfigurePreview({
 	className,
 }: AgentConfigurePreviewProps) {
 	const api = useApiClient();
+	const appHeader = useOptionalAppHeader();
 	const { activeOrganization } = useActiveOrganization();
 	const activeOrganizationId = activeOrganization?.id ?? null;
 	const [variableValues, setVariableValues] = useState<
@@ -219,8 +221,7 @@ export function AgentConfigurePreview({
 		useState<SessionPrejoinMediaSelection | null>(null);
 	const audioMandatory = isTrackMandatory(sessionModalities.audio_track);
 	const proctoringEnabled = sessionModalities.proctoring.enabled;
-	const idVerificationEnabled =
-		sessionModalities.proctoring.id_verification;
+	const idVerificationEnabled = sessionModalities.proctoring.id_verification;
 	const faceVerificationEnabled =
 		sessionModalities.proctoring.face_verification;
 	const cameraFeaturesEnabled = hasCameraSessionFeatures(
@@ -449,6 +450,16 @@ export function AgentConfigurePreview({
 		avatar.provider === "spatius";
 	const spatiusHost = useSpatiusHostRoom(spatiusSessionActive);
 
+	// Hide floating mobile nav/top chrome while a live preview call is open.
+	useEffect(() => {
+		const setHidden = appHeader?.setMobileChromeHidden;
+		if (!setHidden) {
+			return;
+		}
+		setHidden(Boolean(sessionCredentials));
+		return () => setHidden(false);
+	}, [appHeader?.setMobileChromeHidden, sessionCredentials]);
+
 	const roomContent = useMemo(() => {
 		if (!sessionCredentials) {
 			return null;
@@ -471,6 +482,7 @@ export function AgentConfigurePreview({
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}
+				embedded
 			/>
 		);
 		const audio = resolveLiveKitAudioOption(joinMedia);
@@ -599,6 +611,7 @@ export function AgentConfigurePreview({
 				}
 				onStart={handleStartSession}
 				onCancel={onCancel}
+				stickyMobileCta={false}
 			>
 				{showMediaToggle ? (
 					<div className="flex items-center justify-between gap-3">

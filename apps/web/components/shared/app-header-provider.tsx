@@ -14,6 +14,12 @@ type AppHeaderContextValue = {
 	setBreadcrumb: (breadcrumb: ReactNode | null) => void;
 	actions: ReactNode | null;
 	setActions: (actions: ReactNode | null) => void;
+	/**
+	 * When true, hide the floating mobile top cluster + bottom nav
+	 * (e.g. during an in-app preview call).
+	 */
+	mobileChromeHidden: boolean;
+	setMobileChromeHidden: (hidden: boolean) => void;
 };
 
 const AppHeaderContext = createContext<AppHeaderContextValue | null>(null);
@@ -21,6 +27,7 @@ const AppHeaderContext = createContext<AppHeaderContextValue | null>(null);
 export function AppHeaderProvider({ children }: { children: ReactNode }) {
 	const [breadcrumb, setBreadcrumbState] = useState<ReactNode | null>(null);
 	const [actions, setActionsState] = useState<ReactNode | null>(null);
+	const [mobileChromeHidden, setMobileChromeHiddenState] = useState(false);
 
 	const setBreadcrumb = useCallback((next: ReactNode | null) => {
 		setBreadcrumbState(next);
@@ -30,9 +37,27 @@ export function AppHeaderProvider({ children }: { children: ReactNode }) {
 		setActionsState(next);
 	}, []);
 
+	const setMobileChromeHidden = useCallback((hidden: boolean) => {
+		setMobileChromeHiddenState(hidden);
+	}, []);
+
 	const value = useMemo(
-		() => ({ breadcrumb, setBreadcrumb, actions, setActions }),
-		[breadcrumb, setBreadcrumb, actions, setActions],
+		() => ({
+			breadcrumb,
+			setBreadcrumb,
+			actions,
+			setActions,
+			mobileChromeHidden,
+			setMobileChromeHidden,
+		}),
+		[
+			breadcrumb,
+			setBreadcrumb,
+			actions,
+			setActions,
+			mobileChromeHidden,
+			setMobileChromeHidden,
+		],
 	);
 
 	return (
@@ -48,4 +73,9 @@ export function useAppHeader() {
 		throw new Error("useAppHeader must be used within AppHeaderProvider");
 	}
 	return context;
+}
+
+/** Optional: returns null outside the app shell (share/embed pages). */
+export function useOptionalAppHeader() {
+	return useContext(AppHeaderContext);
 }

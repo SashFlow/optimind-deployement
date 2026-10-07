@@ -103,9 +103,14 @@ export async function livekitWebhookHandler(
 						outputUrls,
 						...(destinationUpdate
 							? {
-									destination: destinationUpdate as unknown as {
-										[key: string]: string | number | boolean | null;
-									},
+									destination:
+										destinationUpdate as unknown as {
+											[key: string]:
+												| string
+												| number
+												| boolean
+												| null;
+										},
 								}
 							: {}),
 						errorMessage: info.error || undefined,

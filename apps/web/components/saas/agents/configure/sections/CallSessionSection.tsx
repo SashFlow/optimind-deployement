@@ -353,16 +353,14 @@ export function CallSessionSection({
 						label="ID verification"
 						description="Allow the agent to request ID card capture during the session (via a tool call). Independent of proctoring."
 						checked={
-							config.session_modalities.proctoring
-								.id_verification
+							config.session_modalities.proctoring.id_verification
 						}
 						onCheckedChange={(id_verification) =>
 							onConfigChange({
 								session_modalities: {
 									...config.session_modalities,
 									proctoring: {
-										...config.session_modalities
-											.proctoring,
+										...config.session_modalities.proctoring,
 										id_verification,
 									},
 								},
@@ -381,8 +379,7 @@ export function CallSessionSection({
 								session_modalities: {
 									...config.session_modalities,
 									proctoring: {
-										...config.session_modalities
-											.proctoring,
+										...config.session_modalities.proctoring,
 										face_verification,
 									},
 								},

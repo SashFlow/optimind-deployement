@@ -72,14 +72,20 @@ async function resolveSpatialRealWasmPublicUrl(
 	if (!spatialRealWasmPublicUrlPromise) {
 		spatialRealWasmPublicUrlPromise = (async () => {
 			try {
-				const response = await fetchImpl(SPATIALREAL_WASM_MANIFEST_URL, {
-					cache: "force-cache",
-				});
+				const response = await fetchImpl(
+					SPATIALREAL_WASM_MANIFEST_URL,
+					{
+						cache: "force-cache",
+					},
+				);
 				if (!response.ok) {
 					return null;
 				}
 				const body = (await response.json()) as { wasm?: unknown };
-				if (typeof body.wasm !== "string" || !body.wasm.endsWith(".wasm")) {
+				if (
+					typeof body.wasm !== "string" ||
+					!body.wasm.endsWith(".wasm")
+				) {
 					return null;
 				}
 				spatialRealWasmPublicUrl = `/_spatialreal/${body.wasm}`;

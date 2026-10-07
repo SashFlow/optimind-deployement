@@ -21,6 +21,7 @@
 		"generate": "prisma generate --no-hints --schema=./prisma/schema.prisma && node ./scripts/patch-zod-cuid.cjs",
 		"push": "dotenv -c -e ../../.env -- prisma db push --skip-generate --schema=./prisma/schema.prisma",
 		"migrate": "dotenv -c -e ../../.env -- prisma migrate dev --schema=./prisma/schema.prisma",
+		"migrate:reset": "dotenv -c -e ../../.env -- prisma migrate reset --force --schema=./prisma/schema.prisma",
 		"studio": "dotenv -c -e ../../.env -- prisma studio --schema=./prisma/schema.prisma",
 		"type-check": "tsc --noEmit"
 	},

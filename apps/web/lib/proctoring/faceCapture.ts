@@ -14,11 +14,11 @@ export type FaceCaptureHint =
 	| "hold_steady";
 
 export const FACE_CAPTURE_HINTS: Record<FaceCaptureHint, string> = {
-	no_face: "Position your face inside the oval",
+	no_face: "Position your face inside the box",
 	multiple_faces: "Only one face should be visible",
 	move_closer: "Move a little closer to the camera",
 	move_back: "Move a little farther from the camera",
-	center: "Center your face in the oval",
+	center: "Center your face in the box",
 	hold_steady: "Hold steady…",
 };
 

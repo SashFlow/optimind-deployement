@@ -17,7 +17,7 @@ import {
 	faceGuideRect,
 } from "@/lib/proctoring/faceCapture";
 
-/** Full-screen camera view with an oval guide, shown while face capture is active. */
+/** Full-screen camera view with a box guide, shown while face capture is active. */
 export function FaceCaptureOverlay() {
 	const proctoring = useProctoringContext();
 	const room = useRoomContext();
@@ -73,7 +73,7 @@ export function FaceCaptureOverlay() {
 						Verify your face
 					</h2>
 					<p className="text-muted-foreground text-sm">
-						Center your face in the oval. We capture and submit
+						Center your face in the box. We capture and submit
 						automatically once you hold still.
 					</p>
 				</div>
@@ -106,10 +106,10 @@ export function FaceCaptureOverlay() {
 											: "border-white/80",
 								)}
 								style={{
-									left: `13.5%`,
-									top: '11%',
-									width: '74%',
-									height: '74%',
+									left: "13.5%",
+									top: "11%",
+									width: "74%",
+									height: "74%",
 								}}
 							/>
 						</>
@@ -138,13 +138,13 @@ export function FaceCaptureOverlay() {
 						className={cn(
 							"flex items-center gap-2 text-sm",
 							faceCaptureStatus === "failed" &&
-							"text-destructive",
+								"text-destructive",
 						)}
 					>
 						{(faceCaptureStatus === "uploading" ||
 							faceCaptureStatus === "captured") && (
-								<Loader className="size-4 animate-spin" />
-							)}
+							<Loader className="size-4 animate-spin" />
+						)}
 						{faceCaptureStatus === "uploading"
 							? "Uploading your photo…"
 							: faceCaptureStatus === "captured"
@@ -155,10 +155,7 @@ export function FaceCaptureOverlay() {
 					</p>
 
 					{faceCaptureStatus === "failed" ? (
-						<Button
-							className="shrink-0"
-							onClick={startFaceCapture}
-						>
+						<Button className="shrink-0" onClick={startFaceCapture}>
 							Try again
 						</Button>
 					) : null}

@@ -119,10 +119,11 @@ function fixAvatarWasmLoaders(config) {
 	const turbopackRules = { ...(config.turbopack?.rules ?? {}) };
 	delete turbopackRules["**/avatar_core_wasm*.js"];
 	if (existsSync(spatialRealLoader)) {
-		turbopackRules["**/node_modules/@spatialreal/**/avatar_core_wasm*.js"] = {
-			loaders: [spatialRealLoader],
-			as: "*.js",
-		};
+		turbopackRules["**/node_modules/@spatialreal/**/avatar_core_wasm*.js"] =
+			{
+				loaders: [spatialRealLoader],
+				as: "*.js",
+			};
 	}
 	if (existsSync(spatiumLoader)) {
 		turbopackRules["**/node_modules/@spatius/**/avatar_core_wasm*.js"] = {

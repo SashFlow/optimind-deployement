@@ -24,7 +24,7 @@ const navActiveClass =
 	"bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground";
 
 const navButtonClass =
-	"inline-flex size-12 items-center justify-center overflow-visible rounded-2xl p-0 [&_svg]:size-6 [&_svg]:stroke-[1.75]";
+	"inline-flex size-10 md:size-12 items-center justify-center overflow-visible rounded-2xl p-0 [&_svg]:size-4 md:[&_svg]:size-6 [&_svg]:stroke-[1.75]";
 
 function isItemActive(pathname: string, item: NavItem): boolean {
 	if (!item.url && !item.matchHref) {
@@ -56,7 +56,7 @@ export function NavMain({
 					return (
 						<li
 							key={item.title}
-							className="flex size-14 shrink-0 items-center justify-center"
+							className="flex size-10 md:size-14 shrink-0 items-center justify-center"
 						>
 							{item.onClick && !item.url ? (
 								<button

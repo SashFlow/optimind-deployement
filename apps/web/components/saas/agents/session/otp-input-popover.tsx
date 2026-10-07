@@ -100,7 +100,8 @@ export function OtpInputPopover() {
 						Enter OTP
 					</h2>
 					<p className="text-muted-foreground text-sm">
-						Enter the 6-digit code you received via SMS. Check Spam folder if you don't see it.
+						Enter the 6-digit code you received via SMS. Check Spam
+						folder if you don't see it.
 					</p>
 				</div>
 

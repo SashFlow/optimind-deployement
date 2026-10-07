@@ -1,6 +1,7 @@
 "use client";
 
 import { AppNotificationsButton } from "@components/shared/app-notifications-button";
+import { useAppHeader } from "@components/shared/app-header-provider";
 import { AppSidebarLogo } from "@components/shared/app-sidebar-logo";
 import { AppUserMenu } from "@components/shared/app-user-menu";
 import { type NavItem, NavMain } from "@components/shared/nav-main";
@@ -56,7 +57,7 @@ const settingsLinkItems: NavItem[] = [
 ];
 
 const railPillClass =
-	"rounded-3xl bg-sidebar shadow-sm ring-1 ring-black/5 ml-2";
+	"rounded-3xl bg-sidebar shadow-sm ring-1 ring-black/5 md:ml-2";
 
 function isSettingsPath(pathname: string) {
 	return (
@@ -66,6 +67,7 @@ function isSettingsPath(pathname: string) {
 
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 	const pathname = usePathname();
+	const { mobileChromeHidden } = useAppHeader();
 	const [settingsRailOpen, setSettingsRailOpen] = useState(() =>
 		isSettingsPath(pathname),
 	);
@@ -158,50 +160,57 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 			</Sidebar>
 
 			{/* Mobile: compact logo / account cluster (not a full header) */}
-			<div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] lg:hidden">
-				<div className="pointer-events-auto">
-					<AppSidebarLogo className="size-12 [&_svg]:size-5!" />
+			{!mobileChromeHidden ? (
+				<div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] lg:hidden">
+					<div className="pointer-events-auto">
+						<AppSidebarLogo className="size-12 [&_svg]:size-5!" />
+					</div>
+					<div className="pointer-events-auto flex items-center gap-1">
+						<AppNotificationsButton className="size-11" />
+						<AppUserMenu
+							showMeta={false}
+							align="end"
+							side="bottom"
+							className="size-11"
+						/>
+					</div>
 				</div>
-				<div className="pointer-events-auto flex items-center gap-1">
-					<AppNotificationsButton className="size-11" />
-					<AppUserMenu
-						showMeta={false}
-						align="end"
-						side="bottom"
-						className="size-11"
-					/>
-				</div>
-			</div>
+			) : null}
 
-			<nav
-				aria-label="Primary"
-				className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden"
-			>
-				<div
-					className={cn(
-						railPillClass,
-						"pointer-events-auto relative flex h-auto w-auto max-w-[calc(100vw-2rem)] flex-row items-center overflow-hidden shadow-lg shadow-black/15",
-					)}
+			{!mobileChromeHidden ? (
+				<nav
+					aria-label="Primary"
+					className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden"
 				>
-					<AnimatePresence mode="wait" initial={false}>
-						<motion.div
-							key={railKey}
-							initial={{
-								opacity: 0,
-								y: settingsRailOpen ? 8 : -8,
-							}}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: settingsRailOpen ? -8 : 8 }}
-							transition={RAIL_TRANSITION}
-						>
-							<NavMain
-								items={activeItems}
-								orientation="horizontal"
-							/>
-						</motion.div>
-					</AnimatePresence>
-				</div>
-			</nav>
+					<div
+						className={cn(
+							railPillClass,
+							"pointer-events-auto relative flex h-auto w-auto max-w-[calc(100vw-2rem)] flex-row items-center overflow-hidden shadow-lg shadow-black/15",
+						)}
+					>
+						<AnimatePresence mode="wait" initial={false}>
+							<motion.div
+								key={railKey}
+								initial={{
+									opacity: 0,
+									y: settingsRailOpen ? 8 : -8,
+								}}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{
+									opacity: 0,
+									y: settingsRailOpen ? -8 : 8,
+								}}
+								transition={RAIL_TRANSITION}
+							>
+								<NavMain
+									items={activeItems}
+									orientation="horizontal"
+								/>
+							</motion.div>
+						</AnimatePresence>
+					</div>
+				</nav>
+			) : null}
 		</>
 	);
 }
