@@ -10,9 +10,34 @@ export type SpatiusSdk = {
 	LiveKitProvider: SpatiusAvatarKitRtc["LiveKitProvider"];
 };
 
+export type SpatiusDrivingMode = "rtc" | "backend" | "direct";
+
+export type SpatiusInitOptions = {
+	drivingServiceMode?: SpatiusDrivingMode;
+};
+
+type InitCacheKey = string;
+
 let sdkPromise: Promise<SpatiusSdk> | null = null;
 let initPromise: Promise<void> | null = null;
-let initializedAppId: string | null = null;
+let initCacheKey: InitCacheKey | null = null;
+
+function resolveMode(
+	sdk: SpatiusSdk,
+	mode: SpatiusDrivingMode | undefined,
+): SpatiusAvatarKit["DrivingServiceMode"] {
+	if (mode === "backend") {
+		return sdk.DrivingServiceMode.backend;
+	}
+	if (mode === "direct") {
+		return sdk.DrivingServiceMode.direct;
+	}
+	return sdk.DrivingServiceMode.rtc;
+}
+
+function cacheKey(appId: string, options?: SpatiusInitOptions): InitCacheKey {
+	return `${appId}|${options?.drivingServiceMode ?? "rtc"}`;
+}
 
 export function preloadSpatiusSdk(): Promise<SpatiusSdk> {
 	if (!sdkPromise) {
@@ -32,20 +57,23 @@ export function preloadSpatiusSdk(): Promise<SpatiusSdk> {
 }
 
 /**
- * Initialize AvatarKit once per app id in RTC mode (required before AvatarPlayer).
+ * Initialize AvatarKit once per (appId, drivingServiceMode).
+ * Defaults to RTC mode (required before AvatarPlayer).
  */
 export async function ensureSpatiusInitialized(
 	appId: string,
+	options?: SpatiusInitOptions,
 ): Promise<SpatiusSdk> {
 	const sdk = await preloadSpatiusSdk();
-	if (initializedAppId === appId && initPromise) {
+	const key = cacheKey(appId, options);
+	if (initCacheKey === key && initPromise) {
 		await initPromise;
 		return sdk;
 	}
 
-	initializedAppId = appId;
+	initCacheKey = key;
 	initPromise = sdk.AvatarSDK.initialize(appId, {
-		drivingServiceMode: sdk.DrivingServiceMode.rtc,
+		drivingServiceMode: resolveMode(sdk, options?.drivingServiceMode),
 	});
 	await initPromise;
 	return sdk;

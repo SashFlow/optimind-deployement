@@ -1,0 +1,30 @@
+{
+  "avatarId": "f0c7f7b2-2f47-4622-bc3f-4b54c0904fb9",
+  "clip": "expressive",
+  "sampleRate": 24000,
+  "fps": 25,
+  "frameCount": 18,
+  "durationSeconds": 66.22,
+  "audio": "audio.wav",
+  "frames": [
+    "frames/000000.bin",
+    "frames/000001.bin",
+    "frames/000002.bin",
+    "frames/000003.bin",
+    "frames/000004.bin",
+    "frames/000005.bin",
+    "frames/000006.bin",
+    "frames/000007.bin",
+    "frames/000008.bin",
+    "frames/000009.bin",
+    "frames/000010.bin",
+    "frames/000011.bin",
+    "frames/000012.bin",
+    "frames/000013.bin",
+    "frames/000014.bin",
+    "frames/000015.bin",
+    "frames/000016.bin",
+    "frames/000017.bin"
+  ],
+  "sourceRun": "/Users/sahil/Dev/Company/sashflow/voice/worker/data/flame_atlas/f0c7f7b2-2f47-4622-bc3f-4b54c0904fb9/runs/20261008T000015Z-06b7087e/expressive"
+}
