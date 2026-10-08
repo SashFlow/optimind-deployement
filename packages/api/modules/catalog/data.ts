@@ -527,7 +527,11 @@ export const AVATARS_PROVIDERS: {
 			{
 				id: "f0c7f7b2-2f47-4622-bc3f-4b54c0904fb9",
 				display_name: "Sanjay",
-			}
+			},
+			{
+				id: "51e90053-f1b1-4b12-92d0-5dc1615c25cf",
+				display_name: "Raj",
+			},
 		],
 	},
 ];
