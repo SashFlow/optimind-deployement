@@ -3,6 +3,11 @@ export type CatalogProvider = {
 	display_name: string;
 };
 
+export type CatalogReasoning = {
+	/** Ordered lowest → highest. First entry is the default when unset. */
+	levels: string[];
+};
+
 export type CatalogModel = {
 	id: string;
 	display_name: string;
@@ -10,6 +15,8 @@ export type CatalogModel = {
 	is_enabled: boolean;
 	kind: "llm" | "realtime" | "live" | "stt" | "tts";
 	supports_text_output?: boolean;
+	/** Present when the model supports configurable reasoning / thinking effort. */
+	reasoning?: CatalogReasoning | null;
 };
 
 export type CatalogVoice = {
@@ -35,9 +42,45 @@ export type CatalogAudioClip = {
 export const CATALOG_PROVIDERS: CatalogProvider[] = [
 	{ id: "openai", display_name: "OpenAI" },
 	{ id: "gemini", display_name: "Google Gemini" },
+	{ id: "anthropic", display_name: "Anthropic" },
 	{ id: "sarvam", display_name: "Sarvam" },
 	{ id: "inworld", display_name: "Inworld" },
 ];
+
+/** OpenAI GPT-5 (pre-5.1): no `none`, lowest is `minimal`. */
+const OPENAI_REASONING_MINIMAL: CatalogReasoning = {
+	levels: ["minimal", "low", "medium", "high"],
+};
+
+/** OpenAI GPT-5.1+: supports `none` as lowest; some add `xhigh`. */
+const OPENAI_REASONING_NONE: CatalogReasoning = {
+	levels: ["none", "low", "medium", "high"],
+};
+const OPENAI_REASONING_NONE_XHIGH: CatalogReasoning = {
+	levels: ["none", "low", "medium", "high", "xhigh"],
+};
+
+/** Claude effort levels (lowest = `low`). */
+const CLAUDE_REASONING_FULL: CatalogReasoning = {
+	levels: ["low", "medium", "high", "xhigh", "max"],
+};
+const CLAUDE_REASONING_MAX: CatalogReasoning = {
+	levels: ["low", "medium", "high", "max"],
+};
+const CLAUDE_REASONING_BASIC: CatalogReasoning = {
+	levels: ["low", "medium", "high"],
+};
+
+/** Gemini thinking_level sets (lowest first). */
+const GEMINI_REASONING_MINIMAL: CatalogReasoning = {
+	levels: ["minimal", "low", "medium", "high"],
+};
+const GEMINI_REASONING_LOW: CatalogReasoning = {
+	levels: ["low", "medium", "high"],
+};
+const GEMINI_REASONING_MINIMAL_HIGH: CatalogReasoning = {
+	levels: ["minimal", "high"],
+};
 
 function model(
 	id: string,
@@ -64,29 +107,118 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("gpt-4.1-nano", "GPT-4.1 Nano", "openai", "llm"),
 	model("gpt-4o", "GPT-4o", "openai", "llm"),
 	model("gpt-4o-mini", "GPT-4o Mini", "openai", "llm"),
-	model("gpt-5", "GPT-5", "openai", "llm"),
-	model("gpt-5-mini", "GPT-5 Mini", "openai", "llm"),
-	model("gpt-5-nano", "GPT-5 Nano", "openai", "llm"),
-	model("gpt-5.1", "GPT-5.1", "openai", "llm"),
-	model("gpt-5.2", "GPT-5.2", "openai", "llm"),
-	model("gpt-5.4", "GPT-5.4", "openai", "llm"),
-	model("gpt-5.4-mini", "GPT-5.4 Mini", "openai", "llm"),
-	model("gpt-5.4-nano", "GPT-5.4 Nano", "openai", "llm"),
-	model("gpt-5.5", "GPT-5.5", "openai", "llm"),
-	model("gpt-5.6-luna", "GPT-5.6 Luna", "openai", "llm"),
-	model("gpt-5.6-sol", "GPT-5.6 Sol", "openai", "llm"),
-	model("gpt-5.6-terra", "GPT-5.6 Terra", "openai", "llm"),
+	model("gpt-5", "GPT-5", "openai", "llm", {
+		reasoning: OPENAI_REASONING_MINIMAL,
+	}),
+	model("gpt-5-mini", "GPT-5 Mini", "openai", "llm", {
+		reasoning: OPENAI_REASONING_MINIMAL,
+	}),
+	model("gpt-5-nano", "GPT-5 Nano", "openai", "llm", {
+		reasoning: OPENAI_REASONING_MINIMAL,
+	}),
+	model("gpt-5.1", "GPT-5.1", "openai", "llm", {
+		reasoning: OPENAI_REASONING_NONE,
+	}),
+	model("gpt-5.2", "GPT-5.2", "openai", "llm", {
+		reasoning: OPENAI_REASONING_NONE_XHIGH,
+	}),
+	model("gpt-5.4", "GPT-5.4", "openai", "llm", {
+		reasoning: OPENAI_REASONING_NONE_XHIGH,
+	}),
+	model("gpt-5.4-mini", "GPT-5.4 Mini", "openai", "llm", {
+		reasoning: OPENAI_REASONING_NONE_XHIGH,
+	}),
+	model("gpt-5.4-nano", "GPT-5.4 Nano", "openai", "llm", {
+		reasoning: OPENAI_REASONING_NONE,
+	}),
+	model("gpt-5.5", "GPT-5.5", "openai", "llm", {
+		reasoning: OPENAI_REASONING_NONE_XHIGH,
+	}),
+	model("gpt-5.6-luna", "GPT-5.6 Luna", "openai", "llm", {
+		reasoning: OPENAI_REASONING_NONE_XHIGH,
+	}),
+	model("gpt-5.6-sol", "GPT-5.6 Sol", "openai", "llm", {
+		reasoning: OPENAI_REASONING_NONE_XHIGH,
+	}),
+	model("gpt-5.6-terra", "GPT-5.6 Terra", "openai", "llm", {
+		reasoning: OPENAI_REASONING_NONE_XHIGH,
+	}),
 
 	// LLM — Gemini
-	model("gemini-3-flash-preview", "Gemini 3 Flash", "gemini", "llm"),
-	model("gemini-3.1-flash-lite", "Gemini 3.1 Flash Lite", "gemini", "llm"),
-	model("gemini-3.1-pro-preview", "Gemini 3.1 Pro", "gemini", "llm"),
-	model("gemini-3.5-flash", "Gemini 3.5 Flash", "gemini", "llm"),
-	model("gemini-3.5-flash-lite", "Gemini 3.5 Flash Lite", "gemini", "llm"),
-	model("gemini-3.6-flash", "Gemini 3.6 Flash", "gemini", "llm"),
-	model("gemini-3.7-flash", "Gemini 3.7 Flash", "gemini", "llm"),
-	model("gemini-3.8-flash", "Gemini 3.8 Flash", "gemini", "llm"),
-	model("gemma-4-31b-it", "Gemma 4 31B IT", "gemini", "llm"),
+	model("gemini-3-flash-preview", "Gemini 3 Flash", "gemini", "llm", {
+		reasoning: GEMINI_REASONING_MINIMAL,
+	}),
+	model("gemini-3.1-flash-lite", "Gemini 3.1 Flash Lite", "gemini", "llm", {
+		reasoning: GEMINI_REASONING_MINIMAL,
+	}),
+	model("gemini-3.1-pro-preview", "Gemini 3.1 Pro", "gemini", "llm", {
+		reasoning: GEMINI_REASONING_LOW,
+	}),
+	model("gemini-3.5-flash", "Gemini 3.5 Flash", "gemini", "llm", {
+		reasoning: GEMINI_REASONING_MINIMAL,
+	}),
+	model("gemini-3.5-flash-lite", "Gemini 3.5 Flash Lite", "gemini", "llm", {
+		reasoning: GEMINI_REASONING_MINIMAL,
+	}),
+	model("gemini-3.6-flash", "Gemini 3.6 Flash", "gemini", "llm", {
+		reasoning: GEMINI_REASONING_MINIMAL,
+	}),
+	model("gemini-3.7-flash", "Gemini 3.7 Flash", "gemini", "llm", {
+		reasoning: GEMINI_REASONING_LOW,
+	}),
+	model("gemini-3.8-flash", "Gemini 3.8 Flash", "gemini", "llm", {
+		reasoning: GEMINI_REASONING_LOW,
+	}),
+	model("gemma-4-31b-it", "Gemma 4 31B IT", "gemini", "llm", {
+		reasoning: GEMINI_REASONING_MINIMAL_HIGH,
+	}),
+
+	// LLM — Anthropic (Claude)
+	model("claude-fable-5-1", "Claude Fable 5.1", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-mythos-5-1", "Claude Mythos 5.1", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-opus-5-5", "Claude Opus 5.5", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-sonnet-5-5", "Claude Sonnet 5.5", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-haiku-5-5", "Claude Haiku 5.5", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-fable-5", "Claude Fable 5", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-mythos-5", "Claude Mythos 5", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-opus-5", "Claude Opus 5", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-sonnet-5", "Claude Sonnet 5", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-opus-4-8", "Claude Opus 4.8", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-opus-4-7", "Claude Opus 4.7", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_FULL,
+	}),
+	model("claude-opus-4-6", "Claude Opus 4.6", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_MAX,
+	}),
+	model("claude-sonnet-4-6", "Claude Sonnet 4.6", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_MAX,
+	}),
+	model("claude-opus-4-5-20251101", "Claude Opus 4.5", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_BASIC,
+	}),
+	model("claude-haiku-4-5-20251001", "Claude Haiku 4.5", "anthropic", "llm", {
+		reasoning: CLAUDE_REASONING_BASIC,
+	}),
 
 	// Realtime — OpenAI
 	model("gpt-realtime-2.1", "GPT Realtime 2.1", "openai", "realtime", {

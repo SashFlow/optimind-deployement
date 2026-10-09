@@ -6,6 +6,7 @@ import { useState } from "react";
 const PROVIDER_LOGOS: Record<string, string> = {
 	openai: "/images/providers/openai.png",
 	gemini: "/images/providers/gemini.png",
+	anthropic: "/images/providers/anthropic.png",
 	sarvam: "/images/providers/sarvam.png",
 	inworld: "/images/providers/inworld.png",
 };

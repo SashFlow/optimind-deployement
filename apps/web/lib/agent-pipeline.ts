@@ -67,15 +67,75 @@ export function setPipelineMode(
 	return patch;
 }
 
+/** Lowest supported reasoning level for a catalog model, or null if not configurable. */
+export function lowestReasoningLevel(
+	model: ProviderModel | undefined | null,
+): string | null {
+	const levels = model?.reasoning?.levels;
+	if (!levels || levels.length === 0) {
+		return null;
+	}
+	return levels[0] ?? null;
+}
+
+/** Resolve reasoning for a model: keep current if still valid, else lowest. */
+export function resolveReasoningLevel(
+	model: ProviderModel | undefined | null,
+	current: unknown,
+): string | null {
+	const levels = model?.reasoning?.levels;
+	if (!levels || levels.length === 0) {
+		return null;
+	}
+	if (typeof current === "string" && levels.includes(current)) {
+		return current;
+	}
+	return levels[0] ?? null;
+}
+
+function llmParamsWithReasoning(
+	model: ProviderModel | undefined,
+	currentParams: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+	const reasoning = resolveReasoningLevel(model, currentParams?.reasoning);
+	if (reasoning === null) {
+		const next = { ...(currentParams ?? {}) };
+		delete next.reasoning;
+		return next;
+	}
+	return { ...(currentParams ?? {}), reasoning };
+}
+
 export function selectLlmModel(
-	_config: AgentConfigDocument,
+	config: AgentConfigDocument,
 	providerModelId: string,
-	_models: ProviderModel[],
+	models: ProviderModel[],
 ): Partial<AgentConfigDocument> {
+	const model = models.find((item) => item.id === providerModelId);
 	return {
 		llm: {
 			provider_model_id: providerModelId,
-			params: {},
+			params: llmParamsWithReasoning(model, config.llm?.params),
+		},
+	};
+}
+
+export function selectLlmReasoning(
+	config: AgentConfigDocument,
+	reasoning: string,
+	models: ProviderModel[],
+): Partial<AgentConfigDocument> {
+	const modelId = config.llm?.provider_model_id ?? null;
+	const model = models.find((item) => item.id === modelId);
+	const levels = model?.reasoning?.levels;
+	if (!levels?.includes(reasoning)) {
+		return {};
+	}
+	return {
+		llm: {
+			...config.llm,
+			provider_model_id: config.llm?.provider_model_id ?? null,
+			params: { ...(config.llm?.params ?? {}), reasoning },
 		},
 	};
 }
@@ -244,7 +304,7 @@ export function selectLiveReasoningModel(
 	return {
 		llm: {
 			provider_model_id: providerModelId,
-			params: {},
+			params: llmParamsWithReasoning(reasoningModel, config.llm?.params),
 		},
 	};
 }

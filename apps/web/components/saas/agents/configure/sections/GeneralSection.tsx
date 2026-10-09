@@ -26,10 +26,12 @@ import {
 	isRealtimePipeline,
 	modelSupportsTextOutput,
 	realtimeUsesExternalTts,
+	resolveReasoningLevel,
 	selectLiveModel,
 	selectLiveReasoningModel,
 	selectLiveVoice,
 	selectLlmModel,
+	selectLlmReasoning,
 	selectRealtimeModel,
 	selectRealtimeOutputModality,
 	selectRealtimeVoice,
@@ -54,6 +56,20 @@ const GREETING_OPTIONS = [
 	{ value: "say", label: "Say greeting" },
 	{ value: "generate_reply", label: "Generate reply" },
 ] as const;
+
+const REASONING_LEVEL_LABELS: Record<string, string> = {
+	none: "None",
+	minimal: "Minimal",
+	low: "Low",
+	medium: "Medium",
+	high: "High",
+	xhigh: "Extra high",
+	max: "Max",
+};
+
+function reasoningLevelLabel(level: string): string {
+	return REASONING_LEVEL_LABELS[level] ?? level;
+}
 
 type GeneralSectionProps = {
 	config: AgentConfigDocument;
@@ -126,10 +142,44 @@ export function GeneralSection({
 				(model) => model.provider_id === selectedLiveModel.provider_id,
 			)
 		: [];
+	const selectedLlmModel = llmModels.find(
+		(model) => model.id === config.llm?.provider_model_id,
+	);
+	const reasoningLevels = selectedLlmModel?.reasoning?.levels ?? null;
+	const selectedReasoningLevel = resolveReasoningLevel(
+		selectedLlmModel,
+		config.llm?.params?.reasoning,
+	);
 
 	function update(patch: Partial<AgentConfigDocument>) {
 		onConfigChange(patch);
 	}
+
+	const reasoningSelect =
+		reasoningLevels && reasoningLevels.length > 0 ? (
+			<FieldBlock
+				label="Reasoning effort"
+				description="How much the model thinks before responding. Defaults to the lowest level."
+			>
+				<Select
+					value={selectedReasoningLevel ?? reasoningLevels[0]}
+					onValueChange={(value) =>
+						update(selectLlmReasoning(config, value, llmModels))
+					}
+				>
+					<SelectTrigger className="w-full max-w-xs">
+						<SelectValue placeholder="Select reasoning effort" />
+					</SelectTrigger>
+					<SelectContent>
+						{reasoningLevels.map((level) => (
+							<SelectItem key={level} value={level}>
+								{reasoningLevelLabel(level)}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</FieldBlock>
+		) : null;
 
 	return (
 		<div className="rounded-xl border bg-card">
@@ -216,6 +266,7 @@ export function GeneralSection({
 									}
 								/>
 							</FieldBlock>
+							{reasoningSelect}
 						</>
 					) : isRealtime ? (
 						<FieldBlock
@@ -239,26 +290,29 @@ export function GeneralSection({
 							/>
 						</FieldBlock>
 					) : (
-						<FieldBlock
-							label="LLM"
-							description="Language model that drives reasoning and responses."
-						>
-							<ModelSelect
-								models={llmModels}
-								providers={providers}
-								value={config.llm?.provider_model_id ?? ""}
-								onValueChange={(value) =>
-									update(
-										selectLlmModel(
-											config,
-											value,
-											llmModels,
-										),
-									)
-								}
-								placeholder="Select LLM model"
-							/>
-						</FieldBlock>
+						<>
+							<FieldBlock
+								label="LLM"
+								description="Language model that drives reasoning and responses."
+							>
+								<ModelSelect
+									models={llmModels}
+									providers={providers}
+									value={config.llm?.provider_model_id ?? ""}
+									onValueChange={(value) =>
+										update(
+											selectLlmModel(
+												config,
+												value,
+												llmModels,
+											),
+										)
+									}
+									placeholder="Select LLM model"
+								/>
+							</FieldBlock>
+							{reasoningSelect}
+						</>
 					)}
 
 					{isCascaded ? (

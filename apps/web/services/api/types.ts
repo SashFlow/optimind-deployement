@@ -134,6 +134,11 @@ export type Provider = {
 	display_name: string;
 };
 
+export type ProviderModelReasoning = {
+	/** Ordered lowest → highest. First entry is the default when unset. */
+	levels: string[];
+};
+
 export type ProviderModel = {
 	id: string;
 	display_name: string;
@@ -141,6 +146,8 @@ export type ProviderModel = {
 	is_enabled: boolean;
 	kind: "llm" | "realtime" | "live" | "stt" | "tts";
 	supports_text_output?: boolean;
+	/** Present when the model supports configurable reasoning / thinking effort. */
+	reasoning?: ProviderModelReasoning | null;
 };
 
 export type ProviderVoice = {
