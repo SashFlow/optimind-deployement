@@ -19,7 +19,6 @@ export type PreviewAvatarProvider = (typeof PREVIEW_AVATAR_PROVIDERS)[number];
  * `spatius`, and `arkit` render a canvas client-side on that same room.
  */
 
-/** Providers that decode motion / GLB client-side (not a conventional video track). */
 export function isClientRenderedAvatar(
 	provider: PreviewAvatarProvider | string | null | undefined,
 ): boolean {
