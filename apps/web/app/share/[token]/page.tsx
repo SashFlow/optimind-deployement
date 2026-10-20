@@ -29,11 +29,13 @@ import {
 } from "@/components/saas/agents/preview/SessionPrejoinLobby";
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
+import { useArkitAvatarWarmup } from "@/hooks/useArkitAvatarWarmup";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
 import { normalizePhoneNumber } from "@/lib/phone";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
+import { uploadBodyCaptureFiles } from "@/lib/proctoring/upload-body-capture";
 import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
@@ -249,6 +251,8 @@ export default function SharedTrialPage() {
 	const idVerificationEnabled = sessionModalities.proctoring.id_verification;
 	const faceVerificationEnabled =
 		sessionModalities.proctoring.face_verification;
+	const bodyVerificationEnabled =
+		sessionModalities.proctoring.body_verification;
 	const cameraFeaturesEnabled = hasCameraSessionFeatures(
 		sessionModalities.proctoring,
 	);
@@ -284,6 +288,17 @@ export default function SharedTrialPage() {
 		fetchCredentials: token
 			? () => fetchTrialSpatialRealWarmup({ token })
 			: undefined,
+	});
+
+	useArkitAvatarWarmup({
+		enabled:
+			!credentials &&
+			!phoneDispatch &&
+			Boolean(trialQuery.data?.trial.available) &&
+			previewAvatar.enabled &&
+			previewAvatar.provider === "arkit" &&
+			sessionMedia === "web",
+		avatarId: previewAvatar.avatarId,
 	});
 
 	const spatiusSessionActive =
@@ -380,6 +395,10 @@ export default function SharedTrialPage() {
 					sessionMedia === "phone"
 						? (normalizePhoneNumber(outboundPhone) ?? undefined)
 						: undefined,
+				geo:
+					sessionMedia === "web" && selection.geo
+						? selection.geo
+						: undefined,
 			});
 			if (
 				sessionMedia !== "phone" &&
@@ -451,6 +470,7 @@ export default function SharedTrialPage() {
 								}
 								idVerification={idVerificationEnabled}
 								faceVerification={faceVerificationEnabled}
+								bodyVerification={bodyVerificationEnabled}
 								onIdCapture={(result) =>
 									uploadIdCaptureFiles({
 										sessionId: credentials.sessionId,
@@ -460,6 +480,13 @@ export default function SharedTrialPage() {
 								}
 								onFaceCapture={(result) =>
 									uploadFaceCaptureFiles({
+										sessionId: credentials.sessionId,
+										participantToken: credentials.token,
+										result,
+									})
+								}
+								onBodyCapture={(result) =>
+									uploadBodyCaptureFiles({
 										sessionId: credentials.sessionId,
 										participantToken: credentials.token,
 										result,
@@ -561,6 +588,7 @@ export default function SharedTrialPage() {
 				badge={`${trial.remaining} session${trial.remaining === 1 ? "" : "s"} left`}
 				audioMandatory={audioMandatory}
 				videoMandatory={videoMandatory}
+				geoTagging={sessionModalities.geo_tagging}
 				showWebMedia={sessionMedia === "web" && allowWeb}
 				starting={startMutation.isPending}
 				startLabel={

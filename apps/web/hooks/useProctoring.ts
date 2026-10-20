@@ -5,10 +5,18 @@ import type {
 	FaceLandmarkerResult,
 	Matrix,
 	ObjectDetector,
+	PoseLandmarker,
 } from "@mediapipe/tasks-vision";
 import { LocalVideoTrack, ParticipantKind, type Room } from "livekit-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+	boxDelta as bodyBoxDelta,
+	captureBody,
+	evaluateBodyFraming,
+	type BodyCaptureResult,
+	type BodyDetection,
+} from "@/lib/proctoring/bodyCapture";
 import {
 	mergeProctoringConfig,
 	type ProctoringAction,
@@ -33,7 +41,11 @@ import {
 	type NormalizedRect,
 } from "@/lib/proctoring/idCard";
 
-export type ProctoringMode = "PROCTORING" | "ID_CAPTURE" | "FACE_CAPTURE";
+export type ProctoringMode =
+	| "PROCTORING"
+	| "ID_CAPTURE"
+	| "FACE_CAPTURE"
+	| "BODY_CAPTURE";
 
 export type IdCaptureStatus =
 	| "idle"
@@ -43,12 +55,16 @@ export type IdCaptureStatus =
 	| "failed";
 
 export type FaceCaptureStatus = IdCaptureStatus;
+export type BodyCaptureStatus = IdCaptureStatus;
 
 /** RPC the agent can call on the candidate to open ID capture. */
 export const START_ID_CAPTURE_RPC = "start_id_capture";
 
 /** RPC the agent can call on the candidate to open face capture. */
 export const START_FACE_CAPTURE_RPC = "start_face_capture";
+
+/** RPC the agent can call on the candidate to open full-body capture. */
+export const START_BODY_CAPTURE_RPC = "start_body_capture";
 
 interface Detectors {
 	face: FaceLandmarker;
@@ -189,7 +205,7 @@ interface AgentContext {
 	/** Sent as `state`; spoken verbatim when `action` is `say`. */
 	state: string;
 	action: ProctoringAction;
-	type: ProctoringViolation | "id_captured" | "face_captured";
+	type: ProctoringViolation | "id_captured" | "face_captured" | "body_captured";
 	details?: Record<string, unknown>;
 }
 
@@ -252,6 +268,12 @@ interface UseProctoringOptions {
 	 * proctoring to be enabled.
 	 */
 	faceVerification?: boolean;
+	/**
+	 * When true, registers the `start_body_capture` RPC so the agent can open full-body
+	 * capture via a tool call. Does not auto-open the overlay on connect. Does not require
+	 * proctoring to be enabled.
+	 */
+	bodyVerification?: boolean;
 	config?: ProctoringConfigOverrides;
 	/**
 	 * Pushes a captured ID card to the backend.
@@ -263,23 +285,31 @@ interface UseProctoringOptions {
 	 * Throw to mark the capture as failed so the candidate can retry.
 	 */
 	onFaceCapture?: (result: FaceCaptureResult) => Promise<unknown> | unknown;
+	/**
+	 * Pushes a captured full-body frame to the backend.
+	 * Throw to mark the capture as failed so the candidate can retry.
+	 */
+	onBodyCapture?: (result: BodyCaptureResult) => Promise<unknown> | unknown;
 }
 
 /**
  * Analyses the local camera with MediaPipe and reports infractions (multiple people, extra
  * devices, missing face, looking away) as a toast and an `add_context` RPC to the agent.
  *
- * Also runs ID / face capture on the same camera track: while either is active, proctoring
+ * Also runs ID / face / body capture on the same camera track: while any is active, proctoring
  * inference pauses. Capture is independent of proctoring — it starts when the agent calls
- * `start_id_capture` / `start_face_capture`, or when the candidate retries from the overlay.
+ * `start_id_capture` / `start_face_capture` / `start_body_capture`, or when the candidate
+ * retries from the overlay.
  */
 export function useProctoring({
 	proctoringEnabled = false,
 	idVerification = false,
 	faceVerification = false,
+	bodyVerification = false,
 	config: overrides,
 	onIdCapture,
 	onFaceCapture,
+	onBodyCapture,
 }: UseProctoringOptions = {}) {
 	const room = useRoomContext();
 	const { cameraTrack, isCameraEnabled } = useLocalParticipant();
@@ -300,15 +330,21 @@ export function useProctoring({
 	onIdCaptureRef.current = onIdCapture;
 	const onFaceCaptureRef = useRef(onFaceCapture);
 	onFaceCaptureRef.current = onFaceCapture;
+	const onBodyCaptureRef = useRef(onBodyCapture);
+	onBodyCaptureRef.current = onBodyCapture;
 	/** Sync guards so overlapping ticks / double submits can't fire add_context twice. */
 	const idSubmitInFlightRef = useRef(false);
 	const idContextSentRef = useRef(false);
 	const faceSubmitInFlightRef = useRef(false);
 	const faceContextSentRef = useRef(false);
+	const bodySubmitInFlightRef = useRef(false);
+	const bodyContextSentRef = useRef(false);
 	/** Bumped on each intentional face-capture start; stale submits bail if it changes. */
 	const faceCaptureAttemptRef = useRef(0);
 	/** Set synchronously when a frame is committed so effect remounts can't double-capture. */
 	const faceCaptureCommittedRef = useRef(false);
+	const bodyCaptureAttemptRef = useRef(0);
+	const bodyCaptureCommittedRef = useRef(false);
 
 	const [mode, setModeState] = useState<ProctoringMode>("PROCTORING");
 	// The proctoring loop reads this rather than `mode` so pausing doesn't reload the models.
@@ -338,9 +374,21 @@ export function useProctoring({
 		null,
 	);
 
+	const [bodyCaptureStatus, setBodyCaptureStatus] =
+		useState<BodyCaptureStatus>("idle");
+	const [bodyCaptureError, setBodyCaptureError] = useState<string | null>(
+		null,
+	);
+	const [bodyDetection, setBodyDetection] = useState<BodyDetection | null>(
+		null,
+	);
+	const [bodyCapture, setBodyCapture] = useState<BodyCaptureResult | null>(
+		null,
+	);
+
 	/** Camera is published; required for inference and capture loops, not for RPC registration. */
 	const cameraReady = isCameraEnabled && videoTrack !== undefined;
-	/** Continuous proctoring only — independent of ID / face capture. */
+	/** Continuous proctoring only — independent of ID / face / body capture. */
 	const proctoringActive = proctoringEnabled && cameraReady;
 
 	/** Opens ID capture (or retries after a failure). The camera stays on; proctoring pauses. */
@@ -349,8 +397,12 @@ export function useProctoring({
 		idContextSentRef.current = false;
 		faceSubmitInFlightRef.current = false;
 		faceContextSentRef.current = false;
+		bodySubmitInFlightRef.current = false;
+		bodyContextSentRef.current = false;
 		setFaceCaptureStatus("idle");
 		setFaceCaptureError(null);
+		setBodyCaptureStatus("idle");
+		setBodyCaptureError(null);
 		setIdCapture(null);
 		setIdDetection(null);
 		setIdCaptureError(null);
@@ -378,8 +430,12 @@ export function useProctoring({
 		faceContextSentRef.current = false;
 		idSubmitInFlightRef.current = false;
 		idContextSentRef.current = false;
+		bodySubmitInFlightRef.current = false;
+		bodyContextSentRef.current = false;
 		setIdCaptureStatus("idle");
 		setIdCaptureError(null);
+		setBodyCaptureStatus("idle");
+		setBodyCaptureError(null);
 		setFaceCapture(null);
 		setFaceDetection(null);
 		setFaceCaptureError(null);
@@ -394,6 +450,39 @@ export function useProctoring({
 		faceCaptureCommittedRef.current = false;
 		setFaceCaptureStatus("idle");
 		setFaceCaptureError(null);
+		setMode("PROCTORING");
+	}, [setMode]);
+
+	/** Opens full-body capture (or retries after a failure). The camera stays on; proctoring pauses. */
+	const startBodyCapture = useCallback(() => {
+		if (bodySubmitInFlightRef.current) {
+			return;
+		}
+		bodyCaptureAttemptRef.current += 1;
+		bodyCaptureCommittedRef.current = false;
+		bodyContextSentRef.current = false;
+		idSubmitInFlightRef.current = false;
+		idContextSentRef.current = false;
+		faceSubmitInFlightRef.current = false;
+		faceContextSentRef.current = false;
+		setIdCaptureStatus("idle");
+		setIdCaptureError(null);
+		setFaceCaptureStatus("idle");
+		setFaceCaptureError(null);
+		setBodyCapture(null);
+		setBodyDetection(null);
+		setBodyCaptureError(null);
+		setBodyCaptureStatus("scanning");
+		setMode("BODY_CAPTURE");
+	}, [setMode]);
+
+	/** Closes body capture without submitting and resumes proctoring. */
+	const cancelBodyCapture = useCallback(() => {
+		bodySubmitInFlightRef.current = false;
+		bodyContextSentRef.current = false;
+		bodyCaptureCommittedRef.current = false;
+		setBodyCaptureStatus("idle");
+		setBodyCaptureError(null);
 		setMode("PROCTORING");
 	}, [setMode]);
 
@@ -514,6 +603,70 @@ export function useProctoring({
 				setFaceCaptureStatus("failed");
 			} finally {
 				faceSubmitInFlightRef.current = false;
+			}
+		},
+		[room, setMode],
+	);
+
+	const submitBodyCapture = useCallback(
+		async (captured: BodyCaptureResult) => {
+			if (bodySubmitInFlightRef.current || bodyContextSentRef.current) {
+				return;
+			}
+			const attempt = bodyCaptureAttemptRef.current;
+			bodySubmitInFlightRef.current = true;
+			try {
+				const push = onBodyCaptureRef.current;
+				if (!push) {
+					throw new Error("Body capture upload is not configured");
+				}
+				await push(captured);
+				if (attempt !== bodyCaptureAttemptRef.current) {
+					return;
+				}
+				if (modeRef.current !== "BODY_CAPTURE") {
+					return;
+				}
+				if (bodyContextSentRef.current) {
+					return;
+				}
+				bodyContextSentRef.current = true;
+
+				setBodyCaptureStatus("captured");
+				await sendContext(room, {
+					state: "Full body capture completed successfully. The candidate's full-body image has been uploaded and submitted for verification. You may continue the conversation.",
+					action: "generate_reply",
+					type: "body_captured",
+					details: {
+						confidence: captured.confidence,
+						capturedAt: captured.timestamp,
+						status: "completed",
+					},
+				});
+				if (modeRef.current !== "BODY_CAPTURE") {
+					return;
+				}
+				setMode("PROCTORING");
+				toast.success("Full body captured");
+			} catch (error) {
+				console.error("Body capture: upload failed", error);
+				bodyContextSentRef.current = false;
+				bodyCaptureCommittedRef.current = false;
+				if (modeRef.current !== "BODY_CAPTURE") {
+					return;
+				}
+				const detail =
+					error instanceof Error && error.message.trim()
+						? error.message.trim()
+						: null;
+				setBodyCaptureError(
+					detail
+						? `We could not upload your photo: ${detail}`
+						: "We could not upload your photo. Please try again.",
+				);
+				setBodyCaptureStatus("failed");
+			} finally {
+				bodySubmitInFlightRef.current = false;
 			}
 		},
 		[room, setMode],
@@ -948,6 +1101,168 @@ export function useProctoring({
 		return () => room.unregisterRpcMethod(START_FACE_CAPTURE_RPC);
 	}, [room, faceVerification, startFaceCapture]);
 
+	// Body capture loop. Uses a dedicated PoseLandmarker so it doesn't contend with proctoring.
+	useEffect(() => {
+		if (
+			!cameraReady ||
+			!videoTrack ||
+			mode !== "BODY_CAPTURE" ||
+			bodyCaptureStatus !== "scanning"
+		) {
+			return;
+		}
+
+		let cancelled = false;
+		let capturing = false;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		let poseLandmarker: PoseLandmarker | undefined;
+		const video = attachHiddenVideo(videoTrack, "Body capture");
+		const startedAt = Date.now();
+		let stableFrames = 0;
+		let lastBox: NormalizedRect | null = null;
+
+		const tick = async () => {
+			if (cancelled || capturing || !poseLandmarker) {
+				return;
+			}
+			const cfg = configRef.current.bodyCapture;
+
+			if (Date.now() - startedAt > cfg.timeoutMs) {
+				setBodyCaptureError(
+					"We could not get a clear full-body photo. Please try again.",
+				);
+				setBodyCaptureStatus("failed");
+				return;
+			}
+
+			if (isVideoReady(video)) {
+				try {
+					const result = poseLandmarker.detectForVideo(
+						video,
+						performance.now(),
+					);
+					const detection = evaluateBodyFraming(result, cfg);
+					const stable =
+						lastBox !== null &&
+						detection.box !== null &&
+						bodyBoxDelta(lastBox, detection.box) <=
+							cfg.stabilityTolerance;
+					stableFrames = detection.detected
+						? stable
+							? stableFrames + 1
+							: 1
+						: 0;
+					lastBox = detection.box;
+					setBodyDetection(detection);
+
+					if (
+						stableFrames >= cfg.requiredStableFrames &&
+						detection.box
+					) {
+						if (
+							bodyCaptureCommittedRef.current ||
+							bodySubmitInFlightRef.current ||
+							bodyContextSentRef.current
+						) {
+							return;
+						}
+						bodyCaptureCommittedRef.current = true;
+						capturing = true;
+						const captured = await captureBody(
+							video,
+							{ ...detection, box: detection.box },
+							cfg,
+						);
+						if (cancelled) {
+							bodyCaptureCommittedRef.current = false;
+							return;
+						}
+						setBodyCapture(captured);
+						setBodyCaptureStatus("uploading");
+						void submitBodyCapture(captured);
+						return;
+					}
+				} catch (error) {
+					capturing = false;
+					console.error("Body capture: frame analysis failed", error);
+				}
+			}
+
+			timer = setTimeout(tick, cfg.intervalMs);
+		};
+
+		void (async () => {
+			try {
+				const { FilesetResolver, PoseLandmarker } = await import(
+					"@mediapipe/tasks-vision"
+				);
+				const cfg = configRef.current;
+				const vision = await FilesetResolver.forVisionTasks(
+					cfg.wasmBaseUrl,
+				);
+				const create = (delegate: "GPU" | "CPU") =>
+					PoseLandmarker.createFromOptions(vision, {
+						baseOptions: {
+							modelAssetPath: cfg.poseModelUrl,
+							delegate,
+						},
+						runningMode: "VIDEO",
+						numPoses: 2,
+						minPoseDetectionConfidence: 0.5,
+						minPosePresenceConfidence: 0.5,
+						minTrackingConfidence: 0.5,
+					});
+				try {
+					poseLandmarker = await create("GPU");
+				} catch {
+					poseLandmarker = await create("CPU");
+				}
+				if (cancelled) {
+					poseLandmarker.close();
+					return;
+				}
+				void tick();
+			} catch (error) {
+				console.error("Body capture: failed to load model", error);
+				if (!cancelled) {
+					setBodyCaptureError(
+						"Body capture could not start. Please try again.",
+					);
+					setBodyCaptureStatus("failed");
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+			videoTrack.detach(video);
+			poseLandmarker?.close();
+		};
+	}, [cameraReady, videoTrack, mode, bodyCaptureStatus, submitBodyCapture]);
+
+	// Lets the agent ask for the candidate's full body, e.g. from a `verify_body` tool.
+	// Independent of proctoring — only requires bodyVerification.
+	useEffect(() => {
+		if (!bodyVerification) {
+			return;
+		}
+
+		try {
+			room.registerRpcMethod(START_BODY_CAPTURE_RPC, async () => {
+				startBodyCapture();
+				return JSON.stringify({ started: true });
+			});
+		} catch (error) {
+			console.warn(
+				`${START_BODY_CAPTURE_RPC} RPC already registered`,
+				error,
+			);
+			return;
+		}
+		return () => room.unregisterRpcMethod(START_BODY_CAPTURE_RPC);
+	}, [room, bodyVerification, startBodyCapture]);
+
 	return {
 		config,
 		mode,
@@ -955,6 +1270,7 @@ export function useProctoring({
 		isProctoringPaused: mode !== "PROCTORING",
 		isIdCaptureActive: mode === "ID_CAPTURE",
 		isFaceCaptureActive: mode === "FACE_CAPTURE",
+		isBodyCaptureActive: mode === "BODY_CAPTURE",
 		idCaptureStatus,
 		idCaptureError,
 		idDetection,
@@ -967,6 +1283,12 @@ export function useProctoring({
 		faceCapture,
 		startFaceCapture,
 		cancelFaceCapture,
+		bodyCaptureStatus,
+		bodyCaptureError,
+		bodyDetection,
+		bodyCapture,
+		startBodyCapture,
+		cancelBodyCapture,
 	};
 }
 

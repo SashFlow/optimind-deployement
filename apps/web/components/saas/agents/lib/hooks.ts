@@ -29,6 +29,13 @@ export type SessionDetail = {
 	egressJobs?: EgressJobRow[];
 	metadata?: {
 		collectedData?: Record<string, unknown>;
+		geo?: {
+			latitude?: number;
+			longitude?: number;
+			accuracy?: number;
+			capturedAt?: string;
+			status?: "granted" | "denied" | "unavailable" | "skipped";
+		};
 	} | null;
 	endUser?: {
 		id: string;

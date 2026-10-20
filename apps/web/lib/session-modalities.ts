@@ -1,5 +1,6 @@
 import type {
 	SessionCallType,
+	SessionGeoTaggingRequirement,
 	SessionModalitiesConfig,
 	SessionTrackRequirement,
 } from "@/lib/agent-config";
@@ -10,11 +11,13 @@ export const DEFAULT_SESSION_MODALITIES: SessionModalitiesConfig = {
 	video_track: "optional",
 	chat: "optional",
 	memory: true,
+	geo_tagging: "disabled",
 	proctoring: {
 		enabled: false,
 		proactive_response: false,
 		id_verification: false,
 		face_verification: false,
+		body_verification: false,
 	},
 	otp_input: {
 		enabled: false,
@@ -33,6 +36,17 @@ function asCallType(
 	fallback: SessionCallType,
 ): SessionCallType {
 	return value === "phone" || value === "web" || value === "both"
+		? value
+		: fallback;
+}
+
+function asGeoTagging(
+	value: unknown,
+	fallback: SessionGeoTaggingRequirement,
+): SessionGeoTaggingRequirement {
+	return value === "disabled" ||
+		value === "optional" ||
+		value === "mandatory"
 		? value
 		: fallback;
 }
@@ -75,6 +89,10 @@ export function normalizeSessionModalities(
 			typeof source.memory === "boolean"
 				? source.memory
 				: DEFAULT_SESSION_MODALITIES.memory,
+		geo_tagging: asGeoTagging(
+			source.geo_tagging,
+			DEFAULT_SESSION_MODALITIES.geo_tagging,
+		),
 		proctoring: {
 			enabled: Boolean(
 				proctoringRaw.enabled ??
@@ -91,6 +109,10 @@ export function normalizeSessionModalities(
 			face_verification: Boolean(
 				proctoringRaw.face_verification ??
 					DEFAULT_SESSION_MODALITIES.proctoring.face_verification,
+			),
+			body_verification: Boolean(
+				proctoringRaw.body_verification ??
+					DEFAULT_SESSION_MODALITIES.proctoring.body_verification,
 			),
 		},
 		otp_input: {
@@ -126,7 +148,8 @@ export function hasCameraSessionFeatures(
 	return (
 		proctoring.enabled ||
 		proctoring.id_verification ||
-		proctoring.face_verification
+		proctoring.face_verification ||
+		proctoring.body_verification
 	);
 }
 

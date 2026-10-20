@@ -13,7 +13,11 @@ import { CheckIcon, LockIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { ConfigureSectionToggle } from "@/components/saas/agents/configure/ConfigureSectionToggle";
 import type { AgentConfigDocument } from "@/lib/agent-config";
-import { ANAM_AVATAR_MAX_DURATION_SECONDS } from "@/lib/agent-pipeline";
+import {
+	ANAM_AVATAR_MAX_DURATION_SECONDS,
+	isInworldTtsModelId,
+} from "@/lib/agent-pipeline";
+import { getAvatarPreviewUrl } from "@/lib/stock-avatars";
 import { useAvatarProvidersQuery } from "@/services/api/hooks";
 
 type AvatarSectionProps = {
@@ -67,7 +71,7 @@ function buildAvatarOptions(provider: AvatarProvider | null): AvatarOption[] {
 		key: getAvatarKey(provider.id, avatar.id),
 		displayName: avatar.display_name,
 		subtitle: provider.display_name,
-		previewUrl: `/images/avatar/${avatar.id}.png`,
+		previewUrl: getAvatarPreviewUrl(avatar.id),
 		externalAvatarId: avatar.id,
 		providerId: provider.id,
 	}));
@@ -148,20 +152,25 @@ function AvatarSelectCard({
 	option,
 	selected,
 	onSelect,
+	disabled = false,
 }: {
 	option: AvatarOption;
 	selected: boolean;
 	onSelect: () => void;
+	disabled?: boolean;
 }) {
 	return (
 		<button
 			type="button"
 			onClick={onSelect}
+			disabled={disabled}
 			className={cn(
 				"group relative flex flex-col overflow-hidden rounded-xl border text-left transition-colors",
-				selected
-					? "border-foreground ring-2 ring-foreground/20"
-					: "border-border hover:border-foreground/40",
+				disabled
+					? "cursor-not-allowed border-border opacity-50"
+					: selected
+						? "border-foreground ring-2 ring-foreground/20"
+						: "border-border hover:border-foreground/40",
 			)}
 		>
 			<div className="relative aspect-[3/4] w-full bg-muted">
@@ -222,6 +231,7 @@ export function AvatarSection({
 	const providers = providersQuery.data ?? [];
 	const configuredProviderId = getConfiguredProviderId(config, providers);
 	const selectedKey = getSelectedAvatarKey(config, configuredProviderId);
+	const inworldTts = isInworldTtsModelId(config.tts?.provider_model_id);
 
 	// Browsing a provider doesn't change the saved avatar until one is picked.
 	const [browsingProviderId, setBrowsingProviderId] = useState<string | null>(
@@ -235,6 +245,8 @@ export function AvatarSection({
 		providers[0] ??
 		null;
 	const avatarOptions = buildAvatarOptions(activeProvider);
+	const arkitLocked =
+		activeProvider?.id === "arkit" && !inworldTts;
 
 	const selectedProvider =
 		providers.find((provider) => provider.id === configuredProviderId) ??
@@ -245,6 +257,9 @@ export function AvatarSection({
 		) ?? null;
 
 	function selectAvatar(option: AvatarOption) {
+		if (option.providerId === "arkit" && !inworldTts) {
+			return;
+		}
 		onConfigChange({
 			avatar: {
 				...(config.avatar ?? { params: {} }),
@@ -332,6 +347,14 @@ export function AvatarSection({
 							</Select>
 						</div>
 
+						{arkitLocked ? (
+							<p className="rounded-lg border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+								ARKit avatars require Inworld TTS. Choose an
+								Inworld voice model in General to unlock these
+								avatars.
+							</p>
+						) : null}
+
 						<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 							{avatarOptions.map((option) => (
 								<AvatarSelectCard
@@ -339,6 +362,10 @@ export function AvatarSection({
 									option={option}
 									selected={selectedKey === option.key}
 									onSelect={() => selectAvatar(option)}
+									disabled={
+										option.providerId === "arkit" &&
+										!inworldTts
+									}
 								/>
 							))}
 							<LockedAddAvatarCard />

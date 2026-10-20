@@ -187,14 +187,14 @@ Payload (JSON string):
   state: string              // spoken verbatim when action is "say"
   action: "say" | "generate_reply" | "silent"
   type: "multiple_people" | "additional_device" | "no_face" | "gaze_away"
-      | "id_captured" | "face_captured"
+      | "id_captured" | "face_captured" | "body_captured"
       | "otp_submitted" | "otp_resend_requested"
   details?: Record<string, unknown>
 }
 ```
 
 - `proactive_response: false` forces `action: "silent"` for violation types.
-- `id_captured` / `face_captured` are sent with `action: "generate_reply"` after a successful upload.
+- `id_captured` / `face_captured` / `body_captured` are sent with `action: "generate_reply"` after a successful upload.
 - `otp_submitted` includes `details.code`; the worker/agent validates the code.
 - `otp_resend_requested` asks the agent to resend the OTP out-of-band.
 
@@ -211,6 +211,13 @@ Opens the face capture overlay. No payload required. Response: `{ "started": tru
 
 Registered only when `session_modalities.proctoring.face_verification` is true. See
 [Face capture](/docs/sessions/face-capture).
+
+### `start_body_capture` (agent → candidate)
+
+Opens the full-body capture overlay. No payload required. Response: `{ "started": true }`.
+
+Registered only when `session_modalities.proctoring.body_verification` is true. See
+[Body capture](/docs/sessions/body-capture).
 
 ### `start_otp_input` (agent → candidate)
 

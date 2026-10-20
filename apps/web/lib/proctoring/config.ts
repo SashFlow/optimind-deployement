@@ -103,6 +103,31 @@ export interface FaceCaptureConfig {
 	cropPadding: number;
 }
 
+export interface BodyCaptureConfig {
+	/** How often a frame is analysed while body capture is active. */
+	intervalMs: number;
+	/** Give up and close body capture after this long without a good frame. */
+	timeoutMs: number;
+	/** Consecutive good, stable frames required before the frame is captured. */
+	requiredStableFrames: number;
+	/** Max movement of the detected body between frames, as a fraction of the frame size. */
+	stabilityTolerance: number;
+	/** Guide width as a fraction of the frame width. */
+	guideWidthRatio: number;
+	/** Guide height as a fraction of the frame height. */
+	guideHeightRatio: number;
+	/** Minimum body height relative to the guide height (0-1). */
+	minBodyHeightRatio: number;
+	/** Maximum body height relative to the guide height (0-1). */
+	maxBodyHeightRatio: number;
+	/** How far the body center may drift from the guide center (fraction of guide size). */
+	centerTolerance: number;
+	/** Minimum landmark visibility for head/feet to count (0-1). */
+	minVisibility: number;
+	/** JPEG quality of the captured images (0-1). */
+	jpegQuality: number;
+}
+
 export interface ProctoringConfig {
 	/** How often a camera frame is analysed. */
 	intervalMs: number;
@@ -113,6 +138,7 @@ export interface ProctoringConfig {
 	wasmBaseUrl: string;
 	faceModelUrl: string;
 	objectModelUrl: string;
+	poseModelUrl: string;
 	checks: {
 		multiplePeople: MultiplePeopleCheckConfig;
 		additionalDevice: AdditionalDeviceCheckConfig;
@@ -121,10 +147,14 @@ export interface ProctoringConfig {
 	};
 	idCapture: IdCaptureConfig;
 	faceCapture: FaceCaptureConfig;
+	bodyCapture: BodyCaptureConfig;
 }
 
 export type ProctoringConfigOverrides = Partial<
-	Omit<ProctoringConfig, "checks" | "idCapture" | "faceCapture">
+	Omit<
+		ProctoringConfig,
+		"checks" | "idCapture" | "faceCapture" | "bodyCapture"
+	>
 > & {
 	checks?: {
 		[K in keyof ProctoringConfig["checks"]]?: Partial<
@@ -133,6 +163,7 @@ export type ProctoringConfigOverrides = Partial<
 	};
 	idCapture?: Partial<IdCaptureConfig>;
 	faceCapture?: Partial<FaceCaptureConfig>;
+	bodyCapture?: Partial<BodyCaptureConfig>;
 };
 
 export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
@@ -145,6 +176,8 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 		"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
 	objectModelUrl:
 		"https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+	poseModelUrl:
+		"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
 	checks: {
 		multiplePeople: {
 			enabled: true,
@@ -220,12 +253,26 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 		jpegQuality: 0.92,
 		cropPadding: 0.2,
 	},
+	bodyCapture: {
+		intervalMs: 150,
+		timeoutMs: 90_000,
+		requiredStableFrames: 5,
+		stabilityTolerance: 0.03,
+		guideWidthRatio: 0.55,
+		guideHeightRatio: 0.9,
+		minBodyHeightRatio: 0.7,
+		maxBodyHeightRatio: 1.05,
+		centerTolerance: 0.22,
+		minVisibility: 0.5,
+		jpegQuality: 0.92,
+	},
 };
 
 export function mergeProctoringConfig(
 	overrides: ProctoringConfigOverrides = {},
 ): ProctoringConfig {
-	const { checks = {}, idCapture, faceCapture, ...rest } = overrides;
+	const { checks = {}, idCapture, faceCapture, bodyCapture, ...rest } =
+		overrides;
 	const base = DEFAULT_PROCTORING_CONFIG;
 	return {
 		...base,
@@ -244,5 +291,6 @@ export function mergeProctoringConfig(
 		},
 		idCapture: { ...base.idCapture, ...idCapture },
 		faceCapture: { ...base.faceCapture, ...faceCapture },
+		bodyCapture: { ...base.bodyCapture, ...bodyCapture },
 	};
 }

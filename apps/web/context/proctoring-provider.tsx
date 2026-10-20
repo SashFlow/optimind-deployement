@@ -3,9 +3,11 @@
 import { useConnectionState } from "@livekit/components-react";
 import { ConnectionState } from "livekit-client";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { BodyCaptureOverlay } from "@/components/saas/agents/proctoring/body-capture-overlay";
 import { FaceCaptureOverlay } from "@/components/saas/agents/proctoring/face-capture-overlay";
 import { IdCaptureOverlay } from "@/components/saas/agents/proctoring/id-capture-overlay";
 import { type ProctoringState, useProctoring } from "@/hooks/useProctoring";
+import type { BodyCaptureResult } from "@/lib/proctoring/bodyCapture";
 import type { ProctoringConfigOverrides } from "@/lib/proctoring/config";
 import type { FaceCaptureResult } from "@/lib/proctoring/faceCapture";
 import type { IdCaptureResult } from "@/lib/proctoring/idCard";
@@ -42,9 +44,14 @@ interface ProctoringProviderProps {
 	 * Registers face capture RPC. Works with or without proctoring enabled.
 	 */
 	faceVerification?: boolean;
+	/**
+	 * Registers full-body capture RPC. Works with or without proctoring enabled.
+	 */
+	bodyVerification?: boolean;
 	config?: ProctoringConfigOverrides;
 	onIdCapture?: (result: IdCaptureResult) => Promise<unknown> | unknown;
 	onFaceCapture?: (result: FaceCaptureResult) => Promise<unknown> | unknown;
+	onBodyCapture?: (result: BodyCaptureResult) => Promise<unknown> | unknown;
 	children: ReactNode;
 }
 
@@ -53,9 +60,11 @@ export function ProctoringProvider({
 	proactiveResponse = true,
 	idVerification = false,
 	faceVerification = false,
+	bodyVerification = false,
 	config,
 	onIdCapture,
 	onFaceCapture,
+	onBodyCapture,
 	children,
 }: ProctoringProviderProps) {
 	const connectionState = useConnectionState();
@@ -99,9 +108,11 @@ export function ProctoringProvider({
 		proctoringEnabled: enabled && isConnected,
 		idVerification: idVerification && isConnected,
 		faceVerification: faceVerification && isConnected,
+		bodyVerification: bodyVerification && isConnected,
 		config: mergedConfig,
 		onIdCapture,
 		onFaceCapture,
+		onBodyCapture,
 	});
 
 	return (
@@ -109,6 +120,7 @@ export function ProctoringProvider({
 			{children}
 			<IdCaptureOverlay />
 			<FaceCaptureOverlay />
+			<BodyCaptureOverlay />
 		</ProctoringContext.Provider>
 	);
 }

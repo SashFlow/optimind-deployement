@@ -20,6 +20,7 @@ import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
+import { useArkitAvatarWarmup } from "@/hooks/useArkitAvatarWarmup";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import type {
@@ -31,6 +32,7 @@ import {
 	DISABLED_PREVIEW_AVATAR,
 	type PreviewAvatar,
 } from "@/lib/preview-avatar";
+import { uploadBodyCaptureFiles } from "@/lib/proctoring/upload-body-capture";
 import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
@@ -224,6 +226,8 @@ export function AgentConfigurePreview({
 	const idVerificationEnabled = sessionModalities.proctoring.id_verification;
 	const faceVerificationEnabled =
 		sessionModalities.proctoring.face_verification;
+	const bodyVerificationEnabled =
+		sessionModalities.proctoring.body_verification;
 	const cameraFeaturesEnabled = hasCameraSessionFeatures(
 		sessionModalities.proctoring,
 	);
@@ -271,6 +275,14 @@ export function AgentConfigurePreview({
 						agentId: agent.id,
 					})
 			: undefined,
+	});
+
+	useArkitAvatarWarmup({
+		enabled:
+			!sessionCredentials &&
+			avatar.enabled &&
+			avatar.provider === "arkit",
+		avatarId: avatar.avatarId,
 	});
 
 	function updateVariableValue(name: string, value: string) {
@@ -323,6 +335,7 @@ export function AgentConfigurePreview({
 
 	async function handleStartWebSession(
 		contactMetadata: Record<string, unknown>,
+		geo?: SessionPrejoinMediaSelection["geo"],
 	) {
 		if (!activeOrganizationId || !draftVersionId) {
 			toast.error("Save the draft before starting a preview session");
@@ -337,6 +350,7 @@ export function AgentConfigurePreview({
 			contactMetadata,
 			metadata: { source: "configure_preview" },
 			participantName: agent.name,
+			geo,
 		});
 		setSessionCredentials({
 			sessionId: credentials.sessionId,
@@ -414,7 +428,7 @@ export function AgentConfigurePreview({
 					throw new Error("Web sessions are disabled");
 				}
 				setJoinMedia(selection);
-				await handleStartWebSession(contactMetadata);
+				await handleStartWebSession(contactMetadata, selection.geo);
 			}
 		} catch (error) {
 			setJoinMedia(null);
@@ -515,6 +529,7 @@ export function AgentConfigurePreview({
 							}
 							idVerification={idVerificationEnabled}
 							faceVerification={faceVerificationEnabled}
+							bodyVerification={bodyVerificationEnabled}
 							onIdCapture={(result) =>
 								uploadIdCaptureFiles({
 									sessionId: sessionCredentials.sessionId,
@@ -524,6 +539,13 @@ export function AgentConfigurePreview({
 							}
 							onFaceCapture={(result) =>
 								uploadFaceCaptureFiles({
+									sessionId: sessionCredentials.sessionId,
+									participantToken: sessionCredentials.token,
+									result,
+								})
+							}
+							onBodyCapture={(result) =>
+								uploadBodyCaptureFiles({
 									sessionId: sessionCredentials.sessionId,
 									participantToken: sessionCredentials.token,
 									result,
@@ -545,6 +567,7 @@ export function AgentConfigurePreview({
 		avatar,
 		cameraFeaturesEnabled,
 		chatMandatory,
+		bodyVerificationEnabled,
 		faceVerificationEnabled,
 		idVerificationEnabled,
 		joinMedia,
@@ -603,6 +626,7 @@ export function AgentConfigurePreview({
 				subtitle="Preview this agent before publishing"
 				audioMandatory={audioMandatory}
 				videoMandatory={videoMandatory}
+				geoTagging={sessionModalities.geo_tagging}
 				showWebMedia={media === "web"}
 				starting={starting}
 				startLabel={media === "phone" ? "Place call" : "Start session"}

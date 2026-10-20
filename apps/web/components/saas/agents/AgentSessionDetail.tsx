@@ -20,6 +20,7 @@ import {
 	FileAudioIcon,
 	FileVideoIcon,
 	LoaderCircleIcon,
+	MapPinIcon,
 	MessageSquareTextIcon,
 	RadioIcon,
 	VideoIcon,
@@ -908,6 +909,38 @@ function SessionNavigator({ session }: { session: SessionDetail }) {
 	);
 }
 
+function formatSessionGeo(
+	geo: NonNullable<SessionDetail["metadata"]>["geo"] | undefined,
+): { value: string; mapsUrl: string | null } {
+	if (!geo) {
+		return { value: "—", mapsUrl: null };
+	}
+	if (
+		geo.status === "granted" &&
+		typeof geo.latitude === "number" &&
+		typeof geo.longitude === "number"
+	) {
+		const coords = `${geo.latitude.toFixed(5)}, ${geo.longitude.toFixed(5)}`;
+		const accuracy =
+			typeof geo.accuracy === "number"
+				? ` (±${Math.round(geo.accuracy)}m)`
+				: "";
+		return {
+			value: `${coords}${accuracy}`,
+			mapsUrl: `https://www.google.com/maps?q=${geo.latitude},${geo.longitude}`,
+		};
+	}
+	const statusLabel =
+		geo.status === "denied"
+			? "Permission denied"
+			: geo.status === "unavailable"
+				? "Unavailable"
+				: geo.status === "skipped"
+					? "Skipped"
+					: "—";
+	return { value: statusLabel, mapsUrl: null };
+}
+
 export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 	const egressJobs = session.egressJobs ?? [];
 	const collectedFields = Object.entries(
@@ -916,12 +949,13 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 	const transcriptSegments = session.transcript?.segments ?? [];
 	const transcriptText =
 		session.transcript?.fullText ?? session.transcript?.text ?? null;
+	const geoDisplay = formatSessionGeo(session.metadata?.geo);
 
 	return (
 		<div className="mt-4 space-y-4">
 			<SessionNavigator session={session} />
 
-			<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+			<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
 				<MetricKpiCard
 					compact
 					title="Channel"
@@ -950,6 +984,26 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 					icon={ClockIcon}
 					valueClassName="text-base"
 				/>
+				<div className="relative">
+					<MetricKpiCard
+						compact
+						title="Location"
+						value={geoDisplay.value}
+						icon={MapPinIcon}
+						valueClassName="text-sm"
+					/>
+					{geoDisplay.mapsUrl ? (
+						<a
+							href={geoDisplay.mapsUrl}
+							target="_blank"
+							rel="noreferrer"
+							className="absolute right-3 bottom-3 inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+						>
+							Maps
+							<ExternalLinkIcon className="size-3" />
+						</a>
+					) : null}
+				</div>
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-2">

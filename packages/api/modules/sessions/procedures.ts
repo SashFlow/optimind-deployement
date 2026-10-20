@@ -57,6 +57,7 @@ import {
 	finalizeSessionEgressJobs,
 	reconcileOpenEgressJobs,
 } from "./lib/reconcile-egress";
+import { sessionGeoSchema } from "./lib/session-geo";
 import { workerProcedure } from "./lib/worker-procedure";
 import type {
 	GetEmbedAgentOutput,
@@ -308,6 +309,7 @@ export const create = protectedProcedure
 				.default("web"),
 			participantName: z.string().default("user"),
 			contactMetadata: z.record(z.string(), z.unknown()).optional(),
+			geo: sessionGeoSchema.optional(),
 			roomName: z.string().optional(),
 			agentName: z.string().optional(),
 			mintParticipantToken: z.boolean().default(true),
@@ -375,6 +377,7 @@ export const create = protectedProcedure
 				source: input.source,
 				campaignId: input.campaignId,
 				campaignContactId: input.campaignContactId,
+				...(input.geo ? { geo: input.geo } : {}),
 			},
 		});
 
@@ -516,11 +519,13 @@ const DEFAULT_TRIAL_SESSION_MODALITIES = {
 	video_track: "optional" as const,
 	chat: "optional" as const,
 	memory: true,
+	geo_tagging: "disabled" as const,
 	proctoring: {
 		enabled: false,
 		proactive_response: false,
 		id_verification: false,
 		face_verification: false,
+		body_verification: false,
 	},
 	otp_input: {
 		enabled: false,
@@ -545,6 +550,13 @@ function normalizeTrialSessionModalities(
 		fallback: "mandatory" | "optional",
 	): "mandatory" | "optional" =>
 		value === "mandatory" || value === "optional" ? value : fallback;
+	const asGeoTagging = (
+		value: unknown,
+		fallback: "disabled" | "optional" | "mandatory",
+	): "disabled" | "optional" | "mandatory" =>
+		value === "disabled" || value === "optional" || value === "mandatory"
+			? value
+			: fallback;
 	const proctoringRaw =
 		source.proctoring &&
 		typeof source.proctoring === "object" &&
@@ -573,6 +585,10 @@ function normalizeTrialSessionModalities(
 			typeof source.memory === "boolean"
 				? source.memory
 				: DEFAULT_TRIAL_SESSION_MODALITIES.memory,
+		geo_tagging: asGeoTagging(
+			source.geo_tagging,
+			DEFAULT_TRIAL_SESSION_MODALITIES.geo_tagging,
+		),
 		proctoring: {
 			enabled: Boolean(
 				proctoringRaw.enabled ??
@@ -591,6 +607,11 @@ function normalizeTrialSessionModalities(
 				proctoringRaw.face_verification ??
 					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring
 						.face_verification,
+			),
+			body_verification: Boolean(
+				proctoringRaw.body_verification ??
+					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring
+						.body_verification,
 			),
 		},
 		otp_input: {
@@ -735,6 +756,7 @@ export const startTrialSession = publicProcedure
 			name: z.string().trim().max(120).optional(),
 			email: z.string().trim().email().max(254).optional(),
 			contactPhone: z.string().trim().max(32).optional(),
+			geo: sessionGeoSchema.optional(),
 		}),
 	)
 	.output(type<StartPublicSessionOutput>())
@@ -833,6 +855,7 @@ export const startTrialSession = publicProcedure
 				trialId: trial.id,
 				trialLabel: trial.label,
 				channel: isPhone ? "PHONE" : "WEB",
+				...(!isPhone && input.geo ? { geo: input.geo } : {}),
 			},
 		});
 
@@ -985,6 +1008,7 @@ export const startEmbedSession = publicProcedure
 			/** External end-user id for upsert (query ?id=). */
 			externalId: z.string().trim().min(1).max(200).optional(),
 			name: z.string().trim().max(120).optional(),
+			geo: sessionGeoSchema.optional(),
 		}),
 	)
 	.output(type<StartPublicSessionOutput>())
@@ -1045,6 +1069,7 @@ export const startEmbedSession = publicProcedure
 				source: "embed",
 				externalId: input.externalId ?? null,
 				channel: "WEB",
+				...(input.geo ? { geo: input.geo } : {}),
 			},
 		});
 

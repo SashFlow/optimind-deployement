@@ -10,6 +10,7 @@ import {
 import { Spinner } from "@repo/ui/spinner";
 import { cn } from "@repo/ui/utils";
 import {
+	MapPinIcon,
 	MicIcon,
 	MicOffIcon,
 	PhoneIcon,
@@ -29,6 +30,11 @@ import {
 } from "react";
 import { toast } from "sonner";
 import {
+	requestSessionGeo,
+	type SessionGeoPayload,
+	type SessionGeoTaggingMode,
+} from "@/lib/session-geo";
+import {
 	type LocalPreviewMedia,
 	useLocalPreviewMedia,
 } from "./useLocalPreviewMedia";
@@ -45,6 +51,8 @@ export type SessionPrejoinMediaSelection = {
 	 * would reopen the device and flash the preview).
 	 */
 	cameraTrack?: MediaStreamTrack | null;
+	/** Browser geolocation captured at Start (web sessions only). */
+	geo?: SessionGeoPayload;
 };
 
 export type SessionPrejoinLobbyHandle = {
@@ -59,6 +67,11 @@ export type SessionPrejoinLobbyProps = {
 	badge?: string | null;
 	audioMandatory?: boolean;
 	videoMandatory?: boolean;
+	/**
+	 * Browser geolocation requirement for web sessions.
+	 * Phone mode skips geo regardless of this value.
+	 */
+	geoTagging?: SessionGeoTaggingMode;
 	/** When false (phone mode), hide camera preview and device pills. */
 	showWebMedia?: boolean;
 	starting?: boolean;
@@ -319,6 +332,7 @@ export function SessionPrejoinLobby({
 	badge,
 	audioMandatory = false,
 	videoMandatory = false,
+	geoTagging = "disabled",
 	showWebMedia = true,
 	starting = false,
 	startLabel = "Start session",
@@ -333,6 +347,9 @@ export function SessionPrejoinLobby({
 }: SessionPrejoinLobbyProps) {
 	const media = useLocalPreviewMedia({ enabled: showWebMedia });
 	const [highlightMissing, setHighlightMissing] = useState(false);
+	const [geoPending, setGeoPending] = useState(false);
+	const [geoError, setGeoError] = useState<string | null>(null);
+	const geoEnabled = showWebMedia && geoTagging !== "disabled";
 
 	useImperativeHandle(
 		lobbyRef,
@@ -382,6 +399,30 @@ export function SessionPrejoinLobby({
 			return;
 		}
 		setHighlightMissing(false);
+
+		let geo: SessionGeoPayload | undefined;
+		if (geoEnabled) {
+			setGeoPending(true);
+			setGeoError(null);
+			try {
+				geo = await requestSessionGeo(geoTagging);
+				if (
+					geoTagging === "mandatory" &&
+					(!geo || geo.status !== "granted")
+				) {
+					const message =
+						geo?.status === "denied"
+							? "Location permission is required to start this session."
+							: "Could not get your location. Enable location services and try again.";
+					setGeoError(message);
+					toast.error(message);
+					return;
+				}
+			} finally {
+				setGeoPending(false);
+			}
+		}
+
 		const cameraWasEnabled = media.cameraEnabled;
 		const cameraTrack = cameraWasEnabled
 			? media.transferCameraTrack()
@@ -393,6 +434,7 @@ export function SessionPrejoinLobby({
 			videoDeviceId: media.videoDeviceId,
 			audioOutputDeviceId: media.audioOutputDeviceId,
 			cameraTrack,
+			geo,
 		};
 		try {
 			await onStart(selection);
@@ -406,7 +448,7 @@ export function SessionPrejoinLobby({
 		}
 	}
 
-	const busy = starting || media.permissionPending !== null;
+	const busy = starting || geoPending || media.permissionPending !== null;
 	const isPhoneStart = /call/i.test(startLabel);
 
 	const startButton = (
@@ -511,6 +553,24 @@ export function SessionPrejoinLobby({
 							)}
 						>
 							{missingNotices.join(" · ")}
+						</p>
+					) : null}
+
+					{geoEnabled ? (
+						<p
+							className={cn(
+								"flex items-center justify-center gap-1.5 text-center text-xs",
+								geoError
+									? "font-medium text-destructive"
+									: "text-muted-foreground",
+							)}
+						>
+							<MapPinIcon className="size-3.5 shrink-0" />
+							{geoError
+								? geoError
+								: geoTagging === "mandatory"
+									? "Location access is required to start"
+									: "We'll ask for location when you start (optional)"}
 						</p>
 					) : null}
 

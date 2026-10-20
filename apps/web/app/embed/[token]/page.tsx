@@ -25,9 +25,11 @@ import {
 } from "@/components/saas/agents/preview/SessionPrejoinLobby";
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
+import { useArkitAvatarWarmup } from "@/hooks/useArkitAvatarWarmup";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
+import { uploadBodyCaptureFiles } from "@/lib/proctoring/upload-body-capture";
 import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
 import {
@@ -115,6 +117,8 @@ function EmbedAgentPageContent() {
 	const idVerificationEnabled = sessionModalities.proctoring.id_verification;
 	const faceVerificationEnabled =
 		sessionModalities.proctoring.face_verification;
+	const bodyVerificationEnabled =
+		sessionModalities.proctoring.body_verification;
 	const cameraFeaturesEnabled = hasCameraSessionFeatures(
 		sessionModalities.proctoring,
 	);
@@ -139,6 +143,15 @@ function EmbedAgentPageContent() {
 		fetchCredentials: token
 			? () => fetchEmbedSpatialRealWarmup({ token })
 			: undefined,
+	});
+
+	useArkitAvatarWarmup({
+		enabled:
+			!credentials &&
+			Boolean(embedQuery.data?.embed.available) &&
+			previewAvatar.enabled &&
+			previewAvatar.provider === "arkit",
+		avatarId: previewAvatar.avatarId,
 	});
 
 	const spatiusSessionActive =
@@ -190,6 +203,7 @@ function EmbedAgentPageContent() {
 					Object.keys(contactMetadata).length > 0
 						? contactMetadata
 						: undefined,
+				geo: selection.geo,
 			});
 			if (!data.participantToken || !data.serverUrl) {
 				setJoinMedia(null);
@@ -258,6 +272,7 @@ function EmbedAgentPageContent() {
 								}
 								idVerification={idVerificationEnabled}
 								faceVerification={faceVerificationEnabled}
+								bodyVerification={bodyVerificationEnabled}
 								onIdCapture={(result) =>
 									uploadIdCaptureFiles({
 										sessionId: credentials.sessionId,
@@ -267,6 +282,13 @@ function EmbedAgentPageContent() {
 								}
 								onFaceCapture={(result) =>
 									uploadFaceCaptureFiles({
+										sessionId: credentials.sessionId,
+										participantToken: credentials.token,
+										result,
+									})
+								}
+								onBodyCapture={(result) =>
+									uploadBodyCaptureFiles({
 										sessionId: credentials.sessionId,
 										participantToken: credentials.token,
 										result,
@@ -336,6 +358,7 @@ function EmbedAgentPageContent() {
 				subtitle="Ready when you are"
 				audioMandatory={audioMandatory}
 				videoMandatory={videoMandatory}
+				geoTagging={sessionModalities.geo_tagging}
 				showWebMedia
 				starting={startMutation.isPending}
 				startLabel="Start session"

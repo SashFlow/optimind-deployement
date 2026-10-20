@@ -46,6 +46,8 @@ import MessageList from "./MessageList";
 import PipStage from "./PipStage";
 import RpcCardList from "./RpcCardList";
 import SessionVoiceOrb from "./SessionVoiceOrb";
+import ArkitAvatarStage from "@/components/saas/agents/arkit-avatar/ArkitAvatarStage";
+import { getArkitZipUrl } from "@/lib/arkit-avatars";
 import SpatialRealAvatarStage from "./SpatialRealAvatarStage";
 import SpatiusAvatarStage from "./SpatiusAvatarStage";
 import { usePreviewRoomData } from "./usePreviewRoomData";
@@ -139,11 +141,10 @@ function useLocalTrackRef(source: Track.Source) {
 
 const VIDEO_FILL_CLASS =
 	"absolute inset-0 size-full object-cover sm:static sm:inset-auto sm:object-contain";
-/**
- * Mobile: absolute fill of the stage. Desktop: largest 16:9 that fits.
- */
+/** Full-bleed avatar stage — one surface inside the session card. */
 const AVATAR_STAGE_CLASS =
-	"absolute inset-0 size-auto rounded-none shadow-none sm:relative sm:inset-auto sm:aspect-video sm:h-full sm:max-h-full sm:w-auto sm:max-w-full sm:rounded-xl";
+	"absolute inset-0 size-full rounded-none border-0 shadow-none";
+/** Mobile: absolute fill. Desktop: largest 16:9 that fits (local camera). */
 const CAMERA_STAGE_CLASS =
 	"absolute inset-0 size-auto rounded-none shadow-none sm:relative sm:inset-auto sm:aspect-video sm:h-full sm:max-h-full sm:w-auto sm:max-w-full sm:rounded-xl";
 
@@ -232,6 +233,8 @@ export function PreviewSessionControls({
 	// anam publishes a conventional avatar video track.
 	const isSpatialReal = avatar.enabled && avatar.provider === "spatialreal";
 	const isSpatius = avatar.enabled && avatar.provider === "spatius";
+	const isArkit = avatar.enabled && avatar.provider === "arkit";
+	const arkitZipUrl = isArkit ? getArkitZipUrl(avatar.avatarId) : null;
 	const isClientAvatar = isClientRenderedAvatar(avatar.provider);
 	const hasAvatarVideo =
 		avatar.enabled && !isClientAvatar && Boolean(videoTrack);
@@ -385,6 +388,12 @@ export function PreviewSessionControls({
 			avatarId={avatar.avatarId}
 			compact={showAvatarPip}
 		/>
+	) : isArkit && arkitZipUrl ? (
+		<ArkitAvatarStage
+			room={room}
+			zipUrl={arkitZipUrl}
+			compact={showAvatarPip}
+		/>
 	) : isSpatius ? null : hasAvatarVideo ? (
 		<VideoTrack trackRef={videoTrack} className={VIDEO_FILL_CLASS} />
 	) : showAvatarFallback || showAvatarWaiting ? (
@@ -508,12 +517,26 @@ export function PreviewSessionControls({
 			<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden sm:items-center sm:justify-center sm:p-4 md:p-5">
 				<div
 					className={cn(
-						"relative flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-black sm:h-full sm:max-h-full sm:max-w-5xl sm:rounded-xl sm:border sm:bg-card sm:shadow-sm xl:max-w-6xl",
+						"relative flex min-h-0 w-full flex-1 flex-col overflow-hidden sm:h-full sm:max-h-full sm:max-w-5xl sm:rounded-xl sm:border sm:shadow-sm xl:max-w-6xl",
 						embedded && "sm:max-w-none",
+						// Avatar fills this single card; avoid a second inset surface.
+						showAvatarMain || isSpatius
+							? isArkit
+								? "bg-white"
+								: "bg-black"
+							: "bg-black sm:bg-card",
 					)}
 				>
 					{/* Full-bleed stage; controls float over the video */}
-					<div className="relative min-h-0 flex-1 overflow-hidden bg-black sm:bg-muted/30">
+					<div
+						className={cn(
+							"relative min-h-0 flex-1 overflow-hidden",
+							isArkit && (showAvatarMain || isSpatius)
+								? "bg-white"
+								: "bg-black",
+							!(showAvatarMain || isSpatius) && "sm:bg-muted/30",
+						)}
+					>
 						{(proctoringEnabled || remainingSeconds != null) && (
 							<div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-start justify-between gap-2 bg-linear-to-b from-black/70 via-black/30 to-transparent px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-8 text-xs text-white/90 sm:items-center sm:px-3 sm:pt-2.5 sm:pb-2.5">
 								{proctoringEnabled ? (
@@ -720,7 +743,8 @@ export function PreviewSessionControls({
 
 			{isSpatialReal ? (
 				<SpatialRealSafeRoomAudio />
-			) : (
+			) : isArkit ? null : (
+				// ARKit stage owns agent TTS playback so lipsync clock stays in sync.
 				<RoomAudioRenderer />
 			)}
 		</div>

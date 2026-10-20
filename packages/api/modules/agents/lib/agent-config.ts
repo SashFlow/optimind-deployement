@@ -233,12 +233,20 @@ export const agentConfigSchema = z
 				video_track: z.enum(["mandatory", "optional"]),
 				chat: z.enum(["mandatory", "optional"]),
 				memory: z.boolean().optional().default(true),
+				geo_tagging: z
+					.enum(["disabled", "optional", "mandatory"])
+					.optional()
+					.default("disabled"),
 				proctoring: z
 					.object({
 						enabled: z.boolean(),
 						proactive_response: z.boolean(),
 						id_verification: z.boolean(),
 						face_verification: z
+							.boolean()
+							.optional()
+							.default(false),
+						body_verification: z
 							.boolean()
 							.optional()
 							.default(false),
@@ -297,6 +305,30 @@ export const agentConfigSchema = z
 	})
 	.passthrough()
 	.superRefine((value, ctx) => {
+		const avatar = value.avatar;
+		if (avatar?.enabled && avatar.provider_id === "arkit") {
+			const ttsModelId =
+				value.tts?.provider_model_id?.trim() ||
+				value.tts?.model_id?.trim() ||
+				"";
+			const ttsModel = ttsModelId
+				? CATALOG_MODELS.find(
+						(model) =>
+							model.id === ttsModelId && model.kind === "tts",
+					)
+				: undefined;
+			const isInworld =
+				ttsModel?.provider_id === "inworld" ||
+				ttsModelId.startsWith("inworld-");
+			if (!isInworld) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "ARKit avatars require Inworld TTS",
+					path: ["avatar", "provider_id"],
+				});
+			}
+		}
+
 		if (value.pipeline_mode !== "live") {
 			return;
 		}

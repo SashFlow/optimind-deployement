@@ -666,4 +666,19 @@ export const AVATARS_PROVIDERS: {
 			},
 		],
 	},
+	{
+		id: "arkit",
+		display_name: "ARKit",
+		avatars: [
+			{
+				id: "mark-arkit",
+				display_name: "Mark",
+			},
+		],
+	},
 ];
+
+/** Static 3DGS ZIP paths for client-rendered ARKit avatars (served from apps/web/public). */
+export const ARKIT_AVATAR_ZIP_URLS: Record<string, string> = {
+	"mark-arkit": "/avatars/avatar.zip",
+};

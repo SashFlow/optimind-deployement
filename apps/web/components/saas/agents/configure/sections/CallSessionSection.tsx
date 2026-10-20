@@ -290,6 +290,48 @@ export function CallSessionSection({
 							</SelectContent>
 						</Select>
 					</div>
+					<div className="space-y-2">
+						<Label className="text-sm font-medium">
+							Geo tagging
+						</Label>
+						<Select
+							value={
+								config.session_modalities.geo_tagging ??
+								"disabled"
+							}
+							onValueChange={(value) =>
+								value &&
+								onConfigChange({
+									session_modalities: {
+										...config.session_modalities,
+										geo_tagging: value as
+											| "disabled"
+											| "optional"
+											| "mandatory",
+									},
+								})
+							}
+						>
+							<SelectTrigger className="w-full bg-background">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="disabled">
+									Disabled
+								</SelectItem>
+								<SelectItem value="optional">
+									Optional
+								</SelectItem>
+								<SelectItem value="mandatory">
+									Mandatory
+								</SelectItem>
+							</SelectContent>
+						</Select>
+						<p className="text-xs text-muted-foreground">
+							Ask for location permission before web sessions
+							start.
+						</p>
+					</div>
 				</div>
 				<div className="rounded-lg border bg-background/60 px-3">
 					<ToggleField
@@ -381,6 +423,25 @@ export function CallSessionSection({
 									proctoring: {
 										...config.session_modalities.proctoring,
 										face_verification,
+									},
+								},
+							})
+						}
+					/>
+					<ToggleField
+						label="Body verification"
+						description="Allow the agent to request full-body capture during the session (via a tool call). Independent of proctoring."
+						checked={
+							config.session_modalities.proctoring
+								.body_verification === true
+						}
+						onCheckedChange={(body_verification) =>
+							onConfigChange({
+								session_modalities: {
+									...config.session_modalities,
+									proctoring: {
+										...config.session_modalities.proctoring,
+										body_verification,
 									},
 								},
 							})

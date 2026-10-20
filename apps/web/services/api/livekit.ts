@@ -1,4 +1,5 @@
 import { orpcClient } from "@shared/lib/orpc-client";
+import type { SessionGeoPayload } from "@/lib/session-geo";
 
 type FetchSessionCredentialsInput = {
 	api?: unknown;
@@ -8,6 +9,7 @@ type FetchSessionCredentialsInput = {
 	contactMetadata?: Record<string, unknown>;
 	metadata?: Record<string, unknown>;
 	participantName?: string;
+	geo?: SessionGeoPayload;
 };
 
 export async function fetchSessionCredentials({
@@ -17,6 +19,7 @@ export async function fetchSessionCredentials({
 	contactMetadata,
 	metadata,
 	participantName,
+	geo,
 }: FetchSessionCredentialsInput): Promise<{
 	sessionId: string;
 	participantToken: string;
@@ -38,6 +41,7 @@ export async function fetchSessionCredentials({
 			...(contactMetadata ?? {}),
 			...(metadata ?? {}),
 		},
+		geo,
 		mintParticipantToken: true,
 	});
 

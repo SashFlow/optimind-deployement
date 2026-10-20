@@ -16,11 +16,13 @@ export type PublicAgentPreview = {
 		video_track: "mandatory" | "optional";
 		chat: "mandatory" | "optional";
 		memory: boolean;
+		geo_tagging: "disabled" | "optional" | "mandatory";
 		proctoring: {
 			enabled: boolean;
 			proactive_response: boolean;
 			id_verification: boolean;
 			face_verification: boolean;
+			body_verification: boolean;
 		};
 		otp_input: {
 			enabled: boolean;
@@ -73,12 +75,21 @@ export type StartPublicSessionOutput = {
 	spatiusAppId: string | null;
 };
 
+export type SessionGeoInput = {
+	latitude?: number;
+	longitude?: number;
+	accuracy?: number;
+	capturedAt: string;
+	status: "granted" | "denied" | "unavailable" | "skipped";
+};
+
 export type StartEmbedSessionInput = {
 	token: string;
 	participantName?: string;
 	contactMetadata?: Record<string, unknown>;
 	externalId?: string;
 	name?: string;
+	geo?: SessionGeoInput;
 };
 
 export type StartTrialSessionInput = {
@@ -89,6 +100,7 @@ export type StartTrialSessionInput = {
 	name?: string;
 	email?: string;
 	contactPhone?: string;
+	geo?: SessionGeoInput;
 };
 
 /** SpatialReal app id + session token for prejoin asset warmup (no LiveKit room). */

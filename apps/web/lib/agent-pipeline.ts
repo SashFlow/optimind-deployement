@@ -153,12 +153,35 @@ export function selectSttModel(
 	};
 }
 
+/** True when the TTS catalog model id belongs to Inworld. */
+export function isInworldTtsModelId(
+	providerModelId: string | null | undefined,
+	models: readonly ProviderModel[] = [],
+): boolean {
+	const id = providerModelId?.trim() ?? "";
+	if (!id) {
+		return false;
+	}
+	const catalog = models.find((model) => model.id === id);
+	if (catalog?.provider_id === "inworld") {
+		return true;
+	}
+	return id.startsWith("inworld-");
+}
+
+/** Client-rendered ARKit/GLB avatars only work with Inworld phoneme timestamps. */
+export function isArkitAvatar(
+	avatar: AgentConfigDocument["avatar"] | null | undefined,
+): boolean {
+	return Boolean(avatar?.enabled && avatar.provider_id === "arkit");
+}
+
 export function selectTtsModel(
 	config: AgentConfigDocument,
 	providerModelId: string,
-	_models: ProviderModel[],
+	models: ProviderModel[],
 ): Partial<AgentConfigDocument> {
-	return {
+	const patch: Partial<AgentConfigDocument> = {
 		tts: {
 			...config.tts,
 			provider_model_id: providerModelId,
@@ -166,6 +189,19 @@ export function selectTtsModel(
 			params: config.tts?.params ?? {},
 		},
 	};
+	// Drop ARKit avatar when TTS is no longer Inworld.
+	if (
+		isArkitAvatar(config.avatar) &&
+		!isInworldTtsModelId(providerModelId, models)
+	) {
+		patch.avatar = {
+			...(config.avatar ?? { params: {} }),
+			enabled: false,
+			provider_id: null,
+			external_avatar_id: null,
+		};
+	}
+	return patch;
 }
 
 export function selectTtsVoice(

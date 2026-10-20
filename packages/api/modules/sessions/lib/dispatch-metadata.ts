@@ -40,9 +40,10 @@ export const dispatchMetadataSchema = z.object({
 export type DispatchMetadata = z.infer<typeof dispatchMetadataSchema>;
 
 /**
- * Resolve which avatar plugin (anam / spatialreal / spatius) an avatar id belongs to.
- * Catalog avatars resolve from the catalog; older configs may have saved the
- * avatar id without a provider id, so fall back to whatever was stored.
+ * Resolve which avatar provider (anam / spatialreal / spatius / arkit) an
+ * avatar id belongs to. Catalog avatars resolve from the catalog; older configs
+ * may have saved the avatar id without a provider id, so fall back to whatever
+ * was stored.
  */
 export function resolveAvatarProviderId(
 	externalAvatarId: unknown,
@@ -62,9 +63,25 @@ export function resolveAvatarProviderId(
 	);
 }
 
+function isInworldTtsConfig(config: Record<string, unknown>): boolean {
+	const tts = config.tts;
+	if (!tts || typeof tts !== "object" || Array.isArray(tts)) {
+		return false;
+	}
+	const ttsRecord = tts as Record<string, unknown>;
+	const modelId =
+		(typeof ttsRecord.provider_model_id === "string"
+			? ttsRecord.provider_model_id
+			: null) ||
+		(typeof ttsRecord.model_id === "string" ? ttsRecord.model_id : null) ||
+		"";
+	return modelId.startsWith("inworld-");
+}
+
 /**
  * Ensure `config.avatar.provider_id` is set so the worker knows which avatar
- * plugin to start.
+ * plugin (or client-rendered ARKit path) to use. Strip ARKit when TTS is not
+ * Inworld so share/session starts cannot bypass the configure UI.
  */
 function resolveAvatarProvider(
 	config: Record<string, unknown>,
@@ -76,6 +93,22 @@ function resolveAvatarProvider(
 
 	const avatarRecord = avatar as Record<string, unknown>;
 	const externalAvatarId = avatarRecord.external_avatar_id;
+	const providerId = resolveAvatarProviderId(
+		externalAvatarId,
+		avatarRecord.provider_id,
+	);
+
+	if (avatarRecord.enabled && providerId === "arkit" && !isInworldTtsConfig(config)) {
+		return {
+			...config,
+			avatar: {
+				...avatarRecord,
+				enabled: false,
+				provider_id: providerId,
+			},
+		};
+	}
+
 	if (typeof externalAvatarId !== "string" || !externalAvatarId) {
 		return config;
 	}
@@ -84,10 +117,7 @@ function resolveAvatarProvider(
 		...config,
 		avatar: {
 			...avatarRecord,
-			provider_id: resolveAvatarProviderId(
-				externalAvatarId,
-				avatarRecord.provider_id,
-			),
+			provider_id: providerId,
 		},
 	};
 }

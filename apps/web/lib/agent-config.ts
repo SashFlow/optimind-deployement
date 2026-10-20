@@ -139,6 +139,11 @@ export type AgentVariableDefinition = {
 
 export type SessionTrackRequirement = "mandatory" | "optional";
 
+export type SessionGeoTaggingRequirement =
+	| "disabled"
+	| "optional"
+	| "mandatory";
+
 export type SessionCallType = "phone" | "web" | "both";
 
 export type SessionProctoringConfig = {
@@ -146,6 +151,7 @@ export type SessionProctoringConfig = {
 	proactive_response: boolean;
 	id_verification: boolean;
 	face_verification: boolean;
+	body_verification: boolean;
 };
 
 export type SessionOtpInputConfig = {
@@ -159,6 +165,8 @@ export type SessionModalitiesConfig = {
 	chat: SessionTrackRequirement;
 	/** Persist and inject end-user memories across sessions. */
 	memory: boolean;
+	/** Ask for browser geolocation before starting a web session. */
+	geo_tagging: SessionGeoTaggingRequirement;
 	proctoring: SessionProctoringConfig;
 	otp_input: SessionOtpInputConfig;
 };
@@ -383,11 +391,13 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 			video_track: "optional",
 			chat: "optional",
 			memory: true,
+			geo_tagging: "disabled",
 			proctoring: {
 				enabled: false,
 				proactive_response: false,
 				id_verification: false,
 				face_verification: false,
+				body_verification: false,
 			},
 			otp_input: {
 				enabled: false,
