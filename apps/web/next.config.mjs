@@ -41,6 +41,7 @@ const nextConfig = {
 		"@repo/ui",
 		"@repo/logs",
 		"@repo/livekit",
+		"@myned-ai/gsplat-flame-avatar-renderer",
 	],
 	images: {
 		remotePatterns: [
@@ -82,6 +83,31 @@ const nextConfig = {
 				source: "/app",
 				destination: "/app/dashboard",
 				permanent: false,
+			},
+		];
+	},
+	/**
+	 * SharedArrayBuffer / WASM threads for `@myned-ai/gsplat-flame-avatar-renderer`
+	 * require cross-origin isolation (same as the avatar Vite app).
+	 * Scoped to session surfaces so marketing pages keep third-party embeds.
+	 */
+	async headers() {
+		const isolation = [
+			{ key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+			{ key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+		];
+		return [
+			{ source: "/app/:path*", headers: isolation },
+			{ source: "/share/:path*", headers: isolation },
+			{ source: "/embed/:path*", headers: isolation },
+			{
+				source: "/gsplat/:path*",
+				headers: [
+					{
+						key: "Cross-Origin-Resource-Policy",
+						value: "same-origin",
+					},
+				],
 			},
 		];
 	},

@@ -666,4 +666,14 @@ export const AVATARS_PROVIDERS: {
 			},
 		],
 	},
+	{
+		id: "arkit",
+		display_name: "3DGS",
+		avatars: [
+			{
+				id: "gsplat-default",
+				display_name: "Default",
+			},
+		],
+	},
 ];

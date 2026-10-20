@@ -50,3 +50,6 @@ usecases
 # Generated at build time by @spatialreal/web-sdk's Next plugin
 apps/web/public/_spatialreal/
 apps/web/public/_avatarkit/
+
+# # Local 3DGS LAM export (see apps/web/public/gsplat/)
+# apps/web/public/gsplat/avatar.zip

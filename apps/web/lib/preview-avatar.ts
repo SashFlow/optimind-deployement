@@ -6,6 +6,7 @@ export const PREVIEW_AVATAR_PROVIDERS = [
 	"anam",
 	"spatialreal",
 	"spatius",
+	"arkit",
 ] as const;
 
 export type PreviewAvatarProvider = (typeof PREVIEW_AVATAR_PROVIDERS)[number];
@@ -14,15 +15,19 @@ export type PreviewAvatarProvider = (typeof PREVIEW_AVATAR_PROVIDERS)[number];
  * Everything a session surface needs to render an avatar, resolved once so the
  * preview, the share page and the session controls all agree on it.
  *
- * `anam` publishes an avatar video track into the room; `spatialreal` and
- * `spatius` render a canvas client-side from motion data on that same room.
+ * `anam` publishes an avatar video track into the room; `spatialreal`,
+ * `spatius`, and `arkit` render a canvas client-side on that same room.
  */
 
 /** Providers that decode motion client-side (not a conventional video track). */
 export function isClientRenderedAvatar(
 	provider: PreviewAvatarProvider | string | null | undefined,
 ): boolean {
-	return provider === "spatialreal" || provider === "spatius";
+	return (
+		provider === "spatialreal" ||
+		provider === "spatius" ||
+		provider === "arkit"
+	);
 }
 export type PreviewAvatar = {
 	enabled: boolean;

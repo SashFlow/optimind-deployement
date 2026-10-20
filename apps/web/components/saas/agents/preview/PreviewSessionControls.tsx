@@ -41,6 +41,7 @@ import {
 } from "@/lib/preview-avatar";
 import { formatRemainingDuration } from "@/lib/session-modalities";
 import type { Agent } from "@/services/api/types";
+import GsplatAvatarStage from "./GsplatAvatarStage";
 import MainStage from "./MainStage";
 import MessageList from "./MessageList";
 import PipStage from "./PipStage";
@@ -100,6 +101,14 @@ function SpatialRealSafeRoomAudio() {
 	);
 }
 
+/**
+ * Gsplat stage attaches remote agent audio for the lipsync clock — skip all
+ * remote audio here to avoid double playback (same idea as LivePage).
+ */
+function GsplatSafeRoomAudio() {
+	return null;
+}
+
 function isUserParticipant(identity: string) {
 	return (
 		identity.startsWith("user-") ||
@@ -144,6 +153,9 @@ const VIDEO_FILL_CLASS =
  */
 const AVATAR_STAGE_CLASS =
 	"absolute inset-0 size-auto rounded-none shadow-none sm:relative sm:inset-auto sm:aspect-video sm:h-full sm:max-h-full sm:w-auto sm:max-w-full sm:rounded-xl";
+/** Full-bleed responsive stage for 3DGS (matches avatar LivePage). */
+const GSPLAT_STAGE_CLASS =
+	"absolute inset-0 size-full max-h-none max-w-none rounded-none shadow-none sm:relative sm:inset-auto sm:aspect-auto sm:h-full sm:w-full sm:rounded-none";
 const CAMERA_STAGE_CLASS =
 	"absolute inset-0 size-auto rounded-none shadow-none sm:relative sm:inset-auto sm:aspect-video sm:h-full sm:max-h-full sm:w-auto sm:max-w-full sm:rounded-xl";
 
@@ -228,11 +240,12 @@ export function PreviewSessionControls({
 	}, [proctoringEnabled, isConnected, isCameraEnabled, room]);
 
 	const shouldWaitForAgent = isConnected && !hasAgent;
-	// SpatialReal / Spatius render client-side from motion data on this room;
-	// anam publishes a conventional avatar video track.
+	// SpatialReal / arkit / Spatius render client-side; anam publishes video.
 	const isSpatialReal = avatar.enabled && avatar.provider === "spatialreal";
 	const isSpatius = avatar.enabled && avatar.provider === "spatius";
+	const isGsplat = avatar.enabled && avatar.provider === "arkit";
 	const isClientAvatar = isClientRenderedAvatar(avatar.provider);
+	const isStableClientStage = isSpatius || isGsplat;
 	const hasAvatarVideo =
 		avatar.enabled && !isClientAvatar && Boolean(videoTrack);
 	const showAvatarFallback =
@@ -373,8 +386,8 @@ export function PreviewSessionControls({
 	const showAvatarPip = preferUserVideo && hasAvatarStage;
 
 	// Client-rendered avatars and anam video share the same stage slot.
-	// Spatius is mounted once below (never swapped main↔pip) so AvatarKit
-	// attach survives camera toggles without disconnecting the LiveKit room.
+	// Spatius / arkit are mounted once below (never swapped main↔pip) so the
+	// renderer attach survives camera toggles without tearing down the room.
 	const avatarVideo = isSpatialReal ? (
 		<SpatialRealAvatarStage
 			room={room}
@@ -385,7 +398,7 @@ export function PreviewSessionControls({
 			avatarId={avatar.avatarId}
 			compact={showAvatarPip}
 		/>
-	) : isSpatius ? null : hasAvatarVideo ? (
+	) : isStableClientStage ? null : hasAvatarVideo ? (
 		<VideoTrack trackRef={videoTrack} className={VIDEO_FILL_CLASS} />
 	) : showAvatarFallback || showAvatarWaiting ? (
 		<div className="flex size-full flex-col items-center justify-center gap-3 bg-muted/40">
@@ -411,6 +424,11 @@ export function PreviewSessionControls({
 				onAttached={onSpatiusAttached}
 			/>
 		) : null;
+	const gsplatStage =
+		isGsplat && hasAvatarStage ? (
+			<GsplatAvatarStage room={room} compact={showAvatarPip} />
+		) : null;
+	const stableClientStage = spatiousStage ?? gsplatStage;
 	const orbState = mapAgentStateToOrb(state, hasAgent);
 
 	const connectingContent = (
@@ -461,8 +479,8 @@ export function PreviewSessionControls({
 	);
 
 	const mainContent = (() => {
-		if (isSpatius) {
-			// Spatius renders in the stable overlay below; main slot is camera or empty.
+		if (isStableClientStage) {
+			// Stable client stages render in the overlay below; main slot is camera or empty.
 			if (showCameraMain) {
 				return cameraMainContent;
 			}
@@ -542,19 +560,21 @@ export function PreviewSessionControls({
 						>
 							<MainStage
 								className={cn(
-									(showAvatarMain || isSpatius) &&
-										!showCameraMain &&
-										AVATAR_STAGE_CLASS,
+									(showAvatarMain || isStableClientStage) &&
+									!showCameraMain &&
+									(isGsplat
+										? GSPLAT_STAGE_CLASS
+										: AVATAR_STAGE_CLASS),
 									showCameraMain && CAMERA_STAGE_CLASS,
 									showAudioOnlyMain &&
-										!isSpatius &&
-										"absolute inset-0 aspect-auto h-auto w-full bg-transparent shadow-none sm:relative sm:inset-auto",
+									!isStableClientStage &&
+									"absolute inset-0 aspect-auto h-auto w-full bg-transparent shadow-none sm:relative sm:inset-auto",
 								)}
 							>
 								{mainContent}
-								{spatiousStage ? (
+								{stableClientStage ? (
 									// Same React parent for main and PiP — only CSS changes —
-									// so AvatarKit attach is not torn down on camera toggle.
+									// so the client renderer is not torn down on camera toggle.
 									<div
 										className={cn(
 											"absolute overflow-hidden",
@@ -568,15 +588,15 @@ export function PreviewSessionControls({
 											style={
 												showAvatarPip
 													? {
-															width: "200%",
-															height: "200%",
-															transform:
-																"scale(0.5)",
-														}
+														width: "200%",
+														height: "200%",
+														transform:
+															"scale(0.5)",
+													}
 													: undefined
 											}
 										>
-											{spatiousStage}
+											{stableClientStage}
 										</div>
 									</div>
 								) : showAvatarPip && avatarVideo ? (
@@ -627,7 +647,7 @@ export function PreviewSessionControls({
 											? "border-transparent bg-primary text-primary-foreground shadow-primary/25"
 											: "border-white/20 bg-black/45 text-white hover:bg-black/60",
 										proctoringEnabled &&
-											"cursor-not-allowed opacity-80",
+										"cursor-not-allowed opacity-80",
 									)}
 								>
 									{isCameraEnabled ? (
@@ -647,7 +667,7 @@ export function PreviewSessionControls({
 										controlButtonClass,
 										"relative border-white/20 bg-black/45 text-white hover:bg-black/60 hover:text-white",
 										chatOpen &&
-											"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+										"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 									)}
 									onClick={() => setChatOpen(true)}
 								>
@@ -718,7 +738,9 @@ export function PreviewSessionControls({
 				</DialogContent>
 			</Dialog>
 
-			{isSpatialReal ? (
+			{isGsplat ? (
+				<GsplatSafeRoomAudio />
+			) : isSpatialReal ? (
 				<SpatialRealSafeRoomAudio />
 			) : (
 				<RoomAudioRenderer />
