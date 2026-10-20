@@ -10,6 +10,8 @@ import {
 import { Spinner } from "@repo/ui/spinner";
 import { cn } from "@repo/ui/utils";
 import {
+	MapPinIcon,
+	MapPinOffIcon,
 	MicIcon,
 	MicOffIcon,
 	PhoneIcon,
@@ -28,6 +30,12 @@ import {
 	useState,
 } from "react";
 import { toast } from "sonner";
+import type { SessionLocationTracking } from "@/lib/agent-config";
+import {
+	type LocationPermissionStatus,
+	requestSessionLocation,
+	type SessionLocation,
+} from "@/lib/session-location";
 import {
 	type LocalPreviewMedia,
 	useLocalPreviewMedia,
@@ -45,6 +53,8 @@ export type SessionPrejoinMediaSelection = {
 	 * would reopen the device and flash the preview).
 	 */
 	cameraTrack?: MediaStreamTrack | null;
+	/** One-shot geolocation from the prejoin lobby, when granted. */
+	location?: SessionLocation | null;
 };
 
 export type SessionPrejoinLobbyHandle = {
@@ -59,6 +69,11 @@ export type SessionPrejoinLobbyProps = {
 	badge?: string | null;
 	audioMandatory?: boolean;
 	videoMandatory?: boolean;
+	/**
+	 * Prejoin geolocation: disabled (hidden), optional (can skip), or mandatory
+	 * (must grant before Start). Permission is requested only on user gesture.
+	 */
+	locationTracking?: SessionLocationTracking;
 	/** When false (phone mode), hide camera preview and device pills. */
 	showWebMedia?: boolean;
 	starting?: boolean;
@@ -319,6 +334,7 @@ export function SessionPrejoinLobby({
 	badge,
 	audioMandatory = false,
 	videoMandatory = false,
+	locationTracking = "disabled",
 	showWebMedia = true,
 	starting = false,
 	startLabel = "Start session",
@@ -333,6 +349,11 @@ export function SessionPrejoinLobby({
 }: SessionPrejoinLobbyProps) {
 	const media = useLocalPreviewMedia({ enabled: showWebMedia });
 	const [highlightMissing, setHighlightMissing] = useState(false);
+	const [locationStatus, setLocationStatus] =
+		useState<LocationPermissionStatus>("idle");
+	const [location, setLocation] = useState<SessionLocation | null>(null);
+	const locationEnabled = locationTracking !== "disabled";
+	const locationMandatory = locationTracking === "mandatory";
 
 	useImperativeHandle(
 		lobbyRef,
@@ -343,26 +364,31 @@ export function SessionPrejoinLobby({
 				audioDeviceId: media.audioDeviceId,
 				videoDeviceId: media.videoDeviceId,
 				audioOutputDeviceId: media.audioOutputDeviceId,
+				location,
 			}),
 			stopPreview: media.stopPreview,
 		}),
-		[media],
+		[media, location],
 	);
 
 	const missingNotices = useMemo(() => {
-		if (!showWebMedia) {
-			return [] as string[];
-		}
 		const notices: string[] = [];
-		if (audioMandatory && !media.micEnabled) {
-			notices.push("Turn on microphone");
+		if (showWebMedia) {
+			if (audioMandatory && !media.micEnabled) {
+				notices.push("Turn on microphone");
+			}
+			if (videoMandatory && !media.cameraEnabled) {
+				notices.push("Turn on camera");
+			}
 		}
-		if (videoMandatory && !media.cameraEnabled) {
-			notices.push("Turn on camera");
+		if (locationMandatory && locationStatus !== "granted") {
+			notices.push("Allow location access");
 		}
 		return notices;
 	}, [
 		audioMandatory,
+		locationMandatory,
+		locationStatus,
 		media.cameraEnabled,
 		media.micEnabled,
 		showWebMedia,
@@ -375,8 +401,33 @@ export function SessionPrejoinLobby({
 		}
 	}, [missingNotices.length]);
 
+	async function handleAllowLocation() {
+		if (locationStatus === "requesting") {
+			return;
+		}
+		setLocationStatus("requesting");
+		try {
+			const next = await requestSessionLocation();
+			setLocation(next);
+			setLocationStatus("granted");
+		} catch (error) {
+			setLocation(null);
+			const message =
+				error instanceof Error ? error.message.toLowerCase() : "";
+			const unavailable =
+				message.includes("not available") ||
+				message.includes("unsupported");
+			setLocationStatus(unavailable ? "unavailable" : "denied");
+			toast.error(
+				unavailable
+					? "Location is not available in this browser."
+					: "Location permission was denied.",
+			);
+		}
+	}
+
 	async function handleStart() {
-		if (showWebMedia && missingNotices.length > 0) {
+		if (missingNotices.length > 0) {
 			setHighlightMissing(true);
 			toast.error(missingNotices.join(" · "));
 			return;
@@ -393,6 +444,7 @@ export function SessionPrejoinLobby({
 			videoDeviceId: media.videoDeviceId,
 			audioOutputDeviceId: media.audioOutputDeviceId,
 			cameraTrack,
+			location: locationStatus === "granted" ? location : null,
 		};
 		try {
 			await onStart(selection);
@@ -406,7 +458,23 @@ export function SessionPrejoinLobby({
 		}
 	}
 
-	const busy = starting || media.permissionPending !== null;
+	const busy =
+		starting ||
+		media.permissionPending !== null ||
+		locationStatus === "requesting";
+
+	const locationLabel =
+		locationStatus === "granted"
+			? "Location shared"
+			: locationStatus === "denied"
+				? "Location denied"
+				: locationStatus === "unavailable"
+					? "Location unavailable"
+					: locationStatus === "requesting"
+						? "Requesting location…"
+						: locationMandatory
+							? "Allow location (required)"
+							: "Allow location";
 	const isPhoneStart = /call/i.test(startLabel);
 
 	const startButton = (
@@ -501,7 +569,44 @@ export function SessionPrejoinLobby({
 						</div>
 					) : null}
 
-					{showWebMedia && missingNotices.length > 0 ? (
+					{locationEnabled ? (
+						<div className="flex flex-col gap-2">
+							<Button
+								type="button"
+								variant={
+									locationStatus === "granted"
+										? "secondary"
+										: "outline"
+								}
+								className="w-full rounded-full"
+								disabled={
+									busy || locationStatus === "granted"
+								}
+								onClick={() => void handleAllowLocation()}
+							>
+								{locationStatus === "requesting" ? (
+									<Spinner className="size-4" />
+								) : locationStatus === "granted" ? (
+									<MapPinIcon className="size-4" />
+								) : (
+									<MapPinOffIcon className="size-4" />
+								)}
+								{locationLabel}
+							</Button>
+							{locationMandatory ? (
+								<p className="text-center text-xs text-muted-foreground">
+									Location is required to start this session.
+								</p>
+							) : (
+								<p className="text-center text-xs text-muted-foreground">
+									Sharing location is optional for this
+									session.
+								</p>
+							)}
+						</div>
+					) : null}
+
+					{missingNotices.length > 0 ? (
 						<p
 							className={cn(
 								"text-center text-xs",

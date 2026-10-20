@@ -1,5 +1,6 @@
 import type {
 	SessionCallType,
+	SessionLocationTracking,
 	SessionModalitiesConfig,
 	SessionTrackRequirement,
 } from "@/lib/agent-config";
@@ -15,10 +16,13 @@ export const DEFAULT_SESSION_MODALITIES: SessionModalitiesConfig = {
 		proactive_response: false,
 		id_verification: false,
 		face_verification: false,
+		body_verification: false,
+		body_capture_interval_seconds: 5,
 	},
 	otp_input: {
 		enabled: false,
 	},
+	location_tracking: "disabled",
 };
 
 function asTrackRequirement(
@@ -35,6 +39,27 @@ function asCallType(
 	return value === "phone" || value === "web" || value === "both"
 		? value
 		: fallback;
+}
+
+function asLocationTracking(
+	value: unknown,
+	fallback: SessionLocationTracking,
+): SessionLocationTracking {
+	return value === "disabled" ||
+		value === "optional" ||
+		value === "mandatory"
+		? value
+		: fallback;
+}
+
+/** Clamp body framing context interval to a safe range (seconds). */
+export function clampBodyCaptureIntervalSeconds(value: unknown): number {
+	const n =
+		typeof value === "number" && Number.isFinite(value)
+			? value
+			: DEFAULT_SESSION_MODALITIES.proctoring
+					.body_capture_interval_seconds;
+	return Math.min(30, Math.max(2, Math.round(n)));
 }
 
 export function normalizeSessionModalities(
@@ -92,6 +117,15 @@ export function normalizeSessionModalities(
 				proctoringRaw.face_verification ??
 					DEFAULT_SESSION_MODALITIES.proctoring.face_verification,
 			),
+			body_verification: Boolean(
+				proctoringRaw.body_verification ??
+					DEFAULT_SESSION_MODALITIES.proctoring.body_verification,
+			),
+			body_capture_interval_seconds: clampBodyCaptureIntervalSeconds(
+				proctoringRaw.body_capture_interval_seconds ??
+					DEFAULT_SESSION_MODALITIES.proctoring
+						.body_capture_interval_seconds,
+			),
 		},
 		otp_input: {
 			enabled: Boolean(
@@ -99,6 +133,10 @@ export function normalizeSessionModalities(
 					DEFAULT_SESSION_MODALITIES.otp_input.enabled,
 			),
 		},
+		location_tracking: asLocationTracking(
+			source.location_tracking,
+			DEFAULT_SESSION_MODALITIES.location_tracking,
+		),
 	};
 }
 
@@ -126,7 +164,8 @@ export function hasCameraSessionFeatures(
 	return (
 		proctoring.enabled ||
 		proctoring.id_verification ||
-		proctoring.face_verification
+		proctoring.face_verification ||
+		proctoring.body_verification
 	);
 }
 

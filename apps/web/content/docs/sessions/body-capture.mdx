@@ -1,0 +1,129 @@
+---
+title: Body capture
+description: Tool-triggered body capture during web sessions via LiveKit RPC.
+---
+
+Body capture is **not** a mandatory popup on join. When body verification is
+enabled (independently of proctoring), the agent opens the capture overlay by calling
+LiveKit RPC `start_body_capture` on the candidate (typically from a Python `@function_tool`).
+
+While the candidate is adjusting into frame, the web client periodically notifies the agent
+via `add_context` (`type: "body_framing"`) so the agent can coach them. After a well-framed
+body is detected, the client uploads a full-frame JPEG and sends a final `body_captured`
+event.
+
+## Setup
+
+1. In **Call Session**, enable **Body verification**
+   (“Allow the agent to request body capture during the session (via a tool call).”).
+   Optionally set **Framing context interval** (default 5 seconds, range 2–30).
+   Proctoring does **not** need to be enabled.
+2. Create an org **Python tool** (Tools → Create Python tool) and paste the sample below.
+3. Attach that tool to the agent so the model can call body capture mid-session.
+4. Start a web (share / embed / preview) session with the camera on.
+
+## Flow
+
+```
+Agent tool body_capture
+  → perform_rpc("start_body_capture") on candidate
+  → Client opens body overlay and scans pose landmarks
+  → Every N seconds while mis-framed: add_context type "body_framing" (action: say)
+  → POST /sessions/{id}/participant-files  (body-full.jpg)
+  → Client perform_rpc("add_context") with type "body_captured" (action: generate_reply)
+  → Agent chat gets a system message; agent acknowledges and continues
+```
+
+### RPC: `start_body_capture` (agent → candidate)
+
+- Registered only when `session_modalities.proctoring.body_verification` is true.
+- Payload: empty string (or unused).
+- Response: `{"started": true}` (JSON string).
+
+### Upload: participant files
+
+Authenticated with the candidate’s LiveKit participant JWT:
+
+| Name | Content |
+|------|---------|
+| `body-full.jpg` | Full-frame evidence JPEG |
+
+Endpoint: `POST /sessions/{id}/participant-files` (see [worker contract](/docs/sessions/worker-contract)).
+
+### RPC: `add_context` — framing (while scanning)
+
+Sent about every `body_capture_interval_seconds` while the pose is not yet well framed:
+
+```json
+{
+  "state": "The candidate is too far from the camera. Ask them to step closer so their body fills more of the frame.",
+  "action": "say",
+  "type": "body_framing",
+  "details": {
+    "hint": "move_closer",
+    "confidence": 0.0
+  }
+}
+```
+
+`details.hint` is one of: `no_body`, `multiple_people`, `move_closer`, `move_back`, `center`, `hold_steady`.
+
+### RPC: `add_context` — capture complete
+
+```json
+{
+  "state": "Body capture completed successfully. The candidate's body image has been uploaded and submitted for verification. You may continue the conversation.",
+  "action": "generate_reply",
+  "type": "body_captured",
+  "details": {
+    "confidence": 0.0,
+    "capturedAt": 0,
+    "status": "completed"
+  }
+}
+```
+
+## Sample Python tool
+
+Paste into **Create Python Tool**. The worker injects `host` (`.agent`, `.ctx`, `.state`).
+
+```python
+@function_tool()
+async def body_capture(self, context: RunContext) -> str:
+    """Ask the candidate to stand so their body is in frame for body capture."""
+    try:
+        room_io = context.session.room_io
+    except RuntimeError:
+        return "error: room not available yet"
+
+    participant = room_io.linked_participant
+    if participant is None:
+        return "error: no candidate participant in the room"
+
+    try:
+        response = await room_io.room.local_participant.perform_rpc(
+            destination_identity=participant.identity,
+            method="start_body_capture",
+            payload="",
+        )
+    except Exception as e:
+        return f"error: RPC failed: {e}"
+
+    return f"Body capture started: {response}"
+```
+
+### How to test
+
+1. Enable body verification on the agent (proctoring optional).
+2. Add the Python tool above and attach it to the agent.
+3. Join a share/embed/preview session with camera enabled.
+4. Ask the agent to capture your body (or otherwise invoke the tool).
+5. Center your body in the tall guide until capture succeeds.
+6. Confirm toast “Body captured” and that `body-full.jpg` appears on the session’s participant files.
+7. While mis-framed, confirm the agent receives periodic `body_framing` context.
+
+## Related
+
+- [Worker contract](/docs/sessions/worker-contract) (`start_body_capture`, `add_context`)
+- Client hook: `apps/web/hooks/useProctoring.ts`
+- Upload helper: `apps/web/lib/proctoring/upload-body-capture.ts`

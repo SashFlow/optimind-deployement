@@ -242,6 +242,17 @@ export const agentConfigSchema = z
 							.boolean()
 							.optional()
 							.default(false),
+						body_verification: z
+							.boolean()
+							.optional()
+							.default(false),
+						body_capture_interval_seconds: z
+							.number()
+							.int()
+							.min(2)
+							.max(30)
+							.optional()
+							.default(5),
 					})
 					.passthrough(),
 				otp_input: z
@@ -251,6 +262,10 @@ export const agentConfigSchema = z
 					.passthrough()
 					.optional()
 					.default({ enabled: false }),
+				location_tracking: z
+					.enum(["disabled", "optional", "mandatory"])
+					.optional()
+					.default("disabled"),
 			})
 			.passthrough()
 			.optional(),

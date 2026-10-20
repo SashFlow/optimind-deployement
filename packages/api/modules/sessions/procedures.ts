@@ -521,10 +521,13 @@ const DEFAULT_TRIAL_SESSION_MODALITIES = {
 		proactive_response: false,
 		id_verification: false,
 		face_verification: false,
+		body_verification: false,
+		body_capture_interval_seconds: 5,
 	},
 	otp_input: {
 		enabled: false,
 	},
+	location_tracking: "disabled" as const,
 };
 
 function normalizeTrialSessionModalities(
@@ -545,6 +548,21 @@ function normalizeTrialSessionModalities(
 		fallback: "mandatory" | "optional",
 	): "mandatory" | "optional" =>
 		value === "mandatory" || value === "optional" ? value : fallback;
+	const asLocationTracking = (
+		value: unknown,
+		fallback: "disabled" | "optional" | "mandatory",
+	): "disabled" | "optional" | "mandatory" =>
+		value === "disabled" || value === "optional" || value === "mandatory"
+			? value
+			: fallback;
+	const clampBodyInterval = (value: unknown): number => {
+		const n =
+			typeof value === "number" && Number.isFinite(value)
+				? value
+				: DEFAULT_TRIAL_SESSION_MODALITIES.proctoring
+						.body_capture_interval_seconds;
+		return Math.min(30, Math.max(2, Math.round(n)));
+	};
 	const proctoringRaw =
 		source.proctoring &&
 		typeof source.proctoring === "object" &&
@@ -592,6 +610,16 @@ function normalizeTrialSessionModalities(
 					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring
 						.face_verification,
 			),
+			body_verification: Boolean(
+				proctoringRaw.body_verification ??
+					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring
+						.body_verification,
+			),
+			body_capture_interval_seconds: clampBodyInterval(
+				proctoringRaw.body_capture_interval_seconds ??
+					DEFAULT_TRIAL_SESSION_MODALITIES.proctoring
+						.body_capture_interval_seconds,
+			),
 		},
 		otp_input: {
 			enabled: Boolean(
@@ -599,6 +627,10 @@ function normalizeTrialSessionModalities(
 					DEFAULT_TRIAL_SESSION_MODALITIES.otp_input.enabled,
 			),
 		},
+		location_tracking: asLocationTracking(
+			source.location_tracking,
+			DEFAULT_TRIAL_SESSION_MODALITIES.location_tracking,
+		),
 	};
 }
 

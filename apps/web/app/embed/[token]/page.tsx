@@ -28,8 +28,10 @@ import { SessionInteractionProvider } from "@/context/session-interaction-provid
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
+import { uploadBodyCaptureFiles } from "@/lib/proctoring/upload-body-capture";
 import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
+import { withLocationMetadata } from "@/lib/session-location";
 import {
 	DEFAULT_SESSION_MODALITIES,
 	hasCameraSessionFeatures,
@@ -115,6 +117,10 @@ function EmbedAgentPageContent() {
 	const idVerificationEnabled = sessionModalities.proctoring.id_verification;
 	const faceVerificationEnabled =
 		sessionModalities.proctoring.face_verification;
+	const bodyVerificationEnabled =
+		sessionModalities.proctoring.body_verification;
+	const bodyCaptureIntervalSeconds =
+		sessionModalities.proctoring.body_capture_interval_seconds ?? 5;
 	const cameraFeaturesEnabled = hasCameraSessionFeatures(
 		sessionModalities.proctoring,
 	);
@@ -180,6 +186,10 @@ function EmbedAgentPageContent() {
 
 	async function handleStart(selection: SessionPrejoinMediaSelection) {
 		setJoinMedia(selection);
+		const metadataWithLocation = withLocationMetadata(
+			contactMetadata,
+			selection.location,
+		);
 		try {
 			const data = await startMutation.mutateAsync({
 				token,
@@ -187,8 +197,8 @@ function EmbedAgentPageContent() {
 				name: name || undefined,
 				externalId: externalId || undefined,
 				contactMetadata:
-					Object.keys(contactMetadata).length > 0
-						? contactMetadata
+					Object.keys(metadataWithLocation).length > 0
+						? metadataWithLocation
 						: undefined,
 			});
 			if (!data.participantToken || !data.serverUrl) {
@@ -258,6 +268,13 @@ function EmbedAgentPageContent() {
 								}
 								idVerification={idVerificationEnabled}
 								faceVerification={faceVerificationEnabled}
+								bodyVerification={bodyVerificationEnabled}
+								config={{
+									bodyCapture: {
+										contextIntervalMs:
+											bodyCaptureIntervalSeconds * 1000,
+									},
+								}}
 								onIdCapture={(result) =>
 									uploadIdCaptureFiles({
 										sessionId: credentials.sessionId,
@@ -267,6 +284,13 @@ function EmbedAgentPageContent() {
 								}
 								onFaceCapture={(result) =>
 									uploadFaceCaptureFiles({
+										sessionId: credentials.sessionId,
+										participantToken: credentials.token,
+										result,
+									})
+								}
+								onBodyCapture={(result) =>
+									uploadBodyCaptureFiles({
 										sessionId: credentials.sessionId,
 										participantToken: credentials.token,
 										result,
@@ -336,6 +360,9 @@ function EmbedAgentPageContent() {
 				subtitle="Ready when you are"
 				audioMandatory={audioMandatory}
 				videoMandatory={videoMandatory}
+				locationTracking={
+					sessionModalities.location_tracking ?? "disabled"
+				}
 				showWebMedia
 				starting={startMutation.isPending}
 				startLabel="Start session"

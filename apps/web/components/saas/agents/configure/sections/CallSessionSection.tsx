@@ -387,6 +387,70 @@ export function CallSessionSection({
 						}
 					/>
 					<ToggleField
+						label="Body verification"
+						description="Allow the agent to request body capture during the session (via a tool call). Sends framing tips to the agent while scanning. Independent of proctoring."
+						checked={
+							config.session_modalities.proctoring
+								.body_verification === true
+						}
+						onCheckedChange={(body_verification) =>
+							onConfigChange({
+								session_modalities: {
+									...config.session_modalities,
+									proctoring: {
+										...config.session_modalities.proctoring,
+										body_verification,
+									},
+								},
+							})
+						}
+					>
+						<div className="space-y-2">
+							<Label className="text-sm font-medium">
+								Framing context interval (seconds)
+							</Label>
+							<Input
+								type="number"
+								min={2}
+								max={30}
+								step={1}
+								className="bg-background"
+								value={
+									config.session_modalities.proctoring
+										.body_capture_interval_seconds ?? 5
+								}
+								onChange={(event) => {
+									const parsed = Number(event.target.value);
+									onConfigChange({
+										session_modalities: {
+											...config.session_modalities,
+											proctoring: {
+												...config.session_modalities
+													.proctoring,
+												body_capture_interval_seconds:
+													Number.isFinite(parsed)
+														? Math.min(
+																30,
+																Math.max(
+																	2,
+																	Math.round(
+																		parsed,
+																	),
+																),
+															)
+														: 5,
+											},
+										},
+									});
+								}}
+							/>
+							<p className="text-xs text-muted-foreground">
+								How often to send body framing guidance to the
+								agent while capture is active (2–30 seconds).
+							</p>
+						</div>
+					</ToggleField>
+					<ToggleField
 						label="OTP input"
 						description="Allow the agent to open an OTP entry popover during the session (via a tool call)."
 						checked={
@@ -404,6 +468,49 @@ export function CallSessionSection({
 							})
 						}
 					/>
+					<div className="space-y-2 border-b py-3 last:border-b-0">
+						<Label className="text-sm font-medium">
+							Location tracking
+						</Label>
+						<p className="text-xs text-muted-foreground">
+							Ask for browser location permission in the prejoin
+							lobby before the call starts. Coordinates are sent
+							once with session metadata.
+						</p>
+						<Select
+							value={
+								config.session_modalities.location_tracking ??
+								"disabled"
+							}
+							onValueChange={(value) =>
+								value &&
+								onConfigChange({
+									session_modalities: {
+										...config.session_modalities,
+										location_tracking: value as
+											| "disabled"
+											| "optional"
+											| "mandatory",
+									},
+								})
+							}
+						>
+							<SelectTrigger className="w-full bg-background">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="disabled">
+									Disabled
+								</SelectItem>
+								<SelectItem value="optional">
+									Optional
+								</SelectItem>
+								<SelectItem value="mandatory">
+									Mandatory
+								</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
 				</div>
 			</div>
 

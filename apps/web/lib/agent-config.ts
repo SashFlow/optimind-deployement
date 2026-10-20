@@ -139,6 +139,8 @@ export type AgentVariableDefinition = {
 
 export type SessionTrackRequirement = "mandatory" | "optional";
 
+export type SessionLocationTracking = "disabled" | "optional" | "mandatory";
+
 export type SessionCallType = "phone" | "web" | "both";
 
 export type SessionProctoringConfig = {
@@ -146,6 +148,13 @@ export type SessionProctoringConfig = {
 	proactive_response: boolean;
 	id_verification: boolean;
 	face_verification: boolean;
+	/** Allow the agent to request body capture via tool call. */
+	body_verification: boolean;
+	/**
+	 * How often (seconds) to send body framing `add_context` while capture is
+	 * scanning. Clamped to 2–30; default 5.
+	 */
+	body_capture_interval_seconds: number;
 };
 
 export type SessionOtpInputConfig = {
@@ -161,6 +170,11 @@ export type SessionModalitiesConfig = {
 	memory: boolean;
 	proctoring: SessionProctoringConfig;
 	otp_input: SessionOtpInputConfig;
+	/**
+	 * Browser geolocation before join: disabled (hidden), optional (can skip),
+	 * or mandatory (must grant to start).
+	 */
+	location_tracking: SessionLocationTracking;
 };
 
 export type AgentConfigDocument = {
@@ -388,10 +402,13 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 				proactive_response: false,
 				id_verification: false,
 				face_verification: false,
+				body_verification: false,
+				body_capture_interval_seconds: 5,
 			},
 			otp_input: {
 				enabled: false,
 			},
+			location_tracking: "disabled",
 		},
 		tools: [],
 		tools_config: {
@@ -504,11 +521,28 @@ export function normalizeAgentConfig(
 			proctoring: {
 				...defaults.session_modalities.proctoring,
 				...(c.session_modalities?.proctoring ?? {}),
+				body_capture_interval_seconds: (() => {
+					const raw =
+						c.session_modalities?.proctoring
+							?.body_capture_interval_seconds ??
+						defaults.session_modalities.proctoring
+							.body_capture_interval_seconds;
+					return Math.min(
+						30,
+						Math.max(2, Math.round(Number(raw) || 5)),
+					);
+				})(),
 			},
 			otp_input: {
 				...defaults.session_modalities.otp_input,
 				...(c.session_modalities?.otp_input ?? {}),
 			},
+			location_tracking:
+				c.session_modalities?.location_tracking === "optional" ||
+				c.session_modalities?.location_tracking === "mandatory" ||
+				c.session_modalities?.location_tracking === "disabled"
+					? c.session_modalities.location_tracking
+					: defaults.session_modalities.location_tracking,
 		},
 		tools_config: { ...defaults.tools_config, ...(c.tools_config ?? {}) },
 		before_session_start: {

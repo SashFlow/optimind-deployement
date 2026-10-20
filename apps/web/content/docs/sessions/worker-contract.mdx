@@ -36,6 +36,21 @@ are already merged into `config.instructions` under `## About the user`.
 
 Parse this from the LiveKit job metadata when the worker joins.
 
+When `config.session_modalities.location_tracking` is `"optional"` or `"mandatory"`, the
+web prejoin lobby may ask for browser geolocation **before** the call starts. If granted,
+coordinates are included once under `contact_metadata.location`:
+
+```ts
+contact_metadata.location?: {
+  latitude: number
+  longitude: number
+  accuracy: number | null  // meters
+  capturedAt: string       // ISO timestamp
+}
+```
+
+There are no mid-call location updates.
+
 When `config.avatar.enabled` is true, `config.avatar.provider_id`
 (`"anam"` | `"spatialreal"` | `"spatius"` | `"gsplat"`) selects the avatar
 plugin and `config.avatar.external_avatar_id` is the provider's avatar id.
@@ -209,7 +224,7 @@ Token `video.room` must match the session's LiveKit room. Session must be `QUEUE
 ### `add_context` (candidate → agent)
 
 When `config.session_modalities.proctoring.enabled` is true, the web client runs MediaPipe
-checks and may call this RPC on the agent participant. ID / face capture completion and OTP
+checks and may call this RPC on the agent participant. ID / face / body capture completion and OTP
 submit/resend also use `add_context` when their respective flags are enabled — those do not
 require proctoring.
 
@@ -221,13 +236,15 @@ Payload (JSON string):
   action: "say" | "generate_reply" | "silent"
   type: "multiple_people" | "additional_device" | "no_face" | "gaze_away"
       | "id_captured" | "face_captured"
+      | "body_framing" | "body_captured"
       | "otp_submitted" | "otp_resend_requested"
   details?: Record<string, unknown>
 }
 ```
 
 - `proactive_response: false` forces `action: "silent"` for violation types.
-- `id_captured` / `face_captured` are sent with `action: "generate_reply"` after a successful upload.
+- `id_captured` / `face_captured` / `body_captured` are sent with `action: "generate_reply"` after a successful upload.
+- `body_framing` is sent periodically (default every 5s) while body capture is scanning and the pose is not yet well framed (`action: "say"`).
 - `otp_submitted` includes `details.code`; the worker/agent validates the code.
 - `otp_resend_requested` asks the agent to resend the OTP out-of-band.
 
@@ -244,6 +261,14 @@ Opens the face capture overlay. No payload required. Response: `{ "started": tru
 
 Registered only when `session_modalities.proctoring.face_verification` is true. See
 [Face capture](/docs/sessions/face-capture).
+
+### `start_body_capture` (agent → candidate)
+
+Opens the body capture overlay. No payload required. Response: `{ "started": true }`.
+
+Registered only when `session_modalities.proctoring.body_verification` is true. Framing
+interval is `session_modalities.proctoring.body_capture_interval_seconds` (default 5). See
+[Body capture](/docs/sessions/body-capture).
 
 ### `start_otp_input` (agent → candidate)
 

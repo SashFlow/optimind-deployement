@@ -34,8 +34,10 @@ import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
 import { normalizePhoneNumber } from "@/lib/phone";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
+import { uploadBodyCaptureFiles } from "@/lib/proctoring/upload-body-capture";
 import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
+import { withLocationMetadata } from "@/lib/session-location";
 import {
 	DEFAULT_SESSION_MODALITIES,
 	hasCameraSessionFeatures,
@@ -249,6 +251,10 @@ export default function SharedTrialPage() {
 	const idVerificationEnabled = sessionModalities.proctoring.id_verification;
 	const faceVerificationEnabled =
 		sessionModalities.proctoring.face_verification;
+	const bodyVerificationEnabled =
+		sessionModalities.proctoring.body_verification;
+	const bodyCaptureIntervalSeconds =
+		sessionModalities.proctoring.body_capture_interval_seconds ?? 5;
 	const cameraFeaturesEnabled = hasCameraSessionFeatures(
 		sessionModalities.proctoring,
 	);
@@ -354,6 +360,10 @@ export default function SharedTrialPage() {
 		if (!contactMetadata) {
 			throw new Error("Invalid session variables");
 		}
+		const contactMetadataWithLocation = withLocationMetadata(
+			contactMetadata,
+			selection.location,
+		);
 
 		if (sessionMedia === "phone") {
 			const normalized = normalizePhoneNumber(outboundPhone);
@@ -373,7 +383,7 @@ export default function SharedTrialPage() {
 			const data = await startMutation.mutateAsync({
 				token,
 				participantName: visitorName,
-				contactMetadata,
+				contactMetadata: contactMetadataWithLocation,
 				name: visitorName,
 				email: visitorEmail,
 				phoneNumber:
@@ -451,6 +461,13 @@ export default function SharedTrialPage() {
 								}
 								idVerification={idVerificationEnabled}
 								faceVerification={faceVerificationEnabled}
+								bodyVerification={bodyVerificationEnabled}
+								config={{
+									bodyCapture: {
+										contextIntervalMs:
+											bodyCaptureIntervalSeconds * 1000,
+									},
+								}}
 								onIdCapture={(result) =>
 									uploadIdCaptureFiles({
 										sessionId: credentials.sessionId,
@@ -460,6 +477,13 @@ export default function SharedTrialPage() {
 								}
 								onFaceCapture={(result) =>
 									uploadFaceCaptureFiles({
+										sessionId: credentials.sessionId,
+										participantToken: credentials.token,
+										result,
+									})
+								}
+								onBodyCapture={(result) =>
+									uploadBodyCaptureFiles({
 										sessionId: credentials.sessionId,
 										participantToken: credentials.token,
 										result,
@@ -561,6 +585,9 @@ export default function SharedTrialPage() {
 				badge={`${trial.remaining} session${trial.remaining === 1 ? "" : "s"} left`}
 				audioMandatory={audioMandatory}
 				videoMandatory={videoMandatory}
+				locationTracking={
+					sessionModalities.location_tracking ?? "disabled"
+				}
 				showWebMedia={sessionMedia === "web" && allowWeb}
 				starting={startMutation.isPending}
 				startLabel={

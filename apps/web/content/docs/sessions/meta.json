@@ -1,4 +1,10 @@
 {
 	"title": "Sessions",
-	"pages": ["worker-contract", "id-verification", "face-capture", "otp-input"]
+	"pages": [
+		"worker-contract",
+		"id-verification",
+		"face-capture",
+		"body-capture",
+		"otp-input"
+	]
 }

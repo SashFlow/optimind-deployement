@@ -21,10 +21,13 @@ export type PublicAgentPreview = {
 			proactive_response: boolean;
 			id_verification: boolean;
 			face_verification: boolean;
+			body_verification: boolean;
+			body_capture_interval_seconds: number;
 		};
 		otp_input: {
 			enabled: boolean;
 		};
+		location_tracking: "disabled" | "optional" | "mandatory";
 	};
 	maxDurationSeconds: number | null;
 };

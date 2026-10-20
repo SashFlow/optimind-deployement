@@ -31,8 +31,10 @@ import {
 	DISABLED_PREVIEW_AVATAR,
 	type PreviewAvatar,
 } from "@/lib/preview-avatar";
+import { uploadBodyCaptureFiles } from "@/lib/proctoring/upload-body-capture";
 import { uploadFaceCaptureFiles } from "@/lib/proctoring/upload-face-capture";
 import { uploadIdCaptureFiles } from "@/lib/proctoring/upload-id-capture";
+import { withLocationMetadata } from "@/lib/session-location";
 import {
 	DEFAULT_SESSION_MODALITIES,
 	hasCameraSessionFeatures,
@@ -224,6 +226,10 @@ export function AgentConfigurePreview({
 	const idVerificationEnabled = sessionModalities.proctoring.id_verification;
 	const faceVerificationEnabled =
 		sessionModalities.proctoring.face_verification;
+	const bodyVerificationEnabled =
+		sessionModalities.proctoring.body_verification;
+	const bodyCaptureIntervalSeconds =
+		sessionModalities.proctoring.body_capture_interval_seconds ?? 5;
 	const cameraFeaturesEnabled = hasCameraSessionFeatures(
 		sessionModalities.proctoring,
 	);
@@ -398,6 +404,10 @@ export function AgentConfigurePreview({
 			// Lobby restores the transferred camera track.
 			throw new Error("Invalid session variables");
 		}
+		const contactMetadataWithLocation = withLocationMetadata(
+			contactMetadata,
+			selection.location,
+		);
 
 		setStarting(true);
 		try {
@@ -407,14 +417,14 @@ export function AgentConfigurePreview({
 					throw new Error("Phone sessions are disabled");
 				}
 				releasePrefetchedCameraTrack(selection);
-				await handleStartPhoneSession(contactMetadata);
+				await handleStartPhoneSession(contactMetadataWithLocation);
 			} else {
 				if (!allowWeb) {
 					toast.error("Web sessions are disabled for this agent");
 					throw new Error("Web sessions are disabled");
 				}
 				setJoinMedia(selection);
-				await handleStartWebSession(contactMetadata);
+				await handleStartWebSession(contactMetadataWithLocation);
 			}
 		} catch (error) {
 			setJoinMedia(null);
@@ -515,6 +525,13 @@ export function AgentConfigurePreview({
 							}
 							idVerification={idVerificationEnabled}
 							faceVerification={faceVerificationEnabled}
+							bodyVerification={bodyVerificationEnabled}
+							config={{
+								bodyCapture: {
+									contextIntervalMs:
+										bodyCaptureIntervalSeconds * 1000,
+								},
+							}}
 							onIdCapture={(result) =>
 								uploadIdCaptureFiles({
 									sessionId: sessionCredentials.sessionId,
@@ -524,6 +541,13 @@ export function AgentConfigurePreview({
 							}
 							onFaceCapture={(result) =>
 								uploadFaceCaptureFiles({
+									sessionId: sessionCredentials.sessionId,
+									participantToken: sessionCredentials.token,
+									result,
+								})
+							}
+							onBodyCapture={(result) =>
+								uploadBodyCaptureFiles({
 									sessionId: sessionCredentials.sessionId,
 									participantToken: sessionCredentials.token,
 									result,
@@ -543,6 +567,8 @@ export function AgentConfigurePreview({
 	}, [
 		agent,
 		avatar,
+		bodyCaptureIntervalSeconds,
+		bodyVerificationEnabled,
 		cameraFeaturesEnabled,
 		chatMandatory,
 		faceVerificationEnabled,
@@ -603,6 +629,9 @@ export function AgentConfigurePreview({
 				subtitle="Preview this agent before publishing"
 				audioMandatory={audioMandatory}
 				videoMandatory={videoMandatory}
+				locationTracking={
+					sessionModalities.location_tracking ?? "disabled"
+				}
 				showWebMedia={media === "web"}
 				starting={starting}
 				startLabel={media === "phone" ? "Place call" : "Start session"}
