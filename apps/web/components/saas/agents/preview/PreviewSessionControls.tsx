@@ -426,7 +426,11 @@ export function PreviewSessionControls({
 		) : null;
 	const gsplatStage =
 		isGsplat && hasAvatarStage ? (
-			<GsplatAvatarStage room={room} compact={showAvatarPip} />
+			<GsplatAvatarStage
+				room={room}
+				avatarId={avatar.avatarId}
+				compact={showAvatarPip}
+			/>
 		) : null;
 	const stableClientStage = spatiousStage ?? gsplatStage;
 	const orbState = mapAgentStateToOrb(state, hasAgent);

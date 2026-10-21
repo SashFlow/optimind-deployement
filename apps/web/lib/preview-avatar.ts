@@ -89,15 +89,16 @@ export function resolvePreviewAvatar(
 	}
 
 	const avatarId = avatar.external_avatar_id;
+	const provider = resolvePreviewAvatarProvider(
+		avatar.provider_id,
+		avatarId,
+		catalog,
+	);
 
 	return {
 		enabled: true,
-		provider: resolvePreviewAvatarProvider(
-			avatar.provider_id,
-			avatarId,
-			catalog,
-		),
-		avatarId: avatarId,
-		previewUrl: getAvatarPreviewUrl(avatarId),
+		provider,
+		avatarId,
+		previewUrl: getAvatarPreviewUrl(avatarId, provider),
 	};
 }

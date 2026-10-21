@@ -4,9 +4,9 @@ import { cn } from "@repo/ui/utils";
 import { useEffect, useRef, type CSSProperties } from "react";
 import type { ARKitLipSyncEngine } from "@/lib/arkit-lipsync/engine/ARKitLipSyncEngine";
 import { IdleFaceController } from "@/lib/arkit-lipsync/idle/IdleFaceController";
+import { getGsplatAvatarZipUrl } from "@/lib/stock-avatars";
 import { WeightBridge } from "./bridge";
 
-const AVATAR_ZIP = "/gsplat/avatar.zip";
 const DEG = Math.PI / 180;
 const RAD = 180 / Math.PI;
 
@@ -83,6 +83,8 @@ type RendererHandle = {
 
 interface Props {
   engine: ARKitLipSyncEngine;
+  /** Catalog avatar id → `/gsplat/{id}.zip` (defaults to `avatar`). */
+  avatarId?: string | null;
   /** Drive engine.update when GLB viewport is not mounted (3DGS-only mode). */
   audioRef?: React.RefObject<HTMLAudioElement | null>;
   getTime?: () => number;
@@ -120,6 +122,7 @@ function sphericalFromCamera(
 
 export function GsplatViewport({
   engine,
+  avatarId = "avatar",
   audioRef,
   getTime,
   driveEngine = true,
@@ -135,6 +138,7 @@ export function GsplatViewport({
   frontalOnly = false,
   className,
 }: Props) {
+  const avatarZipUrl = getGsplatAvatarZipUrl(avatarId);
   const outerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef(engine);
@@ -367,8 +371,8 @@ export function GsplatViewport({
 
         // create/getInstance are equivalent in 1.4.0 (getInstance delegates to create).
         renderer = Renderer.create
-          ? await Renderer.create(container, AVATAR_ZIP, options)
-          : await Renderer.getInstance(container, AVATAR_ZIP, options);
+          ? await Renderer.create(container, avatarZipUrl, options)
+          : await Renderer.getInstance(container, avatarZipUrl, options);
         if (cancelled) {
           renderer.dispose?.();
           return;
@@ -412,7 +416,7 @@ export function GsplatViewport({
       renderer = null;
       container.replaceChildren();
     };
-  }, []);
+  }, [avatarZipUrl]);
 
   return (
     <div

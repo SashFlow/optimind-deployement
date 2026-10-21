@@ -671,8 +671,16 @@ export const AVATARS_PROVIDERS: {
 		display_name: "3DGS",
 		avatars: [
 			{
-				id: "gsplat-default",
+				id: "avatar",
 				display_name: "Default",
+			},
+			{
+				id: "avatar-maledoc",
+				display_name: "Male Doctor",
+			},
+			{
+				id: "avatar-femaledoc",
+				display_name: "Female Doctor",
 			},
 		],
 	},

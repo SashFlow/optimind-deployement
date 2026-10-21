@@ -17,10 +17,12 @@ import { useGsplatLipsync } from "@/hooks/useGsplatLipsync";
  */
 export default function GsplatAvatarStage({
 	room,
+	avatarId = "avatar",
 	compact = false,
 	className,
 }: {
 	room: Room;
+	avatarId?: string;
 	compact?: boolean;
 	className?: string;
 }) {
@@ -40,9 +42,8 @@ export default function GsplatAvatarStage({
 				<p className="text-sm text-white/90">Avatar failed to load</p>
 				{!compact ? (
 					<p className="text-xs text-white/60">
-						Ensure COOP/COEP isolation is enabled and{" "}
-						<code className="text-white/80">/gsplat/avatar.zip</code> is
-						present.
+						Ensure COOP/COEP isolation is enabled and the avatar zip under{" "}
+						<code className="text-white/80">/gsplat/</code> is present.
 					</p>
 				) : null}
 			</div>
@@ -53,6 +54,7 @@ export default function GsplatAvatarStage({
 		<div className={cn("relative size-full min-h-0 bg-white", className)}>
 			<GsplatViewport
 				engine={engine}
+				avatarId={avatarId}
 				audioRef={audioRef}
 				getTime={getTime}
 				driveEngine

@@ -14,6 +14,7 @@ import { useState } from "react";
 import { ConfigureSectionToggle } from "@/components/saas/agents/configure/ConfigureSectionToggle";
 import type { AgentConfigDocument } from "@/lib/agent-config";
 import { ANAM_AVATAR_MAX_DURATION_SECONDS } from "@/lib/agent-pipeline";
+import { getAvatarPreviewUrl } from "@/lib/stock-avatars";
 import { useAvatarProvidersQuery } from "@/services/api/hooks";
 
 type AvatarSectionProps = {
@@ -67,7 +68,7 @@ function buildAvatarOptions(provider: AvatarProvider | null): AvatarOption[] {
 		key: getAvatarKey(provider.id, avatar.id),
 		displayName: avatar.display_name,
 		subtitle: provider.display_name,
-		previewUrl: `/images/avatar/${avatar.id}.png`,
+		previewUrl: getAvatarPreviewUrl(avatar.id, provider.id),
 		externalAvatarId: avatar.id,
 		providerId: provider.id,
 	}));
