@@ -44,9 +44,7 @@ function asGeoTagging(
 	value: unknown,
 	fallback: SessionGeoTaggingRequirement,
 ): SessionGeoTaggingRequirement {
-	return value === "disabled" ||
-		value === "optional" ||
-		value === "mandatory"
+	return value === "disabled" || value === "optional" || value === "mandatory"
 		? value
 		: fallback;
 }

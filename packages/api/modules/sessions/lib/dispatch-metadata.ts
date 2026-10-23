@@ -98,7 +98,11 @@ function resolveAvatarProvider(
 		avatarRecord.provider_id,
 	);
 
-	if (avatarRecord.enabled && providerId === "arkit" && !isInworldTtsConfig(config)) {
+	if (
+		avatarRecord.enabled &&
+		providerId === "arkit" &&
+		!isInworldTtsConfig(config)
+	) {
 		return {
 			...config,
 			avatar: {

@@ -1,8 +1,4 @@
-export type SessionGeoStatus =
-	| "granted"
-	| "denied"
-	| "unavailable"
-	| "skipped";
+export type SessionGeoStatus = "granted" | "denied" | "unavailable" | "skipped";
 
 export type SessionGeoPayload = {
 	latitude?: number;

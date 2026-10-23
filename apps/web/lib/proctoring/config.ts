@@ -271,8 +271,13 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 export function mergeProctoringConfig(
 	overrides: ProctoringConfigOverrides = {},
 ): ProctoringConfig {
-	const { checks = {}, idCapture, faceCapture, bodyCapture, ...rest } =
-		overrides;
+	const {
+		checks = {},
+		idCapture,
+		faceCapture,
+		bodyCapture,
+		...rest
+	} = overrides;
 	const base = DEFAULT_PROCTORING_CONFIG;
 	return {
 		...base,

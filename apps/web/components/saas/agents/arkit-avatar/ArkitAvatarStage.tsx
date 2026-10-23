@@ -1,12 +1,7 @@
 "use client";
 
 import { cn } from "@repo/ui/utils";
-import {
-	RoomEvent,
-	Track,
-	type RemoteTrack,
-	type Room,
-} from "livekit-client";
+import { RoomEvent, Track, type RemoteTrack, type Room } from "livekit-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AvatarViewport } from "@/components/saas/agents/arkit-avatar/AvatarViewport";
 import { ARKitLipSyncEngine } from "@/lib/arkit-lipsync/engine/ARKitLipSyncEngine";
@@ -85,7 +80,9 @@ export default function ArkitAvatarStage({
 					clockRef.current?.stop();
 					clockRef.current?.start(0);
 				}
-				const input = phoneticDetailsToLipSyncInput(packet.phoneticDetails);
+				const input = phoneticDetailsToLipSyncInput(
+					packet.phoneticDetails,
+				);
 				if (input.phonemes.length) {
 					engine.appendPhonemes(input.phonemes, input.duration);
 				}

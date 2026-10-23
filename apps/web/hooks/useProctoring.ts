@@ -205,7 +205,11 @@ interface AgentContext {
 	/** Sent as `state`; spoken verbatim when `action` is `say`. */
 	state: string;
 	action: ProctoringAction;
-	type: ProctoringViolation | "id_captured" | "face_captured" | "body_captured";
+	type:
+		| ProctoringViolation
+		| "id_captured"
+		| "face_captured"
+		| "body_captured";
 	details?: Record<string, unknown>;
 }
 

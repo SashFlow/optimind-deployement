@@ -245,8 +245,7 @@ export function AvatarSection({
 		providers[0] ??
 		null;
 	const avatarOptions = buildAvatarOptions(activeProvider);
-	const arkitLocked =
-		activeProvider?.id === "arkit" && !inworldTts;
+	const arkitLocked = activeProvider?.id === "arkit" && !inworldTts;
 
 	const selectedProvider =
 		providers.find((provider) => provider.id === configuredProviderId) ??

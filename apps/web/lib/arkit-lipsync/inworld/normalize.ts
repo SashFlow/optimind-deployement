@@ -17,7 +17,8 @@ export function phoneticDetailsToLipSyncInput(
 			const duration = phone.durationSeconds ?? 0;
 			if (
 				duration <= 0 &&
-				(phone.phoneSymbol === "[silence]" || phone.phoneSymbol === "sil")
+				(phone.phoneSymbol === "[silence]" ||
+					phone.phoneSymbol === "sil")
 			) {
 				continue;
 			}
