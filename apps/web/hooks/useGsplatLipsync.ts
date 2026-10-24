@@ -101,7 +101,12 @@ export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 				beginPlaybackAfterBuffer();
 			}, LIPSYNC_START_BUFFER_MS);
 		},
-		[beginPlaybackAfterBuffer, clearIdleTimer, clearStartBufferTimer, engine],
+		[
+			beginPlaybackAfterBuffer,
+			clearIdleTimer,
+			clearStartBufferTimer,
+			engine,
+		],
 	);
 
 	const transitionToIdle = useCallback(() => {
@@ -135,7 +140,9 @@ export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 				if (!activeTurnRef.current) {
 					armTurnStart(packet.turn_id);
 				}
-				const input = phoneticDetailsToLipSyncInput(packet.phoneticDetails);
+				const input = phoneticDetailsToLipSyncInput(
+					packet.phoneticDetails,
+				);
 				if (input.phonemes.length) {
 					engine.appendPhonemes(input.phonemes, input.duration);
 				}

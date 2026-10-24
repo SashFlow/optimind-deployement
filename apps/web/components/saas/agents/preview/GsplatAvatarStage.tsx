@@ -42,8 +42,9 @@ export default function GsplatAvatarStage({
 				<p className="text-sm text-white/90">Avatar failed to load</p>
 				{!compact ? (
 					<p className="text-xs text-white/60">
-						Ensure COOP/COEP isolation is enabled and the avatar zip under{" "}
-						<code className="text-white/80">/gsplat/</code> is present.
+						Ensure COOP/COEP isolation is enabled and the avatar zip
+						under <code className="text-white/80">/gsplat/</code> is
+						present.
 					</p>
 				) : null}
 			</div>

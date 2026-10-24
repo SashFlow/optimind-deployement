@@ -156,7 +156,10 @@ export interface ProctoringConfig {
 }
 
 export type ProctoringConfigOverrides = Partial<
-	Omit<ProctoringConfig, "checks" | "idCapture" | "faceCapture" | "bodyCapture">
+	Omit<
+		ProctoringConfig,
+		"checks" | "idCapture" | "faceCapture" | "bodyCapture"
+	>
 > & {
 	checks?: {
 		[K in keyof ProctoringConfig["checks"]]?: Partial<
@@ -274,8 +277,13 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 export function mergeProctoringConfig(
 	overrides: ProctoringConfigOverrides = {},
 ): ProctoringConfig {
-	const { checks = {}, idCapture, faceCapture, bodyCapture, ...rest } =
-		overrides;
+	const {
+		checks = {},
+		idCapture,
+		faceCapture,
+		bodyCapture,
+		...rest
+	} = overrides;
 	const base = DEFAULT_PROCTORING_CONFIG;
 	return {
 		...base,

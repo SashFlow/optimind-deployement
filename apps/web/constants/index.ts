@@ -42,12 +42,12 @@ export const teamMembers = [
 	// 	designation: "Co-Founder & CFO",
 	// 	src: "/images/shipra.jpeg",
 	// },
-	{
-		quote: "Strategic automation allows businesses to optimize their capital and focus on high-impact goals, while we handle the complexity of the AI backbone.",
-		name: "Sahil",
-		designation: "Co-Founder & CFO",
-		src: "/images/sahil.jpg",
-	},
+	// {
+	// 	quote: "Strategic automation allows businesses to optimize their capital and focus on high-impact goals, while we handle the complexity of the AI backbone.",
+	// 	name: "Sahil",
+	// 	designation: "Co-Founder & CFO",
+	// 	src: "/images/sahil.jpg",
+	// },
 ];
 
 export const industryDomainData = [

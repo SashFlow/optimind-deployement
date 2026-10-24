@@ -565,14 +565,14 @@ export function PreviewSessionControls({
 							<MainStage
 								className={cn(
 									(showAvatarMain || isStableClientStage) &&
-									!showCameraMain &&
-									(isGsplat
-										? GSPLAT_STAGE_CLASS
-										: AVATAR_STAGE_CLASS),
+										!showCameraMain &&
+										(isGsplat
+											? GSPLAT_STAGE_CLASS
+											: AVATAR_STAGE_CLASS),
 									showCameraMain && CAMERA_STAGE_CLASS,
 									showAudioOnlyMain &&
-									!isStableClientStage &&
-									"absolute inset-0 aspect-auto h-auto w-full bg-transparent shadow-none sm:relative sm:inset-auto",
+										!isStableClientStage &&
+										"absolute inset-0 aspect-auto h-auto w-full bg-transparent shadow-none sm:relative sm:inset-auto",
 								)}
 							>
 								{mainContent}
@@ -592,11 +592,11 @@ export function PreviewSessionControls({
 											style={
 												showAvatarPip
 													? {
-														width: "200%",
-														height: "200%",
-														transform:
-															"scale(0.5)",
-													}
+															width: "200%",
+															height: "200%",
+															transform:
+																"scale(0.5)",
+														}
 													: undefined
 											}
 										>
@@ -651,7 +651,7 @@ export function PreviewSessionControls({
 											? "border-transparent bg-primary text-primary-foreground shadow-primary/25"
 											: "border-white/20 bg-black/45 text-white hover:bg-black/60",
 										proctoringEnabled &&
-										"cursor-not-allowed opacity-80",
+											"cursor-not-allowed opacity-80",
 									)}
 								>
 									{isCameraEnabled ? (
@@ -671,7 +671,7 @@ export function PreviewSessionControls({
 										controlButtonClass,
 										"relative border-white/20 bg-black/45 text-white hover:bg-black/60 hover:text-white",
 										chatOpen &&
-										"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+											"border-transparent bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 									)}
 									onClick={() => setChatOpen(true)}
 								>

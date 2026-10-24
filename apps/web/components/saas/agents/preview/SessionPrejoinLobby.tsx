@@ -579,9 +579,7 @@ export function SessionPrejoinLobby({
 										: "outline"
 								}
 								className="w-full rounded-full"
-								disabled={
-									busy || locationStatus === "granted"
-								}
+								disabled={busy || locationStatus === "granted"}
 								onClick={() => void handleAllowLocation()}
 							>
 								{locationStatus === "requesting" ? (

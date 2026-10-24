@@ -45,9 +45,7 @@ function asLocationTracking(
 	value: unknown,
 	fallback: SessionLocationTracking,
 ): SessionLocationTracking {
-	return value === "disabled" ||
-		value === "optional" ||
-		value === "mandatory"
+	return value === "disabled" || value === "optional" || value === "mandatory"
 		? value
 		: fallback;
 }

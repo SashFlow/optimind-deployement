@@ -13,8 +13,8 @@ const posts = [
 		image: "/images/platform/dashboard.webp",
 		imagePosition: "object-top",
 		author: {
-			name: "Sahil",
-			avatar: "/images/sahil.jpg",
+			name: "Sai",
+			avatar: "/images/sai.jpeg",
 			date: "4 Sept, 2026",
 		},
 	},
