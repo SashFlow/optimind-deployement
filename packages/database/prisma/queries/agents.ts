@@ -97,11 +97,19 @@ export async function updateAgent(
 		status?: AgentStatus;
 		embedEnabled?: boolean;
 		token?: string | null;
+		/** Null clears the Trial usage quota (unlimited). */
+		usageLimit?: number | null;
+		/** When true, reset usageCount to 0. */
+		resetUsageCount?: boolean;
 	},
 ) {
+	const { resetUsageCount, ...rest } = data;
 	return db.agent.update({
 		where: { id },
-		data,
+		data: {
+			...rest,
+			...(resetUsageCount ? { usageCount: 0 } : {}),
+		},
 		include: { draftVersion: true, publishedVersion: true },
 	});
 }

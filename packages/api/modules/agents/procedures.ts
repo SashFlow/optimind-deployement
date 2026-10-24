@@ -144,6 +144,9 @@ export const update = protectedProcedure
 			embedEnabled: z.boolean().optional(),
 			/** When true, ensures embedEnabled + a public embed token exist. */
 			ensureEmbedToken: z.boolean().optional(),
+			/** Trial org agent session quota. Null clears (unlimited). */
+			usageLimit: z.number().int().min(0).nullable().optional(),
+			resetUsageCount: z.boolean().optional(),
 		}),
 	)
 	.handler(async ({ input, context }) => {
@@ -169,12 +172,16 @@ export const update = protectedProcedure
 				description: existing.description,
 				status: existing.status,
 				embedEnabled: existing.embedEnabled,
+				usageLimit: existing.usageLimit,
+				usageCount: existing.usageCount,
 			},
 			after: {
 				name: agent.name,
 				description: agent.description,
 				status: agent.status,
 				embedEnabled: agent.embedEnabled,
+				usageLimit: agent.usageLimit,
+				usageCount: agent.usageCount,
 			},
 		});
 		return { agent };

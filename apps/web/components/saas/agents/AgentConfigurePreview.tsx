@@ -20,6 +20,7 @@ import { useApiClient } from "@/components/shared/components/ApiClientProvider";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
+import { useGsplatAvatarWarmup } from "@/hooks/useGsplatAvatarWarmup";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import type {
@@ -277,6 +278,14 @@ export function AgentConfigurePreview({
 						agentId: agent.id,
 					})
 			: undefined,
+	});
+
+	useGsplatAvatarWarmup({
+		enabled:
+			!sessionCredentials &&
+			avatar.enabled &&
+			avatar.provider === "arkit",
+		avatarId: avatar.avatarId,
 	});
 
 	function updateVariableValue(name: string, value: string) {

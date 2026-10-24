@@ -36,6 +36,8 @@ import {
 import { PAGE_SIZE } from "@/components/saas/shared/Pagination";
 import { DataTable } from "@/components/saas/shared/StandardDataTable";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
+import { isTrialOrganizationMetadata } from "@/types/admin";
 
 type TrialLink = {
 	id: string;
@@ -123,7 +125,20 @@ async function copyTrialUrl(path: string) {
 
 export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	const queryClient = useQueryClient();
+	const { activeOrganization } = useActiveOrganization();
+	const isTrialOrg = isTrialOrganizationMetadata(
+		activeOrganization?.metadata as
+			| string
+			| Record<string, unknown>
+			| null
+			| undefined,
+	);
 	const [tab, setTab] = useState<AccessTab>("links");
+	const agentQuery = useQuery(
+		orpc.agents.get.queryOptions({
+			input: { id: agentId },
+		}),
+	);
 	const trialLinksQuery = useQuery(
 		orpc.agents.listTrialLinks.queryOptions({
 			input: { id: agentId },
@@ -132,6 +147,7 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingTrial, setEditingTrial] = useState<TrialLink | null>(null);
 	const [form, setForm] = useState<TrialFormState>(EMPTY_FORM);
+	const [usageLimitInput, setUsageLimitInput] = useState("");
 	const [bulkBusy, setBulkBusy] = useState(false);
 	const selectedTrialsRef = useRef<TrialLink[]>([]);
 	const clearSelectionRef = useRef<() => void>(() => {});
@@ -149,6 +165,18 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 		}),
 	);
 	const listKey = orpc.agents.listTrialLinks.key({ input: { id: agentId } });
+	const agentKey = orpc.agents.get.key({ input: { id: agentId } });
+	const agentUsageLimit = agentQuery.data?.agent.usageLimit ?? null;
+	const agentUsageCount = agentQuery.data?.agent.usageCount ?? 0;
+
+	useEffect(() => {
+		if (!agentQuery.data) {
+			return;
+		}
+		setUsageLimitInput(
+			agentUsageLimit == null ? "" : String(agentUsageLimit),
+		);
+	}, [agentQuery.data, agentUsageLimit]);
 
 	const createMutation = useMutation(
 		orpc.agents.createTrialLink.mutationOptions({
@@ -182,6 +210,44 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 				toast.error(error.message || "Failed to remove link"),
 		}),
 	);
+
+	const updateAgentMutation = useMutation(
+		orpc.agents.update.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({ queryKey: agentKey });
+				toast.success("Agent usage limit updated");
+			},
+			onError: (error) =>
+				toast.error(error.message || "Failed to update usage limit"),
+		}),
+	);
+
+	async function saveUsageLimit() {
+		const trimmed = usageLimitInput.trim();
+		if (trimmed === "") {
+			await updateAgentMutation.mutateAsync({
+				id: agentId,
+				usageLimit: null,
+			});
+			return;
+		}
+		const next = Number.parseInt(trimmed, 10);
+		if (!Number.isFinite(next) || next < 0) {
+			toast.error("Enter a valid non-negative number of uses");
+			return;
+		}
+		await updateAgentMutation.mutateAsync({
+			id: agentId,
+			usageLimit: next,
+		});
+	}
+
+	async function resetUsageCount() {
+		await updateAgentMutation.mutateAsync({
+			id: agentId,
+			resetUsageCount: true,
+		});
+	}
 
 	const isEditing = Boolean(editingTrial);
 	const sessionsValue = Number.parseInt(form.sessions, 10);
@@ -478,7 +544,83 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 		/>
 	);
 
+	const usageRemaining =
+		agentUsageLimit == null
+			? null
+			: Math.max(0, agentUsageLimit - agentUsageCount);
+
 	return (
+		<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+			{isTrialOrg ? (
+				<div className="shrink-0 rounded-2xl border bg-card p-4 shadow-sm ring-1 ring-black/5">
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+						<div className="min-w-0 flex-1 space-y-2">
+							<Label htmlFor="agent-usage-limit">
+								Agent uses (trial)
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Limit how many sessions this agent can start.
+								Global admins do not consume uses. Leave empty
+								for unlimited.
+							</p>
+							<div className="flex flex-wrap items-center gap-2">
+								<Input
+									id="agent-usage-limit"
+									type="number"
+									min={0}
+									step={1}
+									className="h-9 w-32"
+									value={usageLimitInput}
+									onChange={(event) =>
+										setUsageLimitInput(event.target.value)
+									}
+									placeholder="Unlimited"
+									disabled={
+										agentQuery.isPending ||
+										updateAgentMutation.isPending
+									}
+								/>
+								<span className="text-sm text-muted-foreground">
+									{agentUsageLimit == null
+										? `${agentUsageCount} used · unlimited`
+										: `${agentUsageCount} / ${agentUsageLimit} used · ${usageRemaining} left`}
+								</span>
+							</div>
+						</div>
+						<div className="flex shrink-0 gap-2">
+							<Button
+								type="button"
+								variant="outline"
+								className="h-9"
+								disabled={
+									updateAgentMutation.isPending ||
+									agentUsageCount === 0
+								}
+								onClick={() => {
+									void resetUsageCount();
+								}}
+							>
+								Reset count
+							</Button>
+							<Button
+								type="button"
+								className="h-9"
+								loading={updateAgentMutation.isPending}
+								disabled={
+									agentQuery.isPending ||
+									updateAgentMutation.isPending
+								}
+								onClick={() => {
+									void saveUsageLimit();
+								}}
+							>
+								Save limit
+							</Button>
+						</div>
+					</div>
+				</div>
+			) : null}
+
 		<Tabs
 			value={tab}
 			onValueChange={(value) => value && setTab(value as AccessTab)}
@@ -661,5 +803,6 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 				</DialogContent>
 			</Dialog>
 		</Tabs>
+		</div>
 	);
 }

@@ -12,6 +12,14 @@ import type {
 	UnitSource,
 	UsageModality,
 } from "../generated/client";
+import { isTrialOrganization } from "./organizations";
+
+export class AgentUsageLimitExceededError extends Error {
+	constructor(message = "Agent usage limit reached") {
+		super(message);
+		this.name = "AgentUsageLimitExceededError";
+	}
+}
 
 function toJson(value: unknown): Prisma.InputJsonValue {
 	return (value ?? {}) as Prisma.InputJsonValue;
@@ -64,29 +72,67 @@ export async function createAgentSession(data: {
 	endUserId?: string;
 	metadata?: unknown;
 	startedAt?: Date;
+	/**
+	 * When false, skip Trial org agent usage counting (e.g. global admin).
+	 * Defaults to true.
+	 */
+	countTowardUsageLimit?: boolean;
 }) {
-	return db.agentSession.create({
-		data: {
-			organizationId: data.organizationId,
-			agentId: data.agentId,
-			livekitRoomName: data.livekitRoomName,
-			livekitRoomSid: data.livekitRoomSid,
-			channel: data.channel ?? "WEB",
-			direction: data.direction ?? "NONE",
-			sipTrunkId: data.sipTrunkId,
-			sipDispatchRuleId: data.sipDispatchRuleId,
-			sipCallId: data.sipCallId,
-			fromNumber: data.fromNumber,
-			toNumber: data.toNumber,
-			sipAttrs: toJson(data.sipAttrs),
-			configSnapshot: toJson(data.configSnapshot),
-			recordingEnabled: data.recordingEnabled ?? false,
-			endUserId: data.endUserId,
-			metadata: toJson(data.metadata),
-			status: "QUEUED",
-			startedAt: data.startedAt ?? new Date(),
-		},
-		include: sessionDetailInclude,
+	const countTowardUsageLimit = data.countTowardUsageLimit !== false;
+
+	return db.$transaction(async (tx) => {
+		if (countTowardUsageLimit) {
+			const agent = await tx.agent.findUnique({
+				where: { id: data.agentId },
+				select: {
+					id: true,
+					organizationId: true,
+					usageLimit: true,
+					organization: { select: { metadata: true } },
+				},
+			});
+			if (
+				agent &&
+				agent.organizationId === data.organizationId &&
+				isTrialOrganization(agent.organization.metadata) &&
+				agent.usageLimit != null
+			) {
+				const updated = await tx.agent.updateMany({
+					where: {
+						id: agent.id,
+						usageCount: { lt: agent.usageLimit },
+					},
+					data: { usageCount: { increment: 1 } },
+				});
+				if (updated.count === 0) {
+					throw new AgentUsageLimitExceededError();
+				}
+			}
+		}
+
+		return tx.agentSession.create({
+			data: {
+				organizationId: data.organizationId,
+				agentId: data.agentId,
+				livekitRoomName: data.livekitRoomName,
+				livekitRoomSid: data.livekitRoomSid,
+				channel: data.channel ?? "WEB",
+				direction: data.direction ?? "NONE",
+				sipTrunkId: data.sipTrunkId,
+				sipDispatchRuleId: data.sipDispatchRuleId,
+				sipCallId: data.sipCallId,
+				fromNumber: data.fromNumber,
+				toNumber: data.toNumber,
+				sipAttrs: toJson(data.sipAttrs),
+				configSnapshot: toJson(data.configSnapshot),
+				recordingEnabled: data.recordingEnabled ?? false,
+				endUserId: data.endUserId,
+				metadata: toJson(data.metadata),
+				status: "QUEUED",
+				startedAt: data.startedAt ?? new Date(),
+			},
+			include: sessionDetailInclude,
+		});
 	});
 }
 

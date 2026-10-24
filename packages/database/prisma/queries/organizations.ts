@@ -2,6 +2,62 @@ import type { z } from "zod";
 import { db } from "../client";
 import type { OrganizationSchema } from "../zod";
 
+/** Workspace vs Trial classification stored in Better Auth `metadata` JSON. */
+export type OrganizationKind = "trial" | "workspace";
+
+export function parseOrganizationMetadata(
+	metadata: string | Record<string, unknown> | null | undefined,
+): { trial: boolean } {
+	if (!metadata) {
+		return { trial: false };
+	}
+	try {
+		const parsed =
+			typeof metadata === "string"
+				? (JSON.parse(metadata) as { trial?: boolean })
+				: (metadata as { trial?: boolean });
+		return { trial: Boolean(parsed.trial) };
+	} catch {
+		return { trial: false };
+	}
+}
+
+export function isTrialOrganization(
+	metadata: string | Record<string, unknown> | null | undefined,
+): boolean {
+	return parseOrganizationMetadata(metadata).trial;
+}
+
+export function organizationKindFromMetadata(
+	metadata: string | Record<string, unknown> | null | undefined,
+): OrganizationKind {
+	return isTrialOrganization(metadata) ? "trial" : "workspace";
+}
+
+export function organizationMetadataForKind(
+	kind: OrganizationKind,
+	existing?: string | Record<string, unknown> | null,
+): Record<string, unknown> {
+	const base =
+		typeof existing === "string"
+			? (() => {
+					try {
+						return JSON.parse(existing) as Record<string, unknown>;
+					} catch {
+						return {};
+					}
+				})()
+			: existing && typeof existing === "object"
+				? { ...existing }
+				: {};
+	if (kind === "trial") {
+		base.trial = true;
+	} else {
+		delete base.trial;
+	}
+	return base;
+}
+
 export async function getOrganizations({
 	limit,
 	offset,

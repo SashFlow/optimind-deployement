@@ -15,6 +15,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import {
 	admin,
+	captcha,
 	createAuthMiddleware,
 	magicLink,
 	openAPI,
@@ -27,6 +28,11 @@ import { parse as parseCookies } from "cookie";
 import { buildOrganizationInviteUrl } from "./lib/invite";
 import { updateSeatsInOrganizationSubscription } from "./lib/organization";
 import { invitationOnlyPlugin } from "./plugins/invitation-only";
+
+const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY?.trim();
+const recaptchaMinScore = Number.parseFloat(
+	process.env.RECAPTCHA_MIN_SCORE ?? "0.5",
+);
 
 const getLocaleFromRequest = (request?: Request) => {
 	const cookies = parseCookies(request?.headers.get("cookie") ?? "");
@@ -52,6 +58,9 @@ export const auth = betterAuth({
 	},
 	session: {
 		expiresIn: config.auth.sessionCookieMaxAge,
+		// Keep sliding renewal within the 30-minute window so active use
+		// refreshes the session, but idle sessions expire after 30 minutes.
+		updateAge: Math.floor(config.auth.sessionCookieMaxAge / 2),
 		freshAge: 0,
 	},
 	account: {
@@ -247,6 +256,24 @@ export const auth = betterAuth({
 		openAPI(),
 		invitationOnlyPlugin(),
 		twoFactor(),
+		...(recaptchaSecretKey
+			? [
+					captcha({
+						provider: "google-recaptcha",
+						secretKey: recaptchaSecretKey,
+						minScore: Number.isFinite(recaptchaMinScore)
+							? recaptchaMinScore
+							: 0.5,
+						endpoints: [
+							"/sign-up/email",
+							"/sign-in/email",
+							"/sign-in/magic-link",
+							"/request-password-reset",
+							"/forget-password",
+						],
+					}),
+				]
+			: []),
 	],
 	onAPIError: {
 		onError(error, ctx) {

@@ -4,7 +4,11 @@ import {
 	toDispatchEndUser,
 } from "@repo/api/modules/sessions/lib/end-user";
 import { auth } from "@repo/auth";
-import { createAgentSession, getAgentById } from "@repo/database";
+import {
+	AgentUsageLimitExceededError,
+	createAgentSession,
+	getAgentById,
+} from "@repo/database";
 import { createOutboundRoomWithDispatch } from "@repo/livekit";
 import { NextResponse } from "next/server";
 import { normalizePhoneNumber } from "@/lib/phone";
@@ -102,21 +106,35 @@ export async function POST(req: Request) {
 					: { kind: "phone", phone: phoneNumber, contactMetadata },
 			);
 
-			const session = await createAgentSession({
-				organizationId: body.organizationId,
-				agentId: agent.id,
-				endUserId: endUser.id,
-				livekitRoomName: roomName,
-				channel: "PHONE",
-				direction: "OUTBOUND",
-				toNumber: phoneNumber,
-				configSnapshot,
-				recordingEnabled,
-				metadata: {
-					source: "phone",
-					scenarioSlug: slug,
-				},
-			});
+			let session: Awaited<ReturnType<typeof createAgentSession>>;
+			try {
+				session = await createAgentSession({
+					organizationId: body.organizationId,
+					agentId: agent.id,
+					endUserId: endUser.id,
+					livekitRoomName: roomName,
+					channel: "PHONE",
+					direction: "OUTBOUND",
+					toNumber: phoneNumber,
+					configSnapshot,
+					recordingEnabled,
+					metadata: {
+						source: "phone",
+						scenarioSlug: slug,
+					},
+					countTowardUsageLimit: authSession?.user?.role !== "admin",
+				});
+			} catch (error) {
+				if (error instanceof AgentUsageLimitExceededError) {
+					return NextResponse.json(
+						{
+							error: "This agent has reached its trial usage limit",
+						},
+						{ status: 403 },
+					);
+				}
+				throw error;
+			}
 			sessionId = session.id;
 
 			const dispatchMetadata = await buildDispatchMetadata({

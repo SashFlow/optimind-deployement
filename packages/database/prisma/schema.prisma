@@ -294,6 +294,9 @@ model Agent {
     endUsers               EndUser[]
     embedEnabled           Boolean                 @default(false)
     token                  String?                 @unique
+    /// Max agent sessions allowed when the organization is a Trial. Null = unlimited.
+    usageLimit             Int?
+    usageCount             Int                     @default(0)
 
     @@index([organizationId])
     @@map("agent")

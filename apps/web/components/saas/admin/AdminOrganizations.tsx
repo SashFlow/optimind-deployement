@@ -81,6 +81,7 @@ export function AdminOrganizations() {
 
 	const [createOpen, setCreateOpen] = useState(false);
 	const [name, setName] = useState("");
+	const [orgType, setOrgType] = useState<"trial" | "workspace">("workspace");
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
@@ -91,6 +92,7 @@ export function AdminOrganizations() {
 	useSettingsPageAction(() => {
 		setError(null);
 		setName("");
+		setOrgType("workspace");
 		setCreateOpen(true);
 	}, "Create");
 
@@ -118,6 +120,7 @@ export function AdminOrganizations() {
 		setCreateOpen(open);
 		if (!open) {
 			setName("");
+			setOrgType("workspace");
 			setError(null);
 		}
 	};
@@ -134,8 +137,10 @@ export function AdminOrganizations() {
 		try {
 			await createOrganizationMutation.mutateAsync({
 				name: name.trim(),
+				metadata: orgType === "trial" ? { trial: true } : undefined,
 			});
 			setName("");
+			setOrgType("workspace");
 			setCreateOpen(false);
 			await queryClient.invalidateQueries({
 				queryKey: orpc.admin.organizations.list.key(),
@@ -355,6 +360,16 @@ export function AdminOrganizations() {
 				},
 			},
 			{
+				id: "type",
+				header: "Type",
+				cell: ({ row }) => (
+					<StatusBadge
+						label={row.original.trial ? "Trial" : "Workspace"}
+						tone={row.original.trial ? "trial" : "workspace"}
+					/>
+				),
+			},
+			{
 				id: "created",
 				header: "Created",
 				cell: ({ row }) => (
@@ -451,10 +466,11 @@ export function AdminOrganizations() {
 					</div>
 					<div className="min-h-0 flex-1 overflow-x-auto">
 						<TableBodySkeleton
-							headers={["", "Name", "Created", "Actions"]}
+							headers={["", "Name", "Type", "Created", "Actions"]}
 							columns={[
 								{ type: "action" },
 								{ type: "lines", widths: ["w-40", "w-20"] },
+								{ type: "pill" },
 								{ type: "text", width: "w-24" },
 								{ type: "action" },
 							]}
@@ -533,6 +549,32 @@ export function AdminOrganizations() {
 								placeholder="Acme Inc."
 								disabled={busy}
 							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="organization-type">Type</Label>
+							<Select
+								value={orgType}
+								onValueChange={(value) => {
+									if (value === "trial" || value === "workspace") {
+										setOrgType(value);
+									}
+								}}
+								disabled={busy}
+							>
+								<SelectTrigger id="organization-type">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="workspace">
+										Workspace
+									</SelectItem>
+									<SelectItem value="trial">Trial</SelectItem>
+								</SelectContent>
+							</Select>
+							<p className="text-xs text-muted-foreground">
+								Trial organizations can set per-agent usage
+								limits.
+							</p>
 						</div>
 						{error ? (
 							<p

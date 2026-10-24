@@ -29,6 +29,7 @@ import {
 } from "@/components/saas/agents/preview/SessionPrejoinLobby";
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
+import { useGsplatAvatarWarmup } from "@/hooks/useGsplatAvatarWarmup";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import type { AgentVariableDefinition } from "@/lib/agent-config";
@@ -290,6 +291,18 @@ export default function SharedTrialPage() {
 		fetchCredentials: token
 			? () => fetchTrialSpatialRealWarmup({ token })
 			: undefined,
+	});
+
+	useGsplatAvatarWarmup({
+		enabled:
+			!credentials &&
+			!phoneDispatch &&
+			Boolean(token) &&
+			Boolean(trialQuery.data?.trial.available) &&
+			previewAvatar.enabled &&
+			previewAvatar.provider === "arkit" &&
+			sessionMedia === "web",
+		avatarId: previewAvatar.avatarId,
 	});
 
 	const spatiusSessionActive =

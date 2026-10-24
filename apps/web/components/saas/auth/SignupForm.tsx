@@ -34,6 +34,7 @@ import {
 	type OAuthProvider,
 	oAuthProviders,
 } from "@/components/saas/auth/oauth-providers";
+import { getRecaptchaToken, recaptchaHeaders } from "@/lib/recaptcha";
 import { SocialSigninButton } from "./SocialSigninButton";
 
 const formSchema = z.object({
@@ -77,11 +78,15 @@ export function SignupForm({
 				if (!config.auth.enableSignup) {
 					throw new Error("An invitation is required to sign up");
 				}
+				const captchaToken = await getRecaptchaToken("signup");
 				const { error } = await authClient.signUp.email({
 					email: form.getValues("email"),
 					password,
 					name,
 					callbackURL: redirectTo ?? config.auth.redirectAfterSignIn,
+					fetchOptions: {
+						headers: recaptchaHeaders(captchaToken),
+					},
 				});
 				if (error) {
 					throw error;
@@ -89,15 +94,21 @@ export function SignupForm({
 				return;
 			}
 
+			const inviteCaptchaToken = await getRecaptchaToken("signup_invite");
 			const result = await orpcClient.auth.signupWithInvite({
 				invitationId,
 				name,
 				password,
+				captchaToken: inviteCaptchaToken ?? undefined,
 			});
 
+			const signInCaptchaToken = await getRecaptchaToken("login");
 			const { error: signInError } = await authClient.signIn.email({
 				email: result.email,
 				password,
+				fetchOptions: {
+					headers: recaptchaHeaders(signInCaptchaToken),
+				},
 			});
 			if (signInError) {
 				throw signInError;

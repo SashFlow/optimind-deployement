@@ -37,6 +37,7 @@ import {
 	oAuthProviders,
 } from "@/components/saas/auth/oauth-providers";
 import { useSession } from "@/context/SessionProvider";
+import { getRecaptchaToken, recaptchaHeaders } from "@/lib/recaptcha";
 import { sessionQueryKey } from "@/services/auth";
 import { LoginModeSwitch } from "./LoginModeSwitch";
 import { SocialSigninButton } from "./SocialSigninButton";
@@ -89,8 +90,12 @@ export function LoginForm() {
 	const onSubmit: SubmitHandler<FormValues> = async (values) => {
 		try {
 			if (values.mode === "password") {
+				const captchaToken = await getRecaptchaToken("login");
 				const { data, error } = await authClient.signIn.email({
 					...values,
+					fetchOptions: {
+						headers: recaptchaHeaders(captchaToken),
+					},
 				});
 
 				if (error) {
@@ -115,9 +120,13 @@ export function LoginForm() {
 
 				router.replace(redirectPath);
 			} else {
+				const captchaToken = await getRecaptchaToken("magic_link");
 				const { error } = await authClient.signIn.magicLink({
 					...values,
 					callbackURL: redirectPath,
+					fetchOptions: {
+						headers: recaptchaHeaders(captchaToken),
+					},
 				});
 
 				if (error) {

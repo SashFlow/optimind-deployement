@@ -21,11 +21,14 @@ export type Account = {
 	last_login_at: string | null;
 };
 
+export type OrganizationType = "trial" | "workspace";
+
 export type AdminOrganization = {
 	id: string;
 	name: string;
 	slug: string | null;
 	trial: boolean;
+	type: OrganizationType;
 	created_at: string | null;
 	membersCount?: number;
 };
@@ -115,13 +118,16 @@ export function mapOrgToAdminOrganization(org: {
 	name: string;
 	slug?: string | null;
 	createdAt?: Date | string | null;
-	metadata?: string | null;
+	metadata?: string | Record<string, unknown> | null;
 	membersCount?: number;
 }): AdminOrganization {
 	let trial = false;
 	if (org.metadata) {
 		try {
-			const parsed = JSON.parse(org.metadata) as { trial?: boolean };
+			const parsed =
+				typeof org.metadata === "string"
+					? (JSON.parse(org.metadata) as { trial?: boolean })
+					: (org.metadata as { trial?: boolean });
 			trial = Boolean(parsed.trial);
 		} catch {
 			trial = false;
@@ -132,9 +138,27 @@ export function mapOrgToAdminOrganization(org: {
 		name: org.name,
 		slug: org.slug ?? null,
 		trial,
+		type: trial ? "trial" : "workspace",
 		created_at: org.createdAt
 			? new Date(org.createdAt).toISOString()
 			: null,
 		membersCount: org.membersCount,
 	};
+}
+
+export function isTrialOrganizationMetadata(
+	metadata: string | Record<string, unknown> | null | undefined,
+): boolean {
+	if (!metadata) {
+		return false;
+	}
+	try {
+		const parsed =
+			typeof metadata === "string"
+				? (JSON.parse(metadata) as { trial?: boolean })
+				: (metadata as { trial?: boolean });
+		return Boolean(parsed.trial);
+	} catch {
+		return false;
+	}
 }

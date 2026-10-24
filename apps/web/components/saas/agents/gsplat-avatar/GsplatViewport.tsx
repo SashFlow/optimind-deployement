@@ -4,6 +4,10 @@ import { cn } from "@repo/ui/utils";
 import { useEffect, useRef, type CSSProperties } from "react";
 import type { ARKitLipSyncEngine } from "@/lib/arkit-lipsync/engine/ARKitLipSyncEngine";
 import { IdleFaceController } from "@/lib/arkit-lipsync/idle/IdleFaceController";
+import {
+	installGsplatZipCache,
+	preloadGsplatRenderer,
+} from "@/lib/gsplat-preload";
 import { getGsplatAvatarZipUrl } from "@/lib/stock-avatars";
 import { WeightBridge } from "./bridge";
 
@@ -64,9 +68,9 @@ type RendererHandle = {
 	dispose?: () => void;
 	getCamera?: () =>
 		| {
-				position: Vec3;
-				lookAt: (x: number, y: number, z: number) => void;
-		  }
+			position: Vec3;
+			lookAt: (x: number, y: number, z: number) => void;
+		}
 		| undefined;
 	viewer?: {
 		controls?: {
@@ -328,36 +332,13 @@ export function GsplatViewport({
 
 		void (async () => {
 			try {
-				const mod: {
-					GaussianSplatRenderer?: {
-						create?: (
-							el: HTMLDivElement,
-							url: string,
-							options: Record<string, unknown>,
-						) => Promise<RendererHandle>;
-						getInstance: (
-							el: HTMLDivElement,
-							url: string,
-							options: Record<string, unknown>,
-						) => Promise<RendererHandle>;
-					};
-					default?: {
-						create?: (
-							el: HTMLDivElement,
-							url: string,
-							options: Record<string, unknown>,
-						) => Promise<RendererHandle>;
-						getInstance: (
-							el: HTMLDivElement,
-							url: string,
-							options: Record<string, unknown>,
-						) => Promise<RendererHandle>;
-					};
-				} = await import("@myned-ai/gsplat-flame-avatar-renderer");
+				// Serve zip from lobby prefetch (memory / Cache API) when available.
+				installGsplatZipCache();
+				const { GaussianSplatRenderer } = await preloadGsplatRenderer();
 				if (cancelled) return;
-				const Renderer = mod.GaussianSplatRenderer ?? mod.default;
-				if (!Renderer)
+				if (!GaussianSplatRenderer) {
 					throw new Error("GaussianSplatRenderer export missing");
+				}
 
 				const options: Record<string, unknown> = {
 					getExpressionData: () => bridge.getExpressionData(),
@@ -376,14 +357,17 @@ export function GsplatViewport({
 					options.backgroundColor = `0x${bgRef.current.toString(16).padStart(6, "0")}`;
 				}
 
-				// create/getInstance are equivalent in 1.4.0 (getInstance delegates to create).
+				// Prefer create when present (1.4.0 getInstance delegates to create).
+				const Renderer = GaussianSplatRenderer as typeof GaussianSplatRenderer & {
+					create?: (
+						el: HTMLDivElement,
+						url: string,
+						options: Record<string, unknown>,
+					) => Promise<RendererHandle>;
+				};
 				renderer = Renderer.create
 					? await Renderer.create(container, avatarZipUrl, options)
-					: await Renderer.getInstance(
-							container,
-							avatarZipUrl,
-							options,
-						);
+					: await Renderer.getInstance(container, avatarZipUrl, options);
 				if (cancelled) {
 					renderer.dispose?.();
 					return;

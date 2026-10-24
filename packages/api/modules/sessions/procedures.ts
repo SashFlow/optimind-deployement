@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { type } from "@orpc/server";
 import {
+	AgentUsageLimitExceededError,
 	consumeAgentTrialToken,
 	createAgentSession,
 	createEgressJob,
@@ -67,6 +68,22 @@ import type {
 } from "./public-types";
 
 const AGENT_NAME = process.env.AGENT_NAME || "demo-agent";
+
+async function createAgentSessionWithQuota(
+	data: Parameters<typeof createAgentSession>[0],
+) {
+	try {
+		return await createAgentSession(data);
+	} catch (error) {
+		if (error instanceof AgentUsageLimitExceededError) {
+			throw new ORPCError("FORBIDDEN", {
+				message:
+					"This agent has reached its trial usage limit. Contact your administrator.",
+			});
+		}
+		throw error;
+	}
+}
 
 /**
  * SpatialReal app id, handed out only with a started web session so it stays
@@ -359,7 +376,7 @@ export const create = protectedProcedure
 				: { kind: "user", user: context.user },
 		);
 
-		const session = await createAgentSession({
+		const session = await createAgentSessionWithQuota({
 			organizationId: input.organizationId,
 			agentId: agent.id,
 			endUserId: endUser.id,
@@ -376,6 +393,7 @@ export const create = protectedProcedure
 				campaignId: input.campaignId,
 				campaignContactId: input.campaignContactId,
 			},
+			countTowardUsageLimit: context.user.role !== "admin",
 		});
 
 		if (input.campaignSessionId) {
@@ -850,7 +868,7 @@ export const startTrialSession = publicProcedure
 			},
 		);
 
-		const session = await createAgentSession({
+		const session = await createAgentSessionWithQuota({
 			organizationId: agent.organizationId,
 			agentId: agent.id,
 			endUserId: endUser.id,
@@ -1064,7 +1082,7 @@ export const startEmbedSession = publicProcedure
 					},
 		);
 
-		const session = await createAgentSession({
+		const session = await createAgentSessionWithQuota({
 			organizationId: agent.organizationId,
 			agentId: agent.id,
 			endUserId: endUser.id,

@@ -75,8 +75,8 @@ export const config = {
 		redirectAfterSignIn: "/app/dashboard",
 		// where users should be redirected after logout
 		redirectAfterLogout: "/",
-		// how long a session should be valid
-		sessionCookieMaxAge: 60 * 60 * 24 * 30,
+		// how long a session / refresh window should be valid (30 minutes)
+		sessionCookieMaxAge: 60 * 30,
 	},
 	// Mails
 	mails: {

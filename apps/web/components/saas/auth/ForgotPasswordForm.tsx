@@ -25,6 +25,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { getRecaptchaToken, recaptchaHeaders } from "@/lib/recaptcha";
 
 const formSchema = z.object({
 	email: z.string().email(),
@@ -50,9 +51,13 @@ export function ForgotPasswordForm() {
 				window.location.origin,
 			).toString();
 
+			const captchaToken = await getRecaptchaToken("forgot_password");
 			const { error } = await authClient.requestPasswordReset({
 				email,
 				redirectTo,
+				fetchOptions: {
+					headers: recaptchaHeaders(captchaToken),
+				},
 			});
 
 			if (error) {

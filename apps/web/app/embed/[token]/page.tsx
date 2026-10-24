@@ -25,6 +25,7 @@ import {
 } from "@/components/saas/agents/preview/SessionPrejoinLobby";
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
+import { useGsplatAvatarWarmup } from "@/hooks/useGsplatAvatarWarmup";
 import { useSpatialRealAvatarWarmup } from "@/hooks/useSpatialRealAvatarWarmup";
 import { useSpatiusHostRoom } from "@/hooks/useSpatiusHostRoom";
 import { resolvePreviewAvatar } from "@/lib/preview-avatar";
@@ -145,6 +146,16 @@ function EmbedAgentPageContent() {
 		fetchCredentials: token
 			? () => fetchEmbedSpatialRealWarmup({ token })
 			: undefined,
+	});
+
+	useGsplatAvatarWarmup({
+		enabled:
+			!credentials &&
+			Boolean(token) &&
+			Boolean(embedQuery.data?.embed.available) &&
+			previewAvatar.enabled &&
+			previewAvatar.provider === "arkit",
+		avatarId: previewAvatar.avatarId,
 	});
 
 	const spatiusSessionActive =

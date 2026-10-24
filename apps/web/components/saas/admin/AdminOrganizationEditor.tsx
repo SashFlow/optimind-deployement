@@ -4,6 +4,13 @@ import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@repo/ui/select";
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -35,6 +42,7 @@ import {
 import {
 	mapOrgToAdminOrganization,
 	type OrganizationMember,
+	type OrganizationType,
 } from "@/types/admin";
 
 import { copyText, formatRole } from "./lib/helper";
@@ -52,6 +60,7 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 
 	const organization = organizationQuery.data;
 	const [editedName, setEditedName] = useState<string | null>(null);
+	const [editedType, setEditedType] = useState<OrganizationType | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -114,7 +123,10 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 	}
 
 	const currentName = editedName ?? organization.name;
-	const isDirty = currentName.trim() !== organization.name.trim();
+	const currentType = editedType ?? organization.type;
+	const isDirty =
+		currentName.trim() !== organization.name.trim() ||
+		currentType !== organization.type;
 	const save = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		if (!currentName.trim() || !isDirty) {
@@ -127,8 +139,11 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 				id,
 				name: currentName.trim(),
 				updateSlug: organization.name !== currentName.trim(),
+				metadata:
+					currentType === "trial" ? { trial: true } : { trial: false },
 			});
 			setEditedName(null);
+			setEditedType(null);
 			await Promise.all([
 				queryClient.invalidateQueries({
 					queryKey: orpc.admin.organizations.find.key({
@@ -171,6 +186,31 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 								disabled={busy}
 								className="w-full"
 							/>
+						</div>
+						<div className="w-full space-y-2 sm:w-44">
+							<Label htmlFor="edit-organization-type">Type</Label>
+							<Select
+								value={currentType}
+								onValueChange={(value) => {
+									if (
+										value === "trial" ||
+										value === "workspace"
+									) {
+										setEditedType(value);
+									}
+								}}
+								disabled={busy}
+							>
+								<SelectTrigger id="edit-organization-type">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="workspace">
+										Workspace
+									</SelectItem>
+									<SelectItem value="trial">Trial</SelectItem>
+								</SelectContent>
+							</Select>
 						</div>
 						<Button
 							type="submit"

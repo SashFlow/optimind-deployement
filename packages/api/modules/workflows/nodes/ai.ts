@@ -1,4 +1,5 @@
 import {
+	AgentUsageLimitExceededError,
 	createAgentSession,
 	createWorkflowApproval,
 	getAgentById,
@@ -175,24 +176,34 @@ export async function handleAgent(
 			: { kind: "anonymous" },
 	);
 
-	const session = await createAgentSession({
-		organizationId: args.run.organizationId,
-		agentId: agent.id,
-		endUserId: endUser.id,
-		livekitRoomName: roomName,
-		channel: channel as "WEB" | "SIP" | "PHONE",
-		direction,
-		toNumber: phoneNumber,
-		configSnapshot,
-		recordingEnabled,
-		metadata: {
-			source: "campaign",
-			campaignId: args.run.campaignId,
-			workflowRunId: args.run.id,
-			workflowStepId: args.stepId,
-			modality,
-		},
-	});
+	let session: Awaited<ReturnType<typeof createAgentSession>>;
+	try {
+		session = await createAgentSession({
+			organizationId: args.run.organizationId,
+			agentId: agent.id,
+			endUserId: endUser.id,
+			livekitRoomName: roomName,
+			channel: channel as "WEB" | "SIP" | "PHONE",
+			direction,
+			toNumber: phoneNumber,
+			configSnapshot,
+			recordingEnabled,
+			metadata: {
+				source: "campaign",
+				campaignId: args.run.campaignId,
+				workflowRunId: args.run.id,
+				workflowStepId: args.stepId,
+				modality,
+			},
+		});
+	} catch (error) {
+		if (error instanceof AgentUsageLimitExceededError) {
+			throw new Error(
+				"This agent has reached its trial usage limit",
+			);
+		}
+		throw error;
+	}
 
 	const dispatchMetadata = await buildDispatchMetadata({
 		organization_id: args.run.organizationId,
