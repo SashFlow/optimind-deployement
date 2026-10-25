@@ -4,20 +4,16 @@ import { cn } from "@repo/ui/utils";
 import type { Room } from "livekit-client";
 import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
-import {
-	DEFAULT_GSPLAT_CAMERA,
-	DEFAULT_GSPLAT_FRAME,
-	GsplatViewport,
-} from "@/components/saas/agents/gsplat-avatar";
+import { OptiModelViewport } from "@/components/saas/agents/optimodel-avatar/OptiModelViewport";
 import { useGsplatLipsync } from "@/hooks/useGsplatLipsync";
 
 /**
- * Client-rendered 3DGS avatar with ARKit lipsync driven by LiveKit
- * `avatar.lipsync` data packets (same contract as the avatar LivePage).
+ * Client-rendered OptiModel (SpatialReal) avatar with ARKit→FLAME lipsync
+ * driven by LiveKit `avatar.lipsync` data packets.
  */
 export default function GsplatAvatarStage({
 	room,
-	avatarId = "avatar",
+	avatarId = "samira",
 	compact = false,
 	className,
 }: {
@@ -42,9 +38,11 @@ export default function GsplatAvatarStage({
 				<p className="text-sm text-white/90">Avatar failed to load</p>
 				{!compact ? (
 					<p className="text-xs text-white/60">
-						Ensure COOP/COEP isolation is enabled and the avatar zip
-						under <code className="text-white/80">/gsplat/</code> is
-						present.
+						Ensure the SpatialReal pack under{" "}
+						<code className="text-white/80">
+							/spatialreal/avatars/
+						</code>{" "}
+						is present and COOP/COEP isolation is enabled.
 					</p>
 				) : null}
 			</div>
@@ -53,15 +51,12 @@ export default function GsplatAvatarStage({
 
 	return (
 		<div className={cn("relative size-full min-h-0 bg-white", className)}>
-			<GsplatViewport
+			<OptiModelViewport
 				engine={engine}
 				avatarId={avatarId}
 				audioRef={audioRef}
 				getTime={getTime}
 				driveEngine
-				camera={DEFAULT_GSPLAT_CAMERA}
-				frame={DEFAULT_GSPLAT_FRAME}
-				frontalOnly
 				className="size-full"
 				onStatus={setStatus}
 			/>

@@ -1,203 +1,295 @@
 /**
- * Prefetch and cache 3DGS (arkit) avatar zips for the preview session window.
+ * Prefetch OptiModel SpatialReal packs + warm AvatarKit before Join.
  *
- * `@myned-ai/gsplat-flame-avatar-renderer` always `fetch()`es `/gsplat/{id}.zip`
- * then calls `arrayBuffer()`. We install a page-level fetch interceptor so
- * lobby prefetch and Join share one in-memory (and Cache API) copy of the
- * ~4 MB zip, and we preload the renderer module so the dynamic import is warm.
+ * Lobby flow:
+ * 1. Install a page-level fetch cache for `/spatialreal/*` + `/spatialreal-api/*`
+ * 2. Download pack files (shape / ply / idle / character) into memory + Cache API
+ * 3. Initialize `@spatius/avatarkit` in host mode and `AvatarManager.load`
+ *
+ * Join then awaits {@link waitForOptiModelWarmupIdle} so the viewport only
+ * mounts AvatarView on already-cached bytes.
  */
 
-import { getGsplatAvatarZipUrl } from "@/lib/stock-avatars";
+import { getOptiModelAsset } from "@/lib/stock-avatars";
 
-type GsplatRendererModule =
-	typeof import("@myned-ai/gsplat-flame-avatar-renderer");
+const OPTIMODEL_CACHE_NAME = "optimind-optimodel-assets-v1";
+const LOCAL_API = "/spatialreal-api";
+const LOCAL_TOKEN = "local-offline";
+const LOCAL_APP_ID = "local-offline";
 
-const GSPLAT_ZIP_CACHE_NAME = "optimind-gsplat-avatar-zip-v1";
+const PREFETCH_FILES = [
+	"character.json",
+	"model_info.json",
+	"shape.pb",
+	"idle.pb",
+	"idle.frame0.json",
+	"point_cloud_low.ply",
+	"point_cloud_low.csplat.gz",
+	"point_cloud_low.ply.gz",
+] as const;
 
-let rendererPromise: Promise<GsplatRendererModule> | null = null;
-let zipFetchInstalled = false;
-/** Native fetch captured before we patch window.fetch. */
+type SpatiusAvatarKit = typeof import("@spatius/avatarkit");
+
+let sdkPromise: Promise<SpatiusAvatarKit> | null = null;
+/** Serializes preload work so Join can wait until it settles. */
+let warmupGate: Promise<void> = Promise.resolve();
+/** Dedupes AvatarSDK.initialize / AvatarManager.load across remounts. */
+let runtimeWarmPromise: Promise<void> | null = null;
+let runtimeWarmKey: string | null = null;
+
+let fetchCacheInstalled = false;
 let nativeFetch: typeof fetch | null = null;
-
-/** In-memory bytes keyed by absolute zip URL. */
-const zipBytesByUrl = new Map<string, ArrayBuffer>();
-/** Coalesce concurrent downloads for the same URL. */
-const zipInflightByUrl = new Map<string, Promise<ArrayBuffer>>();
+const memoryBytes = new Map<string, ArrayBuffer>();
+const memoryInflight = new Map<string, Promise<ArrayBuffer>>();
 
 function resolveRequestUrl(input: RequestInfo | URL): string {
-	if (typeof input === "string") {
-		return input;
-	}
-	if (input instanceof URL) {
-		return input.href;
-	}
+	if (typeof input === "string") return input;
+	if (input instanceof URL) return input.href;
 	return input.url;
 }
 
-/** Normalize to an absolute same-origin URL for cache keys. */
-export function resolveGsplatZipAbsoluteUrl(zipUrl: string): string {
-	if (typeof window === "undefined") {
-		return zipUrl;
-	}
+function pathnameOf(url: string): string {
 	try {
-		return new URL(zipUrl, window.location.origin).href;
+		return new URL(url, window.location.origin).pathname;
 	} catch {
-		return zipUrl;
+		return url;
 	}
 }
 
-function isGsplatZipUrl(url: string): boolean {
+function isOptiModelAssetUrl(url: string): boolean {
+	const path = pathnameOf(url);
+	return (
+		path.startsWith("/spatialreal/") ||
+		path.startsWith("/spatialreal-api/")
+	);
+}
+
+function cacheKeyFor(url: string): string {
 	try {
-		const pathname = new URL(url, "http://local.invalid").pathname;
-		return pathname.startsWith("/gsplat/") && pathname.endsWith(".zip");
+		return new URL(url, window.location.origin).href;
 	} catch {
-		return url.includes("/gsplat/") && url.includes(".zip");
+		return url;
 	}
 }
 
-function zipResponse(bytes: ArrayBuffer): Response {
+function arrayBufferResponse(bytes: ArrayBuffer, url: string): Response {
+	const path = pathnameOf(url);
+	const contentType = path.endsWith(".json")
+		? "application/json"
+		: path.endsWith(".pb")
+			? "application/octet-stream"
+			: path.endsWith(".ply")
+				? "application/octet-stream"
+				: path.endsWith(".gz")
+					? "application/gzip"
+					: "application/octet-stream";
 	return new Response(bytes.slice(0), {
 		status: 200,
 		headers: {
-			"Content-Type": "application/zip",
-			"Cache-Control": "public, max-age=31536000, immutable",
+			"Content-Type": contentType,
+			"Cache-Control": "public, max-age=3600",
 		},
 	});
 }
 
-async function readCachedZip(url: string): Promise<ArrayBuffer | null> {
-	if (typeof caches === "undefined") {
-		return null;
-	}
+async function readCache(url: string): Promise<ArrayBuffer | null> {
+	const key = cacheKeyFor(url);
+	const hit = memoryBytes.get(key);
+	if (hit) return hit;
+	if (typeof caches === "undefined") return null;
 	try {
-		const cache = await caches.open(GSPLAT_ZIP_CACHE_NAME);
-		const hit = await cache.match(url);
-		if (!hit?.ok) {
-			return null;
-		}
-		return hit.arrayBuffer();
+		const cache = await caches.open(OPTIMODEL_CACHE_NAME);
+		const response = await cache.match(key);
+		if (!response) return null;
+		const bytes = await response.arrayBuffer();
+		memoryBytes.set(key, bytes);
+		return bytes;
 	} catch {
 		return null;
 	}
 }
 
-async function writeCachedZip(url: string, bytes: ArrayBuffer): Promise<void> {
-	if (typeof caches === "undefined") {
-		return;
-	}
+async function writeCache(url: string, bytes: ArrayBuffer): Promise<void> {
+	const key = cacheKeyFor(url);
+	memoryBytes.set(key, bytes);
+	if (typeof caches === "undefined") return;
 	try {
-		const cache = await caches.open(GSPLAT_ZIP_CACHE_NAME);
-		await cache.put(url, zipResponse(bytes));
+		const cache = await caches.open(OPTIMODEL_CACHE_NAME);
+		await cache.put(key, arrayBufferResponse(bytes, key));
 	} catch {
-		// Private mode / quota — memory cache still helps for this page.
+		/* private mode / quota */
 	}
 }
 
-async function loadGsplatZipBytes(
+async function loadOptiModelBytes(
 	url: string,
 	init?: RequestInit,
 ): Promise<ArrayBuffer> {
-	const absoluteUrl = resolveGsplatZipAbsoluteUrl(url);
-	const cachedMemory = zipBytesByUrl.get(absoluteUrl);
-	if (cachedMemory) {
-		return cachedMemory;
-	}
+	const key = cacheKeyFor(url);
+	const cached = await readCache(key);
+	if (cached) return cached;
 
-	const inflight = zipInflightByUrl.get(absoluteUrl);
-	if (inflight) {
-		return inflight;
-	}
+	const inflight = memoryInflight.get(key);
+	if (inflight) return inflight;
 
-	const download = (async () => {
-		const fromCache = await readCachedZip(absoluteUrl);
-		if (fromCache && fromCache.byteLength > 0) {
-			zipBytesByUrl.set(absoluteUrl, fromCache);
-			return fromCache;
-		}
-
-		const fetchImpl =
-			nativeFetch ??
-			(typeof window !== "undefined" ? window.fetch.bind(window) : fetch);
-		const response = await fetchImpl(absoluteUrl, {
+	const fetchImpl = nativeFetch ?? fetch;
+	const promise = (async () => {
+		const response = await fetchImpl(key, {
 			...init,
-			credentials: init?.credentials ?? "same-origin",
+			credentials: "same-origin",
 		});
 		if (!response.ok) {
 			throw new Error(
-				`Failed to download 3DGS avatar zip (${response.status})`,
+				`Failed to download OptiModel asset (${response.status}) ${key}`,
 			);
 		}
 		const bytes = await response.arrayBuffer();
-		zipBytesByUrl.set(absoluteUrl, bytes);
-		void writeCachedZip(absoluteUrl, bytes);
+		await writeCache(key, bytes);
 		return bytes;
 	})().finally(() => {
-		zipInflightByUrl.delete(absoluteUrl);
+		memoryInflight.delete(key);
 	});
 
-	zipInflightByUrl.set(absoluteUrl, download);
-	return download;
+	memoryInflight.set(key, promise);
+	return promise;
 }
 
 /**
- * Patch window.fetch so every `/gsplat/*.zip` request (ours or the renderer)
- * shares one in-flight download and then serves from memory / Cache API.
+ * Patch window.fetch so every OptiModel `/spatialreal/*` request (ours or
+ * AvatarKit) shares one memory + Cache API copy.
  */
-export function installGsplatZipCache(): void {
-	if (zipFetchInstalled || typeof window === "undefined") {
-		return;
-	}
-	zipFetchInstalled = true;
-	const fetchNetwork: typeof fetch = window.fetch.bind(window);
-	nativeFetch = fetchNetwork;
+export function installOptiModelAssetCache(): void {
+	if (fetchCacheInstalled || typeof window === "undefined") return;
+	fetchCacheInstalled = true;
+	nativeFetch = window.fetch.bind(window);
 
-	window.fetch = ((
-		input: RequestInfo | URL,
-		init?: RequestInit,
-	): Promise<Response> => {
+	window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = resolveRequestUrl(input);
-		if (!isGsplatZipUrl(url)) {
-			return fetchNetwork(input, init);
+		if (!isOptiModelAssetUrl(url)) {
+			return nativeFetch!(input, init);
 		}
-		return loadGsplatZipBytes(url, init).then(zipResponse);
-	}) as typeof fetch;
+		return loadOptiModelBytes(url, init).then((bytes) =>
+			arrayBufferResponse(bytes, url),
+		);
+	};
 }
 
-/** Warm the renderer JS chunk so GsplatViewport's dynamic import is instant. */
-export function preloadGsplatRenderer(): Promise<GsplatRendererModule> {
-	if (!rendererPromise) {
-		rendererPromise = import("@myned-ai/gsplat-flame-avatar-renderer");
+export function preloadOptiModelSdk(): Promise<SpatiusAvatarKit> {
+	if (!sdkPromise) {
+		sdkPromise = import("@spatius/avatarkit");
 	}
-	return rendererPromise;
+	return sdkPromise;
+}
+
+function assetUrlsFor(avatarId: string | null | undefined): string[] {
+	const asset = getOptiModelAsset(avatarId);
+	const base = `/spatialreal/${asset.dir}`;
+	const urls = PREFETCH_FILES.map((file) => `${base}/${file}`);
+	urls.push(`/spatialreal-api/v2/avatar/${asset.characterId}`);
+	return urls;
+}
+
+/** Best-effort pack download (does not fail the warm if optional files 404). */
+export async function prefetchOptiModelAssets(
+	avatarId: string | null | undefined,
+): Promise<void> {
+	installOptiModelAssetCache();
+	await Promise.all(
+		assetUrlsFor(avatarId).map((url) =>
+			loadOptiModelBytes(url).catch(() => null),
+		),
+	);
 }
 
 /**
- * Kick off zip download into the shared memory/Cache API store.
- * Idempotent and coalesced with renderer fetches via the interceptor.
+ * Initialize AvatarKit host mode + cache the character via AvatarManager.load.
+ * Safe to call from the lobby — does not create AvatarView / LiveKit sessions.
  */
+export function warmOptiModelRuntime(
+	avatarId: string | null | undefined,
+): Promise<void> {
+	if (!avatarId) return Promise.resolve();
+	const asset = getOptiModelAsset(avatarId);
+	const key = asset.characterId;
+
+	if (runtimeWarmPromise && runtimeWarmKey === key) {
+		return runtimeWarmPromise;
+	}
+
+	runtimeWarmKey = key;
+	runtimeWarmPromise = (async () => {
+		installOptiModelAssetCache();
+		// Kick pack downloads immediately; SDK init can overlap.
+		const assetsPromise = prefetchOptiModelAssets(avatarId);
+		const [kit] = await Promise.all([
+			preloadOptiModelSdk(),
+			import("@repo/arkit-flame").catch(() => null),
+		]);
+
+		await kit.AvatarSDK.initialize(LOCAL_APP_ID, {
+			drivingServiceMode:
+				kit.DrivingServiceMode.backend ?? kit.DrivingServiceMode.host,
+			logLevel: kit.LogLevel.warning,
+			customEndpoint: `${window.location.origin}${LOCAL_API}`,
+		});
+		kit.AvatarSDK.setSessionToken(LOCAL_TOKEN);
+
+		await assetsPromise;
+
+		try {
+			await kit.AvatarManager.shared.load(asset.characterId, () => {
+				/* progress ignored during lobby warm */
+			});
+		} catch {
+			// Live OptiModelViewport will load again; pack cache still helps.
+		}
+	})().catch((error) => {
+		if (runtimeWarmKey === key) {
+			runtimeWarmPromise = null;
+			runtimeWarmKey = null;
+		}
+		throw error;
+	});
+
+	return runtimeWarmPromise;
+}
+
+/** Run work on the warmup gate so Join can wait until it settles. */
+export function runOptiModelWarmup(work: () => Promise<void>): Promise<void> {
+	const run = warmupGate.then(work, work);
+	warmupGate = run.then(
+		() => undefined,
+		() => undefined,
+	);
+	return run;
+}
+
+/** Await any in-flight OptiModel warmup before mounting the live viewport. */
+export function waitForOptiModelWarmupIdle(): Promise<void> {
+	return warmupGate;
+}
+
+/** Fire-and-forget lobby warm (assets + SDK + AvatarManager.load). */
+export function warmGsplatAvatar(avatarId: string | null | undefined): void {
+	if (!avatarId) return;
+	void runOptiModelWarmup(async () => {
+		await warmOptiModelRuntime(avatarId);
+	});
+}
+
+/** @deprecated Prefer {@link prefetchOptiModelAssets}. */
 export function prefetchGsplatAvatarZip(
 	avatarId: string | null | undefined,
 ): void {
-	if (typeof window === "undefined") {
-		return;
-	}
-	installGsplatZipCache();
-	const zipUrl = getGsplatAvatarZipUrl(avatarId);
-	void loadGsplatZipBytes(zipUrl).catch(() => {
-		// Live Renderer.create will fetch again through the same interceptor.
-	});
+	void prefetchOptiModelAssets(avatarId);
 }
 
-/**
- * Prefetch zip + renderer module for a catalog avatar id (preview lobby).
- */
-export function warmGsplatAvatar(avatarId: string | null | undefined): void {
-	if (typeof window === "undefined") {
-		return;
-	}
-	installGsplatZipCache();
-	prefetchGsplatAvatarZip(avatarId);
-	void preloadGsplatRenderer().catch(() => {
-		// Viewport will import again on mount.
-	});
+/** @deprecated Prefer {@link installOptiModelAssetCache}. */
+export function installGsplatZipCache(): void {
+	installOptiModelAssetCache();
+}
+
+/** @deprecated OptiModel no longer uses the LAM gsplat zip renderer. */
+export function preloadGsplatRenderer(): Promise<null> {
+	return preloadOptiModelSdk().then(() => null);
 }

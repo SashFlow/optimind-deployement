@@ -30,6 +30,7 @@ const nextConfig = {
 	],
 	transpilePackages: [
 		"@repo/api",
+		"@repo/arkit-flame",
 		"@repo/auth",
 		"@repo/database",
 		"@repo/jobs",
@@ -109,6 +110,25 @@ const nextConfig = {
 					},
 				],
 			},
+			{
+				source: "/spatialreal/:path*",
+				headers: [
+					{
+						key: "Cross-Origin-Resource-Policy",
+						value: "same-origin",
+					},
+				],
+			},
+			{
+				source: "/spatialreal-api/:path*",
+				headers: [
+					{
+						key: "Cross-Origin-Resource-Policy",
+						value: "same-origin",
+					},
+				],
+			},
+
 		];
 	},
 	webpack: (config, { webpack, isServer }) => {

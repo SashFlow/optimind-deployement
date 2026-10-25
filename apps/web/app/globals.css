@@ -293,7 +293,7 @@ input[cmdk-input] {
   }
 }
 
-/* 3DGS / gsplat avatar stage (ported from avatar LivePage framing) */
+/* OptiModel / gsplat avatar stage (ported from avatar LivePage framing) */
 .gsplat-viewport {
 	position: relative;
 	width: 100%;

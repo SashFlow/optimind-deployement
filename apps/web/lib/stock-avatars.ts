@@ -1,34 +1,51 @@
-/** Catalog / legacy ids for client-rendered 3DGS (arkit) assets. */
-const GSPLAT_ASSET_BY_ID: Record<string, { zip: string; preview: string }> = {
-	avatar: {
-		zip: "/gsplat/avatar.zip",
-		preview: "/images/gsplat/avatar.png",
+/**
+ * OptiModel catalog ids → SpatialReal character packs under
+ * `public/spatialreal/avatars/`.
+ */
+export type OptiModelAsset = {
+	/** Spatius / SpatialReal character UUID (AvatarManager.load id). */
+	characterId: string;
+	/** Path under `/spatialreal/` (no leading slash on dir). */
+	dir: string;
+	preview: string;
+};
+
+const OPTIMODEL_ASSET_BY_ID: Record<string, OptiModelAsset> = {
+	samira: {
+		characterId: "a0a234f5-0e04-483c-9cf1-3d5bd88b4442",
+		dir: "avatars/samira-a0a234f5",
+		preview: "/images/gsplat/samira.png",
 	},
-	"avatar-maledoc": {
-		zip: "/gsplat/avatar-maledoc.zip",
-		preview: "/images/gsplat/avatar-maledoc.png",
-	},
-	"avatar-femaledoc": {
-		zip: "/gsplat/avatar-femaledoc.zip",
-		preview: "/images/gsplat/avatar-femaledoc.png",
-	},
-	// Older configs saved this id before the multi-avatar catalog.
-	"gsplat-default": {
-		zip: "/gsplat/avatar.zip",
-		preview: "/images/gsplat/avatar.png",
+	sanjay: {
+		characterId: "3c409ac5-2637-4dd6-9c0c-c47c4b085966",
+		dir: "avatars/sanjay-3c409ac5",
+		preview: "/images/gsplat/sanjay.png",
 	},
 };
 
+const DEFAULT_OPTIMODEL_ID = "samira";
+
+export function getOptiModelAsset(
+	externalAvatarId: string | null | undefined,
+): OptiModelAsset {
+	if (externalAvatarId && OPTIMODEL_ASSET_BY_ID[externalAvatarId]) {
+		return OPTIMODEL_ASSET_BY_ID[externalAvatarId];
+	}
+	return OPTIMODEL_ASSET_BY_ID[DEFAULT_OPTIMODEL_ID];
+}
+
+export function getOptiModelCharacterId(
+	externalAvatarId: string | null | undefined,
+): string {
+	return getOptiModelAsset(externalAvatarId).characterId;
+}
+
+/** @deprecated Prefer getOptiModelAsset — OptiModel no longer uses LAM zip packs. */
 export function getGsplatAvatarZipUrl(
 	externalAvatarId: string | null | undefined,
 ): string {
-	if (!externalAvatarId) {
-		return GSPLAT_ASSET_BY_ID.avatar.zip;
-	}
-	return (
-		GSPLAT_ASSET_BY_ID[externalAvatarId]?.zip ??
-		`/gsplat/${externalAvatarId}.zip`
-	);
+	const asset = getOptiModelAsset(externalAvatarId);
+	return `/spatialreal/${asset.dir}/character.json`;
 }
 
 export function getAvatarPreviewUrl(
@@ -39,9 +56,12 @@ export function getAvatarPreviewUrl(
 		return null;
 	}
 
-	const gsplat = GSPLAT_ASSET_BY_ID[externalAvatarId];
-	if (providerId === "arkit" || gsplat) {
-		return gsplat?.preview ?? `/images/gsplat/${externalAvatarId}.png`;
+	const optimodel = OPTIMODEL_ASSET_BY_ID[externalAvatarId];
+	if (providerId === "arkit" || optimodel) {
+		return (
+			optimodel?.preview ??
+			OPTIMODEL_ASSET_BY_ID[DEFAULT_OPTIMODEL_ID].preview
+		);
 	}
 
 	return `/images/avatar/${externalAvatarId}.png`;

@@ -668,19 +668,15 @@ export const AVATARS_PROVIDERS: {
 	},
 	{
 		id: "arkit",
-		display_name: "3DGS",
+		display_name: "OptiModel",
 		avatars: [
 			{
-				id: "avatar",
-				display_name: "Default",
+				id: "samira",
+				display_name: "Samira",
 			},
 			{
-				id: "avatar-maledoc",
-				display_name: "Male Doctor",
-			},
-			{
-				id: "avatar-femaledoc",
-				display_name: "Female Doctor",
+				id: "sanjay",
+				display_name: "Sanjay",
 			},
 		],
 	},

@@ -1,19 +1,19 @@
-# 3DGS avatar assets
+# OptiModel assets (legacy path)
 
-Place LAM export zips here (filenames match catalog avatar ids):
+OptiModel no longer loads LAM `/gsplat/*.zip` packs.
 
-| Catalog id           | Zip                         | Preview image                         |
-| -------------------- | --------------------------- | ------------------------------------- |
-| `avatar`             | `avatar.zip`                | `/images/gsplat/avatar.png`           |
-| `avatar-maledoc`     | `avatar-maledoc.zip`        | `/images/gsplat/avatar-maledoc.png`   |
-| `avatar-femaledoc`   | `avatar-femaledoc.zip`      | `/images/gsplat/avatar-femaledoc.png` |
+SpatialReal models live under:
+
+| Catalog id | Character UUID                         | Assets                                      |
+| ---------- | -------------------------------------- | ------------------------------------------- |
+| `samira`   | `a0a234f5-0e04-483c-9cf1-3d5bd88b4442` | `/spatialreal/avatars/samira-a0a234f5/`     |
+| `sanjay`   | `3c409ac5-2637-4dd6-9c0c-c47c4b085966` | `/spatialreal/avatars/sanjay-3c409ac5/`     |
 
 ```bash
-# From the sibling avatar / pipeline repos:
-cp ../avatar/public/gsplat/avatar.zip ./avatar.zip
-# or
-cp ../avatar-pipline/web/public/avatar.zip ./avatar.zip
+# Sync from the sibling avatar repo:
+cp -R ../avatar/public/spatialreal/avatars/samira-a0a234f5 ./spatialreal/avatars/
+cp -R ../avatar/public/spatialreal/avatars/sanjay-3c409ac5 ./spatialreal/avatars/
 ```
 
-The gsplat session stage loads `/gsplat/{avatarId}.zip` in the browser. Session
-routes set COOP/COEP so the splat renderer can use SharedArrayBuffer.
+Spatius AvatarKit loads them via `/spatialreal-api/v2/avatar/{characterId}`
+(host / offline mode). Session routes set COOP/COEP for SharedArrayBuffer.

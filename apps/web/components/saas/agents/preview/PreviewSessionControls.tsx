@@ -153,7 +153,7 @@ const VIDEO_FILL_CLASS =
  */
 const AVATAR_STAGE_CLASS =
 	"absolute inset-0 size-auto rounded-none shadow-none sm:relative sm:inset-auto sm:aspect-video sm:h-full sm:max-h-full sm:w-auto sm:max-w-full sm:rounded-xl";
-/** Full-bleed responsive stage for 3DGS (matches avatar LivePage). */
+/** Full-bleed responsive stage for OptiModel (matches avatar LivePage). */
 const GSPLAT_STAGE_CLASS =
 	"absolute inset-0 size-full max-h-none max-w-none rounded-none shadow-none sm:relative sm:inset-auto sm:aspect-auto sm:h-full sm:w-full sm:rounded-none";
 const CAMERA_STAGE_CLASS =
