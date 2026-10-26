@@ -36,13 +36,22 @@ ENV PORT=3000
 
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 
-# Owned by nextjs: withSpatialReal writes into its package's .cache on config
-# load, and Next writes to apps/web/.next/cache at runtime.
+# Owned by nextjs: withSpatialReal / withAvatarkit write into package .cache on
+# config load, and Next writes to apps/web/.next/cache at runtime.
 COPY --from=installer --chown=nextjs:nodejs /app/apps/web ./apps/web
 COPY --from=installer --chown=nextjs:nodejs /app/packages ./packages
 COPY --from=installer --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=installer /app/package.json ./package.json
 COPY --from=installer /app/pnpm-lock.yaml ./pnpm-lock.yaml
+
+# OptiModel / Spatius WASM + packs must be present at runtime. `_avatarkit` is
+# gitignored and only created when next.config loads during build — assert it
+# made it into the image so model loads fail loudly at build time, not in prod.
+RUN test -d apps/web/public/_avatarkit \
+	&& test -n "$(ls -A apps/web/public/_avatarkit/*.wasm 2>/dev/null)" \
+	&& test -f apps/web/public/spatialreal/index.json \
+	&& test -d apps/web/public/spatialreal/avatars/samira-a0a234f5 \
+	&& test -d apps/web/public/spatialreal/avatars/sanjay-3c409ac5
 
 # COPY --from=installer /app/apps/web/.next/standalone ./
 # COPY --from=installer /app/apps/web/.next/static ./apps/web/.next/static

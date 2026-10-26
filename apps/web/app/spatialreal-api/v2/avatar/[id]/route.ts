@@ -21,6 +21,44 @@ async function loadIndex(): Promise<IndexJson> {
 	return JSON.parse(raw) as IndexJson;
 }
 
+/**
+ * Public browser origin for absolutizing `/spatialreal/...` remotes.
+ *
+ * `new URL(req.url).origin` is wrong in production Docker: Next often sees
+ * `http://localhost:3000` (or an internal service host) behind TLS termination,
+ * so AvatarKit then tries to download models from an unreachable URL.
+ *
+ * Prefer forwarded headers → NEXT_PUBLIC_SITE_URL → leave path-absolute remotes.
+ */
+function publicOrigin(req: Request): string | null {
+	const forwardedHost = req.headers
+		.get("x-forwarded-host")
+		?.split(",")[0]
+		?.trim();
+	const host = forwardedHost || req.headers.get("host")?.trim();
+	const site = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || null;
+
+	if (host) {
+		const isInternal =
+			host.startsWith("localhost") ||
+			host.startsWith("127.0.0.1") ||
+			host.startsWith("0.0.0.0") ||
+			host.endsWith(".internal") ||
+			/^[\w-]+:\d+$/.test(host); // bare docker service host:port
+		// Never emit Docker-internal origins — prefer SITE_URL, else relative.
+		if (isInternal) return site;
+
+		const forwardedProto = req.headers
+			.get("x-forwarded-proto")
+			?.split(",")[0]
+			?.trim();
+		const proto = forwardedProto || "https";
+		return `${proto}://${host}`;
+	}
+
+	return site;
+}
+
 export async function GET(
 	req: Request,
 	ctx: { params: Promise<{ id: string }> },
@@ -57,11 +95,11 @@ export async function GET(
 			string,
 			unknown
 		>;
-		const origin = new URL(req.url).origin;
-		const payload = absolutizeRemotes(
-			toAvatarAsset(meta, entry.dir),
-			origin,
-		);
+		const asset = toAvatarAsset(meta, entry.dir);
+		const origin = publicOrigin(req);
+		// Path-absolute remotes (`/spatialreal/...`) resolve against the page
+		// origin in the browser — safer than a wrong Docker-internal origin.
+		const payload = origin ? absolutizeRemotes(asset, origin) : asset;
 
 		return NextResponse.json(payload, {
 			headers: { "Cache-Control": "no-store" },

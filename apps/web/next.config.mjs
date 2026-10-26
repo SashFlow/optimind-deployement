@@ -97,38 +97,26 @@ const nextConfig = {
 			{ key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 			{ key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
 		];
+		const corp = [
+			{
+				key: "Cross-Origin-Resource-Policy",
+				value: "same-origin",
+			},
+		];
 		return [
 			{ source: "/app/:path*", headers: isolation },
 			{ source: "/share/:path*", headers: isolation },
 			{ source: "/embed/:path*", headers: isolation },
-			{
-				source: "/gsplat/:path*",
-				headers: [
-					{
-						key: "Cross-Origin-Resource-Policy",
-						value: "same-origin",
-					},
-				],
-			},
-			{
-				source: "/spatialreal/:path*",
-				headers: [
-					{
-						key: "Cross-Origin-Resource-Policy",
-						value: "same-origin",
-					},
-				],
-			},
-			{
-				source: "/spatialreal-api/:path*",
-				headers: [
-					{
-						key: "Cross-Origin-Resource-Policy",
-						value: "same-origin",
-					},
-				],
-			},
-
+			// COEP require-corp needs CORP on every subresource (WASM, workers,
+			// chunks, model packs) — missing headers block OptiModel in Firefox
+			// and break Workers under Chrome when isolation is on.
+			{ source: "/_next/static/:path*", headers: corp },
+			{ source: "/_avatarkit/:path*", headers: corp },
+			{ source: "/_spatialreal/:path*", headers: corp },
+			{ source: "/assets/:path*", headers: corp },
+			{ source: "/gsplat/:path*", headers: corp },
+			{ source: "/spatialreal/:path*", headers: corp },
+			{ source: "/spatialreal-api/:path*", headers: corp },
 		];
 	},
 	webpack: (config, { webpack, isServer }) => {
