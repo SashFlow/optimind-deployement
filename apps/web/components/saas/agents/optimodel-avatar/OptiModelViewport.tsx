@@ -45,29 +45,6 @@ type AvatarViewHandle = {
 	stopRenderLoop?: () => void;
 };
 
-type AvatarSdkModule = {
-	AvatarSDK: {
-		initialize: (appId: string, config: unknown) => Promise<void>;
-		setSessionToken: (token: string) => void;
-		getAvatarCore?: () => AvatarCoreLike | null;
-	};
-	AvatarManager: {
-		shared: {
-			load: (
-				id: string,
-				onProgress: (info: {
-					type: string;
-					progress?: number;
-					error?: Error;
-				}) => void,
-			) => Promise<unknown>;
-		};
-	};
-	AvatarView: new (avatar: unknown, container: HTMLElement) => AvatarViewHandle;
-	DrivingServiceMode: { backend: unknown };
-	LogLevel: { warning: unknown };
-};
-
 type Props = {
 	engine: ARKitLipSyncEngine;
 	/** Catalog id (`samira` | `sanjay`). */
@@ -204,12 +181,8 @@ export function OptiModelViewport({
 				if (cancelled) return;
 
 				onStatusRef.current?.("initializing SDK…");
-				const kit = (await preloadOptiModelSdk()) as unknown as AvatarSdkModule;
-				const {
-					AvatarSDK,
-					AvatarManager,
-					AvatarView,
-				} = kit;
+				const kit = await preloadOptiModelSdk();
+				const { AvatarSDK, AvatarManager, AvatarView } = kit;
 
 				if (cancelled) return;
 
@@ -218,7 +191,12 @@ export function OptiModelViewport({
 					getOptiModelSdkInitConfig(kit),
 				);
 				AvatarSDK.setSessionToken(getOptiModelLocalToken());
-				core = AvatarSDK.getAvatarCore?.() ?? null;
+				core =
+					(
+						AvatarSDK as unknown as {
+							getAvatarCore?: () => AvatarCoreLike | null;
+						}
+					).getAvatarCore?.() ?? null;
 
 				if (cancelled) return;
 				onStatusRef.current?.("attaching SpatialReal model…");
@@ -243,7 +221,12 @@ export function OptiModelViewport({
 				);
 
 				if (cancelled) return;
-				core = AvatarSDK.getAvatarCore?.() ?? core;
+				core =
+					(
+						AvatarSDK as unknown as {
+							getAvatarCore?: () => AvatarCoreLike | null;
+						}
+					).getAvatarCore?.() ?? core;
 
 				let baseline: FlameKeyframe = zeroKeyframe();
 				try {
@@ -260,7 +243,7 @@ export function OptiModelViewport({
 				}
 
 				container.replaceChildren();
-				view = new AvatarView(avatar, container);
+				view = new AvatarView(avatar, container) as unknown as AvatarViewHandle;
 
 				await new Promise<void>((resolve, reject) => {
 					const t = window.setTimeout(
@@ -281,7 +264,12 @@ export function OptiModelViewport({
 					return;
 				}
 
-				core = AvatarSDK.getAvatarCore?.() ?? core;
+				core =
+					(
+						AvatarSDK as unknown as {
+							getAvatarCore?: () => AvatarCoreLike | null;
+						}
+					).getAvatarCore?.() ?? core;
 				{
 					const deadline = performance.now() + 5_000;
 					let lastErr: unknown;

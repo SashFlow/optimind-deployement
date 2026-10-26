@@ -30,7 +30,7 @@ const SPATIALWALK_CDN_HOSTS = new Set([
 	"cdn.spatialwalk.top",
 ]);
 
-/** Same-origin stand-in for `https://cdn.spatialwalk.*/public/*`. */
+/** Same-origin stand-in for SpatialWalk CDN `/public/...` assets. */
 const LOCAL_FLAME_SDK_BASE = "/spatialreal/sdk";
 const UNIFIED_MODEL_PATH = "unified_model_body.pb.gz";
 
@@ -82,11 +82,11 @@ function isOptiModelAssetUrl(url: string): boolean {
 }
 
 /**
- * Map Spatius flame CDN URLs onto our public pack so COEP `require-corp`
- * pages never hit `cdn.spatialwalk.*` (no CORP → blocked).
+ * Map Spatius flame CDN URLs onto our public pack so COEP require-corp
+ * pages never hit cdn.spatialwalk hosts (no CORP → blocked).
  *
- * `https://cdn.spatialwalk.cloud/public/unified_model_body.pb.gz`
- *   → `/spatialreal/sdk/unified_model_body.pb.gz`
+ * Example: cdn.spatialwalk.cloud .../unified_model_body.pb.gz
+ * becomes /spatialreal/sdk/unified_model_body.pb.gz
  */
 function rewriteOptiModelUrl(url: string): string {
 	try {
@@ -283,16 +283,13 @@ export function installOptiModelAssetCache(): void {
 }
 
 /** Shared AvatarSDK.initialize options for OptiModel host / offline mode. */
-export function getOptiModelSdkInitConfig(kit: {
-	DrivingServiceMode: { backend: unknown };
-	LogLevel: { warning: unknown };
-}) {
+export function getOptiModelSdkInitConfig(kit: SpatiusAvatarKit) {
 	return {
 		drivingServiceMode: kit.DrivingServiceMode.backend,
 		logLevel: kit.LogLevel.warning,
 		region: LOCAL_REGION,
 		customEndpoint: `${window.location.origin}${LOCAL_API}`,
-	};
+	} as const;
 }
 
 export function getOptiModelLocalAppId(): string {
