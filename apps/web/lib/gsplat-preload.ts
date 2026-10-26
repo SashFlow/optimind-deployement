@@ -227,8 +227,7 @@ export function warmOptiModelRuntime(
 		]);
 
 		await kit.AvatarSDK.initialize(LOCAL_APP_ID, {
-			drivingServiceMode:
-				kit.DrivingServiceMode.backend ?? kit.DrivingServiceMode.host,
+			drivingServiceMode: kit.DrivingServiceMode.backend,
 			logLevel: kit.LogLevel.warning,
 			customEndpoint: `${window.location.origin}${LOCAL_API}`,
 		});

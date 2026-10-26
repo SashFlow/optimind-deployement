@@ -65,7 +65,7 @@ type AvatarSdkModule = {
 		};
 	};
 	AvatarView: new (avatar: unknown, container: HTMLElement) => AvatarViewHandle;
-	DrivingServiceMode: { backend: unknown; host?: unknown };
+	DrivingServiceMode: { backend: unknown };
 	LogLevel: { warning: unknown };
 };
 
@@ -216,8 +216,7 @@ export function OptiModelViewport({
 				if (cancelled) return;
 
 				await AvatarSDK.initialize(LOCAL_APP_ID, {
-					drivingServiceMode:
-						DrivingServiceMode.backend ?? DrivingServiceMode.host,
+					drivingServiceMode: DrivingServiceMode.backend,
 					logLevel: LogLevel.warning,
 					customEndpoint: `${window.location.origin}${LOCAL_API}`,
 				});
