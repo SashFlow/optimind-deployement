@@ -1,10 +1,15 @@
 /**
- * Prefetch OptiModel SpatialReal packs + warm AvatarKit before Join.
+ * Prefetch OptiModel packs + warm AvatarKit before Join — fully offline.
+ *
+ * OptiModel must not depend on SPATIALREAL_* / SPATIUS_* env vars or
+ * SpatialWalk / Spatius cloud (CDN, bootstrap, telemetry). Everything is
+ * served from `/spatialreal/*` + `/spatialreal-api/*`.
  *
  * Lobby flow:
- * 1. Install a page-level fetch cache for `/spatialreal/*` + `/spatialreal-api/*`
- * 2. Download pack files (shape / ply / idle / character) into memory + Cache API
- * 3. Initialize `@spatius/avatarkit` in host mode and `AvatarManager.load`
+ * 1. Patch fetch: local packs + rewrite/stub SpatialWalk cloud calls
+ * 2. Prefetch shape / ply / idle / flame template into memory + Cache API
+ * 3. `AvatarSDK.initialize` in host mode (`region` pinned, local endpoint)
+ * 4. `AvatarManager.load` from `/spatialreal-api`
  *
  * Join then awaits {@link waitForOptiModelWarmupIdle} so the viewport only
  * mounts AvatarView on already-cached bytes.
@@ -16,6 +21,18 @@ const OPTIMODEL_CACHE_NAME = "optimind-optimodel-assets-v1";
 const LOCAL_API = "/spatialreal-api";
 const LOCAL_TOKEN = "local-offline";
 const LOCAL_APP_ID = "local-offline";
+/** Pin region so AvatarKit skips `global.spatialwalk.top/bootstrap`. */
+const LOCAL_REGION = "us-west";
+
+/** AvatarKit hardcodes these hosts for `unified_model_body.pb.gz` (COEP blocks them). */
+const SPATIALWALK_CDN_HOSTS = new Set([
+	"cdn.spatialwalk.cloud",
+	"cdn.spatialwalk.top",
+]);
+
+/** Same-origin stand-in for `https://cdn.spatialwalk.*/public/*`. */
+const LOCAL_FLAME_SDK_BASE = "/spatialreal/sdk";
+const UNIFIED_MODEL_PATH = "unified_model_body.pb.gz";
 
 const PREFETCH_FILES = [
 	"character.json",
@@ -64,9 +81,90 @@ function isOptiModelAssetUrl(url: string): boolean {
 	);
 }
 
+/**
+ * Map Spatius flame CDN URLs onto our public pack so COEP `require-corp`
+ * pages never hit `cdn.spatialwalk.*` (no CORP → blocked).
+ *
+ * `https://cdn.spatialwalk.cloud/public/unified_model_body.pb.gz`
+ *   → `/spatialreal/sdk/unified_model_body.pb.gz`
+ */
+function rewriteOptiModelUrl(url: string): string {
+	try {
+		const parsed = new URL(url, window.location.origin);
+		if (
+			SPATIALWALK_CDN_HOSTS.has(parsed.hostname) &&
+			parsed.pathname.startsWith("/public/")
+		) {
+			const file = parsed.pathname.slice("/public/".length);
+			return `${window.location.origin}${LOCAL_FLAME_SDK_BASE}/${file}`;
+		}
+	} catch {
+		/* keep original */
+	}
+	return url;
+}
+
+function hostnameOf(url: string): string | null {
+	try {
+		return new URL(url, window.location.origin).hostname;
+	} catch {
+		return null;
+	}
+}
+
+/** Region / clock-sync bootstrap — stubbed so OptiModel never needs SpatialWalk. */
+function isSpatialWalkBootstrapUrl(url: string): boolean {
+	const host = hostnameOf(url);
+	if (!host) return false;
+	return (
+		(host === "global.spatialwalk.top" ||
+			host === "global.spatialwalk.cloud" ||
+			host.endsWith(".spatialwalk.top") ||
+			host.endsWith(".spatialwalk.cloud")) &&
+		pathnameOf(url) === "/bootstrap"
+	);
+}
+
+/** OTel / metrics / traces — optional; fail closed locally under COEP. */
+function isSpatialWalkTelemetryUrl(url: string): boolean {
+	const host = hostnameOf(url);
+	if (!host) return false;
+	return (
+		host === "t.spatialwalk.top" ||
+		host === "t.spatialwalk.cloud" ||
+		(host.startsWith("t.") &&
+			(host.endsWith(".spatialwalk.top") ||
+				host.endsWith(".spatialwalk.cloud")))
+	);
+}
+
+function spatialWalkBootstrapResponse(): Response {
+	const now = Date.now();
+	return new Response(
+		JSON.stringify({
+			region: {
+				current: LOCAL_REGION,
+				candidates: [LOCAL_REGION],
+			},
+			time_sync: {
+				server_receive_ms: now,
+				server_send_ms: now,
+				version: 1,
+			},
+		}),
+		{
+			status: 200,
+			headers: {
+				"Content-Type": "application/json",
+				"Cache-Control": "no-store",
+			},
+		},
+	);
+}
+
 function cacheKeyFor(url: string): string {
 	try {
-		return new URL(url, window.location.origin).href;
+		return new URL(rewriteOptiModelUrl(url), window.location.origin).href;
 	} catch {
 		return url;
 	}
@@ -155,8 +253,10 @@ async function loadOptiModelBytes(
 }
 
 /**
- * Patch window.fetch so every OptiModel `/spatialreal/*` request (ours or
- * AvatarKit) shares one memory + Cache API copy.
+ * Patch window.fetch for OptiModel offline mode:
+ * - `/spatialreal/*` + `/spatialreal-api/*` → memory + Cache API
+ * - SpatialWalk flame CDN → `/spatialreal/sdk/*`
+ * - SpatialWalk bootstrap / telemetry → local stubs (no cloud, COEP-safe)
  */
 export function installOptiModelAssetCache(): void {
 	if (fetchCacheInstalled || typeof window === "undefined") return;
@@ -164,7 +264,15 @@ export function installOptiModelAssetCache(): void {
 	nativeFetch = window.fetch.bind(window);
 
 	window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-		const url = resolveRequestUrl(input);
+		const raw = resolveRequestUrl(input);
+		if (isSpatialWalkBootstrapUrl(raw)) {
+			return Promise.resolve(spatialWalkBootstrapResponse());
+		}
+		if (isSpatialWalkTelemetryUrl(raw)) {
+			return Promise.resolve(new Response(null, { status: 204 }));
+		}
+
+		const url = rewriteOptiModelUrl(raw);
 		if (!isOptiModelAssetUrl(url)) {
 			return nativeFetch!(input, init);
 		}
@@ -172,6 +280,27 @@ export function installOptiModelAssetCache(): void {
 			arrayBufferResponse(bytes, url),
 		);
 	};
+}
+
+/** Shared AvatarSDK.initialize options for OptiModel host / offline mode. */
+export function getOptiModelSdkInitConfig(kit: {
+	DrivingServiceMode: { backend: unknown };
+	LogLevel: { warning: unknown };
+}) {
+	return {
+		drivingServiceMode: kit.DrivingServiceMode.backend,
+		logLevel: kit.LogLevel.warning,
+		region: LOCAL_REGION,
+		customEndpoint: `${window.location.origin}${LOCAL_API}`,
+	};
+}
+
+export function getOptiModelLocalAppId(): string {
+	return LOCAL_APP_ID;
+}
+
+export function getOptiModelLocalToken(): string {
+	return LOCAL_TOKEN;
 }
 
 export function preloadOptiModelSdk(): Promise<SpatiusAvatarKit> {
@@ -186,6 +315,8 @@ function assetUrlsFor(avatarId: string | null | undefined): string[] {
 	const base = `/spatialreal/${asset.dir}`;
 	const urls = PREFETCH_FILES.map((file) => `${base}/${file}`);
 	urls.push(`/spatialreal-api/v2/avatar/${asset.characterId}`);
+	// Required by AvatarSDK.initialize (flame template) — must be same-origin.
+	urls.push(`${LOCAL_FLAME_SDK_BASE}/${UNIFIED_MODEL_PATH}`);
 	return urls;
 }
 
@@ -226,11 +357,10 @@ export function warmOptiModelRuntime(
 			import("@repo/arkit-flame").catch(() => null),
 		]);
 
-		await kit.AvatarSDK.initialize(LOCAL_APP_ID, {
-			drivingServiceMode: kit.DrivingServiceMode.backend,
-			logLevel: kit.LogLevel.warning,
-			customEndpoint: `${window.location.origin}${LOCAL_API}`,
-		});
+		await kit.AvatarSDK.initialize(
+			LOCAL_APP_ID,
+			getOptiModelSdkInitConfig(kit),
+		);
 		kit.AvatarSDK.setSessionToken(LOCAL_TOKEN);
 
 		await assetsPromise;

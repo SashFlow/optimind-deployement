@@ -24,16 +24,15 @@ import {
 	speechOverlayFromFlame,
 } from "@/lib/optimodel/speech-overlay";
 import {
+	getOptiModelLocalAppId,
+	getOptiModelLocalToken,
+	getOptiModelSdkInitConfig,
 	installOptiModelAssetCache,
 	preloadOptiModelSdk,
 	waitForOptiModelWarmupIdle,
 	warmOptiModelRuntime,
 } from "@/lib/gsplat-preload";
 import { getOptiModelAsset } from "@/lib/stock-avatars";
-
-const LOCAL_API = "/spatialreal-api";
-const LOCAL_TOKEN = "local-offline";
-const LOCAL_APP_ID = "local-offline";
 
 type AvatarViewHandle = {
 	dispose: () => void;
@@ -205,22 +204,20 @@ export function OptiModelViewport({
 				if (cancelled) return;
 
 				onStatusRef.current?.("initializing SDK…");
+				const kit = (await preloadOptiModelSdk()) as unknown as AvatarSdkModule;
 				const {
 					AvatarSDK,
 					AvatarManager,
 					AvatarView,
-					DrivingServiceMode,
-					LogLevel,
-				} = (await preloadOptiModelSdk()) as unknown as AvatarSdkModule;
+				} = kit;
 
 				if (cancelled) return;
 
-				await AvatarSDK.initialize(LOCAL_APP_ID, {
-					drivingServiceMode: DrivingServiceMode.backend,
-					logLevel: LogLevel.warning,
-					customEndpoint: `${window.location.origin}${LOCAL_API}`,
-				});
-				AvatarSDK.setSessionToken(LOCAL_TOKEN);
+				await AvatarSDK.initialize(
+					getOptiModelLocalAppId(),
+					getOptiModelSdkInitConfig(kit),
+				);
+				AvatarSDK.setSessionToken(getOptiModelLocalToken());
 				core = AvatarSDK.getAvatarCore?.() ?? null;
 
 				if (cancelled) return;

@@ -50,6 +50,7 @@ COPY --from=installer /app/pnpm-lock.yaml ./pnpm-lock.yaml
 RUN test -d apps/web/public/_avatarkit \
 	&& test -n "$(ls -A apps/web/public/_avatarkit/*.wasm 2>/dev/null)" \
 	&& test -f apps/web/public/spatialreal/index.json \
+	&& test -f apps/web/public/spatialreal/sdk/unified_model_body.pb.gz \
 	&& test -d apps/web/public/spatialreal/avatars/samira-a0a234f5 \
 	&& test -d apps/web/public/spatialreal/avatars/sanjay-3c409ac5
 

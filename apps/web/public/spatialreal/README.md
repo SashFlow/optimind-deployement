@@ -11,7 +11,21 @@ Local SpatialReal character packs for the OptiModel (`arkit`) provider.
 # From apps/web/public:
 cp -R ../../../avatar/public/spatialreal/avatars/samira-a0a234f5 ./spatialreal/avatars/
 cp -R ../../../avatar/public/spatialreal/avatars/sanjay-3c409ac5 ./spatialreal/avatars/
+# Flame template AvatarKit otherwise pulls from cdn.spatialwalk.cloud (blocked by COEP):
+mkdir -p ./spatialreal/sdk
+cp ../../../avatar/public/spatialreal/sdk/unified_model_body.pb.gz ./spatialreal/sdk/
 ```
 
-Loaded by `@spatius/avatarkit` in host mode via `/spatialreal-api/v2/avatar/{characterId}`.
+| Public path | Source |
+| ----------- | ------ |
+| `/spatialreal/avatars/...` | Character packs |
+| `/spatialreal/sdk/unified_model_body.pb.gz` | Spatius flame template (replaces `cdn.spatialwalk.*/public/...`) |
+| `/spatialreal-api/v2/avatar/{id}` | AvatarKit metadata |
+
+OptiModel is **fully offline** — it does not use `SPATIALREAL_*` / `SPATIUS_*`
+env vars. `installOptiModelAssetCache()`:
+
+- rewrites `cdn.spatialwalk.*/public/*` → `/spatialreal/sdk/*`
+- stubs SpatialWalk bootstrap + telemetry so AvatarKit never calls the cloud
+
 Do **not** use LAM `/gsplat/*.zip` packs for OptiModel.
