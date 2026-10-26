@@ -43,6 +43,12 @@ type AvatarViewHandle = {
 	) => Promise<void>;
 	/** Internal — stop SDK idle RAF so we can own WASM frame reads. */
 	stopRenderLoop?: () => void;
+	/**
+	 * AvatarView mints a private id (`${avatar.id}-${ts}-${rand}`) and keys
+	 * WASM character/animation handles under it. Idle frame reads must use
+	 * this id or shape lookup falls back to a stale default handle.
+	 */
+	characterId?: string;
 };
 
 type Props = {
@@ -116,7 +122,10 @@ export function OptiModelViewport({
 			}
 		};
 
-		const startIdle = (animationInfo: AnimationInfo) => {
+		const startIdle = (
+			animationInfo: AnimationInfo,
+			viewCharacterId?: string,
+		) => {
 			stopIdle();
 			if (!core) {
 				onStatusRef.current?.("ready · no idle core");
@@ -124,6 +133,7 @@ export function OptiModelViewport({
 			}
 			idle = startIdleLoop({
 				getCore: () => core,
+				characterId: viewCharacterId,
 				animationInfo,
 				getPlaybackRate: () => IDLE_SPEED_DEFAULT,
 				renderFrame: async (kf) => {
@@ -320,7 +330,7 @@ export function OptiModelViewport({
 					throw new Error("idle.pb reported 0 frames");
 				}
 
-				startIdle(idleInfo);
+				startIdle(idleInfo, view.characterId);
 				raf = requestAnimationFrame(driveLoop);
 				onStatusRef.current?.(
 					`ready · idle ${idleInfo.totalFrames}f`,

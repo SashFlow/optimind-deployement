@@ -101,14 +101,6 @@ function SpatialRealSafeRoomAudio() {
 	);
 }
 
-/**
- * Gsplat stage attaches remote agent audio for the lipsync clock — skip all
- * remote audio here to avoid double playback (same idea as LivePage).
- */
-function GsplatSafeRoomAudio() {
-	return null;
-}
-
 function isUserParticipant(identity: string) {
 	return (
 		identity.startsWith("user-") ||
@@ -742,13 +734,9 @@ export function PreviewSessionControls({
 				</DialogContent>
 			</Dialog>
 
-			{isGsplat ? (
-				<GsplatSafeRoomAudio />
-			) : isSpatialReal ? (
-				<SpatialRealSafeRoomAudio />
-			) : (
-				<RoomAudioRenderer />
-			)}
+			{/* OptiModel (arkit) lipsync is muted-attach only — RoomAudioRenderer
+			    owns audible agent TTS so Join unlocks playback like every other provider. */}
+			{isSpatialReal ? <SpatialRealSafeRoomAudio /> : <RoomAudioRenderer />}
 		</div>
 	);
 }

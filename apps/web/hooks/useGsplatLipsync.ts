@@ -11,7 +11,7 @@ import {
 } from "@/lib/arkit-lipsync/live-types";
 import { WebAudioClock } from "@/lib/arkit-lipsync/sync/clocks";
 
-/** Delay before starting audio playback + lipsync clock so the engine can ingest phonemes. */
+/** Delay before starting lipsync clock so the engine can ingest phonemes. */
 const LIPSYNC_START_BUFFER_MS = 100;
 /** Match DEFAULT_COARTICULATION.releaseSeconds before zeroing speech into idle. */
 const LIPSYNC_IDLE_RELEASE_MS = 40;
@@ -20,14 +20,16 @@ export type UseGsplatLipsyncResult = {
 	engine: ARKitLipSyncEngine;
 	audioRef: React.RefObject<HTMLAudioElement | null>;
 	getTime: () => number;
-	/** Remote audio track SIDs owned by this hook (exclude from RoomAudioRenderer). */
+	/** Remote audio track SIDs observed for turn-end fallback. */
 	ownedAudioSids: React.MutableRefObject<Set<string>>;
 };
 
 /**
- * Client-side lipsync for the arkit provider — mirrors avatar LivePage:
- * LiveKit `avatar.lipsync` packets + remote audio clock, with a 100ms start
- * buffer and idle transition when audio/turn ends.
+ * Client-side lipsync for the arkit / OptiModel provider.
+ *
+ * Consumes LiveKit `avatar.lipsync` packets and drives the ARKit→FLAME engine.
+ * Agent TTS playback is owned by {@link RoomAudioRenderer} — this hook must
+ * not play (or mute) remote audio, or users hear silence / need a second click.
  */
 export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 	const engineRef = useRef(new ARKitLipSyncEngine({ speechOnly: false }));
@@ -38,7 +40,6 @@ export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 	const attachedTracksRef = useRef<Set<string>>(new Set());
 	const startBufferTimerRef = useRef<number | null>(null);
 	const idleTimerRef = useRef<number | null>(null);
-	const holdAudioUntilStartRef = useRef(false);
 
 	const engine = engineRef.current;
 
@@ -64,21 +65,24 @@ export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 		}
 	}, []);
 
+	const ensureClock = useCallback(() => {
+		if (!audioCtxRef.current) {
+			audioCtxRef.current = new AudioContext();
+			clockRef.current = new WebAudioClock(audioCtxRef.current);
+		}
+		void audioCtxRef.current.resume().catch(() => {
+			/* Join gesture usually unlocked AudioContext already */
+		});
+	}, []);
+
 	const beginPlaybackAfterBuffer = useCallback(() => {
 		clearStartBufferTimer();
-		holdAudioUntilStartRef.current = false;
-		const audio = audioRef.current;
-		if (audio) {
-			audio.muted = false;
-			void audio.play().catch(() => {
-				/* autoplay may require a user gesture */
-			});
-		}
+		ensureClock();
 		const clock = clockRef.current;
 		clock?.stop();
 		clock?.start(0);
 		engine.play();
-	}, [clearStartBufferTimer, engine]);
+	}, [clearStartBufferTimer, engine, ensureClock]);
 
 	const armTurnStart = useCallback(
 		(turnId: string) => {
@@ -88,11 +92,6 @@ export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 			engine.setPhonemes({ phonemes: [], duration: 0 });
 			engine.stop();
 			clockRef.current?.stop();
-			holdAudioUntilStartRef.current = true;
-			const audio = audioRef.current;
-			if (audio) {
-				audio.muted = true;
-			}
 			startBufferTimerRef.current = window.setTimeout(() => {
 				startBufferTimerRef.current = null;
 				if (activeTurnRef.current !== turnId) {
@@ -112,7 +111,6 @@ export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 	const transitionToIdle = useCallback(() => {
 		clearStartBufferTimer();
 		clearIdleTimer();
-		holdAudioUntilStartRef.current = false;
 		activeTurnRef.current = null;
 		clockRef.current?.pause();
 		idleTimerRef.current = window.setTimeout(() => {
@@ -158,6 +156,11 @@ export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 		[armTurnStart, engine, transitionToIdle],
 	);
 
+	/**
+	 * Attach remote agent audio muted — for track-ended fallback only.
+	 * Audible playback stays with RoomAudioRenderer (no double audio, no
+	 * custom autoplay / unmute UX).
+	 */
 	const attachRemoteAudio = useCallback(
 		(track: RemoteTrack) => {
 			if (track.kind !== Track.Kind.Audio) {
@@ -171,33 +174,22 @@ export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 
 			let audio = audioRef.current;
 			if (!audio) {
-				audio = new Audio();
+				audio = document.createElement("audio");
+				audio.muted = true;
 				audio.autoplay = true;
-				audioRef.current = audio;
+				audio.style.display = "none";
+				document.body.appendChild(audio);
 				audio.addEventListener("ended", () => {
 					if (activeTurnRef.current) {
 						transitionToIdle();
 					}
 				});
+				audioRef.current = audio;
 			}
 			track.attach(audio);
-
-			if (holdAudioUntilStartRef.current) {
-				audio.muted = true;
-			} else {
-				audio.muted = false;
-				void audio.play().catch(() => {
-					/* autoplay may require a user gesture */
-				});
-			}
-
-			if (!audioCtxRef.current) {
-				audioCtxRef.current = new AudioContext();
-				clockRef.current = new WebAudioClock(audioCtxRef.current);
-			}
-			void audioCtxRef.current.resume();
+			ensureClock();
 		},
-		[transitionToIdle],
+		[ensureClock, transitionToIdle],
 	);
 
 	useEffect(() => {
@@ -259,12 +251,19 @@ export function useGsplatLipsync(room: Room | null): UseGsplatLipsyncResult {
 			room.off(RoomEvent.DataReceived, onData);
 			clearStartBufferTimer();
 			clearIdleTimer();
-			holdAudioUntilStartRef.current = false;
 			attachedTracksRef.current.clear();
 			activeTurnRef.current = null;
 			clockRef.current?.stop();
 			engine.stop();
 			engine.setPhonemes({ phonemes: [], duration: 0 });
+			const audio = audioRef.current;
+			if (audio) {
+				audio.pause();
+				audio.removeAttribute("src");
+				audio.load();
+				audio.remove();
+				audioRef.current = null;
+			}
 		};
 	}, [
 		applyPacket,
