@@ -34,6 +34,7 @@ const SPATIALWALK_CDN_HOSTS = new Set([
 const LOCAL_FLAME_SDK_BASE = "/spatialreal/sdk";
 const UNIFIED_MODEL_PATH = "unified_model_body.pb.gz";
 
+/** Pack files shared by every OptiModel avatar (compressed GS is per-avatar). */
 const PREFETCH_FILES = [
 	"character.json",
 	"model_info.json",
@@ -41,8 +42,6 @@ const PREFETCH_FILES = [
 	"idle.pb",
 	"idle.frame0.json",
 	"point_cloud_low.ply",
-	"point_cloud_low.csplat.gz",
-	"point_cloud_low.ply.gz",
 ] as const;
 
 type SpatiusAvatarKit = typeof import("@spatius/avatarkit");
@@ -311,6 +310,8 @@ function assetUrlsFor(avatarId: string | null | undefined): string[] {
 	const asset = getOptiModelAsset(avatarId);
 	const base = `/spatialreal/${asset.dir}`;
 	const urls = PREFETCH_FILES.map((file) => `${base}/${file}`);
+	// Only the format that exists for this pack (samira: csplat.gz, sanjay: ply.gz).
+	urls.push(`${base}/${asset.compressedGs}`);
 	urls.push(`/spatialreal-api/v2/avatar/${asset.characterId}`);
 	// Required by AvatarSDK.initialize (flame template) — must be same-origin.
 	urls.push(`${LOCAL_FLAME_SDK_BASE}/${UNIFIED_MODEL_PATH}`);
