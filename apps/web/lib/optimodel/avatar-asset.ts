@@ -81,6 +81,42 @@ export function toAvatarAsset(
 	};
 }
 
+/**
+ * Force remotes to path-absolute `/spatialreal/...` so the browser always
+ * resolves against the page origin (never Docker/`NEXT_PUBLIC_SITE_URL`
+ * localhost, which becomes ERR_CONNECTION_REFUSED in production).
+ */
+export function relativizeRemotes(node: unknown): unknown {
+	if (!node || typeof node !== "object") return node;
+	if (Array.isArray(node)) return node.map((n) => relativizeRemotes(n));
+	const out: Record<string, unknown> = {};
+	for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+		if (k === "remote" && typeof v === "string") {
+			out[k] = toPathAbsoluteRemote(v);
+		} else {
+			out[k] = relativizeRemotes(v);
+		}
+	}
+	return out;
+}
+
+function toPathAbsoluteRemote(remote: string): string {
+	if (remote.startsWith("/")) return remote;
+	try {
+		const parsed = new URL(remote);
+		if (
+			parsed.pathname.startsWith("/spatialreal/") ||
+			parsed.pathname.startsWith("/spatialreal-api/")
+		) {
+			return `${parsed.pathname}${parsed.search}`;
+		}
+	} catch {
+		/* keep original */
+	}
+	return remote;
+}
+
+/** @deprecated Prefer path-absolute remotes via {@link relativizeRemotes}. */
 export function absolutizeRemotes(node: unknown, origin: string): unknown {
 	if (!node || typeof node !== "object") return node;
 	if (Array.isArray(node)) return node.map((n) => absolutizeRemotes(n, origin));

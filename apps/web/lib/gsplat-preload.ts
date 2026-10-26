@@ -17,7 +17,8 @@
 
 import { getOptiModelAsset } from "@/lib/stock-avatars";
 
-const OPTIMODEL_CACHE_NAME = "optimind-optimodel-assets-v1";
+/** Bump when cached API JSON may still embed unreachable localhost remotes. */
+const OPTIMODEL_CACHE_NAME = "optimind-optimodel-assets-v2";
 const LOCAL_API = "/spatialreal-api";
 const LOCAL_TOKEN = "local-offline";
 const LOCAL_APP_ID = "local-offline";
@@ -29,6 +30,9 @@ const SPATIALWALK_CDN_HOSTS = new Set([
 	"cdn.spatialwalk.cloud",
 	"cdn.spatialwalk.top",
 ]);
+
+/** Docker / misconfigured SITE_URL origins that must never be fetched from the browser. */
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "[::1]"]);
 
 /** Same-origin stand-in for SpatialWalk CDN `/public/...` assets. */
 const LOCAL_FLAME_SDK_BASE = "/spatialreal/sdk";
@@ -81,11 +85,12 @@ function isOptiModelAssetUrl(url: string): boolean {
 }
 
 /**
- * Map Spatius flame CDN URLs onto our public pack so COEP require-corp
- * pages never hit cdn.spatialwalk hosts (no CORP → blocked).
+ * Normalize OptiModel asset URLs onto the page origin:
+ * - Spatius flame CDN → `/spatialreal/sdk/*` (COEP require-corp)
+ * - `https://localhost:3000/spatialreal/...` from stale API/cache → same-origin
  *
- * Example: cdn.spatialwalk.cloud .../unified_model_body.pb.gz
- * becomes /spatialreal/sdk/unified_model_body.pb.gz
+ * Absolute localhost remotes must be rewritten: `new URL(absolute)` ignores
+ * the page origin, so fetch would hit the user's machine (ERR_CONNECTION_REFUSED).
  */
 function rewriteOptiModelUrl(url: string): string {
 	try {
@@ -96,6 +101,14 @@ function rewriteOptiModelUrl(url: string): string {
 		) {
 			const file = parsed.pathname.slice("/public/".length);
 			return `${window.location.origin}${LOCAL_FLAME_SDK_BASE}/${file}`;
+		}
+		const path = parsed.pathname;
+		if (
+			LOOPBACK_HOSTS.has(parsed.hostname) &&
+			(path.startsWith("/spatialreal/") ||
+				path.startsWith("/spatialreal-api/"))
+		) {
+			return `${window.location.origin}${path}${parsed.search}`;
 		}
 	} catch {
 		/* keep original */

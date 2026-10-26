@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
-import { toAvatarAsset } from "@/lib/optimodel/avatar-asset";
+import {
+	relativizeRemotes,
+	toAvatarAsset,
+} from "@/lib/optimodel/avatar-asset";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,10 +57,9 @@ export async function GET(
 			string,
 			unknown
 		>;
-		// Keep remotes path-absolute (`/spatialreal/...`). Absolutizing against
-		// req.url / NEXT_PUBLIC_SITE_URL emits https://localhost:3000/... in
-		// Docker and the browser gets ERR_CONNECTION_REFUSED.
-		const payload = toAvatarAsset(meta, entry.dir);
+		// Always path-absolute (`/spatialreal/...`). Never emit
+		// https://localhost:3000/... — Docker/SITE_URL absolutizing breaks prod.
+		const payload = relativizeRemotes(toAvatarAsset(meta, entry.dir));
 
 		return NextResponse.json(payload, {
 			headers: { "Cache-Control": "no-store" },
