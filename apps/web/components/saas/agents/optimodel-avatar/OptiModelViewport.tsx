@@ -1,17 +1,14 @@
 "use client";
 
 import {
-	arkitSpeechEnergy,
 	cloneKeyframe,
-	createDefaultArkitFlameProcessor,
 	normalizeKeyframe,
-	SILENCE_ENERGY_THRESH,
 	zeroKeyframe,
 	type FlameKeyframe,
 } from "@repo/arkit-flame";
 import { cn } from "@repo/ui/utils";
 import { useEffect, useRef } from "react";
-import type { ARKitLipSyncEngine } from "@/lib/arkit-lipsync/engine/ARKitLipSyncEngine";
+import type { FlameFeed } from "@/lib/optimodel/flame-feed";
 import {
 	IDLE_SPEED_DEFAULT,
 	startIdleLoop,
@@ -32,7 +29,17 @@ import {
 	waitForOptiModelWarmupIdle,
 	warmOptiModelRuntime,
 } from "@/lib/gsplat-preload";
+import {
+	lipsyncMark,
+	RenderStats,
+} from "@/lib/optimodel/lipsync-metrics";
 import { getOptiModelAsset } from "@/lib/stock-avatars";
+
+/** Idle render cadence (fps-matched to the 25fps clip) vs while speech is driving the mouth. */
+const IDLE_RENDER_INTERVAL_MS = 1000 / 25;
+const SPEAKING_RENDER_INTERVAL_MS = 1000 / 50;
+/** Worker speech gate (0..1) above which the mouth is driven by speech. */
+const FLAME_GATE_SPEAKING = 0.35;
 
 type AvatarViewHandle = {
 	dispose: () => void;
@@ -52,40 +59,29 @@ type AvatarViewHandle = {
 };
 
 type Props = {
-	engine: ARKitLipSyncEngine;
+	/** Worker-generated FLAME frames for the current speech turn. */
+	flameFeed: FlameFeed;
 	/** Catalog id (`samira` | `sanjay`). */
 	avatarId?: string | null;
-	audioRef?: React.RefObject<HTMLAudioElement | null>;
-	getTime?: () => number;
-	driveEngine?: boolean;
 	onStatus?: (msg: string) => void;
 	className?: string;
 };
 
 /**
  * OptiModel stage: SpatialReal Gaussian avatar (local Spatius host mode)
- * driven by LiveKit ARKit lipsync → FLAME speech overlay.
+ * driven by worker-generated FLAME frames → speech overlay.
  */
 export function OptiModelViewport({
-	engine,
+	flameFeed,
 	avatarId = "samira",
-	audioRef,
-	getTime,
-	driveEngine = true,
 	onStatus,
 	className,
 }: Props) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const engineRef = useRef(engine);
-	const audioRefProp = useRef(audioRef);
-	const getTimeRef = useRef(getTime);
-	const driveEngineRef = useRef(driveEngine);
+	const flameFeedRef = useRef(flameFeed);
 	const onStatusRef = useRef(onStatus);
 
-	engineRef.current = engine;
-	audioRefProp.current = audioRef;
-	getTimeRef.current = getTime;
-	driveEngineRef.current = driveEngine;
+	flameFeedRef.current = flameFeed;
 	onStatusRef.current = onStatus;
 
 	const asset = getOptiModelAsset(avatarId);
@@ -100,11 +96,10 @@ export function OptiModelViewport({
 		let idle: IdleLoopHandle | null = null;
 		let core: AvatarCoreLike | null = null;
 		let raf = 0;
-		let lastWall = performance.now() / 1000;
 		let speaking = false;
 		const overlay = new SpeechOverlayController();
-		const processor = createDefaultArkitFlameProcessor();
 		const viewReady = { current: false };
+		const stats = new RenderStats();
 
 		const stopIdle = () => {
 			idle?.stop();
@@ -113,8 +108,10 @@ export function OptiModelViewport({
 
 		const renderMerged = async (idleKf: FlameKeyframe) => {
 			if (!view || !viewReady.current || cancelled) return;
+			const t0 = performance.now();
 			try {
 				await view.renderFlame(overlay.composite(idleKf), false);
+				stats.rendered(performance.now() - t0);
 			} catch (e) {
 				onStatusRef.current?.(
 					e instanceof Error ? e.message : String(e),
@@ -136,6 +133,11 @@ export function OptiModelViewport({
 				characterId: viewCharacterId,
 				animationInfo,
 				getPlaybackRate: () => IDLE_SPEED_DEFAULT,
+				getRenderIntervalMs: () =>
+					speaking
+						? SPEAKING_RENDER_INTERVAL_MS
+						: IDLE_RENDER_INTERVAL_MS,
+				onTickSkipped: () => stats.skip(),
 				renderFrame: async (kf) => {
 					await renderMerged(kf);
 				},
@@ -149,34 +151,19 @@ export function OptiModelViewport({
 		};
 
 		const driveLoop = () => {
-			const now = performance.now() / 1000;
-			const dt = Math.max(1e-4, Math.min(0.1, now - lastWall));
-			lastWall = now;
-
-			const eng = engineRef.current;
-			if (driveEngineRef.current) {
-				const external = getTimeRef.current;
-				const audio = audioRefProp.current?.current;
-				const playhead =
-					typeof external === "function"
-						? external()
-						: audio
-							? audio.currentTime
-							: eng.getPlayhead();
-				eng.update(playhead);
-			}
-
-			const weights = eng.getActiveWeights();
-			const kf = processor.push(weights, dt);
-			const energy = arkitSpeechEnergy(weights);
-			if (energy >= SILENCE_ENERGY_THRESH) {
+			stats.loop();
+			const sample = flameFeedRef.current.sample();
+			if (sample && sample.gate >= FLAME_GATE_SPEAKING) {
+				if (!speaking) {
+					lipsyncMark("first-mouth-frame");
+				}
 				speaking = true;
-				overlay.setSpeech(speechOverlayFromFlame(kf));
+				overlay.setSpeech(speechOverlayFromFlame(sample.keyframe));
 			} else if (speaking) {
 				speaking = false;
 				overlay.setSpeech(null);
 			}
-
+			stats.flush(speaking);
 			raf = requestAnimationFrame(driveLoop);
 		};
 

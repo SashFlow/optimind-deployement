@@ -43,7 +43,14 @@ type StartIdleLoopOptions = {
 	/** Required — pass the idle clip from loadAdditionalAnimation. */
 	animationInfo: AnimationInfo;
 	getPlaybackRate: () => number;
+	/**
+	 * Minimum ms between renders. Decoupled from playback rate so the speech
+	 * overlay isn't throttled by slow idle playback. Defaults to 1000 / IDLE_FPS.
+	 */
+	getRenderIntervalMs?: () => number;
 	renderFrame: (keyframe: FlameKeyframe) => Promise<void>;
+	/** Called when a tick is dropped because the previous render is still running. */
+	onTickSkipped?: () => void;
 	onError?: (error: unknown) => void;
 };
 
@@ -60,9 +67,8 @@ function clampRate(rate: number): number {
 export function startIdleLoop(options: StartIdleLoopOptions): IdleLoopHandle {
 	let stopped = false;
 	let raf = 0;
-	let frameIndex = 0;
-	let lastTick = performance.now();
-	let accumMs = 0;
+	let framePos = 0;
+	let lastRenderAt = performance.now();
 	let inFlight = false;
 	let consecutiveErrors = 0;
 	const baseIntervalMs = 1000 / IDLE_FPS;
@@ -72,22 +78,26 @@ export function startIdleLoop(options: StartIdleLoopOptions): IdleLoopHandle {
 		if (stopped) return;
 		raf = requestAnimationFrame(tick);
 
-		const dt = Math.max(0, Math.min(100, now - lastTick));
-		lastTick = now;
-		if (inFlight) return;
+		if (inFlight) {
+			options.onTickSkipped?.();
+			return;
+		}
+		const interval = options.getRenderIntervalMs?.() ?? baseIntervalMs;
+		const elapsed = now - lastRenderAt;
+		// 1ms slack so rAF jitter doesn't push a render to the next vsync.
+		if (elapsed < interval - 1) return;
+		lastRenderAt = now;
 
-		const rate = clampRate(options.getPlaybackRate());
-		accumMs += dt * rate;
-
-		if (accumMs < baseIntervalMs) return;
-		accumMs -= baseIntervalMs;
-		if (accumMs > baseIntervalMs) accumMs = 0;
+		// Idle clip position advances by wall time * rate, independent of render cadence.
+		framePos +=
+			(Math.min(100, elapsed) / 1000) *
+			IDLE_FPS *
+			clampRate(options.getPlaybackRate());
 
 		const core = options.getCore();
 		if (!core || total <= 0) return;
 
-		const index = frameIndex % total;
-		frameIndex = index + 1;
+		const index = Math.floor(framePos) % total;
 		inFlight = true;
 
 		void (async () => {

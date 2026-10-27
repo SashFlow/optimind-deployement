@@ -734,8 +734,8 @@ export function PreviewSessionControls({
 				</DialogContent>
 			</Dialog>
 
-			{/* OptiModel (arkit) lipsync is muted-attach only — RoomAudioRenderer
-			    owns audible agent TTS so Join unlocks playback like every other provider. */}
+			{/* SpatialReal: SDK owns avatar-worker audio. Everything else
+			    (including OptiModel/arkit) plays through the stock renderer. */}
 			{isSpatialReal ? <SpatialRealSafeRoomAudio /> : <RoomAudioRenderer />}
 		</div>
 	);

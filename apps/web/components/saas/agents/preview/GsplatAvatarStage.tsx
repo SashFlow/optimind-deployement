@@ -8,8 +8,9 @@ import { OptiModelViewport } from "@/components/saas/agents/optimodel-avatar/Opt
 import { useGsplatLipsync } from "@/hooks/useGsplatLipsync";
 
 /**
- * Client-rendered OptiModel (SpatialReal) avatar with ARKit→FLAME lipsync
- * driven by LiveKit `avatar.lipsync` data packets.
+ * Client-rendered OptiModel (SpatialReal) avatar. The voice worker generates
+ * the FLAME lipsync frames (`avatar.flame`); agent audio plays through the
+ * regular LiveKit audio renderer.
  */
 export default function GsplatAvatarStage({
 	room,
@@ -22,7 +23,7 @@ export default function GsplatAvatarStage({
 	compact?: boolean;
 	className?: string;
 }) {
-	const { engine, audioRef, getTime } = useGsplatLipsync(room);
+	const { flameFeed } = useGsplatLipsync(room);
 	const [status, setStatus] = useState<string | null>(null);
 	const failed = Boolean(status?.startsWith("renderer failed"));
 
@@ -52,11 +53,8 @@ export default function GsplatAvatarStage({
 	return (
 		<div className={cn("relative size-full min-h-0 bg-white", className)}>
 			<OptiModelViewport
-				engine={engine}
+				flameFeed={flameFeed}
 				avatarId={avatarId}
-				audioRef={audioRef}
-				getTime={getTime}
-				driveEngine
 				className="size-full"
 				onStatus={setStatus}
 			/>
