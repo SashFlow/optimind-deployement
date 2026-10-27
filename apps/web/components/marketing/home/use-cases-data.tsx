@@ -59,46 +59,46 @@ export const useCases: UseCase[] = [
 			},
 		],
 	},
-	// {
-	// 	id: "mer-calls",
-	// 	category: "04 — MER Calls",
-	// 	title: "Make Medical Examination Calls Consistent at Scale",
-	// 	snippet:
-	// 		"Automate pre-issuance Medical Examination Report calls with voice AI trained around insurance underwriting workflows, health information needs, and clear escalation paths.",
-	// 	image: "/images/use-case/MER_call.webp",
-	// 	blogHref: "/blog/mer-calls",
-	// 	youtubeId: "sarJODBT628",
-	// 	sections: [
-	// 		{
-	// 			heading: "A critical step before policy issuance",
-	// 			paragraphs: [
-	// 				"MER calls help insurers collect and verify health information before a policy is issued. These conversations typically cover identity and policy verification, personal medical history, lifestyle and habits, family medical history, and occupation and physical vitals.",
-	// 				"Optimind turns this structured process into a natural voice conversation—without relying on a generic script.",
-	// 			],
-	// 		},
-	// 		{
-	// 			heading: "Built for the MER workflow",
-	// 			paragraphs: [
-	// 				"Optimind's voice AI can be trained around the terminology, questioning patterns, decision paths, and information requirements specific to medical examination calls.",
-	// 				"By training on multiple real and representative recordings, the model can better understand how applicants actually respond, including variations in language and conversation flow.",
-	// 			],
-	// 		},
-	// 		{
-	// 			heading: "Consistent at every volume",
-	// 			paragraphs: [
-	// 				"Every call can follow the same required workflow and communication standards, helping insurers maintain consistency across large volumes while still keeping the interaction natural and empathetic.",
-	// 				"When application volumes spike, Optimind can scale calling capacity on demand, without requiring teams to proportionally increase manual calling resources.",
-	// 			],
-	// 		},
-	// 		{
-	// 			heading: "Less manual effort, more underwriting focus",
-	// 			paragraphs: [
-	// 				"Optimind handles repetitive MER conversations and captures structured responses, allowing teams to spend more time on exceptions, escalations, and underwriting decisions.",
-	// 				"With a pay-as-you-go model, insurers can scale voice operations with demand—making the process more efficient, consistent, and scalable from everyday volumes to peak periods.",
-	// 			],
-	// 		},
-	// 	],
-	// },
+	{
+		id: "mer-calls",
+		category: "04 — MER Calls",
+		title: "Make Medical Examination Calls Consistent at Scale",
+		snippet:
+			"Automate pre-issuance Medical Examination Report calls with voice AI trained around insurance underwriting workflows, health information needs, and clear escalation paths.",
+		image: "/images/use-case/MER_call.webp",
+		blogHref: "/blog/mer-calls",
+		youtubeId: "pnXVN_e7f2k",
+		sections: [
+			{
+				heading: "A critical step before policy issuance",
+				paragraphs: [
+					"MER calls help insurers collect and verify health information before a policy is issued. These conversations typically cover identity and policy verification, personal medical history, lifestyle and habits, family medical history, and occupation and physical vitals.",
+					"Optimind turns this structured process into a natural voice conversation—without relying on a generic script.",
+				],
+			},
+			{
+				heading: "Built for the MER workflow",
+				paragraphs: [
+					"Optimind's voice AI can be trained around the terminology, questioning patterns, decision paths, and information requirements specific to medical examination calls.",
+					"By training on multiple real and representative recordings, the model can better understand how applicants actually respond, including variations in language and conversation flow.",
+				],
+			},
+			{
+				heading: "Consistent at every volume",
+				paragraphs: [
+					"Every call can follow the same required workflow and communication standards, helping insurers maintain consistency across large volumes while still keeping the interaction natural and empathetic.",
+					"When application volumes spike, Optimind can scale calling capacity on demand, without requiring teams to proportionally increase manual calling resources.",
+				],
+			},
+			{
+				heading: "Less manual effort, more underwriting focus",
+				paragraphs: [
+					"Optimind handles repetitive MER conversations and captures structured responses, allowing teams to spend more time on exceptions, escalations, and underwriting decisions.",
+					"With a pay-as-you-go model, insurers can scale voice operations with demand—making the process more efficient, consistent, and scalable from everyday volumes to peak periods.",
+				],
+			},
+		],
+	},
 	{
 		id: "health-reports",
 		category: "01 — Health Reports",
