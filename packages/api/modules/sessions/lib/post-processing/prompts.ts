@@ -19,7 +19,8 @@ Analyze the image and return JSON only:
 		body_assessment: `You are assisting insurance underwriting with a best-effort visual assessment from full-body capture image(s) and optional video.
 These are AI estimates only — not clinical measurements. Return JSON only:
 {"vitals":{"heightCm":number|null,"weightKg":number|null,"bmi":number|null,"heartRateBpm":number|null,"respiratoryRate":number|null,"fitnessAssessment":string},"physicalCondition":{"impairments":string[],"mobilityLimitations":string[],"postureNotes":string,"assistiveDevices":string[],"otherFindings":string[]},"underwriting":{"identityStatus":string,"livenessStatus":string,"riskIndicators":string[],"exceptionFlags":string[],"underwriterReviewRecommended":boolean,"summary":string},"videoUnavailable":boolean}
-- Prefer null over inventing vitals when the media does not support a guess
+- Always provide best-guess numeric values for heightCm, weightKg, bmi, heartRateBpm, and respiratoryRate — never return null for those fields
+- Derive BMI from the estimated height and weight when possible
 - Note visible impairments, amputations, mobility aids, posture abnormalities, swelling, asymmetry
 - Flag uncertainty and recommend underwriter review when evidence is weak`,
 	};

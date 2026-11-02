@@ -18,6 +18,8 @@ import {
 	DownloadIcon,
 	ExternalLinkIcon,
 	FileAudioIcon,
+	FileIcon,
+	FileTextIcon,
 	FileVideoIcon,
 	LoaderCircleIcon,
 	MessageSquareTextIcon,
@@ -768,52 +770,116 @@ export function SessionMemoriesPanel({ session }: { session: SessionDetail }) {
 	);
 }
 
+function isImageFile(type: string, name: string) {
+	if (type.startsWith("image/")) {
+		return true;
+	}
+	return /\.(png|jpe?g|webp|gif|bmp|avif)(\?|#|$)/i.test(name);
+}
+
+function isVideoFile(type: string, name: string) {
+	if (type.startsWith("video/")) {
+		return true;
+	}
+	return /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(name);
+}
+
+function isAudioFile(type: string, name: string) {
+	if (type.startsWith("audio/")) {
+		return true;
+	}
+	return /\.(mp3|wav|m4a|aac|ogg|flac)(\?|#|$)/i.test(name);
+}
+
+function isPdfFile(type: string, name: string) {
+	return type === "application/pdf" || /\.pdf(\?|#|$)/i.test(name);
+}
+
+function fileTypeIcon(type: string, name: string) {
+	if (isVideoFile(type, name)) {
+		return FileVideoIcon;
+	}
+	if (isAudioFile(type, name)) {
+		return FileAudioIcon;
+	}
+	if (isPdfFile(type, name)) {
+		return FileTextIcon;
+	}
+	return FileIcon;
+}
+
+function SessionFilePreview({
+	file,
+}: {
+	file: NonNullable<SessionDetail["files"]>[number];
+}) {
+	const url = file.downloadUrl ?? undefined;
+	const sizeLabel = formatBytes(file.size);
+	const image = isImageFile(file.type, file.name);
+	const TypeIcon = fileTypeIcon(file.type, file.name);
+
+	return (
+		<div className="overflow-hidden rounded-2xl border border-border/70 bg-linear-to-b from-background to-muted/20 shadow-sm">
+			<div className="relative flex min-h-48 items-center justify-center bg-muted/40">
+				{url && image ? (
+					// Signed object URL from session storage; next/image is not suitable.
+					// eslint-disable-next-line @next/next/no-img-element
+					// biome-ignore lint/performance/noImgElement: signed S3 URL
+					<img
+						src={url}
+						alt={file.name}
+						className="max-h-72 w-full object-contain"
+					/>
+				) : (
+					<span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+						<TypeIcon className="size-6" />
+					</span>
+				)}
+			</div>
+			<div className="flex items-center gap-3 border-t border-border/50 px-3 py-2.5">
+				<div className="min-w-0 flex-1">
+					<p className="truncate text-sm font-medium">{file.name}</p>
+					<p className="text-xs text-muted-foreground">
+						{[file.type || "file", sizeLabel]
+							.filter(Boolean)
+							.join(" · ")}
+					</p>
+				</div>
+				{url ? (
+					<a
+						href={url}
+						download={file.name}
+						target="_blank"
+						rel="noreferrer"
+						className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+						aria-label={`Download ${file.name}`}
+					>
+						<DownloadIcon className="size-3.5" />
+					</a>
+				) : null}
+			</div>
+		</div>
+	);
+}
+
 export function SessionFilesPanel({ session }: { session: SessionDetail }) {
 	const files = session.files ?? [];
 
 	return (
 		<div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-6">
-			<Card className="shadow-xs">
-				<CardHeader>
-					<CardTitle className="text-base font-bold leading-none">
-						Files
-					</CardTitle>
-				</CardHeader>
-				<CardContent className="text-sm">
-					{files.length > 0 ? (
-						<ul className="space-y-2">
-							{files.map((file) => (
-								<li
-									key={file.id}
-									className="flex items-center gap-2"
-								>
-									{file.downloadUrl ? (
-										<a
-											href={file.downloadUrl}
-											target="_blank"
-											rel="noreferrer"
-											className="truncate font-medium underline-offset-2 hover:underline"
-										>
-											{file.name}
-										</a>
-									) : (
-										<span className="truncate font-medium">
-											{file.name}
-										</span>
-									)}
-									<span className="shrink-0 text-xs text-muted-foreground">
-										{formatBytes(file.size)}
-									</span>
-								</li>
-							))}
-						</ul>
-					) : (
-						<p className="text-muted-foreground">
-							No files from this session.
-						</p>
-					)}
-				</CardContent>
-			</Card>
+			{files.length > 0 ? (
+				<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+					{files.map((file) => (
+						<SessionFilePreview key={file.id} file={file} />
+					))}
+				</div>
+			) : (
+				<Card className="shadow-xs">
+					<CardContent className="py-10 text-center text-sm text-muted-foreground">
+						No files from this session.
+					</CardContent>
+				</Card>
+			)}
 		</div>
 	);
 }
