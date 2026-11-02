@@ -967,7 +967,6 @@ export function SessionPostProcessingPanel({
 						</CardTitle>
 						<p className="mt-1 text-xs text-muted-foreground">
 							AI estimates only — not clinical measurements.
-							{result.model ? ` Model: ${result.model}` : null}
 						</p>
 					</div>
 					<div className="flex items-center gap-2">

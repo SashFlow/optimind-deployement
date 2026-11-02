@@ -1,0 +1,150 @@
+---
+title: User responses
+description: Python tools to save each Q&A during a call and upload User_response.json for the session.
+---
+
+Questionnaire agents (for example MER calls) should persist structured answers as they
+go, then upload a single JSON file when the interview is complete.
+
+Use two Python tools:
+
+| Tool | When to call | What it does |
+|------|----------------|--------------|
+| `save_answer` | After each clear user answer | Buffers one question + answer in session memory |
+| `submit_user_responses` | After the last question (or before ending the call) | Uploads `User_response.json` for the session end user |
+
+## Setup
+
+1. Create an org **Python tool** (Tools → Create Python tool).
+2. Paste the sample class below (both methods live in one tool pack).
+3. Attach that tool to the agent’s **on call** phase so the model can call them mid-session.
+4. Instruct the agent (system prompt) to call `save_answer` after every answer, and
+   `submit_user_responses` once all required questions are done.
+
+No Call Session toggle is required — these tools only need the worker API key and a
+session that has an end user (so file upload succeeds).
+
+## Flow
+
+```
+Agent asks question
+  → User answers
+  → save_answer(question, answer)   # buffer in host.records
+  → …repeat…
+  → submit_user_responses()
+       → POST /internal/sessions/{id}/files  (User_response.json)
+```
+
+### Uploaded file shape
+
+`submit_user_responses` uploads UTF-8 JSON named **`User_response.json`**:
+
+```json
+{
+  "generatedAt": "2026-11-03T00:00:00.000Z",
+  "count": 2,
+  "responses": [
+    { "question": "Do you smoke?", "answer": "No" },
+    { "question": "Any chronic conditions?", "answer": "Hypertension" }
+  ]
+}
+```
+
+The worker stores it as an end-user / session file
+(`POST /internal/sessions/{id}/files` — see [worker contract](/docs/sessions/worker-contract)).
+
+Post-processing PDFs may also attach a `User_response.json` built from
+`metadata.collectedData` or transcript pairs. Prefer these tools when you want an
+explicit, agent-curated Q&A file on the session.
+
+## Sample Python tool
+
+Paste into **Create Python Tool**. The worker injects `host`
+(`.ctx`, `.state`, `.agent`, `.records`, `.upload_file`).
+
+```python
+from livekit.agents import function_tool, RunContext
+from datetime import datetime, timezone
+import json
+
+
+class Tools:
+    def __init__(self, host):
+        self.host = host
+
+    @function_tool()
+    async def save_answer(self, question: str, answer: str) -> str:
+        """Save the current question and the user's answer.
+
+        Call immediately after the user gives a clear answer to one interview
+        question. Pass the question text you asked and the user's answer.
+        """
+        q = (question or "").strip()
+        a = (answer or "").strip()
+        if not q or not a:
+            return "error: both question and answer are required"
+
+        self.host.records.append({"question": q, "answer": a})
+        return f"Saved answer ({len(self.host.records)} total)."
+
+    @function_tool()
+    async def submit_user_responses(self, context: RunContext) -> str:
+        """Upload all saved Q&A pairs as User_response.json for this session.
+
+        Call once after the interview questions are complete (before ending the
+        call). Requires at least one prior save_answer call.
+        """
+        del context
+        records = list(self.host.records)
+        if not records:
+            return "error: no answers saved yet — call save_answer first"
+
+        payload = {
+            "generatedAt": datetime.now(timezone.utc).isoformat(),
+            "count": len(records),
+            "responses": [
+                {
+                    "question": str(item.get("question", "")),
+                    "answer": item.get("answer"),
+                }
+                for item in records
+                if isinstance(item, dict)
+            ],
+        }
+        body = json.dumps(payload, indent=2) + "\n"
+
+        result = await self.host.upload_file(
+            "User_response.json",
+            body,
+            content_type="application/json",
+            display_name="User_response.json",
+        )
+        if result is None:
+            return "error: failed to upload User_response.json"
+
+        return f"Uploaded User_response.json with {payload['count']} response(s)."
+```
+
+### Prompt guidance (optional)
+
+Add something like this to the agent instructions:
+
+```
+After each interview answer, call save_answer with the question you asked and the
+user's answer. When all required questions are done, call submit_user_responses
+once before wrapping up the call.
+```
+
+### How to test
+
+1. Create the Python tool pack and attach it to a preview/share agent.
+2. Join a web session that has an end user.
+3. Ask the agent a couple of interview questions and answer them.
+4. Confirm tool calls: `save_answer` then `submit_user_responses`.
+5. Open the session detail → files and verify `User_response.json`.
+
+## Related
+
+- [Worker contract](/docs/sessions/worker-contract) (end-user file upload)
+- Host helpers: `records`, `upload_file` in the voice worker `PythonToolHost`
+- Post-processing PDF attachment also named `User_response.json` (from collected data / transcript)

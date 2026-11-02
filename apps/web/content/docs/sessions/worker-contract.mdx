@@ -190,7 +190,9 @@ endpoint is involved. Unsupported conversation providers ignore the flag.
 
 ### End-user files
 
-Push any file produced during the session (documents, images, summaries) for the session's end user:
+Push any file produced during the session (documents, images, summaries) for the session's end user.
+Questionnaire agents can upload a curated `User_response.json` this way — see
+[User responses](/docs/sessions/user-responses).
 
 ```http
 POST /api/internal/sessions/{session_id}/files

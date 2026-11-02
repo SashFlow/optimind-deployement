@@ -5,7 +5,11 @@ import { classifySessionFiles, hasAnyCapture } from "./classify-files";
 import { downloadEndUserFile, downloadSessionRecording } from "./download";
 import { generateJsonFromMedia, hasGeminiApiKey } from "./gemini";
 import { resolvePostProcessingConfig } from "./prompts";
-import { buildPostProcessingPdf } from "./report-pdf";
+import {
+	buildPostProcessingPdf,
+	type ReportImage,
+	type UserResponseEntry,
+} from "./report-pdf";
 import type {
 	BodyAssessmentResult,
 	FaceLivenessResult,
@@ -145,6 +149,98 @@ async function mediaFromFile(
 	return { mimeType: mimeType || "image/jpeg", bytes };
 }
 
+function pushReportImage(
+	images: ReportImage[],
+	kind: ReportImage["kind"],
+	label: string,
+	media: MediaPart | null | undefined,
+) {
+	if (!media?.bytes?.byteLength) {
+		return;
+	}
+	images.push({
+		kind,
+		label,
+		bytes: media.bytes,
+		mimeType: media.mimeType,
+	});
+}
+
+function buildUserResponses(session: {
+	metadata?: unknown;
+	configSnapshot?: unknown;
+	transcript?: {
+		segments?: Array<{ role: string; text: string; sequence?: number }>;
+	} | null;
+}): UserResponseEntry[] {
+	const metadata = asRecord(session.metadata);
+	const collected = asRecord(metadata.collectedData);
+	const config = asRecord(session.configSnapshot);
+	const fieldsRaw = config.data_collection_fields;
+	const fields = Array.isArray(fieldsRaw) ? fieldsRaw : [];
+
+	const fromFields: UserResponseEntry[] = [];
+	const seenKeys = new Set<string>();
+
+	for (const field of fields) {
+		const record = asRecord(field);
+		const key = asString(record.key) || asString(record.name);
+		if (!key) {
+			continue;
+		}
+		seenKeys.add(key);
+		const label = asString(record.label) || key;
+		const description = asString(record.description);
+		fromFields.push({
+			key,
+			label,
+			question: description || label,
+			answer: key in collected ? collected[key] : null,
+		});
+	}
+
+	for (const [key, value] of Object.entries(collected)) {
+		if (seenKeys.has(key)) {
+			continue;
+		}
+		fromFields.push({
+			key,
+			label: key,
+			question: key,
+			answer: value,
+		});
+	}
+
+	if (fromFields.length > 0) {
+		return fromFields;
+	}
+
+	// Fallback: pair each assistant turn with the next user reply.
+	const segments = [...(session.transcript?.segments ?? [])].sort(
+		(a, b) => (a.sequence ?? 0) - (b.sequence ?? 0),
+	);
+	const pairs: UserResponseEntry[] = [];
+	let pendingQuestion: string | null = null;
+	for (const segment of segments) {
+		const text = segment.text?.trim();
+		if (!text) {
+			continue;
+		}
+		if (segment.role === "ASSISTANT") {
+			pendingQuestion = text;
+			continue;
+		}
+		if (segment.role === "USER" && pendingQuestion) {
+			pairs.push({
+				question: pendingQuestion,
+				answer: text,
+			});
+			pendingQuestion = null;
+		}
+	}
+	return pairs;
+}
+
 /**
  * Run capture post-processing for a completed session.
  * Idempotent while status is running/completed (unless retryForVideo).
@@ -228,43 +324,65 @@ export async function runPostProcessing(
 	};
 
 	try {
+		const reportImages: ReportImage[] = [];
+		let faceMedia: MediaPart | null = null;
+		let idCardMedia: MediaPart | null = null;
+		let idCardFullMedia: MediaPart | null = null;
+		let bodyStill: MediaPart | null = null;
+
 		if (classified.face) {
-			const media = [
-				await mediaFromFile(
-					classified.face.url,
-					classified.face.type || "image/jpeg",
-				),
-			];
+			faceMedia = await mediaFromFile(
+				classified.face.url,
+				classified.face.type || "image/jpeg",
+			);
+			pushReportImage(reportImages, "face", "Face capture", faceMedia);
 			result.face = parseFace(
 				await generateJsonFromMedia({
 					model: config.model,
 					prompt: config.prompts.face_liveness,
-					media,
+					media: [faceMedia],
 				}),
 			);
 		}
 
-		const idFile = classified.idCard ?? classified.idCardFull;
-		if (idFile) {
-			const media = [
-				await mediaFromFile(idFile.url, idFile.type || "image/jpeg"),
-			];
+		if (classified.idCard) {
+			idCardMedia = await mediaFromFile(
+				classified.idCard.url,
+				classified.idCard.type || "image/jpeg",
+			);
+			pushReportImage(reportImages, "id", "ID card", idCardMedia);
+		}
+		if (classified.idCardFull) {
+			idCardFullMedia = await mediaFromFile(
+				classified.idCardFull.url,
+				classified.idCardFull.type || "image/jpeg",
+			);
+			pushReportImage(
+				reportImages,
+				"id",
+				"ID card (full frame)",
+				idCardFullMedia,
+			);
+		}
+
+		const idAnalysisMedia = idCardMedia ?? idCardFullMedia;
+		if (idAnalysisMedia) {
 			result.idCard = parseIdCard(
 				await generateJsonFromMedia({
 					model: config.model,
 					prompt: config.prompts.id_extraction,
-					media,
+					media: [idAnalysisMedia],
 				}),
 			);
 		}
 
 		if (classified.body) {
-			const media: MediaPart[] = [
-				await mediaFromFile(
-					classified.body.url,
-					classified.body.type || "image/jpeg",
-				),
-			];
+			bodyStill = await mediaFromFile(
+				classified.body.url,
+				classified.body.type || "image/jpeg",
+			);
+			pushReportImage(reportImages, "body", "Body capture", bodyStill);
+			const media: MediaPart[] = [bodyStill];
 			const recording = await downloadSessionRecording(
 				session.egressJobs ?? [],
 			);
@@ -284,6 +402,9 @@ export async function runPostProcessing(
 			result.videoUnavailable = body.videoUnavailable;
 		}
 
+		// Re-fetch so collectedData / transcript that arrived during Gemini
+		// analysis are included in User_response.json.
+		const latestForReport = await getAgentSessionById(sessionId);
 		const pdf = await buildPostProcessingPdf({
 			sessionId: session.id,
 			agentName: session.agent?.name,
@@ -291,6 +412,8 @@ export async function runPostProcessing(
 			startedAt: session.startedAt,
 			endedAt: session.endedAt,
 			result,
+			images: reportImages,
+			userResponses: buildUserResponses(latestForReport ?? session),
 		});
 
 		const reportFile = await uploadEndUserBytes({
@@ -305,7 +428,8 @@ export async function runPostProcessing(
 		});
 		result.reportFileId = reportFile.id;
 
-		const latest = await getAgentSessionById(sessionId);
+		const latest =
+			latestForReport ?? (await getAgentSessionById(sessionId));
 		await persistResult(sessionId, asRecord(latest?.metadata), result);
 	} catch (error) {
 		const message =

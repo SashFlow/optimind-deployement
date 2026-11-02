@@ -5,6 +5,7 @@
 		"id-verification",
 		"face-capture",
 		"body-capture",
-		"otp-input"
+		"otp-input",
+		"user-responses"
 	]
 }
