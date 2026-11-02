@@ -24,6 +24,7 @@ import {
 	LoaderCircleIcon,
 	MessageSquareTextIcon,
 	RadioIcon,
+	RefreshCwIcon,
 	VideoIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -36,7 +37,10 @@ import {
 	DataTableTypeBadge,
 } from "@/components/saas/shared/StandardDataTable";
 import type { SessionDetail } from "./lib/hooks";
-import { useAgentSessionsQuery } from "./lib/hooks";
+import {
+	useAgentSessionsQuery,
+	useRerunPostProcessingMutation,
+} from "./lib/hooks";
 import { AssistantTranscriptThread } from "./transcript/AssistantTranscriptThread";
 import { sessionSegmentsToThreadMessages } from "./transcript/mapTranscriptMessages";
 
@@ -909,6 +913,36 @@ function PostProcessingStatusBadge({ status }: { status: string | undefined }) {
 	);
 }
 
+function formatMediaClock(ms: number | null | undefined) {
+	if (ms == null || !Number.isFinite(ms) || ms < 0) {
+		return null;
+	}
+	const totalSec = Math.floor(ms / 1000);
+	const m = Math.floor(totalSec / 60);
+	const s = totalSec % 60;
+	return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatTimedMediaFinding(finding: {
+	label: string;
+	detail: string;
+	startMs: number | null;
+	endMs: number | null;
+}) {
+	const start = formatMediaClock(finding.startMs);
+	const end = formatMediaClock(finding.endMs);
+	const stamp =
+		start && end && start !== end
+			? `[${start}–${end}] `
+			: start
+				? `[${start}] `
+				: "";
+	const body = finding.detail
+		? `${finding.label}: ${finding.detail}`
+		: finding.label;
+	return `${stamp}${body}`;
+}
+
 function DetailGrid({ entries }: { entries: Array<[string, unknown]> }) {
 	return (
 		<div className="grid gap-2 sm:grid-cols-2">
@@ -918,7 +952,7 @@ function DetailGrid({ entries }: { entries: Array<[string, unknown]> }) {
 					className="rounded-xl border border-border/70 px-3 py-2 text-sm shadow-xs"
 				>
 					<div className="text-xs text-muted-foreground">{key}</div>
-					<div className="font-medium break-words">
+					<div className="font-medium break-words whitespace-pre-wrap">
 						{value == null || value === ""
 							? "—"
 							: Array.isArray(value)
@@ -939,20 +973,55 @@ export function SessionPostProcessingPanel({
 	session: SessionDetail;
 }) {
 	const result = session.metadata?.postProcessing;
+	const rerunMutation = useRerunPostProcessingMutation();
+	const isRunning =
+		result?.status === "running" ||
+		result?.status === "pending" ||
+		rerunMutation.isPending;
 	const reportFile = result?.reportFileId
 		? session.files?.find((file) => file.id === result.reportFileId)
 		: session.files?.find(
 				(file) => file.name === "post-processing-report.pdf",
 			);
 
+	const regenerateButton = (
+		<Button
+			type="button"
+			variant="outline"
+			size="sm"
+			disabled={isRunning}
+			onClick={() => rerunMutation.mutate({ id: session.id })}
+		>
+			{isRunning ? (
+				<LoaderCircleIcon className="size-4 animate-spin" />
+			) : (
+				<RefreshCwIcon className="size-4" />
+			)}
+			Regenerate
+		</Button>
+	);
+
 	if (!result) {
 		return (
-			<div className="flex min-h-0 flex-1 items-center justify-center p-6">
-				<p className="text-sm text-muted-foreground">
-					No post-processing results for this session. Enable Post
-					Processing in Advanced agent settings to analyze face, ID,
-					and body captures after the call.
-				</p>
+			<div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3 md:p-6">
+				<Card className="shadow-xs">
+					<CardHeader className="flex-row items-center justify-between space-y-0">
+						<div>
+							<CardTitle className="text-base font-bold leading-none">
+								Post Processing
+							</CardTitle>
+							<p className="mt-1 text-xs text-muted-foreground">
+								No results yet. Regenerate after captures and
+								recordings are available.
+							</p>
+						</div>
+						{regenerateButton}
+					</CardHeader>
+					<CardContent className="text-sm text-muted-foreground">
+						Enable Post Processing in Advanced agent settings to
+						analyze face, ID, and body captures after the call.
+					</CardContent>
+				</Card>
 			</div>
 		);
 	}
@@ -967,10 +1036,15 @@ export function SessionPostProcessingPanel({
 						</CardTitle>
 						<p className="mt-1 text-xs text-muted-foreground">
 							AI estimates only — not clinical measurements.
+							{result.videoUnavailable ||
+							result.body?.videoUnavailable
+								? " Prior run had no session video."
+								: ""}
 						</p>
 					</div>
 					<div className="flex items-center gap-2">
 						<PostProcessingStatusBadge status={result.status} />
+						{regenerateButton}
 						{reportFile?.downloadUrl ? (
 							<Button
 								type="button"
@@ -1169,6 +1243,117 @@ export function SessionPostProcessingPanel({
 						</CardContent>
 					</Card>
 				</>
+			) : null}
+
+			{result.mediaIntegrity ? (
+				<Card className="shadow-xs">
+					<CardHeader>
+						<CardTitle className="text-base font-bold leading-none">
+							Media integrity
+						</CardTitle>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Gemini review of session audio/video with
+							timestamps when available.
+						</p>
+					</CardHeader>
+					<CardContent>
+						<DetailGrid
+							entries={[
+								[
+									"Media used",
+									[
+										result.mediaIntegrity.mediaAvailable
+											.userVideo
+											? "user video"
+											: null,
+										result.mediaIntegrity.mediaAvailable
+											.userAudio
+											? "user audio"
+											: null,
+										result.mediaIntegrity.mediaAvailable
+											.agentAudio
+											? "agent audio"
+											: null,
+									]
+										.filter(Boolean)
+										.join(", ") || "None",
+								],
+								[
+									"Audio issues",
+									result.mediaIntegrity.audioIssues.map(
+										formatTimedMediaFinding,
+									),
+								],
+								[
+									"Video issues",
+									result.mediaIntegrity.videoIssues.map(
+										formatTimedMediaFinding,
+									),
+								],
+								[
+									"Multiple voices",
+									result.mediaIntegrity.multipleVoices
+										.detected
+										? [
+												`Yes${
+													result.mediaIntegrity
+														.multipleVoices
+														.count != null
+														? ` (${result.mediaIntegrity.multipleVoices.count})`
+														: ""
+												}`,
+												...result.mediaIntegrity.multipleVoices.events.map(
+													formatTimedMediaFinding,
+												),
+											].join("\n")
+										: "No",
+								],
+								[
+									"Multiple users",
+									result.mediaIntegrity.multipleUsers
+										.detected
+										? [
+												`Yes${
+													result.mediaIntegrity
+														.multipleUsers.count !=
+													null
+														? ` (${result.mediaIntegrity.multipleUsers.count})`
+														: ""
+												}`,
+												...result.mediaIntegrity.multipleUsers.events.map(
+													formatTimedMediaFinding,
+												),
+											].join("\n")
+										: "No",
+								],
+								[
+									"Devices detected",
+									result.mediaIntegrity.deviceDetection
+										.devices,
+								],
+								[
+									"Device events",
+									result.mediaIntegrity.deviceDetection.events.map(
+										formatTimedMediaFinding,
+									),
+								],
+								[
+									"Device notes",
+									result.mediaIntegrity.deviceDetection
+										.summary,
+								],
+								[
+									"Underwriter review recommended",
+									result.mediaIntegrity
+										.underwriterReviewRecommended
+										? "Yes"
+										: "No",
+								],
+								["Summary", result.mediaIntegrity.summary],
+							]}
+						/>
+					</CardContent>
+				</Card>
 			) : null}
 		</div>
 	);

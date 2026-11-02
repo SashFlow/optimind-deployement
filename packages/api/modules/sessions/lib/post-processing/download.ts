@@ -11,6 +11,7 @@ import {
 import type { MediaPart } from "./types";
 
 const MAX_VIDEO_BYTES = 15 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 
 async function streamToBuffer(body: unknown): Promise<Buffer> {
 	if (!body) {
@@ -58,6 +59,18 @@ type EgressJobLike = {
 	type?: string;
 };
 
+function asRecord(value: unknown): Record<string, unknown> {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return {};
+	}
+	return value as Record<string, unknown>;
+}
+
+function trackRole(job: EgressJobLike): string | null {
+	const role = asRecord(job.metadata).role;
+	return typeof role === "string" ? role : null;
+}
+
 function createRecordingsS3Client() {
 	const cfg = getEgressS3Config();
 	if (!cfg) {
@@ -74,30 +87,47 @@ function createRecordingsS3Client() {
 	});
 }
 
-/**
- * Best-effort download of a playable room recording for body assessment.
- * Skips audio-only / oversized / incomplete egress.
- */
-export async function downloadSessionRecording(
-	jobs: EgressJobLike[],
-): Promise<MediaPart | null> {
-	const candidate = jobs.find(
-		(job) =>
-			job.status === "COMPLETE" &&
-			!isEgressAudioOnly(job) &&
-			(job.sizeBytes == null || job.sizeBytes <= MAX_VIDEO_BYTES),
-	);
-	if (!candidate) {
-		return null;
+/** Prefer merged room video, then user_video track, over any other non-audio egress. */
+function scoreVideoEgressJob(job: EgressJobLike): number {
+	if (job.status !== "COMPLETE" || isEgressAudioOnly(job)) {
+		return -1;
 	}
 	if (
-		typeof candidate.sizeBytes === "number" &&
-		candidate.sizeBytes > MAX_VIDEO_BYTES
+		typeof job.sizeBytes === "number" &&
+		job.sizeBytes > MAX_VIDEO_BYTES
+	) {
+		return -1;
+	}
+	const meta = asRecord(job.metadata);
+	const role = typeof meta.role === "string" ? meta.role : null;
+	const source = typeof meta.source === "string" ? meta.source : null;
+	if (source === "track_merge") {
+		return 100;
+	}
+	if (job.type === "ROOM_COMPOSITE") {
+		return 90;
+	}
+	if (role === "user_video") {
+		return 80;
+	}
+	if (job.type === "PARTICIPANT") {
+		return 50;
+	}
+	return 10;
+}
+
+async function downloadEgressJobBytes(
+	job: EgressJobLike,
+	maxBytes: number,
+): Promise<MediaPart | null> {
+	if (
+		typeof job.sizeBytes === "number" &&
+		job.sizeBytes > maxBytes
 	) {
 		return null;
 	}
 
-	const objectRef = await resolveEgressObjectRef(candidate);
+	const objectRef = await resolveEgressObjectRef(job);
 	const client = objectRef ? createRecordingsS3Client() : null;
 	if (objectRef && client) {
 		try {
@@ -108,9 +138,9 @@ export async function downloadSessionRecording(
 				}),
 			);
 			const bytes = await streamToBuffer(response.Body);
-			if (bytes.byteLength > 0 && bytes.byteLength <= MAX_VIDEO_BYTES) {
+			if (bytes.byteLength > 0 && bytes.byteLength <= maxBytes) {
 				return {
-					mimeType: inferEgressContentType(candidate, objectRef.key),
+					mimeType: inferEgressContentType(job, objectRef.key),
 					bytes,
 				};
 			}
@@ -119,11 +149,8 @@ export async function downloadSessionRecording(
 		}
 	}
 
-	const mimeType = inferEgressContentType(
-		candidate,
-		objectRef?.key ?? undefined,
-	);
-	const url = await resolveEgressPlayableUrl(candidate);
+	const mimeType = inferEgressContentType(job, objectRef?.key ?? undefined);
+	const url = await resolveEgressPlayableUrl(job);
 	if (!url) {
 		return null;
 	}
@@ -132,8 +159,74 @@ export async function downloadSessionRecording(
 		return null;
 	}
 	const bytes = Buffer.from(await response.arrayBuffer());
-	if (bytes.byteLength === 0 || bytes.byteLength > MAX_VIDEO_BYTES) {
+	if (bytes.byteLength === 0 || bytes.byteLength > maxBytes) {
 		return null;
 	}
 	return { mimeType, bytes };
+}
+
+/**
+ * Best-effort download of a playable room recording for body assessment.
+ * Skips audio-only / oversized / incomplete egress.
+ */
+export async function downloadSessionRecording(
+	jobs: EgressJobLike[],
+): Promise<MediaPart | null> {
+	const candidate = [...jobs]
+		.map((job) => ({ job, score: scoreVideoEgressJob(job) }))
+		.filter((row) => row.score >= 0)
+		.sort((a, b) => b.score - a.score)[0]?.job;
+	if (!candidate) {
+		return null;
+	}
+	return downloadEgressJobBytes(candidate, MAX_VIDEO_BYTES);
+}
+
+export type SessionMediaTracks = {
+	userVideo: MediaPart | null;
+	userAudio: MediaPart | null;
+	agentAudio: MediaPart | null;
+};
+
+function pickCompleteRole(
+	jobs: EgressJobLike[],
+	role: string,
+): EgressJobLike | null {
+	return (
+		jobs.find(
+			(job) => job.status === "COMPLETE" && trackRole(job) === role,
+		) ?? null
+	);
+}
+
+/**
+ * Download per-track egress media for Gemini media-integrity analysis.
+ * Prefers explicit track roles; falls back to best non-audio video for userVideo.
+ */
+export async function downloadSessionMediaTracks(
+	jobs: EgressJobLike[],
+): Promise<SessionMediaTracks> {
+	const userVideoJob =
+		pickCompleteRole(jobs, "user_video") ??
+		[...jobs]
+			.map((job) => ({ job, score: scoreVideoEgressJob(job) }))
+			.filter((row) => row.score >= 0)
+			.sort((a, b) => b.score - a.score)[0]?.job ??
+		null;
+	const userAudioJob = pickCompleteRole(jobs, "user_audio");
+	const agentAudioJob = pickCompleteRole(jobs, "agent_audio");
+
+	const [userVideo, userAudio, agentAudio] = await Promise.all([
+		userVideoJob
+			? downloadEgressJobBytes(userVideoJob, MAX_VIDEO_BYTES)
+			: Promise.resolve(null),
+		userAudioJob
+			? downloadEgressJobBytes(userAudioJob, MAX_AUDIO_BYTES)
+			: Promise.resolve(null),
+		agentAudioJob
+			? downloadEgressJobBytes(agentAudioJob, MAX_AUDIO_BYTES)
+			: Promise.resolve(null),
+	]);
+
+	return { userVideo, userAudio, agentAudio };
 }

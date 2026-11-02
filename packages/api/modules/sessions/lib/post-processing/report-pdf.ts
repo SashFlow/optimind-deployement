@@ -1,5 +1,5 @@
 import PDFDocument from "pdfkit";
-import type { PostProcessingResult } from "./types";
+import type { PostProcessingResult, TimedMediaFinding } from "./types";
 
 /* -------------------------------------------------------------------------- */
 /*  Brand                                                                     */
@@ -145,6 +145,38 @@ function formatDuration(start?: Date | string | null, end?: Date | string | null
 	const m = Math.floor(total / 60);
 	const s = total % 60;
 	return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function formatMediaClock(ms: number | null | undefined) {
+	if (ms == null || !Number.isFinite(ms) || ms < 0) {
+		return null;
+	}
+	const totalSec = Math.floor(ms / 1000);
+	const m = Math.floor(totalSec / 60);
+	const s = totalSec % 60;
+	return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatTimedFinding(finding: TimedMediaFinding) {
+	const start = formatMediaClock(finding.startMs);
+	const end = formatMediaClock(finding.endMs);
+	const stamp =
+		start && end && start !== end
+			? `[${start}–${end}] `
+			: start
+				? `[${start}] `
+				: "";
+	const body = finding.detail
+		? `${finding.label}: ${finding.detail}`
+		: finding.label;
+	return `${stamp}${body}`;
+}
+
+function formatTimedFindings(findings: TimedMediaFinding[]) {
+	if (findings.length === 0) {
+		return "—";
+	}
+	return findings.map(formatTimedFinding).join("\n");
 }
 
 function toneFromText(text: unknown): Tone {
@@ -973,6 +1005,103 @@ export async function buildPostProcessingPdf(args: {
 			],
 			summary: underwriting.summary,
 			images: takeImages("body"),
+		});
+	}
+
+	/* Media integrity ------------------------------------------------------- */
+	const mediaIntegrity = args.result.mediaIntegrity;
+	if (mediaIntegrity) {
+		const available = [
+			mediaIntegrity.mediaAvailable.userVideo ? "user video" : null,
+			mediaIntegrity.mediaAvailable.userAudio ? "user audio" : null,
+			mediaIntegrity.mediaAvailable.agentAudio ? "agent audio" : null,
+		]
+			.filter(Boolean)
+			.join(", ");
+
+		section(doc, {
+			title: "Media integrity",
+			tag: {
+				text: mediaIntegrity.underwriterReviewRecommended
+					? "REVIEW"
+					: "OK",
+				tone: mediaIntegrity.underwriterReviewRecommended
+					? "warn"
+					: "good",
+			},
+			rows: [
+				{ label: "Media used", value: available || "None" },
+				{
+					label: "Audio issues",
+					value: formatTimedFindings(mediaIntegrity.audioIssues),
+				},
+				{
+					label: "Video issues",
+					value: formatTimedFindings(mediaIntegrity.videoIssues),
+				},
+				{
+					label: "Multiple voices",
+					value: mediaIntegrity.multipleVoices.detected
+						? `Yes${
+								mediaIntegrity.multipleVoices.count != null
+									? ` (${mediaIntegrity.multipleVoices.count})`
+									: ""
+							}\n${formatTimedFindings(
+								mediaIntegrity.multipleVoices.events,
+							)}`
+						: "No",
+					tone: mediaIntegrity.multipleVoices.detected
+						? "warn"
+						: "good",
+				},
+				{
+					label: "Multiple users",
+					value: mediaIntegrity.multipleUsers.detected
+						? `Yes${
+								mediaIntegrity.multipleUsers.count != null
+									? ` (${mediaIntegrity.multipleUsers.count})`
+									: ""
+							}\n${formatTimedFindings(
+								mediaIntegrity.multipleUsers.events,
+							)}`
+						: "No",
+					tone: mediaIntegrity.multipleUsers.detected
+						? "warn"
+						: "good",
+				},
+				{
+					label: "Devices",
+					chips:
+						mediaIntegrity.deviceDetection.devices.length > 0
+							? mediaIntegrity.deviceDetection.devices
+							: undefined,
+					value:
+						mediaIntegrity.deviceDetection.devices.length > 0
+							? undefined
+							: "—",
+					chipTone: "neutral",
+				},
+				{
+					label: "Device events",
+					value: formatTimedFindings(
+						mediaIntegrity.deviceDetection.events,
+					),
+				},
+				{
+					label: "Device notes",
+					value: mediaIntegrity.deviceDetection.summary || "—",
+				},
+				{
+					label: "Review",
+					value: mediaIntegrity.underwriterReviewRecommended
+						? "Recommended"
+						: "Not required",
+					tone: mediaIntegrity.underwriterReviewRecommended
+						? "warn"
+						: "good",
+				},
+			],
+			summary: mediaIntegrity.summary,
 		});
 	}
 

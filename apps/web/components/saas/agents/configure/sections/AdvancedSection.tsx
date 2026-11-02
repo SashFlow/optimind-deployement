@@ -160,7 +160,7 @@ export function AdvancedSection({
 			<div className="px-4 py-4 md:px-5">
 				<ConfigureSectionToggle
 					title="Post Processing"
-					description="After a call ends, run Gemini multimodal analysis on face, ID, and body captures. Face / ID / body steps only run when those files were captured in the session."
+					description="After a call ends, run Gemini multimodal analysis on face, ID, body captures, and session audio/video integrity (issues, multiple voices/users, devices)."
 					checked={
 						config.session_modalities.post_processing.enabled ===
 						true
@@ -282,6 +282,40 @@ export function AdvancedSection({
 														.post_processing
 														.prompts,
 													body_assessment:
+														event.target.value,
+												},
+											},
+										},
+									})
+								}
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label
+								htmlFor="post-processing-media-integrity"
+								className="text-sm font-medium"
+							>
+								Media integrity prompt
+							</Label>
+							<Textarea
+								id="post-processing-media-integrity"
+								className="min-h-28 bg-background font-mono text-xs"
+								value={
+									config.session_modalities.post_processing
+										.prompts.media_integrity
+								}
+								onChange={(event) =>
+									onConfigChange({
+										session_modalities: {
+											...config.session_modalities,
+											post_processing: {
+												...config.session_modalities
+													.post_processing,
+												prompts: {
+													...config.session_modalities
+														.post_processing
+														.prompts,
+													media_integrity:
 														event.target.value,
 												},
 											},

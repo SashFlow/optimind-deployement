@@ -182,6 +182,11 @@ export function normalizeSessionModalities(
 						? postProcessingPromptsRaw.body_assessment
 						: DEFAULT_SESSION_MODALITIES.post_processing.prompts
 								.body_assessment,
+				media_integrity:
+					typeof postProcessingPromptsRaw.media_integrity === "string"
+						? postProcessingPromptsRaw.media_integrity
+						: DEFAULT_SESSION_MODALITIES.post_processing.prompts
+								.media_integrity,
 			},
 		},
 	};

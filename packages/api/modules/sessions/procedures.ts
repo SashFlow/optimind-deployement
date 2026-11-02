@@ -53,7 +53,10 @@ import {
 } from "./lib/end-user-files";
 import { ocrSessionIdCard } from "./lib/id-card-ocr";
 import { generateEndUserMemoriesSafe } from "./lib/memories";
-import { runPostProcessingSafe } from "./lib/post-processing";
+import {
+	maybeRetryPostProcessingForVideo,
+	runPostProcessingSafe,
+} from "./lib/post-processing";
 import {
 	isMetricsOnlyReport,
 	persistSessionArtifacts,
@@ -268,7 +271,12 @@ export const get = protectedProcedure
 		await requireOrgMembership(existing.organizationId, context.user.id);
 
 		await reconcileOpenEgressJobs(existing.egressJobs);
-		await backfillTrackEgressJobsFromStorage(existing);
+		const backfilled = await backfillTrackEgressJobsFromStorage(existing);
+		if (backfilled > 0) {
+			// Egress files existed without jobs (common local-fallback race);
+			// retry body analysis that previously ran without video.
+			void maybeRetryPostProcessingForVideo(input.id);
+		}
 		const session = (await getAgentSessionById(input.id)) ?? existing;
 
 		const egressJobs = await Promise.all(
@@ -1453,6 +1461,52 @@ export const startSessionEgress = protectedProcedure
 		}
 		await requireOrgMembership(session.organizationId, context.user.id);
 		return startEgressForSession(session, input.audioOnly, input.tracks);
+	});
+
+export const rerunPostProcessing = protectedProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/{id}/post-processing/rerun",
+		tags: ["Sessions"],
+		summary: "Re-run post-processing analysis for a session",
+	})
+	.input(z.object({ id: z.string() }))
+	.handler(async ({ input, context }) => {
+		const existing = await getAgentSessionById(input.id);
+		if (!existing) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		await requireOrgMembership(existing.organizationId, context.user.id);
+
+		await reconcileOpenEgressJobs(existing.egressJobs);
+		await backfillTrackEgressJobsFromStorage(existing);
+
+		const metadata =
+			existing.metadata &&
+			typeof existing.metadata === "object" &&
+			!Array.isArray(existing.metadata)
+				? (existing.metadata as Record<string, unknown>)
+				: {};
+		const current = metadata.postProcessing;
+		const currentStatus =
+			current &&
+			typeof current === "object" &&
+			!Array.isArray(current) &&
+			typeof (current as { status?: unknown }).status === "string"
+				? (current as { status: string }).status
+				: null;
+		if (currentStatus === "running") {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Post-processing is already running for this session",
+			});
+		}
+
+		void runPostProcessingSafe(input.id, { force: true });
+
+		return {
+			ok: true as const,
+			status: "running" as const,
+		};
 	});
 
 export const end = protectedProcedure

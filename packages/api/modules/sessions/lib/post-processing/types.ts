@@ -51,6 +51,42 @@ export type BodyAssessmentResult = {
 	videoUnavailable?: boolean;
 };
 
+/** Timed observation from Gemini media integrity review (ms from media start). */
+export type TimedMediaFinding = {
+	label: string;
+	detail: string;
+	startMs: number | null;
+	endMs: number | null;
+	severity: "info" | "warn" | "high";
+};
+
+export type MediaIntegrityResult = {
+	audioIssues: TimedMediaFinding[];
+	videoIssues: TimedMediaFinding[];
+	multipleVoices: {
+		detected: boolean;
+		count: number | null;
+		events: TimedMediaFinding[];
+	};
+	multipleUsers: {
+		detected: boolean;
+		count: number | null;
+		events: TimedMediaFinding[];
+	};
+	deviceDetection: {
+		devices: string[];
+		events: TimedMediaFinding[];
+		summary: string;
+	};
+	mediaAvailable: {
+		userVideo: boolean;
+		userAudio: boolean;
+		agentAudio: boolean;
+	};
+	summary: string;
+	underwriterReviewRecommended: boolean;
+};
+
 export type PostProcessingResult = {
 	status: PostProcessingStatus;
 	startedAt?: string;
@@ -60,6 +96,7 @@ export type PostProcessingResult = {
 	face?: FaceLivenessResult;
 	idCard?: IdExtractionResult;
 	body?: BodyAssessmentResult;
+	mediaIntegrity?: MediaIntegrityResult;
 	reportFileId?: string;
 	/** Prior run used stills only; allow one retry when egress video becomes ready. */
 	videoUnavailable?: boolean;
@@ -72,6 +109,7 @@ export type PostProcessingConfig = {
 		face_liveness: string;
 		id_extraction: string;
 		body_assessment: string;
+		media_integrity: string;
 	};
 };
 

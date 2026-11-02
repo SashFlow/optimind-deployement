@@ -165,6 +165,7 @@ export type SessionPostProcessingPrompts = {
 	face_liveness: string;
 	id_extraction: string;
 	body_assessment: string;
+	media_integrity: string;
 };
 
 export type SessionPostProcessingConfig = {
@@ -193,6 +194,17 @@ These are AI estimates only — not clinical measurements. Return JSON only:
 - Derive BMI from the estimated height and weight when possible
 - Note visible impairments, amputations, mobility aids, posture abnormalities, swelling, asymmetry
 - Flag uncertainty and recommend underwriter review when evidence is weak`,
+	media_integrity: `You are reviewing session recordings (user video and/or user/agent audio) for underwriting integrity and quality.
+Media parts may be labeled in the prompt context. Timestamps are milliseconds from the start of each provided media file (use null when unknown).
+Return JSON only:
+{"audioIssues":[{"label":string,"detail":string,"startMs":number|null,"endMs":number|null,"severity":"info"|"warn"|"high"}],"videoIssues":[{"label":string,"detail":string,"startMs":number|null,"endMs":number|null,"severity":"info"|"warn"|"high"}],"multipleVoices":{"detected":boolean,"count":number|null,"events":[{"label":string,"detail":string,"startMs":number|null,"endMs":number|null,"severity":"info"|"warn"|"high"}]},"multipleUsers":{"detected":boolean,"count":number|null,"events":[{"label":string,"detail":string,"startMs":number|null,"endMs":number|null,"severity":"info"|"warn"|"high"}]},"deviceDetection":{"devices":string[],"events":[{"label":string,"detail":string,"startMs":number|null,"endMs":number|null,"severity":"info"|"warn"|"high"}],"summary":string},"summary":string,"underwriterReviewRecommended":boolean}
+- audioIssues: noise, clipping, dropouts, echo, muted stretches, overlapping speech, telephony artifacts
+- videoIssues: freeze, black frames, extreme blur, camera covered, low light, framing off, screen replay cues
+- multipleVoices: more than one distinct human speaking on the user audio (ignore TTS/agent track when separable)
+- multipleUsers: more than one person visible/present on camera or clearly participating on user media
+- deviceDetection: phones, tablets, laptops, headphones, earbuds, second screens, printed photos, virtual backgrounds — list concrete devices observed
+- Prefer concrete timed events when evidence supports them; use empty arrays when nothing notable
+- underwriterReviewRecommended true when integrity risk is material`,
 };
 
 export const DEFAULT_POST_PROCESSING_MODEL = "gemini-3.1-flash-lite";

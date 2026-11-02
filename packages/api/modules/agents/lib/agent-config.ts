@@ -278,6 +278,7 @@ export const agentConfigSchema = z
 								face_liveness: z.string(),
 								id_extraction: z.string(),
 								body_assessment: z.string(),
+								media_integrity: z.string().optional(),
 							})
 							.passthrough()
 							.optional(),

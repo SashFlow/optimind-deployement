@@ -72,6 +72,62 @@ export type SessionDetail = {
 				};
 				videoUnavailable?: boolean;
 			};
+			mediaIntegrity?: {
+				audioIssues: Array<{
+					label: string;
+					detail: string;
+					startMs: number | null;
+					endMs: number | null;
+					severity: "info" | "warn" | "high";
+				}>;
+				videoIssues: Array<{
+					label: string;
+					detail: string;
+					startMs: number | null;
+					endMs: number | null;
+					severity: "info" | "warn" | "high";
+				}>;
+				multipleVoices: {
+					detected: boolean;
+					count: number | null;
+					events: Array<{
+						label: string;
+						detail: string;
+						startMs: number | null;
+						endMs: number | null;
+						severity: "info" | "warn" | "high";
+					}>;
+				};
+				multipleUsers: {
+					detected: boolean;
+					count: number | null;
+					events: Array<{
+						label: string;
+						detail: string;
+						startMs: number | null;
+						endMs: number | null;
+						severity: "info" | "warn" | "high";
+					}>;
+				};
+				deviceDetection: {
+					devices: string[];
+					events: Array<{
+						label: string;
+						detail: string;
+						startMs: number | null;
+						endMs: number | null;
+						severity: "info" | "warn" | "high";
+					}>;
+					summary: string;
+				};
+				mediaAvailable: {
+					userVideo: boolean;
+					userAudio: boolean;
+					agentAudio: boolean;
+				};
+				summary: string;
+				underwriterReviewRecommended: boolean;
+			};
 			reportFileId?: string;
 			videoUnavailable?: boolean;
 		};
@@ -221,6 +277,63 @@ export function useEndSessionMutation() {
 			},
 			onError: (error) => {
 				toast.error(error.message || "Failed to end session");
+			},
+		}),
+	);
+}
+
+export function useRerunPostProcessingMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation(
+		orpc.sessions.rerunPostProcessing.mutationOptions({
+			onMutate: async (variables) => {
+				const key = orpc.sessions.get.key({
+					input: { id: variables.id },
+				});
+				await queryClient.cancelQueries({ queryKey: key });
+				queryClient.setQueryData(
+					key,
+					(current: { session?: SessionDetail } | undefined) => {
+						if (!current?.session) {
+							return current;
+						}
+						const metadata = {
+							...(current.session.metadata ?? {}),
+							postProcessing: {
+								...(current.session.metadata?.postProcessing ??
+									{}),
+								status: "running" as const,
+								error: undefined,
+							},
+						};
+						return {
+							...current,
+							session: {
+								...current.session,
+								metadata,
+							},
+						};
+					},
+				);
+			},
+			onSuccess: async (_data, variables) => {
+				await queryClient.invalidateQueries({
+					queryKey: orpc.sessions.get.key({
+						input: { id: variables.id },
+					}),
+				});
+				toast.success("Post-processing regeneration started");
+			},
+			onError: (error, variables) => {
+				void queryClient.invalidateQueries({
+					queryKey: orpc.sessions.get.key({
+						input: { id: variables.id },
+					}),
+				});
+				toast.error(
+					error.message || "Failed to regenerate post-processing",
+				);
 			},
 		}),
 	);

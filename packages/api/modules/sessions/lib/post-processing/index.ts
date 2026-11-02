@@ -2,7 +2,11 @@ import { db, getAgentSessionById } from "@repo/database";
 import { logger } from "@repo/logs";
 import { uploadEndUserBytes } from "../end-user-files";
 import { classifySessionFiles, hasAnyCapture } from "./classify-files";
-import { downloadEndUserFile, downloadSessionRecording } from "./download";
+import {
+	downloadEndUserFile,
+	downloadSessionMediaTracks,
+	downloadSessionRecording,
+} from "./download";
 import { generateJsonFromMedia, hasGeminiApiKey } from "./gemini";
 import { resolvePostProcessingConfig } from "./prompts";
 import {
@@ -14,8 +18,10 @@ import type {
 	BodyAssessmentResult,
 	FaceLivenessResult,
 	IdExtractionResult,
+	MediaIntegrityResult,
 	MediaPart,
 	PostProcessingResult,
+	TimedMediaFinding,
 } from "./types";
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -113,6 +119,74 @@ function parseBody(raw: unknown): BodyAssessmentResult {
 		},
 		videoUnavailable: asBoolean(data.videoUnavailable),
 	};
+}
+
+function parseSeverity(value: unknown): TimedMediaFinding["severity"] {
+	if (value === "high" || value === "warn" || value === "info") {
+		return value;
+	}
+	return "info";
+}
+
+function parseTimedFindings(value: unknown): TimedMediaFinding[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	const findings: TimedMediaFinding[] = [];
+	for (const item of value) {
+		const record = asRecord(item);
+		const label = asString(record.label).trim();
+		const detail = asString(record.detail).trim();
+		if (!label && !detail) {
+			continue;
+		}
+		findings.push({
+			label: label || "Finding",
+			detail,
+			startMs: asNumber(record.startMs),
+			endMs: asNumber(record.endMs),
+			severity: parseSeverity(record.severity),
+		});
+	}
+	return findings;
+}
+
+function parseMediaIntegrity(
+	raw: unknown,
+	mediaAvailable: MediaIntegrityResult["mediaAvailable"],
+): MediaIntegrityResult {
+	const data = asRecord(raw);
+	const multipleVoices = asRecord(data.multipleVoices);
+	const multipleUsers = asRecord(data.multipleUsers);
+	const deviceDetection = asRecord(data.deviceDetection);
+	return {
+		audioIssues: parseTimedFindings(data.audioIssues),
+		videoIssues: parseTimedFindings(data.videoIssues),
+		multipleVoices: {
+			detected: asBoolean(multipleVoices.detected),
+			count: asNumber(multipleVoices.count),
+			events: parseTimedFindings(multipleVoices.events),
+		},
+		multipleUsers: {
+			detected: asBoolean(multipleUsers.detected),
+			count: asNumber(multipleUsers.count),
+			events: parseTimedFindings(multipleUsers.events),
+		},
+		deviceDetection: {
+			devices: asStringArray(deviceDetection.devices),
+			events: parseTimedFindings(deviceDetection.events),
+			summary: asString(deviceDetection.summary),
+		},
+		mediaAvailable,
+		summary: asString(data.summary, "No media integrity summary provided."),
+		underwriterReviewRecommended: asBoolean(
+			data.underwriterReviewRecommended,
+		),
+	};
+}
+
+function hasCompleteEgress(jobs: Array<{ status?: string | null }>) {
+	return jobs.some((job) => job.status === "COMPLETE");
 }
 
 function readExistingResult(
@@ -310,11 +384,11 @@ function buildUserResponses(session: {
 
 /**
  * Run capture post-processing for a completed session.
- * Idempotent while status is running/completed (unless retryForVideo).
+ * Idempotent while status is running/completed (unless retryForVideo or force).
  */
 export async function runPostProcessing(
 	sessionId: string,
-	opts?: { retryForVideo?: boolean },
+	opts?: { retryForVideo?: boolean; force?: boolean },
 ) {
 	if (!hasGeminiApiKey()) {
 		logger.warn(
@@ -333,15 +407,25 @@ export async function runPostProcessing(
 
 	const metadata = asRecord(session.metadata);
 	const existing = readExistingResult(metadata);
+	if (existing?.status === "running") {
+		return;
+	}
 	if (
-		existing &&
-		(existing.status === "running" ||
-			(existing.status === "completed" && !opts?.retryForVideo) ||
-			(existing.status === "completed" &&
-				opts?.retryForVideo &&
-				!existing.videoUnavailable))
+		!opts?.force &&
+		existing?.status === "completed" &&
+		!opts?.retryForVideo
 	) {
 		return;
+	}
+	if (!opts?.force && opts?.retryForVideo && existing?.status === "completed") {
+		const media = existing.mediaIntegrity?.mediaAvailable;
+		const stillNeedsRetry =
+			Boolean(existing.videoUnavailable) ||
+			!existing.mediaIntegrity ||
+			!(media?.userVideo || media?.userAudio || media?.agentAudio);
+		if (!stillNeedsRetry) {
+			return;
+		}
 	}
 
 	const modalities = asRecord(
@@ -363,12 +447,14 @@ export async function runPostProcessing(
 	}
 
 	const classified = classifySessionFiles(session.files ?? []);
-	if (!hasAnyCapture(classified)) {
+	const egressReady = hasCompleteEgress(session.egressJobs ?? []);
+	if (!hasAnyCapture(classified) && !egressReady) {
 		await persistResult(sessionId, metadata, {
 			status: "skipped",
 			completedAt: new Date().toISOString(),
 			model: config.model,
-			error: "No face, ID, or body capture files found for this session.",
+			error:
+				"No face, ID, body captures, or completed egress recordings found for this session.",
 		});
 		return;
 	}
@@ -469,6 +555,78 @@ export async function runPostProcessing(
 			result.videoUnavailable = body.videoUnavailable;
 		}
 
+		const tracks = await downloadSessionMediaTracks(
+			session.egressJobs ?? [],
+		);
+		const mediaAvailable = {
+			userVideo: Boolean(tracks.userVideo),
+			userAudio: Boolean(tracks.userAudio),
+			agentAudio: Boolean(tracks.agentAudio),
+		};
+		const integrityMedia: MediaPart[] = [
+			tracks.userVideo,
+			tracks.userAudio,
+			tracks.agentAudio,
+		].filter((part): part is MediaPart => Boolean(part));
+
+		if (integrityMedia.length > 0) {
+			const mediaLabels = [
+				tracks.userVideo ? "user_video" : null,
+				tracks.userAudio ? "user_audio" : null,
+				tracks.agentAudio ? "agent_audio" : null,
+			].filter((label): label is string => Boolean(label));
+			const integrityPrompt = `${config.prompts.media_integrity}
+
+Media parts are attached in this order: ${mediaLabels.join(", ")}.
+Use startMs/endMs relative to each attached file's own timeline when possible.`;
+			result.mediaIntegrity = parseMediaIntegrity(
+				await generateJsonFromMedia({
+					model: config.model,
+					prompt: integrityPrompt,
+					media: integrityMedia,
+				}),
+				mediaAvailable,
+			);
+			if (result.mediaIntegrity.underwriterReviewRecommended) {
+				const flags = result.body?.underwriting.exceptionFlags ?? [];
+				if (result.body) {
+					result.body.underwriting.exceptionFlags = Array.from(
+						new Set([
+							...flags,
+							"media_integrity_review_recommended",
+						]),
+					);
+					result.body.underwriting.underwriterReviewRecommended =
+						true;
+				}
+			}
+		} else if (egressReady || classified.body) {
+			result.mediaIntegrity = {
+				audioIssues: [],
+				videoIssues: [
+					{
+						label: "recording_unavailable",
+						detail:
+							"Session recordings were expected but could not be downloaded for integrity review.",
+						startMs: null,
+						endMs: null,
+						severity: "warn",
+					},
+				],
+				multipleVoices: { detected: false, count: null, events: [] },
+				multipleUsers: { detected: false, count: null, events: [] },
+				deviceDetection: {
+					devices: [],
+					events: [],
+					summary: "No media available for device detection.",
+				},
+				mediaAvailable,
+				summary:
+					"Media integrity analysis skipped because no downloadable egress tracks were available.",
+				underwriterReviewRecommended: true,
+			};
+		}
+
 		// Re-fetch so late uploads / collectedData / transcript are included.
 		const latestForReport = await getAgentSessionById(sessionId);
 		const reportSession = latestForReport ?? session;
@@ -521,16 +679,20 @@ export async function runPostProcessing(
 }
 
 /** Fire from session-end hooks; never throws. */
-export async function runPostProcessingSafe(sessionId: string) {
+export async function runPostProcessingSafe(
+	sessionId: string,
+	opts?: { retryForVideo?: boolean; force?: boolean },
+) {
 	try {
-		await runPostProcessing(sessionId);
+		await runPostProcessing(sessionId, opts);
 	} catch (error) {
 		logger.error("Failed to run post-processing", { sessionId, error });
 	}
 }
 
 /**
- * Re-run body analysis when a prior completed run lacked video and egress is now ready.
+ * Re-run analysis when a prior completed run lacked video / media integrity
+ * inputs and egress tracks are now downloadable.
  */
 export async function maybeRetryPostProcessingForVideo(sessionId: string) {
 	try {
@@ -539,17 +701,21 @@ export async function maybeRetryPostProcessingForVideo(sessionId: string) {
 			return;
 		}
 		const existing = readExistingResult(asRecord(session.metadata));
-		if (
-			!existing ||
-			existing.status !== "completed" ||
-			!existing.videoUnavailable
-		) {
+		if (!existing || existing.status !== "completed") {
 			return;
 		}
-		const recording = await downloadSessionRecording(
+		const media = existing.mediaIntegrity?.mediaAvailable;
+		const needsRetry =
+			Boolean(existing.videoUnavailable) ||
+			!existing.mediaIntegrity ||
+			!(media?.userVideo || media?.userAudio || media?.agentAudio);
+		if (!needsRetry) {
+			return;
+		}
+		const tracks = await downloadSessionMediaTracks(
 			session.egressJobs ?? [],
 		);
-		if (!recording) {
+		if (!tracks.userVideo && !tracks.userAudio && !tracks.agentAudio) {
 			return;
 		}
 		await runPostProcessing(sessionId, { retryForVideo: true });
