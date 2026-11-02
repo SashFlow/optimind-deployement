@@ -6,33 +6,33 @@ import {
 import { getSignedUrl as getS3SignedUrl } from "@aws-sdk/s3-request-presigner";
 import { ORPCError } from "@orpc/client";
 import { config } from "@repo/config";
+import { getKnowledgeBucketName, getObjectStorageConfig } from "@repo/storage";
 
 let s3Client: S3Client | null = null;
 
-/** Knowledge uploads use S3_BUCKET_NAME (e.g. optimind-knowledge), not the notes bucket. */
+/** Knowledge uploads use GCP_STORAGE_BUCKET_NAME / S3_BUCKET_NAME. */
 export function getKnowledgeBucket() {
-	return (
-		process.env.S3_BUCKET_NAME?.trim() || config.storage.bucketNames.notes
-	);
+	return getKnowledgeBucketName() || config.storage.bucketNames.notes;
 }
 
 export function getKnowledgeS3Client() {
 	if (s3Client) {
 		return s3Client;
 	}
-	const endpoint = process.env.S3_ENDPOINT;
-	const accessKeyId = process.env.S3_ACCESS_KEY_ID;
-	const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
-	if (!endpoint || !accessKeyId || !secretAccessKey) {
+	const storage = getObjectStorageConfig();
+	if (!storage) {
 		throw new ORPCError("INTERNAL_SERVER_ERROR", {
 			message: "Object storage is not configured",
 		});
 	}
 	s3Client = new S3Client({
-		region: process.env.S3_REGION || "auto",
-		endpoint,
+		region: storage.region,
+		endpoint: storage.endpoint,
 		forcePathStyle: true,
-		credentials: { accessKeyId, secretAccessKey },
+		credentials: {
+			accessKeyId: storage.accessKeyId,
+			secretAccessKey: storage.secretAccessKey,
+		},
 	});
 	return s3Client;
 }

@@ -11,13 +11,29 @@ import type { NodeHandlerArgs, NodeHandlerResult } from "../types";
 type StorageOp = "read" | "write" | "list" | "delete";
 
 function getS3ClientFromConfig(cfg: Record<string, unknown>) {
-	const endpoint = String(cfg.endpoint ?? process.env.S3_ENDPOINT ?? "");
-	const region = String(cfg.region ?? process.env.S3_REGION ?? "auto");
+	const endpoint = String(
+		cfg.endpoint ??
+			process.env.GCP_STORAGE_URL ??
+			process.env.S3_ENDPOINT ??
+			"",
+	);
+	const region = String(
+		cfg.region ??
+			process.env.GCP_STORAGE_REGION ??
+			process.env.S3_REGION ??
+			"auto",
+	);
 	const accessKeyId = String(
-		cfg.accessKeyId ?? process.env.S3_ACCESS_KEY_ID ?? "",
+		cfg.accessKeyId ??
+			process.env.GCP_ACCESS_KEY ??
+			process.env.S3_ACCESS_KEY_ID ??
+			"",
 	);
 	const secretAccessKey = String(
-		cfg.secretAccessKey ?? process.env.S3_SECRET_ACCESS_KEY ?? "",
+		cfg.secretAccessKey ??
+			process.env.GCP_SECRET_KEY ??
+			process.env.S3_SECRET_ACCESS_KEY ??
+			"",
 	);
 	if (!accessKeyId || !secretAccessKey) {
 		throw new Error("S3 credentials missing");
@@ -50,7 +66,12 @@ export async function handleStorageS3(
 	) as StorageOp;
 	const bucket = String(
 		resolveTemplate(
-			String(cfg.bucket ?? process.env.S3_BUCKET_NAME ?? ""),
+			String(
+				cfg.bucket ??
+					process.env.GCP_STORAGE_BUCKET_NAME ??
+					process.env.S3_BUCKET_NAME ??
+					"",
+			),
 			args.context,
 		),
 	);
@@ -255,7 +276,12 @@ export async function handleStorageGcp(
 	) as StorageOp;
 	const bucket = String(
 		resolveTemplate(
-			String(cfg.bucket ?? process.env.GCS_BUCKET ?? ""),
+			String(
+				cfg.bucket ??
+					process.env.GCP_STORAGE_BUCKET_NAME ??
+					process.env.GCS_BUCKET ??
+					"",
+			),
 			args.context,
 		),
 	);

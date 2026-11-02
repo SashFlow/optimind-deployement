@@ -1,5 +1,5 @@
 import { config } from "@repo/config";
-import { getSignedUrl } from "@repo/storage";
+import { getKnowledgeBucketName, getSignedUrl } from "@repo/storage";
 import { NextResponse } from "next/server";
 
 export const GET = async (
@@ -18,7 +18,7 @@ export const GET = async (
 		[
 			config.storage.bucketNames.avatars,
 			config.storage.bucketNames.notes,
-			process.env.S3_BUCKET_NAME?.trim(),
+			getKnowledgeBucketName(),
 		].filter(Boolean) as string[],
 	);
 

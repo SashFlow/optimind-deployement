@@ -112,7 +112,10 @@ export const config = {
 			pictures:
 				process.env.NEXT_PUBLIC_PICTURES_BUCKET_NAME ?? "pictures",
 			// files the agent worker uploads for end users (server-side only)
-			endUserFiles: process.env.S3_BUCKET_NAME?.trim() || "notes",
+			endUserFiles:
+				process.env.GCP_STORAGE_BUCKET_NAME?.trim() ||
+				process.env.S3_BUCKET_NAME?.trim() ||
+				"notes",
 		},
 	},
 	contactForm: {

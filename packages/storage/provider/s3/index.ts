@@ -5,6 +5,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl as getS3SignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger } from "@repo/logs";
+import { getObjectStorageConfig } from "../../env";
 import type {
 	GetSignedUploadUrlHandler,
 	GetSignedUrlHander,
@@ -13,35 +14,25 @@ import type {
 
 let s3Client: S3Client | null = null;
 
-const getS3Client = () => {
+export const getS3Client = () => {
 	if (s3Client) {
 		return s3Client;
 	}
 
-	const s3Endpoint = process.env.S3_ENDPOINT as string;
-	if (!s3Endpoint) {
-		throw new Error("Missing env variable S3_ENDPOINT");
-	}
-
-	const s3Region = (process.env.S3_REGION as string) || "auto";
-
-	const s3AccessKeyId = process.env.S3_ACCESS_KEY_ID as string;
-	if (!s3AccessKeyId) {
-		throw new Error("Missing env variable S3_ACCESS_KEY_ID");
-	}
-
-	const s3SecretAccessKey = process.env.S3_SECRET_ACCESS_KEY as string;
-	if (!s3SecretAccessKey) {
-		throw new Error("Missing env variable S3_SECRET_ACCESS_KEY");
+	const config = getObjectStorageConfig();
+	if (!config) {
+		throw new Error(
+			"Missing object storage config (set GCP_ACCESS_KEY / GCP_SECRET_KEY / GCP_STORAGE_URL, or legacy S3_* vars)",
+		);
 	}
 
 	s3Client = new S3Client({
-		region: s3Region,
-		endpoint: s3Endpoint,
+		region: config.region,
+		endpoint: config.endpoint,
 		forcePathStyle: true,
 		credentials: {
-			accessKeyId: s3AccessKeyId,
-			secretAccessKey: s3SecretAccessKey,
+			accessKeyId: config.accessKeyId,
+			secretAccessKey: config.secretAccessKey,
 		},
 	});
 
@@ -52,10 +43,10 @@ export const getSignedUploadUrl: GetSignedUploadUrlHandler = async (
 	path,
 	{ bucket },
 ) => {
-	const s3Client = getS3Client();
+	const client = getS3Client();
 	try {
 		return await getS3SignedUrl(
-			s3Client,
+			client,
 			new PutObjectCommand({
 				Bucket: bucket,
 				Key: path,
@@ -76,10 +67,10 @@ export const getSignedUrl: GetSignedUrlHander = async (
 	path,
 	{ bucket, expiresIn },
 ) => {
-	const s3Client = getS3Client();
+	const client = getS3Client();
 	try {
 		return getS3SignedUrl(
-			s3Client,
+			client,
 			new GetObjectCommand({ Bucket: bucket, Key: path }),
 			{ expiresIn },
 		);
@@ -94,9 +85,9 @@ export const uploadObject: UploadObjectHandler = async (
 	body,
 	{ bucket, contentType },
 ) => {
-	const s3Client = getS3Client();
+	const client = getS3Client();
 	try {
-		await s3Client.send(
+		await client.send(
 			new PutObjectCommand({
 				Bucket: bucket,
 				Key: path,

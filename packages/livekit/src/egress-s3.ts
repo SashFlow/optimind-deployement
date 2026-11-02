@@ -8,32 +8,57 @@ export type EgressS3Config = {
 	endpoint?: string;
 };
 
+function first(
+	...values: Array<string | undefined | null>
+): string | undefined {
+	for (const value of values) {
+		const trimmed = value?.trim();
+		if (trimmed) {
+			return trimmed;
+		}
+	}
+	return undefined;
+}
+
 /**
  * LiveKit recordings land at:
- *   Composite (merged): s3://{S3_BUCKET_RECORDINGS}/{organizationId}/{sessionId}/{roomName}.mp4
- *   Track roles:        s3://{S3_BUCKET_RECORDINGS}/{organizationId}/{sessionId}/{roomName}/{role}
+ *   Composite (merged): s3://{recordingsBucket}/{organizationId}/{sessionId}/{roomName}.mp4
+ *   Track roles:        s3://{recordingsBucket}/{organizationId}/{sessionId}/{roomName}/{role}
  *     role ∈ user_audio | user_video | agent_audio
  *
- * Credential resolution (first match wins):
- *   access/secret: S3_RECORDINGS_* → S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY
- *   region:        S3_RECORDINGS_REGION → S3_REGION → us-east-1
- *   endpoint:      S3_ENDPOINT_URL → S3_ENDPOINT (knowledge storage alias)
+ * Credential resolution (first match wins) — GCS HMAC preferred:
+ *   access/secret: GCP_ACCESS_KEY / GCP_SECRET_KEY → S3_RECORDINGS_* → S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY
+ *   region:        GCP_STORAGE_REGION → S3_RECORDINGS_REGION → S3_REGION → us-east-1
+ *   endpoint:      GCP_STORAGE_URL → S3_ENDPOINT_URL → S3_ENDPOINT
+ *   bucket:        GCP_BUCKET_RECORDINGS → S3_BUCKET_RECORDINGS
+ *
+ * GCS is used via S3 interoperability (HMAC keys + storage.googleapis.com).
  */
 export function getEgressS3Config(
 	env: NodeJS.ProcessEnv = process.env,
 ): EgressS3Config | null {
-	const accessKey =
-		env.S3_RECORDINGS_ACCESS_KEY_ID?.trim() || env.S3_ACCESS_KEY_ID?.trim();
-	const secret =
-		env.S3_RECORDINGS_SECRET_ACCESS_KEY?.trim() ||
-		env.S3_SECRET_ACCESS_KEY?.trim();
-	const bucket = env.S3_BUCKET_RECORDINGS?.trim();
+	const accessKey = first(
+		env.GCP_ACCESS_KEY,
+		env.S3_RECORDINGS_ACCESS_KEY_ID,
+		env.S3_ACCESS_KEY_ID,
+	);
+	const secret = first(
+		env.GCP_SECRET_KEY,
+		env.S3_RECORDINGS_SECRET_ACCESS_KEY,
+		env.S3_SECRET_ACCESS_KEY,
+	);
+	const bucket = first(env.GCP_BUCKET_RECORDINGS, env.S3_BUCKET_RECORDINGS);
 	const region =
-		env.S3_RECORDINGS_REGION?.trim() ||
-		env.S3_REGION?.trim() ||
-		"us-east-1";
-	const endpoint =
-		env.S3_ENDPOINT_URL?.trim() || env.S3_ENDPOINT?.trim() || undefined;
+		first(
+			env.GCP_STORAGE_REGION,
+			env.S3_RECORDINGS_REGION,
+			env.S3_REGION,
+		) || "us-east-1";
+	const endpoint = first(
+		env.GCP_STORAGE_URL,
+		env.S3_ENDPOINT_URL,
+		env.S3_ENDPOINT,
+	);
 
 	if (!accessKey || !secret || !bucket) {
 		return null;
