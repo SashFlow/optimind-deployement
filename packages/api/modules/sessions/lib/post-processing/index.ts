@@ -166,6 +166,73 @@ function pushReportImage(
 	});
 }
 
+function fileBaseName(name: string) {
+	return name.trim().toLowerCase().split(/[\\/]/).pop() ?? "";
+}
+
+function findUploadedUserResponseFile(
+	files: Array<{ name: string; url: string }>,
+) {
+	for (const file of files) {
+		if (fileBaseName(file.name) === "user_response.json") {
+			return file;
+		}
+	}
+	return null;
+}
+
+function parseUploadedUserResponses(bytes: Buffer): UserResponseEntry[] {
+	try {
+		const parsed: unknown = JSON.parse(bytes.toString("utf8"));
+		const list = Array.isArray(parsed)
+			? parsed
+			: Array.isArray(asRecord(parsed).responses)
+				? (asRecord(parsed).responses as unknown[])
+				: [];
+
+		const entries: UserResponseEntry[] = [];
+		for (const item of list) {
+			const record = asRecord(item);
+			const question =
+				asString(record.question) ||
+				asString(record.label) ||
+				asString(record.key);
+			if (!question && record.answer == null) {
+				continue;
+			}
+			entries.push({
+				question: question || "Question",
+				answer: record.answer ?? null,
+				key: asString(record.key) || undefined,
+				label: asString(record.label) || undefined,
+			});
+		}
+		return entries;
+	} catch {
+		return [];
+	}
+}
+
+async function loadUploadedUserResponses(
+	files: Array<{ name: string; url: string }>,
+	sessionId: string,
+): Promise<UserResponseEntry[]> {
+	const uploaded = findUploadedUserResponseFile(files);
+	if (!uploaded) {
+		return [];
+	}
+	try {
+		const bytes = await downloadEndUserFile(uploaded.url);
+		return parseUploadedUserResponses(bytes);
+	} catch (error) {
+		logger.warn("Failed to load uploaded User_response.json for report", {
+			sessionId,
+			error,
+		});
+		return [];
+	}
+}
+
 function buildUserResponses(session: {
 	metadata?: unknown;
 	configSnapshot?: unknown;
@@ -402,9 +469,17 @@ export async function runPostProcessing(
 			result.videoUnavailable = body.videoUnavailable;
 		}
 
-		// Re-fetch so collectedData / transcript that arrived during Gemini
-		// analysis are included in User_response.json.
+		// Re-fetch so late uploads / collectedData / transcript are included.
 		const latestForReport = await getAgentSessionById(sessionId);
+		const reportSession = latestForReport ?? session;
+		const uploadedResponses = await loadUploadedUserResponses(
+			reportSession.files ?? [],
+			sessionId,
+		);
+		const userResponses =
+			uploadedResponses.length > 0
+				? uploadedResponses
+				: buildUserResponses(reportSession);
 		const pdf = await buildPostProcessingPdf({
 			sessionId: session.id,
 			agentName: session.agent?.name,
@@ -413,7 +488,7 @@ export async function runPostProcessing(
 			endedAt: session.endedAt,
 			result,
 			images: reportImages,
-			userResponses: buildUserResponses(latestForReport ?? session),
+			userResponses,
 		});
 
 		const reportFile = await uploadEndUserBytes({

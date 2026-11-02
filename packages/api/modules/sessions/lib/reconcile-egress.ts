@@ -161,17 +161,18 @@ function withUpdatedDestinationFilepath(
 	};
 }
 
-function isTrackMergeEgressJob(job: EgressJobLike): boolean {
-	if (
-		typeof job.livekitEgressId === "string" &&
-		job.livekitEgressId.startsWith("track-merge:")
-	) {
-		return true;
+function isSyntheticEgressJob(job: EgressJobLike): boolean {
+	if (typeof job.livekitEgressId === "string") {
+		if (
+			job.livekitEgressId.startsWith("track-merge:") ||
+			job.livekitEgressId.startsWith("storage:")
+		) {
+			return true;
+		}
 	}
 	if (job.metadata && typeof job.metadata === "object") {
-		return (
-			(job.metadata as Record<string, unknown>).source === "track_merge"
-		);
+		const source = (job.metadata as Record<string, unknown>).source;
+		return source === "track_merge" || source === "storage_backfill";
 	}
 	return false;
 }
@@ -198,8 +199,8 @@ export async function reconcileEgressJob(job: EgressJobLike) {
 	if (!OPEN_STATUSES.has(job.status)) {
 		return null;
 	}
-	// Worker-owned merge jobs use a synthetic livekitEgressId — not in LiveKit.
-	if (isTrackMergeEgressJob(job)) {
+	// Worker-owned merge / storage-backfill jobs use synthetic IDs — not in LiveKit.
+	if (isSyntheticEgressJob(job)) {
 		return null;
 	}
 	if (!job.livekitEgressId && !job.roomName) {
@@ -333,7 +334,7 @@ function isAlreadyTerminalEgressError(error: unknown): boolean {
 export async function finalizeSessionEgressJobs(jobs: EgressJobLike[]) {
 	const open = jobs.filter((job) => OPEN_STATUSES.has(job.status));
 	for (const job of open) {
-		if (!job.livekitEgressId || isTrackMergeEgressJob(job)) {
+		if (!job.livekitEgressId || isSyntheticEgressJob(job)) {
 			continue;
 		}
 

@@ -39,6 +39,7 @@ import {
 	resolveAvatarProviderId,
 	serializeDispatchMetadata,
 } from "./lib/dispatch-metadata";
+import { backfillTrackEgressJobsFromStorage } from "./lib/backfill-egress-from-storage";
 import {
 	inferEgressContentType,
 	resolveEgressPlayableUrl,
@@ -267,6 +268,7 @@ export const get = protectedProcedure
 		await requireOrgMembership(existing.organizationId, context.user.id);
 
 		await reconcileOpenEgressJobs(existing.egressJobs);
+		await backfillTrackEgressJobsFromStorage(existing);
 		const session = (await getAgentSessionById(input.id)) ?? existing;
 
 		const egressJobs = await Promise.all(
@@ -1255,7 +1257,79 @@ const egressTrackSchema = z.object({
 	filepath: z.string().min(1).optional(),
 });
 
+const registeredEgressTrackSchema = z.object({
+	role: z.enum(["user_audio", "user_video", "agent_audio"]),
+	kind: z.literal("track").optional(),
+	trackId: z.string().min(1).optional(),
+	filepath: z.string().min(1),
+	livekitEgressId: z.string().min(1),
+	status: z
+		.enum([
+			"STARTING",
+			"ACTIVE",
+			"ENDING",
+			"COMPLETE",
+			"FAILED",
+			"ABORTED",
+		])
+		.optional(),
+});
+
 type EgressTrackInput = z.infer<typeof egressTrackSchema>;
+type RegisteredEgressTrackInput = z.infer<typeof registeredEgressTrackSchema>;
+
+async function registerEgressJobsForSession(
+	session: NonNullable<Awaited<ReturnType<typeof getAgentSessionById>>>,
+	tracks: RegisteredEgressTrackInput[],
+	audioOnly?: boolean,
+) {
+	const s3 = getEgressS3Config();
+	const resolvedAudioOnly =
+		audioOnly ?? (session.channel === "SIP" || session.channel === "PHONE");
+	const existingIds = new Set(
+		session.egressJobs
+			.map((job) => job.livekitEgressId)
+			.filter((id): id is string => Boolean(id)),
+	);
+	const jobs = [];
+	for (const track of tracks) {
+		if (existingIds.has(track.livekitEgressId)) {
+			continue;
+		}
+		const filepath = track.filepath;
+		const job = await createEgressJob({
+			organizationId: session.organizationId,
+			type: "TRACK",
+			agentSessionId: session.id,
+			agentId: session.agentId,
+			campaignSessionId: session.campaignSession?.id,
+			livekitEgressId: track.livekitEgressId,
+			roomName: session.livekitRoomName,
+			status: track.status ?? "ACTIVE",
+			startedAt: new Date(),
+			destination: s3
+				? {
+						bucket: s3.bucket,
+						region: s3.region,
+						filepath,
+						endpoint: s3.endpoint ?? null,
+					}
+				: { filepath },
+			fileUrl: s3 ? `s3://${s3.bucket}/${filepath}` : undefined,
+			outputUrls: s3 ? [`s3://${s3.bucket}/${filepath}`] : [],
+			metadata: {
+				audioOnly: resolvedAudioOnly,
+				role: track.role,
+				kind: "track",
+				trackId: track.trackId,
+				source: "worker_register",
+			},
+		});
+		jobs.push(job);
+		existingIds.add(track.livekitEgressId);
+	}
+	return { jobs };
+}
 
 async function startEgressForSession(
 	session: NonNullable<Awaited<ReturnType<typeof getAgentSessionById>>>,
@@ -1728,6 +1802,33 @@ export const startEgressInternal = workerProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 		return startEgressForSession(session, input.audioOnly, input.tracks);
+	});
+
+export const registerEgressInternal = workerProcedure
+	.route({
+		method: "POST",
+		path: "/internal/sessions/{id}/egress/register",
+		tags: ["Internal"],
+		summary:
+			"Register already-started LiveKit egress jobs for a session (worker fallback)",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			audioOnly: z.boolean().optional(),
+			tracks: z.array(registeredEgressTrackSchema).min(1),
+		}),
+	)
+	.handler(async ({ input }) => {
+		const session = await getAgentSessionById(input.id);
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		return registerEgressJobsForSession(
+			session,
+			input.tracks,
+			input.audioOnly,
+		);
 	});
 
 export const uploadFileInternal = workerProcedure

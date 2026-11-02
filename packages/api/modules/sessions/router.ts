@@ -11,6 +11,7 @@ import {
 	postReport,
 	postToolCall,
 	requestAadhaarOtp,
+	registerEgressInternal,
 	startEgressInternal,
 	startEmbedSession,
 	startSessionEgress,
@@ -46,6 +47,7 @@ export const sessionsRouter = {
 		postToolCall,
 		postReport,
 		startEgress: startEgressInternal,
+		registerEgress: registerEgressInternal,
 		uploadFile: uploadFileInternal,
 	},
 };
