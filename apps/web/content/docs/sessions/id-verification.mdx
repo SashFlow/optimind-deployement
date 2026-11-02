@@ -138,7 +138,6 @@ async def verify_identity(self, context: RunContext) -> str:
         )
         return f"ID capture request sent: {response}. Waiting for candidate to submit ID."
     except Exception as e:
-        logger.exception("Failed to start ID capture")
         return f"error: failed to start ID capture: {e}"
 ```
 

@@ -66,36 +66,34 @@ Endpoint: `POST /sessions/{id}/participant-files` (see [worker contract](/docs/s
 Paste into **Create Python Tool**. The worker injects `host` (`.agent`, `.ctx`, `.state`).
 
 ```python
-@function_tool()
-async def verify_identity(self, context: RunContext) -> str:
-    """Ask the candidate to show their ID card for verification.
+@function_tool(on_duplicate="reject")
+async def face_capture(self, context: RunContext) -> None:
+    """Ask the candidate to keep their face still for face capture. Only call this once."""
 
-    Call this when you need the candidate to present a government ID.
-    The browser opens a capture overlay; wait for confirmation that the
-    ID was submitted before continuing sensitive steps.
-    """
+    if getattr(self, "_flag_2", False):
+        return "error: face capture has already been requested"
+
     try:
         room_io = context.session.room_io
     except RuntimeError:
         return "error: room not available yet"
-      
+    await context.wait_for_playout()
     participant = room_io.linked_participant
     if participant is None:
         return "error: no candidate participant in the room"
 
     try:
-        await room.local_participant.perform_rpc(
-                destination_identity=participant.identity,
-                method="start_id_capture",
-                payload="",
-            )
-
-       return "Waiting for ID Capture"
-
+        response = await room_io.room.local_participant.perform_rpc(
+            destination_identity=participant.identity,
+            method="start_face_capture",
+            payload="",
+        )
     except Exception as e:
-        return f"error: failed to start ID capture: {e}"
+        return f"error: RPC failed: {e}"
 
-    return "error: no candidate participant in the room"
+    # Set only after the RPC succeeds
+    self._flag_2 = True
+    context.session.history.add_message(role="system", content=f"Face capture started. DO NOT REVEAL, DO NOT REPLY ")
 ```
 
 ### How to test
