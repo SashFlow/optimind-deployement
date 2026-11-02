@@ -79,8 +79,7 @@ function pathnameOf(url: string): string {
 function isOptiModelAssetUrl(url: string): boolean {
 	const path = pathnameOf(url);
 	return (
-		path.startsWith("/spatialreal/") ||
-		path.startsWith("/spatialreal-api/")
+		path.startsWith("/spatialreal/") || path.startsWith("/spatialreal-api/")
 	);
 }
 

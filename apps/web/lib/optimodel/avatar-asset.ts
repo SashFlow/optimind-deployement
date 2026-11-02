@@ -20,7 +20,10 @@ export function toAvatarAsset(
 	publicDir: string,
 ): Record<string, unknown> {
 	const models = (meta.models ?? {}) as Record<string, ResourceHolder>;
-	const animations = (meta.animations ?? {}) as Record<string, ResourceHolder>;
+	const animations = (meta.animations ?? {}) as Record<
+		string,
+		ResourceHolder
+	>;
 	const settings = (meta.character_settings ??
 		meta.characterSettings ??
 		{}) as Record<string, unknown>;
@@ -119,7 +122,8 @@ function toPathAbsoluteRemote(remote: string): string {
 /** @deprecated Prefer path-absolute remotes via {@link relativizeRemotes}. */
 export function absolutizeRemotes(node: unknown, origin: string): unknown {
 	if (!node || typeof node !== "object") return node;
-	if (Array.isArray(node)) return node.map((n) => absolutizeRemotes(n, origin));
+	if (Array.isArray(node))
+		return node.map((n) => absolutizeRemotes(n, origin));
 	const out: Record<string, unknown> = {};
 	for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
 		if (k === "remote" && typeof v === "string" && v.startsWith("/")) {

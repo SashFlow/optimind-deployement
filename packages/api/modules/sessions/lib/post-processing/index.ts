@@ -154,9 +154,12 @@ export async function runPostProcessing(
 	opts?: { retryForVideo?: boolean },
 ) {
 	if (!hasGeminiApiKey()) {
-		logger.warn("Skipping post-processing: GOOGLE_GENERATIVE_AI_API_KEY missing", {
-			sessionId,
-		});
+		logger.warn(
+			"Skipping post-processing: GOOGLE_GENERATIVE_AI_API_KEY missing",
+			{
+				sessionId,
+			},
+		);
 		return;
 	}
 

@@ -509,7 +509,7 @@ export function useProctoring({
 				if (!push) {
 					throw new Error("ID capture upload is not configured");
 				}
-				await push(captured);
+				const uploaded = await push(captured);
 				// The candidate may have closed the overlay while the upload was in flight.
 				if (modeRef.current !== "ID_CAPTURE") {
 					return;
@@ -519,17 +519,29 @@ export function useProctoring({
 				}
 				idContextSentRef.current = true;
 
+				const ocr =
+					uploaded &&
+					typeof uploaded === "object" &&
+					"ocr" in uploaded &&
+					uploaded.ocr &&
+					typeof uploaded.ocr === "object"
+						? uploaded.ocr
+						: null;
+
 				setIdCaptureStatus("captured");
 				setMode("PROCTORING");
 				toast.success("ID card captured");
 				await sendContext(room, {
-					state: "ID card capture completed successfully. The candidate's ID images have been uploaded and submitted for verification. You may continue the conversation.",
+					state: ocr
+						? "ID card capture completed successfully. OCR results for the scanned document are included in the details for your reference. Confirm the document type matches what you requested, then continue."
+						: "ID card capture completed successfully. The candidate's ID images have been uploaded and submitted for verification. You may continue the conversation.",
 					action: "generate_reply",
 					type: "id_captured",
 					details: {
 						confidence: captured.confidence,
 						capturedAt: captured.timestamp,
 						status: "completed",
+						...(ocr ? { ocr } : {}),
 					},
 				});
 			} catch (error) {

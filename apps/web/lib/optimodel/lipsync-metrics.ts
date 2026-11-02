@@ -58,7 +58,9 @@ export class RenderStats {
 				rafFps: +((this.loops * 1000) / elapsed).toFixed(1),
 				renderFps: +((this.frames * 1000) / elapsed).toFixed(1),
 				skippedInFlight: this.skipped,
-				avgRenderMs: +(this.sumMs / Math.max(1, this.frames)).toFixed(2),
+				avgRenderMs: +(this.sumMs / Math.max(1, this.frames)).toFixed(
+					2,
+				),
 				maxRenderMs: +this.maxMs.toFixed(2),
 			});
 		}

@@ -109,7 +109,9 @@ function llmParamsWithReasoning(
 const DEFAULT_INWORLD_TTS_MODEL = "inworld-tts-2";
 const DEFAULT_INWORLD_TTS_VOICE = "Ashley";
 
-function isInworldTtsModelId(providerModelId: string | null | undefined): boolean {
+function isInworldTtsModelId(
+	providerModelId: string | null | undefined,
+): boolean {
 	const id = (providerModelId ?? "").trim();
 	return id.startsWith("inworld-tts") || id.startsWith("inworld/inworld-tts");
 }

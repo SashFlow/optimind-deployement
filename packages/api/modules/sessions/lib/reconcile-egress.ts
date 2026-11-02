@@ -3,7 +3,11 @@ import { updateEgressJob } from "@repo/database";
 import { listEgress, stopEgress } from "@repo/livekit";
 import { logger } from "@repo/logs";
 import { maybeEnqueueSessionTrackMerge } from "./enqueue-track-merge";
-import { objectKeyFromEgressLocation } from "./egress-media-url";
+import {
+	objectKeyFromEgressLocation,
+	resolveEgressObjectRef,
+	resolveObjectRef,
+} from "./egress-media-url";
 
 const SOURCE_EGRESS_TYPES = new Set(["TRACK", "PARTICIPANT"]);
 
@@ -247,14 +251,67 @@ export async function reconcileEgressJob(job: EgressJobLike) {
 	}
 }
 
-export async function reconcileOpenEgressJobs(jobs: EgressJobLike[]) {
-	const open = jobs.filter((job) => OPEN_STATUSES.has(job.status));
-	if (open.length === 0) {
-		await maybeEnqueueMergesForJobs(jobs);
-		return jobs;
+function hasFileExtension(path: string): boolean {
+	const base = path.split("/").pop() ?? path;
+	return base.includes(".");
+}
+
+/**
+ * Persist LiveKit's real object key (`user_video.mp4`) over the extensionless
+ * DirectFileOutput template (`user_video`) once the object exists in storage.
+ */
+async function healExtensionlessDestination(job: EgressJobLike) {
+	if (job.status !== "COMPLETE") {
+		return null;
+	}
+	const current = resolveObjectRef(job);
+	if (!current || hasFileExtension(current.key)) {
+		return null;
 	}
 
-	await Promise.all(open.map((job) => reconcileEgressJob(job)));
+	const resolved = await resolveEgressObjectRef(job);
+	if (!resolved || resolved.key === current.key) {
+		return null;
+	}
+
+	const fileUrl = `s3://${resolved.bucket}/${resolved.key}`;
+	const outputUrls = Array.from(
+		new Set([...(job.outputUrls ?? []), fileUrl].filter(Boolean)),
+	);
+
+	try {
+		return await updateEgressJob(job.id, {
+			fileUrl,
+			outputUrls,
+			destination: withUpdatedDestinationFilepath(
+				job.destination,
+				resolved.key,
+			),
+		});
+	} catch (error) {
+		logger.warn("Failed to heal extensionless egress destination", {
+			egressJobId: job.id,
+			fromKey: current.key,
+			toKey: resolved.key,
+			error,
+		});
+		return null;
+	}
+}
+
+export async function reconcileOpenEgressJobs(jobs: EgressJobLike[]) {
+	const open = jobs.filter((job) => OPEN_STATUSES.has(job.status));
+	if (open.length > 0) {
+		await Promise.all(open.map((job) => reconcileEgressJob(job)));
+	}
+
+	const complete = jobs.filter((job) => job.status === "COMPLETE");
+	if (complete.length > 0) {
+		await Promise.all(
+			complete.map((job) => healExtensionlessDestination(job)),
+		);
+	}
+
 	await maybeEnqueueMergesForJobs(jobs);
 	return jobs;
 }

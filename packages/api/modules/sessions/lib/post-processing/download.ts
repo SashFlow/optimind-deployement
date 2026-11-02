@@ -5,8 +5,8 @@ import { getSignedUrl } from "@repo/storage";
 import {
 	inferEgressContentType,
 	isEgressAudioOnly,
+	resolveEgressObjectRef,
 	resolveEgressPlayableUrl,
-	stripBucketPrefixFromKey,
 } from "../egress-media-url";
 import type { MediaPart } from "./types";
 
@@ -97,40 +97,32 @@ export async function downloadSessionRecording(
 		return null;
 	}
 
-	const mimeType = inferEgressContentType(candidate);
-	const cfg = getEgressS3Config();
-	const destination =
-		candidate.destination &&
-		typeof candidate.destination === "object" &&
-		!Array.isArray(candidate.destination)
-			? (candidate.destination as {
-					bucket?: string;
-					filepath?: string;
-				})
-			: null;
-
-	if (destination?.filepath && cfg) {
-		const client = createRecordingsS3Client();
-		if (client) {
-			const bucket = destination.bucket || cfg.bucket;
-			const key = stripBucketPrefixFromKey(
-				destination.filepath,
-				bucket,
-			);
+	const objectRef = await resolveEgressObjectRef(candidate);
+	const client = objectRef ? createRecordingsS3Client() : null;
+	if (objectRef && client) {
+		try {
 			const response = await client.send(
 				new GetObjectCommand({
-					Bucket: bucket,
-					Key: key,
+					Bucket: objectRef.bucket,
+					Key: objectRef.key,
 				}),
 			);
 			const bytes = await streamToBuffer(response.Body);
-			if (bytes.byteLength === 0 || bytes.byteLength > MAX_VIDEO_BYTES) {
-				return null;
+			if (bytes.byteLength > 0 && bytes.byteLength <= MAX_VIDEO_BYTES) {
+				return {
+					mimeType: inferEgressContentType(candidate, objectRef.key),
+					bytes,
+				};
 			}
-			return { mimeType, bytes };
+		} catch {
+			// Fall through to signed URL fetch.
 		}
 	}
 
+	const mimeType = inferEgressContentType(
+		candidate,
+		objectRef?.key ?? undefined,
+	);
 	const url = await resolveEgressPlayableUrl(candidate);
 	if (!url) {
 		return null;

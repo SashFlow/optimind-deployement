@@ -27,8 +27,9 @@ Agent tool verify_identity
   → Client opens ID overlay and scans camera frames
   → POST /sessions/{id}/participant-files  (id-card.jpg)
   → POST /sessions/{id}/participant-files  (id-card-full.jpg)
-  → Client perform_rpc("add_context") with type "id_captured" (action: generate_reply)
-  → Agent chat gets a system message; agent acknowledges and continues
+  → POST /sessions/{id}/id-card-ocr  (fast Gemini OCR → idType + fields)
+  → Client perform_rpc("add_context") with type "id_captured" + OCR details
+  → Agent chat gets a system message with OCR; agent can verify document type
 ```
 
 ### RPC: `start_id_capture` (agent → candidate)
@@ -48,20 +49,61 @@ Authenticated with the candidate’s LiveKit participant JWT:
 
 Endpoint: `POST /sessions/{id}/participant-files` (see [worker contract](/docs/sessions/worker-contract)).
 
-### RPC: `add_context` (candidate → agent)
+### OCR: mid-session ID fields
 
-After a successful upload the client injects a **system message** into the agent session
-via `add_context` (worker: `role="system"`, then `generate_reply` so the agent continues):
+After upload the client calls `POST /sessions/{id}/id-card-ocr` (same participant JWT).
+A fast multimodal model (`gemini-3.1-flash-lite` by default, overridable with
+`ID_CARD_OCR_MODEL`) reads the cropped card and returns structured fields. The result is
+also stored on the session under `metadata.idCardOcr`.
 
 ```json
 {
-  "state": "ID card capture completed successfully. The candidate's ID images have been uploaded and submitted for verification. You may continue the conversation.",
+  "ocr": {
+    "idType": "Aadhaar",
+    "extracted": {
+      "fullName": "...",
+      "documentNumber": "...",
+      "dateOfBirth": "...",
+      "expiryDate": "",
+      "issueDate": "",
+      "nationality": "",
+      "address": "...",
+      "sex": "",
+      "fatherName": ""
+    },
+    "confidence": 0.92,
+    "summary": "Readable Aadhaar card.",
+    "model": "gemini-3.1-flash-lite"
+  }
+}
+```
+
+OCR failures do **not** block capture: the client still sends `id_captured`, just without
+`details.ocr`.
+
+### RPC: `add_context` (candidate → agent)
+
+After a successful upload (and OCR when available) the client injects a **system message**
+into the agent session via `add_context` (worker: `role="system"`, then `generate_reply`
+so the agent continues). When OCR succeeds, `details.ocr` is included so the agent can
+check that the scanned document type matches what it requested:
+
+```json
+{
+  "state": "ID card capture completed successfully. OCR results for the scanned document are included in the details for your reference. Confirm the document type matches what you requested, then continue.",
   "action": "generate_reply",
   "type": "id_captured",
   "details": {
     "confidence": 0.0,
     "capturedAt": 0,
-    "status": "completed"
+    "status": "completed",
+    "ocr": {
+      "idType": "Aadhaar",
+      "extracted": { "fullName": "...", "documentNumber": "..." },
+      "confidence": 0.92,
+      "summary": "Readable Aadhaar card.",
+      "model": "gemini-3.1-flash-lite"
+    }
   }
 }
 ```
@@ -71,38 +113,33 @@ via `add_context` (worker: `role="system"`, then `generate_reply` so the agent c
 Paste into **Create Python Tool**. The worker injects `host` (`.agent`, `.ctx`, `.state`).
 
 ```python
+@function_tool()
 async def verify_identity(self, context: RunContext) -> str:
     """Ask the candidate to show their ID card for verification.
 
     Call this when you need the candidate to present a government ID.
-    The browser opens a capture overlay; wait for confirmation that the
-    ID was submitted before continuing sensitive steps.
+    The browser opens a capture overlay. Wait for confirmation that
+    the ID was submitted before continuing sensitive steps.
     """
-    from livekit import rtc
-
-    room = context.session._room_io.room
-
-    if room is None:
+    try:
+        room_io = context.session.room_io
+    except RuntimeError:
         return "error: room not available yet"
 
-    for participant in room.remote_participants.values():
-        # Skip other agents; target the candidate/client.
-        if participant.kind == rtc.ParticipantKind.AGENT:
-            continue
+    participant = room_io.linked_participant
+    if participant is None:
+        return "error: no candidate participant in the room"
 
-        try:
-            await room.local_participant.perform_rpc(
-                destination_identity=participant.identity,
-                method="start_id_capture",
-                payload="",
-            )
-
-            return "Waiting for ID Capture"
-
-        except Exception as e:
-            return f"error: failed to start ID capture: {e}"
-
-    return "error: no candidate participant in the room"
+    try:
+        response = await room_io.room.local_participant.perform_rpc(
+            destination_identity=participant.identity,
+            method="start_id_capture",
+            payload="",
+        )
+        return f"ID capture request sent: {response}. Waiting for candidate to submit ID."
+    except Exception as e:
+        logger.exception("Failed to start ID capture")
+        return f"error: failed to start ID capture: {e}"
 ```
 
 ### How to test

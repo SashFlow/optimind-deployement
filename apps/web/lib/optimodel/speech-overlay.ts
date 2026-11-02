@@ -1,7 +1,4 @@
-import {
-	cloneKeyframe,
-	type FlameKeyframe,
-} from "@repo/arkit-flame";
+import { cloneKeyframe, type FlameKeyframe } from "@repo/arkit-flame";
 
 /** Default ease-out from speech pose back to idle after talk ends. */
 export const DEFAULT_SPEECH_RELEASE_MS = 450;
@@ -56,11 +53,7 @@ export function speechOverlayFromIdle(idle: FlameKeyframe): SpeechOverlay {
 export function speechOverlayFromFlame(kf: FlameKeyframe): SpeechOverlay {
 	return {
 		expression: kf.expression.slice(0, 100),
-		jawPose: [
-			kf.jawPose[0] ?? 0,
-			kf.jawPose[1] ?? 0,
-			kf.jawPose[2] ?? 0,
-		],
+		jawPose: [kf.jawPose[0] ?? 0, kf.jawPose[1] ?? 0, kf.jawPose[2] ?? 0],
 	};
 }
 

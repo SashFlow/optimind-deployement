@@ -77,8 +77,8 @@ export function BodyCaptureOverlay() {
 						Verify your body position
 					</h2>
 					<p className="text-muted-foreground text-sm">
-						Stand so your full body lines up with the silhouette.
-						We capture and submit automatically once you hold still.
+						Stand so your full body lines up with the silhouette. We
+						capture and submit automatically once you hold still.
 					</p>
 				</div>
 

@@ -1,10 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
-import {
-	relativizeRemotes,
-	toAvatarAsset,
-} from "@/lib/optimodel/avatar-asset";
+import { relativizeRemotes, toAvatarAsset } from "@/lib/optimodel/avatar-asset";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,9 +65,7 @@ export async function GET(
 		const message = err instanceof Error ? err.message : String(err);
 		return NextResponse.json(
 			{
-				errors: [
-					{ title: "avatar load failed", detail: message },
-				],
+				errors: [{ title: "avatar load failed", detail: message }],
 			},
 			{ status: 500 },
 		);

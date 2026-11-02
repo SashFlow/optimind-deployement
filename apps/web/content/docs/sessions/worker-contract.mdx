@@ -219,6 +219,17 @@ participantToken=...   (optional alternative to Authorization header)
 
 Token `video.room` must match the session's LiveKit room. Session must be `QUEUED` or `ACTIVE`.
 
+After ID capture uploads, the web client OCRs the latest card:
+
+```http
+POST /api/sessions/{session_id}/id-card-ocr
+Authorization: Bearer <livekit-participant-jwt>
+```
+
+Response: `{ ocr: { idType, extracted, confidence, summary, model } }`. Uses a fast Gemini
+model (`gemini-3.1-flash-lite` by default). Result is persisted on
+`session.metadata.idCardOcr` and passed to the agent via `add_context` `details.ocr`.
+
 ## Client ↔ agent LiveKit RPCs
 
 ### `add_context` (candidate → agent)
@@ -238,15 +249,18 @@ Payload (JSON string):
       | "id_captured" | "face_captured"
       | "body_framing" | "body_captured"
       | "otp_submitted" | "otp_resend_requested"
+      | "aadhaar_otp_verified" | "aadhaar_otp_failed"
   details?: Record<string, unknown>
 }
 ```
 
 - `proactive_response: false` forces `action: "silent"` for violation types.
 - `id_captured` / `face_captured` / `body_captured` are sent with `action: "generate_reply"` after a successful upload.
+- `id_captured` may include `details.ocr` (`idType` + extracted fields) so the agent can verify the scanned document type against what it requested.
 - `body_framing` is sent periodically (default every 5s) while body capture is scanning and the pose is not yet well framed (`action: "say"`).
 - `otp_submitted` includes `details.code`; the worker/agent validates the code.
 - `otp_resend_requested` asks the agent to resend the OTP out-of-band.
+- `aadhaar_otp_verified` / `aadhaar_otp_failed` are sent after the browser verifies (or fails) Aadhaar eKYC via Deepvue.
 
 ### `start_id_capture` (agent → candidate)
 
@@ -282,6 +296,25 @@ Response: `{ "started": true }`.
 
 Registered only when `session_modalities.otp_input.enabled` is true. See
 [OTP input](/docs/sessions/otp-input).
+
+### `start_aadhaar_otp_input` (agent → candidate)
+
+Opens the Aadhaar OKYC OTP popover. The client requests/verifies OTP via
+`POST /api/sessions/{id}/aadhaar/okyc/otp` and `.../otp/verify` (participant JWT).
+Payload:
+
+```json
+{
+  "aadhaar_number": "123456789012",
+  "length": 6,
+  "hint": "Enter the Aadhaar OTP sent to your registered mobile"
+}
+```
+
+Response: `{ "started": true }` (or `{ "started": false, "error": "..." }`).
+
+Registered only when `session_modalities.otp_input.enabled` is true. See
+[OTP input](/docs/sessions/otp-input) (Aadhaar section).
 
 ## Callbacks / reschedule
 
@@ -322,6 +355,9 @@ The report / terminal lifecycle handlers:
 | `POST` | `/api/sessions/{id}/egress` | Start room-composite egress → S3 |
 | `POST` | `/api/sessions/{id}/end` | Cancel session + delete LiveKit room |
 | `POST` | `/api/sessions/{id}/participant-files` | Participant JWT upload → `SessionFile` |
+| `POST` | `/api/sessions/{id}/id-card-ocr` | Participant JWT → OCR latest ID card (fast LLM) |
+| `POST` | `/api/sessions/{id}/aadhaar/okyc/otp` | Participant JWT → request Aadhaar eKYC OTP (Deepvue) |
+| `POST` | `/api/sessions/{id}/aadhaar/okyc/otp/verify` | Participant JWT → verify Aadhaar eKYC OTP (Deepvue) |
 
 ## Webhooks
 
@@ -338,6 +374,11 @@ Handled events:
 | Variable | Purpose |
 |---|---|
 | `WORKER_API_KEY` | Worker auth for `/internal/*` |
+| `DEEPVUE_API_BASE_URL` | Deepvue base URL (Aadhaar eKYC V2) |
+| `DEEPVUE_ID` | Deepvue `client-id` (server-only) |
+| `DEEPVUE_SECRET` | Deepvue `x-api-key` (server-only) |
+| `DEEPVUE_ORIGIN` | Optional `X-Deepvue-Origin` (default `optimind-web`) |
+| `DEEPVUE_AADHAAR_PURPOSE` | Optional purpose query param (default `lending`) |
 | `AGENT_NAME` | LiveKit agent name for dispatch |
 | `GCP_ACCESS_KEY` / `GCP_SECRET_KEY` / `GCP_BUCKET_RECORDINGS` / `GCP_STORAGE_REGION` | Egress upload (GCS HMAC / S3 interop) |
 | `GCP_STORAGE_URL` | S3-compatible endpoint (`https://storage.googleapis.com`) |

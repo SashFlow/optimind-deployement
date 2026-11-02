@@ -93,7 +93,9 @@ export async function buildPostProcessingPdf(args: {
 	if (args.result.body) {
 		const { vitals, physicalCondition, underwriting } = args.result.body;
 		doc.moveDown();
-		doc.fontSize(12).font("Helvetica-Bold").text("Body — vitals (estimate)");
+		doc.fontSize(12)
+			.font("Helvetica-Bold")
+			.text("Body — vitals (estimate)");
 		doc.moveDown(0.3);
 		doc.fontSize(10);
 		writeKeyValues(doc, [
@@ -130,22 +132,14 @@ export async function buildPostProcessingPdf(args: {
 		]);
 
 		doc.moveDown();
-		doc.fontSize(12)
-			.font("Helvetica-Bold")
-			.text("Body — underwriting");
+		doc.fontSize(12).font("Helvetica-Bold").text("Body — underwriting");
 		doc.moveDown(0.3);
 		doc.fontSize(10);
 		writeKeyValues(doc, [
 			["Identity status", underwriting.identityStatus],
 			["Liveness status", underwriting.livenessStatus],
-			[
-				"Risk indicators",
-				underwriting.riskIndicators.join("; ") || "—",
-			],
-			[
-				"Exception flags",
-				underwriting.exceptionFlags.join("; ") || "—",
-			],
+			["Risk indicators", underwriting.riskIndicators.join("; ") || "—"],
+			["Exception flags", underwriting.exceptionFlags.join("; ") || "—"],
 			[
 				"Underwriter review recommended",
 				underwriting.underwriterReviewRecommended,

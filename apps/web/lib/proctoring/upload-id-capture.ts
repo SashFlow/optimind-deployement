@@ -1,6 +1,20 @@
 import { orpcClient } from "@shared/lib/orpc-client";
 import type { IdCaptureResult } from "@/lib/proctoring/idCard";
 
+export type IdCardOcrResult = {
+	idType: string;
+	extracted: Record<string, string>;
+	confidence: number;
+	summary: string;
+	model: string;
+};
+
+export type IdCaptureUploadResult = {
+	card: { id: string; name: string };
+	frame: { id: string; name: string };
+	ocr: IdCardOcrResult | null;
+};
+
 async function blobToBase64(blob: Blob): Promise<string> {
 	const buffer = await blob.arrayBuffer();
 	let binary = "";
@@ -12,12 +26,12 @@ async function blobToBase64(blob: Blob): Promise<string> {
 	return btoa(binary);
 }
 
-/** Upload ID crop + full-frame evidence as SessionFiles for the live participant. */
+/** Upload ID crop + full-frame evidence, then OCR the card for agent context. */
 export async function uploadIdCaptureFiles(args: {
 	sessionId: string;
 	participantToken: string;
 	result: IdCaptureResult;
-}) {
+}): Promise<IdCaptureUploadResult> {
 	const [cardBase64, frameBase64] = await Promise.all([
 		blobToBase64(args.result.card),
 		blobToBase64(args.result.frame),
@@ -37,5 +51,17 @@ export async function uploadIdCaptureFiles(args: {
 		name: "id-card-full.jpg",
 		participantToken: args.participantToken,
 	});
-	return { card: card.file, frame: frame.file };
+
+	let ocr: IdCardOcrResult | null = null;
+	try {
+		const response = await orpcClient.sessions.ocrIdCard({
+			id: args.sessionId,
+			participantToken: args.participantToken,
+		});
+		ocr = response.ocr;
+	} catch (error) {
+		console.error("ID capture: OCR failed", error);
+	}
+
+	return { card: card.file, frame: frame.file, ocr };
 }

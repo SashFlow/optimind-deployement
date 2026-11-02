@@ -607,6 +607,27 @@ export async function saveAgentSessionReport(
 	});
 }
 
+/** Shallow-merge keys into AgentSession.metadata (JSON). */
+export async function patchAgentSessionMetadata(
+	id: string,
+	metadataPatch: Record<string, unknown>,
+) {
+	const existing = await db.agentSession.findUnique({ where: { id } });
+	if (!existing) {
+		return null;
+	}
+
+	const metadata = toJson({
+		...((existing.metadata as Record<string, unknown>) ?? {}),
+		...metadataPatch,
+	});
+
+	return db.agentSession.update({
+		where: { id },
+		data: { metadata },
+	});
+}
+
 export async function linkCampaignSessionToAgentSession(
 	campaignSessionId: string,
 	agentSessionId: string,

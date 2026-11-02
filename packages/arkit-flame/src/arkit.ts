@@ -59,9 +59,10 @@ export type ARKitBlendshape = (typeof ARKIT_BLENDSHAPES)[number];
 export const ARKIT_COUNT = ARKIT_BLENDSHAPES.length;
 
 export const ARKIT_INDEX: Readonly<Record<ARKitBlendshape, number>> =
-	Object.fromEntries(
-		ARKIT_BLENDSHAPES.map((name, i) => [name, i]),
-	) as Record<ARKitBlendshape, number>;
+	Object.fromEntries(ARKIT_BLENDSHAPES.map((name, i) => [name, i])) as Record<
+		ARKitBlendshape,
+		number
+	>;
 
 /** Blendshapes typically driven by speech (not expression/gaze). */
 export const SPEECH_BLENDSHAPES: readonly ARKitBlendshape[] = [

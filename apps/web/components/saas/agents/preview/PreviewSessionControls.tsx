@@ -736,7 +736,11 @@ export function PreviewSessionControls({
 
 			{/* SpatialReal: SDK owns avatar-worker audio. Everything else
 			    (including OptiModel/arkit) plays through the stock renderer. */}
-			{isSpatialReal ? <SpatialRealSafeRoomAudio /> : <RoomAudioRenderer />}
+			{isSpatialReal ? (
+				<SpatialRealSafeRoomAudio />
+			) : (
+				<RoomAudioRenderer />
+			)}
 		</div>
 	);
 }

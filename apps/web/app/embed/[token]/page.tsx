@@ -269,6 +269,8 @@ function EmbedAgentPageContent() {
 					) : null}
 					<SessionInteractionProvider
 						otpInputEnabled={sessionModalities.otp_input.enabled}
+						sessionId={credentials.sessionId}
+						participantToken={credentials.token}
 					>
 						{cameraFeaturesEnabled ? (
 							<ProctoringProvider

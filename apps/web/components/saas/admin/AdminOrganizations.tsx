@@ -555,7 +555,10 @@ export function AdminOrganizations() {
 							<Select
 								value={orgType}
 								onValueChange={(value) => {
-									if (value === "trial" || value === "workspace") {
+									if (
+										value === "trial" ||
+										value === "workspace"
+									) {
 										setOrgType(value);
 									}
 								}}

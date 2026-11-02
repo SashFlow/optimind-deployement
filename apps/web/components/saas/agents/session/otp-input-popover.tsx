@@ -69,23 +69,13 @@ function OtpSlots({ length }: { length: number }) {
 
 /** Centered OTP entry dialog opened via the agent `start_otp_input` RPC. */
 export function OtpInputPopover() {
-	const otp = useSessionInteractionContext();
+	const ctx = useSessionInteractionContext();
+	const otp = ctx?.otp;
 	if (!otp?.open) {
 		return null;
 	}
 
-	const {
-		options,
-		code,
-		setCode,
-		submitting,
-		resending,
-		resendCooldownSeconds,
-		canResend,
-		dismiss,
-		submit,
-		resend,
-	} = otp;
+	const { options, code, setCode, submitting, submit } = otp;
 
 	return (
 		<div

@@ -95,11 +95,9 @@ async def body_capture(self, context: RunContext) -> str:
         room_io = context.session.room_io
     except RuntimeError:
         return "error: room not available yet"
-
     participant = room_io.linked_participant
     if participant is None:
         return "error: no candidate participant in the room"
-
     try:
         response = await room_io.room.local_participant.perform_rpc(
             destination_identity=participant.identity,
@@ -108,7 +106,6 @@ async def body_capture(self, context: RunContext) -> str:
         )
     except Exception as e:
         return f"error: RPC failed: {e}"
-
     return f"Body capture started: {response}"
 ```
 

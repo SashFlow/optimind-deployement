@@ -78,8 +78,6 @@ Dismissing the popover does **not** send an `add_context` event.
 Paste into **Create Python Tool**. The worker injects `host` (`.agent`, `.ctx`, `.state`).
 
 ```python
-
-
 @function_tool()
 async def request_otp(self, context: RunContext) -> str:
 	"""Open the candidate's OTP input popover in the browser.
@@ -117,6 +115,112 @@ async def request_otp(self, context: RunContext) -> str:
 	return f"OTP input started: {response}"
 ```
 
+## Aadhaar eKYC OTP (Deepvue)
+
+When OTP input is enabled, the agent can also open an **Aadhaar** OTP popover via
+`start_aadhaar_otp_input`. Unlike generic OTP, the **web client** requests and verifies
+the OTP through backend proxies to Deepvue Aadhaar eKYC V2 (server-side API keys). After
+verify, the client notifies the agent via `add_context`.
+
+### Flow
+
+```
+Agent tool request_aadhaar_otp(aadhaar_number)
+  → perform_rpc("start_aadhaar_otp_input") on candidate
+  → Client opens Aadhaar OTP popover
+  → Client POST /sessions/{id}/aadhaar/okyc/otp  (request)
+  → Candidate Verify → POST .../otp/verify
+  → add_context type "aadhaar_otp_verified" | "aadhaar_otp_failed"
+  → Candidate Resend → POST .../otp again (30s cooldown)
+```
+
+### RPC: `start_aadhaar_otp_input` (agent → candidate)
+
+- Registered only when `session_modalities.otp_input.enabled` is true.
+- Payload (JSON string) — `aadhaar_number` required (12 digits):
+
+```json
+{
+  "aadhaar_number": "123456789012",
+  "length": 6,
+  "hint": "Enter the Aadhaar OTP sent to your registered mobile"
+}
+```
+
+- Response: `{"started": true}` (or `{"started": false, "error": "..."}` if the number is invalid).
+
+### Backend endpoints (participant JWT)
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/sessions/{id}/aadhaar/okyc/otp` | Request OTP (`aadhaar_number`) |
+| `POST` | `/api/sessions/{id}/aadhaar/okyc/otp/verify` | Verify OTP (`otp`); uses stored `reference_id` |
+
+Env (server-only): `DEEPVUE_API_BASE_URL`, `DEEPVUE_ID` (`client-id`), `DEEPVUE_SECRET`
+(`x-api-key`), optional `DEEPVUE_ORIGIN`, `DEEPVUE_AADHAAR_PURPOSE`.
+
+### RPC: `add_context` — verified
+
+```json
+{
+  "state": "Aadhaar OTP verification succeeded. The candidate's Aadhaar has been verified. You may continue the conversation.",
+  "action": "generate_reply",
+  "type": "aadhaar_otp_verified",
+  "details": { "verifiedAt": 0, "aadhaarLast4": "9012" }
+}
+```
+
+### RPC: `add_context` — failed
+
+```json
+{
+  "state": "Aadhaar OTP verification failed. Ask the candidate to try again or request a new OTP.",
+  "action": "generate_reply",
+  "type": "aadhaar_otp_failed",
+  "details": { "failedAt": 0 }
+}
+```
+
+## Sample Python tool for Aadhaar OTP input
+
+```python
+@function_tool()
+async def request_aadhaar_otp(self, context: RunContext, aadhaar_number: str) -> str:
+	"""Open the candidate's Aadhaar OTP popover and start OKYC OTP.
+
+	Pass the 12-digit Aadhaar number. The browser requests the OTP from Sandbox,
+	collects the code, verifies it, then notifies you via add_context.
+	Returns when the popover has opened — not when verification finishes.
+	"""
+	import json
+	
+	try:
+		room_io = context.session.room_io
+	except RuntimeError:
+		return "error: room not available yet"
+
+	participant = room_io.linked_participant
+	if participant is None:
+		return "error: no candidate participant in the room"
+
+	payload = json.dumps({
+		"length": 6,
+		"hint": "Enter the Aadhaar OTP sent to your registered mobile",
+		"aadhaar_number": aadhaar_number
+	})
+
+	try:
+		response = await room_io.room.local_participant.perform_rpc(
+			destination_identity=participant.identity,
+			method="start_aadhaar_otp_input",
+			payload=payload,
+		)
+	except Exception as e:
+		return f"error: RPC failed: {e}"
+
+	return f"Aadhaar OTP input started: {response}"
+```
+
 ### How to test
 
 1. Enable OTP input on the agent.
@@ -124,10 +228,12 @@ async def request_otp(self, context: RunContext) -> str:
 3. Join a share/embed/preview session.
 4. Ask the agent to request an OTP (or otherwise invoke `request_otp`).
 5. Enter a code and click **Submit** — confirm toast “Code submitted”.
-6. Click **Resend** — confirm toast “Resend requested” and a cooldown.
+6. For Aadhaar: invoke `request_aadhaar_otp` with a test Aadhaar number; confirm OTP
+   request toast, then Verify / Resend.
 
 ## Related
 
-- [Worker contract](/docs/sessions/worker-contract) (`start_otp_input`, `add_context`)
-- Client hook: `apps/web/hooks/useOtpInput.ts`
-- UI: `apps/web/components/saas/agents/session/otp-input-popover.tsx`
+- [Worker contract](/docs/sessions/worker-contract) (`start_otp_input`, `start_aadhaar_otp_input`, `add_context`)
+- Client hooks: `apps/web/hooks/useOtpInput.ts`, `apps/web/hooks/useAadhaarOtpInput.ts`
+- UI: `apps/web/components/saas/agents/session/otp-input-popover.tsx`,
+  `aadhaar-otp-input-popover.tsx`

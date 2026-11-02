@@ -211,7 +211,8 @@ export function AdvancedSection({
 													.post_processing,
 												prompts: {
 													...config.session_modalities
-														.post_processing.prompts,
+														.post_processing
+														.prompts,
 													face_liveness:
 														event.target.value,
 												},
@@ -244,7 +245,8 @@ export function AdvancedSection({
 													.post_processing,
 												prompts: {
 													...config.session_modalities
-														.post_processing.prompts,
+														.post_processing
+														.prompts,
 													id_extraction:
 														event.target.value,
 												},
@@ -277,7 +279,8 @@ export function AdvancedSection({
 													.post_processing,
 												prompts: {
 													...config.session_modalities
-														.post_processing.prompts,
+														.post_processing
+														.prompts,
 													body_assessment:
 														event.target.value,
 												},

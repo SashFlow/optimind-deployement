@@ -621,188 +621,192 @@ export function AgentAccessControlForm({ agentId }: { agentId: string }) {
 				</div>
 			) : null}
 
-		<Tabs
-			value={tab}
-			onValueChange={(value) => value && setTab(value as AccessTab)}
-			className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
-		>
-			<div className="flex shrink-0 items-center gap-3">
-				<div className="min-w-0 flex-1">
-					<Select
-						value={tab}
-						onValueChange={(value) =>
-							value && setTab(value as AccessTab)
-						}
-					>
-						<SelectTrigger
-							aria-label="Access control section"
-							className="h-9 w-full rounded-full bg-sidebar shadow-sm ring-1 ring-black/5 min-[1250px]:hidden"
+			<Tabs
+				value={tab}
+				onValueChange={(value) => value && setTab(value as AccessTab)}
+				className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
+			>
+				<div className="flex shrink-0 items-center gap-3">
+					<div className="min-w-0 flex-1">
+						<Select
+							value={tab}
+							onValueChange={(value) =>
+								value && setTab(value as AccessTab)
+							}
 						>
-							<SelectValue placeholder="Select section" />
-						</SelectTrigger>
-						<SelectContent>
-							{ACCESS_TABS.map((section) => (
-								<SelectItem
-									key={section.value}
-									value={section.value}
-								>
-									{section.label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-
-					<div className="scrollbar-none hidden min-w-0 overflow-x-auto min-[1250px]:block">
-						<TabsList className="h-9 w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
-							{ACCESS_TABS.map((section) => {
-								const isActive = tab === section.value;
-								return (
-									<TabsTrigger
+							<SelectTrigger
+								aria-label="Access control section"
+								className="h-9 w-full rounded-full bg-sidebar shadow-sm ring-1 ring-black/5 min-[1250px]:hidden"
+							>
+								<SelectValue placeholder="Select section" />
+							</SelectTrigger>
+							<SelectContent>
+								{ACCESS_TABS.map((section) => (
+									<SelectItem
 										key={section.value}
 										value={section.value}
-										className={cn(
-											"h-7 flex-none gap-2 rounded-full px-4 py-0 shadow-none transition-colors",
-											isActive
-												? "bg-secondary text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground"
-												: "text-muted-foreground hover:text-foreground",
-										)}
 									>
 										{section.label}
-									</TabsTrigger>
-								);
-							})}
-						</TabsList>
-					</div>
-				</div>
-				{tab === "links" ? (
-					<Button
-						type="button"
-						className="h-9 shrink-0"
-						onClick={openCreateDialog}
-					>
-						<PlusIcon className="size-4" />
-						Create
-					</Button>
-				) : null}
-			</div>
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 
-			<TabsContent
-				value="links"
-				className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
-			>
-				{linksContent}
-			</TabsContent>
-
-			<TabsContent
-				value="embed"
-				className="mt-0 min-h-0 flex-1 overflow-y-auto data-[state=inactive]:hidden"
-			>
-				<AgentEmbedPanel agentId={agentId} />
-			</TabsContent>
-
-			<Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
-				<DialogContent className="max-w-md">
-					<form onSubmit={handleSubmit}>
-						<DialogHeader>
-							<DialogTitle>
-								{isEditing
-									? "Edit trial link"
-									: "Create trial link"}
-							</DialogTitle>
-							<DialogDescription>
-								{isEditing
-									? "Update sessions or expiry for this demo link."
-									: "Set a label, session limit, and optional expiry."}
-							</DialogDescription>
-						</DialogHeader>
-
-						<div className="mt-4 space-y-4">
-							<div className="space-y-2">
-								<Label htmlFor="trial-label">Label</Label>
-								<Input
-									id="trial-label"
-									value={form.label}
-									onChange={(event) =>
-										setForm((current) => ({
-											...current,
-											label: event.target.value,
-										}))
-									}
-									placeholder="Sales demo"
-									autoFocus
-								/>
-							</div>
-
-							<div className="space-y-2">
-								<Label htmlFor="trial-sessions">Sessions</Label>
-								<Input
-									id="trial-sessions"
-									type="number"
-									min={1}
-									step={1}
-									value={form.sessions}
-									onChange={(event) =>
-										setForm((current) => ({
-											...current,
-											sessions: event.target.value,
-										}))
-									}
-									placeholder="1"
-								/>
-							</div>
-
-							<div className="space-y-2">
-								<Label htmlFor="trial-expiry">
-									Expiry date{" "}
-									<span className="font-normal text-muted-foreground">
-										(optional)
-									</span>
-								</Label>
-								<Input
-									id="trial-expiry"
-									type="date"
-									value={form.expiresAt}
-									onChange={(event) =>
-										setForm((current) => ({
-											...current,
-											expiresAt: event.target.value,
-										}))
-									}
-								/>
-							</div>
+						<div className="scrollbar-none hidden min-w-0 overflow-x-auto min-[1250px]:block">
+							<TabsList className="h-9 w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
+								{ACCESS_TABS.map((section) => {
+									const isActive = tab === section.value;
+									return (
+										<TabsTrigger
+											key={section.value}
+											value={section.value}
+											className={cn(
+												"h-7 flex-none gap-2 rounded-full px-4 py-0 shadow-none transition-colors",
+												isActive
+													? "bg-secondary text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground"
+													: "text-muted-foreground hover:text-foreground",
+											)}
+										>
+											{section.label}
+										</TabsTrigger>
+									);
+								})}
+							</TabsList>
 						</div>
+					</div>
+					{tab === "links" ? (
+						<Button
+							type="button"
+							className="h-9 shrink-0"
+							onClick={openCreateDialog}
+						>
+							<PlusIcon className="size-4" />
+							Create
+						</Button>
+					) : null}
+				</div>
 
-						<DialogFooter className="mt-6">
-							<Button
-								type="button"
-								variant="outline"
-								disabled={
-									createMutation.isPending ||
-									updateMutation.isPending
-								}
-								onClick={() => handleDialogOpenChange(false)}
-							>
-								Cancel
-							</Button>
-							<Button
-								type="submit"
-								loading={
-									createMutation.isPending ||
-									updateMutation.isPending
-								}
-								disabled={
-									!canSubmit ||
-									createMutation.isPending ||
-									updateMutation.isPending
-								}
-							>
-								{isEditing ? "Save changes" : "Create link"}
-							</Button>
-						</DialogFooter>
-					</form>
-				</DialogContent>
-			</Dialog>
-		</Tabs>
+				<TabsContent
+					value="links"
+					className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+				>
+					{linksContent}
+				</TabsContent>
+
+				<TabsContent
+					value="embed"
+					className="mt-0 min-h-0 flex-1 overflow-y-auto data-[state=inactive]:hidden"
+				>
+					<AgentEmbedPanel agentId={agentId} />
+				</TabsContent>
+
+				<Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+					<DialogContent className="max-w-md">
+						<form onSubmit={handleSubmit}>
+							<DialogHeader>
+								<DialogTitle>
+									{isEditing
+										? "Edit trial link"
+										: "Create trial link"}
+								</DialogTitle>
+								<DialogDescription>
+									{isEditing
+										? "Update sessions or expiry for this demo link."
+										: "Set a label, session limit, and optional expiry."}
+								</DialogDescription>
+							</DialogHeader>
+
+							<div className="mt-4 space-y-4">
+								<div className="space-y-2">
+									<Label htmlFor="trial-label">Label</Label>
+									<Input
+										id="trial-label"
+										value={form.label}
+										onChange={(event) =>
+											setForm((current) => ({
+												...current,
+												label: event.target.value,
+											}))
+										}
+										placeholder="Sales demo"
+										autoFocus
+									/>
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="trial-sessions">
+										Sessions
+									</Label>
+									<Input
+										id="trial-sessions"
+										type="number"
+										min={1}
+										step={1}
+										value={form.sessions}
+										onChange={(event) =>
+											setForm((current) => ({
+												...current,
+												sessions: event.target.value,
+											}))
+										}
+										placeholder="1"
+									/>
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="trial-expiry">
+										Expiry date{" "}
+										<span className="font-normal text-muted-foreground">
+											(optional)
+										</span>
+									</Label>
+									<Input
+										id="trial-expiry"
+										type="date"
+										value={form.expiresAt}
+										onChange={(event) =>
+											setForm((current) => ({
+												...current,
+												expiresAt: event.target.value,
+											}))
+										}
+									/>
+								</div>
+							</div>
+
+							<DialogFooter className="mt-6">
+								<Button
+									type="button"
+									variant="outline"
+									disabled={
+										createMutation.isPending ||
+										updateMutation.isPending
+									}
+									onClick={() =>
+										handleDialogOpenChange(false)
+									}
+								>
+									Cancel
+								</Button>
+								<Button
+									type="submit"
+									loading={
+										createMutation.isPending ||
+										updateMutation.isPending
+									}
+									disabled={
+										!canSubmit ||
+										createMutation.isPending ||
+										updateMutation.isPending
+									}
+								>
+									{isEditing ? "Save changes" : "Create link"}
+								</Button>
+							</DialogFooter>
+						</form>
+					</DialogContent>
+				</Dialog>
+			</Tabs>
 		</div>
 	);
 }

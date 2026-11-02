@@ -140,7 +140,9 @@ export function AdminOrganizationEditor({ id }: { id: string }) {
 				name: currentName.trim(),
 				updateSlug: organization.name !== currentName.trim(),
 				metadata:
-					currentType === "trial" ? { trial: true } : { trial: false },
+					currentType === "trial"
+						? { trial: true }
+						: { trial: false },
 			});
 			setEditedName(null);
 			setEditedType(null);

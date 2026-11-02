@@ -24,9 +24,7 @@ export type AvatarCoreLike = {
 		characterId?: string,
 		animationInfo?: AnimationInfo,
 	) => Promise<WasmFrameParams>;
-	loadAdditionalAnimation?: (
-		animData: ArrayBuffer,
-	) => Promise<AnimationInfo>;
+	loadAdditionalAnimation?: (animData: ArrayBuffer) => Promise<AnimationInfo>;
 };
 
 export type IdleLoopHandle = {

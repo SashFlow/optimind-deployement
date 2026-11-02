@@ -29,10 +29,7 @@ import {
 	waitForOptiModelWarmupIdle,
 	warmOptiModelRuntime,
 } from "@/lib/gsplat-preload";
-import {
-	lipsyncMark,
-	RenderStats,
-} from "@/lib/optimodel/lipsync-metrics";
+import { lipsyncMark, RenderStats } from "@/lib/optimodel/lipsync-metrics";
 import { getOptiModelAsset } from "@/lib/stock-avatars";
 
 /** Idle render cadence (fps-matched to the 25fps clip) vs while speech is driving the mouth. */
@@ -240,7 +237,10 @@ export function OptiModelViewport({
 				}
 
 				container.replaceChildren();
-				view = new AvatarView(avatar, container) as unknown as AvatarViewHandle;
+				view = new AvatarView(
+					avatar,
+					container,
+				) as unknown as AvatarViewHandle;
 
 				await new Promise<void>((resolve, reject) => {
 					const t = window.setTimeout(
@@ -296,7 +296,9 @@ export function OptiModelViewport({
 				view.stopRenderLoop?.();
 
 				if (!core?.loadAdditionalAnimation) {
-					throw new Error("AvatarCore.loadAdditionalAnimation missing");
+					throw new Error(
+						"AvatarCore.loadAdditionalAnimation missing",
+					);
 				}
 				const idleRes = await fetch(
 					`/spatialreal/${asset.dir}/idle.pb`,
@@ -319,9 +321,7 @@ export function OptiModelViewport({
 
 				startIdle(idleInfo, view.characterId);
 				raf = requestAnimationFrame(driveLoop);
-				onStatusRef.current?.(
-					`ready · idle ${idleInfo.totalFrames}f`,
-				);
+				onStatusRef.current?.(`ready · idle ${idleInfo.totalFrames}f`);
 			} catch (e) {
 				if (!cancelled) {
 					const message = e instanceof Error ? e.message : String(e);

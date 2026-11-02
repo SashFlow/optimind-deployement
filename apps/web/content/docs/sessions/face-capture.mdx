@@ -67,28 +67,35 @@ Paste into **Create Python Tool**. The worker injects `host` (`.agent`, `.ctx`, 
 
 ```python
 @function_tool()
-async def face_capture(self, context: RunContext) -> str:
-    """Ask the candidate to keep their Face still for face capture."""
+async def verify_identity(self, context: RunContext) -> str:
+    """Ask the candidate to show their ID card for verification.
+
+    Call this when you need the candidate to present a government ID.
+    The browser opens a capture overlay; wait for confirmation that the
+    ID was submitted before continuing sensitive steps.
+    """
     try:
         room_io = context.session.room_io
     except RuntimeError:
         return "error: room not available yet"
-
+      
     participant = room_io.linked_participant
     if participant is None:
         return "error: no candidate participant in the room"
 
     try:
-        response = await room_io.room.local_participant.perform_rpc(
-            destination_identity=participant.identity,
-            method="start_face_capture",
-            payload="",
-            # keep short if handler only acknowledges UI open
-        )
-    except Exception as e:
-        return f"error: RPC failed: {e}"
+        await room.local_participant.perform_rpc(
+                destination_identity=participant.identity,
+                method="start_id_capture",
+                payload="",
+            )
 
-    return f"Face capture started: {response}"
+       return "Waiting for ID Capture"
+
+    except Exception as e:
+        return f"error: failed to start ID capture: {e}"
+
+    return "error: no candidate participant in the room"
 ```
 
 ### How to test

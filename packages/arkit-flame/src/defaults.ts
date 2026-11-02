@@ -1,9 +1,6 @@
 import filterJson from "../assets/arkit2flame-filter.json";
 import matJson from "../assets/arkit2flame-mat.json";
-import {
-	parseArkitFlameFilter,
-	type ArkitFlameFilterParams,
-} from "./filter";
+import { parseArkitFlameFilter, type ArkitFlameFilterParams } from "./filter";
 import {
 	parseArkit2FlameModel,
 	type Arkit2FlameMatJson,

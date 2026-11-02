@@ -13,6 +13,7 @@ import {
 	getAgentTrialByToken,
 	linkCampaignSessionToAgentSession,
 	listAgentSessions,
+	patchAgentSessionMetadata,
 	saveAgentSessionReport,
 	syncCampaignSessionFromAgentSession,
 	updateAgentSessionLifecycle,
@@ -49,6 +50,7 @@ import {
 	uploadEndUserFile,
 	withSignedFileUrls,
 } from "./lib/end-user-files";
+import { ocrSessionIdCard } from "./lib/id-card-ocr";
 import { generateEndUserMemoriesSafe } from "./lib/memories";
 import { runPostProcessingSafe } from "./lib/post-processing";
 import {
@@ -59,6 +61,11 @@ import {
 	finalizeSessionEgressJobs,
 	reconcileOpenEgressJobs,
 } from "./lib/reconcile-egress";
+import {
+	getDeepvueKycConfig,
+	requestAadhaarOkycOtp,
+	verifyAadhaarOkycOtp,
+} from "./lib/deepvue-kyc";
 import { workerProcedure } from "./lib/worker-procedure";
 import type {
 	GetEmbedAgentOutput,
@@ -1900,6 +1907,308 @@ export const uploadParticipantFile = publicProcedure
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "Upload failed";
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message: message.slice(0, 500),
+			});
+		}
+	});
+
+type AadhaarOkycMetadata = {
+	referenceId: string;
+	aadhaarLast4: string;
+	requestedAt: number;
+	verifiedAt?: number;
+};
+
+function readAadhaarOkycMetadata(
+	metadata: unknown,
+): AadhaarOkycMetadata | null {
+	if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+		return null;
+	}
+	const raw = (metadata as Record<string, unknown>).aadhaarOkyc;
+	if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+		return null;
+	}
+	const record = raw as Record<string, unknown>;
+	const referenceId =
+		typeof record.referenceId === "string" ? record.referenceId.trim() : "";
+	const aadhaarLast4 =
+		typeof record.aadhaarLast4 === "string" ? record.aadhaarLast4 : "";
+	const requestedAt =
+		typeof record.requestedAt === "number" &&
+		Number.isFinite(record.requestedAt)
+			? record.requestedAt
+			: 0;
+	if (!referenceId) {
+		return null;
+	}
+	const verifiedAt =
+		typeof record.verifiedAt === "number" &&
+		Number.isFinite(record.verifiedAt)
+			? record.verifiedAt
+			: undefined;
+	return { referenceId, aadhaarLast4, requestedAt, verifiedAt };
+}
+
+async function requireParticipantSession(args: {
+	sessionId: string;
+	headers: Headers;
+	participantToken?: string | null;
+}) {
+	const token = readParticipantToken(args.headers, args.participantToken);
+	if (!token) {
+		throw new ORPCError("UNAUTHORIZED", {
+			message: "Participant token required",
+		});
+	}
+
+	let claims: Awaited<ReturnType<typeof verifyParticipantToken>>;
+	try {
+		claims = await verifyParticipantToken(token);
+	} catch {
+		throw new ORPCError("UNAUTHORIZED", {
+			message: "Invalid or expired participant token",
+		});
+	}
+
+	const session = await getAgentSessionById(args.sessionId);
+	if (!session) {
+		throw new ORPCError("NOT_FOUND");
+	}
+	if (session.livekitRoomName !== claims.roomName) {
+		throw new ORPCError("FORBIDDEN", {
+			message: "Token does not match this session",
+		});
+	}
+	if (session.status !== "QUEUED" && session.status !== "ACTIVE") {
+		throw new ORPCError("BAD_REQUEST", {
+			message: `Session is no longer accepting Aadhaar OKYC (status: ${session.status})`,
+		});
+	}
+
+	return session;
+}
+
+export const requestAadhaarOtp = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/{id}/aadhaar/okyc/otp",
+		tags: ["Sessions"],
+		summary:
+			"Request an Aadhaar eKYC OTP via Deepvue (participant JWT auth)",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			aadhaar_number: z
+				.string()
+				.trim()
+				.regex(/^\d{12}$/, "Aadhaar number must be 12 digits"),
+			participantToken: z.string().min(1).optional(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		if (!getDeepvueKycConfig()) {
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message: "Aadhaar eKYC is not configured",
+			});
+		}
+
+		const session = await requireParticipantSession({
+			sessionId: input.id,
+			headers: context.headers,
+			participantToken: input.participantToken,
+		});
+
+		try {
+			const { referenceId } = await requestAadhaarOkycOtp({
+				aadhaarNumber: input.aadhaar_number,
+			});
+
+			const aadhaarOkyc: AadhaarOkycMetadata = {
+				referenceId,
+				aadhaarLast4: input.aadhaar_number.slice(-4),
+				requestedAt: Date.now(),
+			};
+			await patchAgentSessionMetadata(session.id, { aadhaarOkyc });
+
+			return { requested: true as const };
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "OTP request failed";
+			throw new ORPCError("BAD_REQUEST", {
+				message: message.slice(0, 300),
+			});
+		}
+	});
+
+export const verifyAadhaarOtp = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/{id}/aadhaar/okyc/otp/verify",
+		tags: ["Sessions"],
+		summary:
+			"Verify an Aadhaar eKYC OTP via Deepvue (participant JWT auth)",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			otp: z
+				.string()
+				.trim()
+				.regex(/^\d{4,12}$/, "OTP must be 4–12 digits"),
+			participantToken: z.string().min(1).optional(),
+			/** Optional; falls back to session end-user phone when present. */
+			mobile_number: z
+				.string()
+				.trim()
+				.regex(/^\d{10}$/, "Mobile must be 10 digits")
+				.optional(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		if (!getDeepvueKycConfig()) {
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message: "Aadhaar eKYC is not configured",
+			});
+		}
+
+		const session = await requireParticipantSession({
+			sessionId: input.id,
+			headers: context.headers,
+			participantToken: input.participantToken,
+		});
+
+		const existing = readAadhaarOkycMetadata(session.metadata);
+		if (!existing?.referenceId) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "No Aadhaar OTP request found for this session",
+			});
+		}
+
+		const endUserPhone =
+			session.endUser &&
+			typeof session.endUser === "object" &&
+			"phone" in session.endUser
+				? (session.endUser.phone as string | null | undefined)
+				: null;
+
+		try {
+			const result = await verifyAadhaarOkycOtp({
+				referenceId: existing.referenceId,
+				otp: input.otp,
+				mobileNumber: input.mobile_number ?? endUserPhone,
+			});
+
+			if (result.verified) {
+				const ekyc = result.data
+					? {
+							name:
+								typeof result.data.name === "string"
+									? result.data.name
+									: undefined,
+							dateOfBirth:
+								typeof result.data.dateOfBirth === "string"
+									? result.data.dateOfBirth
+									: undefined,
+							gender:
+								typeof result.data.gender === "string"
+									? result.data.gender
+									: undefined,
+							maskedNumber:
+								typeof result.data.maskedNumber === "string"
+									? result.data.maskedNumber
+									: undefined,
+						}
+					: undefined;
+				await patchAgentSessionMetadata(session.id, {
+					aadhaarOkyc: {
+						...existing,
+						verifiedAt: Date.now(),
+						referenceId: existing.referenceId,
+						...(ekyc ? { ekyc } : {}),
+					},
+				});
+			}
+
+			return {
+				verified: result.verified,
+				code: result.code ?? undefined,
+			};
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "OTP verify failed";
+			throw new ORPCError("BAD_REQUEST", {
+				message: message.slice(0, 300),
+			});
+		}
+	});
+
+export const ocrIdCard = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/{id}/id-card-ocr",
+		tags: ["Sessions"],
+		summary:
+			"OCR the session's latest ID card capture with a fast LLM (participant JWT auth)",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			/** Optional when Authorization: Bearer <livekit-jwt> is set. */
+			participantToken: z.string().min(1).optional(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		const token = readParticipantToken(
+			context.headers,
+			input.participantToken,
+		);
+		if (!token) {
+			throw new ORPCError("UNAUTHORIZED", {
+				message: "Participant token required",
+			});
+		}
+
+		let claims: Awaited<ReturnType<typeof verifyParticipantToken>>;
+		try {
+			claims = await verifyParticipantToken(token);
+		} catch {
+			throw new ORPCError("UNAUTHORIZED", {
+				message: "Invalid or expired participant token",
+			});
+		}
+
+		const session = await getAgentSessionById(input.id);
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		if (session.livekitRoomName !== claims.roomName) {
+			throw new ORPCError("FORBIDDEN", {
+				message: "Token does not match this session",
+			});
+		}
+		if (session.status !== "QUEUED" && session.status !== "ACTIVE") {
+			throw new ORPCError("BAD_REQUEST", {
+				message: `Session is no longer accepting OCR (status: ${session.status})`,
+			});
+		}
+
+		try {
+			const ocr = await ocrSessionIdCard(session.id);
+			return { ocr };
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "ID card OCR failed";
+			if (message.includes("No ID card image")) {
+				throw new ORPCError("BAD_REQUEST", { message });
+			}
+			if (message.includes("not configured")) {
+				throw new ORPCError("INTERNAL_SERVER_ERROR", {
+					message: "ID card OCR is not configured",
+				});
+			}
 			throw new ORPCError("INTERNAL_SERVER_ERROR", {
 				message: message.slice(0, 500),
 			});

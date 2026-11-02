@@ -32,17 +32,13 @@ export function getObjectStorageConfig(
 	env: NodeJS.ProcessEnv = process.env,
 ): ObjectStorageConfig | null {
 	const accessKeyId = first(env.GCP_ACCESS_KEY, env.S3_ACCESS_KEY_ID);
-	const secretAccessKey = first(
-		env.GCP_SECRET_KEY,
-		env.S3_SECRET_ACCESS_KEY,
-	);
+	const secretAccessKey = first(env.GCP_SECRET_KEY, env.S3_SECRET_ACCESS_KEY);
 	const endpoint = first(
 		env.GCP_STORAGE_URL,
 		env.S3_ENDPOINT,
 		env.S3_ENDPOINT_URL,
 	);
-	const region =
-		first(env.GCP_STORAGE_REGION, env.S3_REGION) || "auto";
+	const region = first(env.GCP_STORAGE_REGION, env.S3_REGION) || "auto";
 
 	if (!accessKeyId || !secretAccessKey || !endpoint) {
 		return null;

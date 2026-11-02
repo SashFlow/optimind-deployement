@@ -818,11 +818,7 @@ export function SessionFilesPanel({ session }: { session: SessionDetail }) {
 	);
 }
 
-function PostProcessingStatusBadge({
-	status,
-}: {
-	status: string | undefined;
-}) {
+function PostProcessingStatusBadge({ status }: { status: string | undefined }) {
 	const label = status ?? "not started";
 	const tone =
 		status === "completed"
@@ -847,11 +843,7 @@ function PostProcessingStatusBadge({
 	);
 }
 
-function DetailGrid({
-	entries,
-}: {
-	entries: Array<[string, unknown]>;
-}) {
+function DetailGrid({ entries }: { entries: Array<[string, unknown]> }) {
 	return (
 		<div className="grid gap-2 sm:grid-cols-2">
 			{entries.map(([key, value]) => (
@@ -915,7 +907,12 @@ export function SessionPostProcessingPanel({
 					<div className="flex items-center gap-2">
 						<PostProcessingStatusBadge status={result.status} />
 						{reportFile?.downloadUrl ? (
-							<Button type="button" variant="outline" size="sm" asChild>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								asChild
+							>
 								<a
 									href={reportFile.downloadUrl}
 									download={reportFile.name}
@@ -946,7 +943,10 @@ export function SessionPostProcessingPanel({
 					<CardContent>
 						<DetailGrid
 							entries={[
-								["Pass", result.face.livenessPass ? "Yes" : "No"],
+								[
+									"Pass",
+									result.face.livenessPass ? "Yes" : "No",
+								],
 								[
 									"Confidence",
 									`${Math.round(result.face.confidence * 100)}%`,
@@ -994,8 +994,14 @@ export function SessionPostProcessingPanel({
 						<CardContent>
 							<DetailGrid
 								entries={[
-									["Height (cm)", result.body.vitals.heightCm],
-									["Weight (kg)", result.body.vitals.weightKg],
+									[
+										"Height (cm)",
+										result.body.vitals.heightCm,
+									],
+									[
+										"Weight (kg)",
+										result.body.vitals.weightKg,
+									],
 									["BMI", result.body.vitals.bmi],
 									[
 										"Heart rate (bpm)",
@@ -1030,7 +1036,8 @@ export function SessionPostProcessingPanel({
 								entries={[
 									[
 										"Impairments",
-										result.body.physicalCondition.impairments,
+										result.body.physicalCondition
+											.impairments,
 									],
 									[
 										"Mobility limitations",
@@ -1039,7 +1046,8 @@ export function SessionPostProcessingPanel({
 									],
 									[
 										"Posture notes",
-										result.body.physicalCondition.postureNotes,
+										result.body.physicalCondition
+											.postureNotes,
 									],
 									[
 										"Assistive devices",
@@ -1048,7 +1056,8 @@ export function SessionPostProcessingPanel({
 									],
 									[
 										"Other findings",
-										result.body.physicalCondition.otherFindings,
+										result.body.physicalCondition
+											.otherFindings,
 									],
 								]}
 							/>

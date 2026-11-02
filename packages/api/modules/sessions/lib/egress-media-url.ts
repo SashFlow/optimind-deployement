@@ -1,9 +1,25 @@
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+	GetObjectCommand,
+	HeadObjectCommand,
+	ListObjectsV2Command,
+	S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl as getS3SignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getEgressS3Config } from "@repo/livekit";
 import { logger } from "@repo/logs";
 
 const PLAYABLE_URL_EXPIRES_IN = 60 * 60;
+
+/** LiveKit DirectFileOutput appends these when the template key has no extension. */
+const TRACK_OBJECT_EXTENSIONS = [
+	"mp4",
+	"webm",
+	"ogg",
+	"m4a",
+	"mkv",
+	"mp3",
+	"wav",
+] as const;
 
 type EgressDestination = {
 	bucket?: string;
@@ -17,6 +33,11 @@ type EgressJobMediaSource = {
 	outputUrls?: string[] | null;
 	destination?: unknown;
 	metadata?: unknown;
+};
+
+export type EgressObjectRef = {
+	bucket: string;
+	key: string;
 };
 
 function isHttpUrl(url: string) {
@@ -117,9 +138,23 @@ function extensionOf(path: string): string {
 	return base.slice(dot + 1).toLowerCase();
 }
 
+function hasFileExtension(path: string): boolean {
+	return Boolean(extensionOf(path));
+}
+
+function scoreObjectRef(ref: EgressObjectRef): number {
+	// Prefer keys LiveKit actually wrote (with container extension) over the
+	// extensionless template we pass into DirectFileOutput.
+	return hasFileExtension(ref.key) ? 2 : 1;
+}
+
 /** Whether this egress recording is audio-only (phone/SIP or explicit flag). */
 export function isEgressAudioOnly(job: EgressJobMediaSource): boolean {
 	const meta = asRecord(job.metadata);
+	const role = typeof meta?.role === "string" ? meta.role : null;
+	if (role === "user_audio" || role === "agent_audio") {
+		return true;
+	}
 	if (typeof meta?.audioOnly === "boolean") {
 		return meta.audioOnly;
 	}
@@ -158,7 +193,10 @@ export function inferEgressContentType(
 		if (ext === "m4a" || ext === "aac") {
 			return "audio/mp4";
 		}
-		return "audio/mp4";
+		if (ext === "webm") {
+			return "audio/webm";
+		}
+		return "audio/ogg";
 	}
 
 	switch (ext) {
@@ -178,20 +216,30 @@ export function inferEgressContentType(
 	}
 }
 
-function resolveObjectRef(
+/**
+ * Collect candidate object refs. Prefer keys that already include a container
+ * extension (LiveKit appends one to track egress templates).
+ */
+export function resolveObjectRef(
 	job: EgressJobMediaSource,
-): { bucket: string; key: string } | null {
+): EgressObjectRef | null {
 	const destination = readDestination(job.destination);
 	const cfg = getEgressS3Config();
+	const refs: EgressObjectRef[] = [];
+
+	const push = (bucket: string | undefined, key: string | undefined) => {
+		if (!bucket || !key) {
+			return;
+		}
+		const cleaned = stripBucketPrefixFromKey(key, bucket);
+		if (!cleaned) {
+			return;
+		}
+		refs.push({ bucket, key: cleaned });
+	};
 
 	if (destination?.filepath) {
-		const bucket = destination.bucket || cfg?.bucket;
-		if (bucket) {
-			const key = stripBucketPrefixFromKey(destination.filepath, bucket);
-			if (key) {
-				return { bucket, key };
-			}
-		}
+		push(destination.bucket || cfg?.bucket, destination.filepath);
 	}
 
 	const candidates = [job.fileUrl, ...(job.outputUrls ?? [])].filter(
@@ -201,22 +249,19 @@ function resolveObjectRef(
 	for (const candidate of candidates) {
 		const parsed = parseS3Url(candidate);
 		if (parsed) {
-			return {
-				bucket: parsed.bucket,
-				key: stripBucketPrefixFromKey(parsed.key, parsed.bucket),
-			};
+			push(parsed.bucket, parsed.key);
+			continue;
 		}
-	}
-
-	for (const candidate of candidates) {
 		const bucket = destination?.bucket || cfg?.bucket;
-		const key = objectKeyFromEgressLocation(candidate, bucket);
-		if (bucket && key) {
-			return { bucket, key };
-		}
+		push(bucket, objectKeyFromEgressLocation(candidate, bucket));
 	}
 
-	return null;
+	if (refs.length === 0) {
+		return null;
+	}
+
+	refs.sort((a, b) => scoreObjectRef(b) - scoreObjectRef(a));
+	return refs[0] ?? null;
 }
 
 function createRecordingsS3Client() {
@@ -236,6 +281,107 @@ function createRecordingsS3Client() {
 	});
 }
 
+async function objectExists(
+	client: S3Client,
+	bucket: string,
+	key: string,
+): Promise<boolean> {
+	try {
+		await client.send(
+			new HeadObjectCommand({
+				Bucket: bucket,
+				Key: key,
+			}),
+		);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * LiveKit track egress writes `{template}.{ext}` when `filepath` has no
+ * extension. Resolve the real object key by listing / probing common
+ * containers so signed URLs don't 404 on the bare template key.
+ */
+export async function resolveExistingObjectKey(
+	client: S3Client,
+	bucket: string,
+	key: string,
+): Promise<string | null> {
+	if (await objectExists(client, bucket, key)) {
+		return key;
+	}
+
+	if (hasFileExtension(key)) {
+		return null;
+	}
+
+	try {
+		const listed = await client.send(
+			new ListObjectsV2Command({
+				Bucket: bucket,
+				Prefix: `${key}.`,
+				MaxKeys: 10,
+			}),
+		);
+		const match = (listed.Contents ?? [])
+			.map((item) => item.Key)
+			.find(
+				(candidate): candidate is string =>
+					typeof candidate === "string" &&
+					candidate.startsWith(`${key}.`),
+			);
+		if (match) {
+			return match;
+		}
+	} catch (error) {
+		logger.warn("Failed to list egress objects for extension probe", {
+			bucket,
+			key,
+			error,
+		});
+	}
+
+	for (const ext of TRACK_OBJECT_EXTENSIONS) {
+		const candidate = `${key}.${ext}`;
+		if (await objectExists(client, bucket, candidate)) {
+			return candidate;
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Resolve the recordings-bucket object for an egress job, probing for the
+ * LiveKit-appended container extension when needed.
+ */
+export async function resolveEgressObjectRef(
+	job: EgressJobMediaSource,
+): Promise<EgressObjectRef | null> {
+	const objectRef = resolveObjectRef(job);
+	if (!objectRef) {
+		return null;
+	}
+
+	const client = createRecordingsS3Client();
+	if (!client) {
+		return objectRef;
+	}
+
+	const existingKey = await resolveExistingObjectKey(
+		client,
+		objectRef.bucket,
+		objectRef.key,
+	);
+	if (!existingKey) {
+		return null;
+	}
+
+	return { bucket: objectRef.bucket, key: existingKey };
+}
+
 /**
  * Prefer a freshly signed recordings-bucket URL with an explicit browser MIME
  * type. Falls back to a stored http(s) URL only when signing is unavailable.
@@ -243,7 +389,7 @@ function createRecordingsS3Client() {
 export async function resolveEgressPlayableUrl(
 	job: EgressJobMediaSource,
 ): Promise<string | null> {
-	const objectRef = resolveObjectRef(job);
+	const objectRef = await resolveEgressObjectRef(job);
 	const client = objectRef ? createRecordingsS3Client() : null;
 
 	if (objectRef && client) {
@@ -271,5 +417,11 @@ export async function resolveEgressPlayableUrl(
 	const candidates = [job.fileUrl, ...(job.outputUrls ?? [])].filter(
 		(url): url is string => Boolean(url),
 	);
+	const httpWithExt = candidates.find(
+		(url) => isHttpUrl(url) && hasFileExtension(url),
+	);
+	if (httpWithExt) {
+		return httpWithExt;
+	}
 	return candidates.find(isHttpUrl) ?? null;
 }

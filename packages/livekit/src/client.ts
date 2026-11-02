@@ -19,14 +19,17 @@ import {
 	type LiveKitConfig,
 	livekitHttpHost,
 } from "./config";
-import { buildS3Upload, type EgressS3Config } from "./egress-s3";
+import { type EgressS3Config, resolveEgressStorageOutput } from "./egress-s3";
 
-export type { EgressS3Config } from "./egress-s3";
+export type { EgressS3Config, EgressStorageOutput } from "./egress-s3";
 export {
+	buildGCPUpload,
 	buildS3Upload,
 	getEgressS3Config,
+	loadGcpServiceAccountJson,
 	recordingFilepath,
 	recordingTrackFilepath,
+	resolveEgressStorageOutput,
 } from "./egress-s3";
 
 function clients(config?: LiveKitConfig) {
@@ -257,21 +260,6 @@ export async function createSipParticipant(opts: {
 	);
 }
 
-function resolveS3Upload(
-	s3?: EgressS3Config | S3Upload | null,
-): S3Upload | undefined {
-	if (s3 instanceof S3Upload) {
-		return s3;
-	}
-	if (s3 === null) {
-		return undefined;
-	}
-	if (s3) {
-		return buildS3Upload(s3);
-	}
-	return buildS3Upload();
-}
-
 export async function startRoomCompositeEgress(opts: {
 	roomName: string;
 	filepath: string;
@@ -280,12 +268,12 @@ export async function startRoomCompositeEgress(opts: {
 	config?: LiveKitConfig;
 }) {
 	const { egress } = clients(opts.config);
-	const s3 = resolveS3Upload(opts.s3);
+	const storage = resolveEgressStorageOutput(opts.s3);
 
 	const output = new EncodedFileOutput({
 		fileType: EncodedFileType.MP4,
 		filepath: opts.filepath,
-		...(s3 ? { output: { case: "s3" as const, value: s3 } } : {}),
+		...(storage ? { output: storage } : {}),
 	});
 	return egress.startRoomCompositeEgress(opts.roomName, output, {
 		audioOnly: opts.audioOnly ?? false,
@@ -300,10 +288,10 @@ export async function startTrackEgress(opts: {
 	config?: LiveKitConfig;
 }) {
 	const { egress } = clients(opts.config);
-	const s3 = resolveS3Upload(opts.s3);
+	const storage = resolveEgressStorageOutput(opts.s3);
 	const output = new DirectFileOutput({
 		filepath: opts.filepath,
-		...(s3 ? { output: { case: "s3" as const, value: s3 } } : {}),
+		...(storage ? { output: storage } : {}),
 	});
 	return egress.startTrackEgress(opts.roomName, output, opts.trackId);
 }

@@ -30,12 +30,7 @@ export type SessionDetail = {
 	metadata?: {
 		collectedData?: Record<string, unknown>;
 		postProcessing?: {
-			status?:
-				| "pending"
-				| "running"
-				| "completed"
-				| "failed"
-				| "skipped";
+			status?: "pending" | "running" | "completed" | "failed" | "skipped";
 			startedAt?: string;
 			completedAt?: string;
 			error?: string;

@@ -198,9 +198,7 @@ export async function handleAgent(
 		});
 	} catch (error) {
 		if (error instanceof AgentUsageLimitExceededError) {
-			throw new Error(
-				"This agent has reached its trial usage limit",
-			);
+			throw new Error("This agent has reached its trial usage limit");
 		}
 		throw error;
 	}

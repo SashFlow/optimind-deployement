@@ -525,6 +525,8 @@ export function AgentConfigurePreview({
 				) : null}
 				<SessionInteractionProvider
 					otpInputEnabled={sessionModalities.otp_input.enabled}
+					sessionId={sessionCredentials.sessionId}
+					participantToken={sessionCredentials.token}
 				>
 					{cameraFeaturesEnabled ? (
 						<ProctoringProvider
