@@ -13,11 +13,15 @@ import { Loader } from "lucide-react";
 import { useMemo } from "react";
 import { useProctoringContext } from "@/context/proctoring-provider";
 import {
+	captureGuideTone,
+	FaceGuideMask,
+} from "@/components/saas/agents/proctoring/capture-guide-mask";
+import {
 	FACE_CAPTURE_HINTS,
 	faceGuideRect,
 } from "@/lib/proctoring/faceCapture";
 
-/** Full-screen camera view with a box guide, shown while face capture is active. */
+/** Full-screen camera view with a face-shaped oval guide. */
 export function FaceCaptureOverlay() {
 	const proctoring = useProctoringContext();
 	const room = useRoomContext();
@@ -73,7 +77,7 @@ export function FaceCaptureOverlay() {
 						Verify your face
 					</h2>
 					<p className="text-muted-foreground text-sm">
-						Center your face in the box. We capture and submit
+						Center your face in the oval. We capture and submit
 						automatically once you hold still.
 					</p>
 				</div>
@@ -95,22 +99,12 @@ export function FaceCaptureOverlay() {
 								trackRef={trackRef}
 								className="absolute inset-0 size-full object-cover"
 							/>
-							<div
-								aria-hidden
-								className={cn(
-									"absolute rounded-lg border-2 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] transition-colors",
-									faceDetection?.detected
-										? "border-emerald-400"
-										: faceDetection?.faceFound
-											? "border-amber-400"
-											: "border-white/80",
-								)}
-								style={{
-									left: "13.5%",
-									top: "11%",
-									width: "74%",
-									height: "74%",
-								}}
+							<FaceGuideMask
+								guide={guide}
+								tone={captureGuideTone({
+									detected: faceDetection?.detected,
+									found: faceDetection?.faceFound,
+								})}
 							/>
 						</>
 					) : (

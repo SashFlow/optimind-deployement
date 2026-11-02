@@ -7,6 +7,7 @@ import {
 import { createWebhookReceiver, getLiveKitConfig } from "@repo/livekit";
 import { logger } from "@repo/logs";
 import { maybeEnqueueSessionTrackMerge } from "../lib/enqueue-track-merge";
+import { objectKeyFromEgressLocation } from "../lib/egress-media-url";
 import { generateEndUserMemoriesSafe } from "../lib/memories";
 import {
 	maybeRetryPostProcessingForVideo,
@@ -72,32 +73,23 @@ export async function livekitWebhookHandler(
 						if (!fileUrl) {
 							return undefined;
 						}
-						let filepath: string | undefined;
-						if (fileUrl.startsWith("s3://")) {
-							const without = fileUrl.slice("s3://".length);
-							const slash = without.indexOf("/");
-							if (slash !== -1) {
-								filepath = without.slice(slash + 1);
-							}
-						} else {
-							try {
-								filepath = new URL(fileUrl).pathname.replace(
-									/^\//,
-									"",
-								);
-							} catch {
-								filepath = undefined;
-							}
-						}
-						if (!filepath) {
-							return undefined;
-						}
 						const prev =
 							job.destination &&
 							typeof job.destination === "object" &&
 							!Array.isArray(job.destination)
 								? (job.destination as Record<string, unknown>)
 								: {};
+						const destBucket =
+							typeof prev.bucket === "string"
+								? prev.bucket
+								: undefined;
+						const filepath = objectKeyFromEgressLocation(
+							fileUrl,
+							destBucket,
+						);
+						if (!filepath) {
+							return undefined;
+						}
 						return { ...prev, filepath };
 					})();
 

@@ -31,6 +31,57 @@ function parseS3Url(url: string): { bucket: string; key: string } | null {
 	return { bucket: match[1], key: match[2] };
 }
 
+/**
+ * Strip a leading `{bucket}/` segment from a key or path-style URL pathname.
+ * GCS + forcePathStyle locations look like:
+ *   https://storage.googleapis.com/{bucket}/{objectKey}
+ * so pathname includes the bucket; object Key must not.
+ */
+export function stripBucketPrefixFromKey(
+	key: string,
+	bucket?: string | null,
+): string {
+	const trimmed = key.replace(/^\/+/, "");
+	const resolvedBucket = bucket || getEgressS3Config()?.bucket;
+	if (resolvedBucket && trimmed.startsWith(`${resolvedBucket}/`)) {
+		return trimmed.slice(resolvedBucket.length + 1);
+	}
+	return trimmed;
+}
+
+/**
+ * Derive the object key from an egress location (s3:// or https path-style).
+ */
+export function objectKeyFromEgressLocation(
+	location: string,
+	bucket?: string | null,
+): string | undefined {
+	const trimmed = location.trim();
+	if (!trimmed) {
+		return undefined;
+	}
+
+	const s3 = parseS3Url(trimmed);
+	if (s3) {
+		return stripBucketPrefixFromKey(s3.key, bucket || s3.bucket);
+	}
+
+	if (isHttpUrl(trimmed)) {
+		try {
+			const pathname = decodeURIComponent(
+				new URL(trimmed).pathname.replace(/^\/+/, ""),
+			);
+			const key = stripBucketPrefixFromKey(pathname, bucket);
+			return key || undefined;
+		} catch {
+			return undefined;
+		}
+	}
+
+	const key = stripBucketPrefixFromKey(trimmed, bucket);
+	return key || undefined;
+}
+
 function readDestination(value: unknown): EgressDestination | null {
 	if (!value || typeof value !== "object") {
 		return null;
@@ -131,11 +182,15 @@ function resolveObjectRef(
 	job: EgressJobMediaSource,
 ): { bucket: string; key: string } | null {
 	const destination = readDestination(job.destination);
+	const cfg = getEgressS3Config();
+
 	if (destination?.filepath) {
-		const cfg = getEgressS3Config();
 		const bucket = destination.bucket || cfg?.bucket;
 		if (bucket) {
-			return { bucket, key: destination.filepath };
+			const key = stripBucketPrefixFromKey(destination.filepath, bucket);
+			if (key) {
+				return { bucket, key };
+			}
 		}
 	}
 
@@ -146,31 +201,18 @@ function resolveObjectRef(
 	for (const candidate of candidates) {
 		const parsed = parseS3Url(candidate);
 		if (parsed) {
-			return parsed;
+			return {
+				bucket: parsed.bucket,
+				key: stripBucketPrefixFromKey(parsed.key, parsed.bucket),
+			};
 		}
 	}
 
-	// Last resort: try to parse key from an http(s) URL path for re-signing.
 	for (const candidate of candidates) {
-		if (!isHttpUrl(candidate)) {
-			continue;
-		}
-		try {
-			const url = new URL(candidate);
-			const key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
-			const cfg = getEgressS3Config();
-			if (cfg?.bucket && key) {
-				// Path-style: /bucket/key...
-				if (key.startsWith(`${cfg.bucket}/`)) {
-					return {
-						bucket: cfg.bucket,
-						key: key.slice(cfg.bucket.length + 1),
-					};
-				}
-				return { bucket: cfg.bucket, key };
-			}
-		} catch {
-			// ignore
+		const bucket = destination?.bucket || cfg?.bucket;
+		const key = objectKeyFromEgressLocation(candidate, bucket);
+		if (bucket && key) {
+			return { bucket, key };
 		}
 	}
 

@@ -68,18 +68,22 @@ const RIGHT_ANKLE = 28;
 const clamp = (value: number, min: number, max: number) =>
 	Math.min(max, Math.max(min, value));
 
-/** Centred tall guide the candidate lines their body up with. */
+/**
+ * Centred tall guide the candidate lines their body up with.
+ * `aspectRatio` is visual height/width (portrait > 1). Width/height are
+ * fractions of frame width/height, so height accounts for frameAspect.
+ */
 export function bodyGuideRect(
 	frameWidth: number,
 	frameHeight: number,
 	config: BodyCaptureConfig,
 ): NormalizedRect {
-	const frameAspect = frameWidth / frameHeight;
+	const frameAspect = frameWidth / Math.max(frameHeight, 1);
 	let width = config.guideWidthRatio;
-	let height = (width * frameAspect) / config.aspectRatio;
-	if (height > 0.9) {
-		height = 0.9;
-		width = (height * config.aspectRatio) / frameAspect;
+	let height = width * frameAspect * config.aspectRatio;
+	if (height > 0.92) {
+		height = 0.92;
+		width = height / (frameAspect * config.aspectRatio);
 	}
 	return { x: (1 - width) / 2, y: (1 - height) / 2, width, height };
 }

@@ -106,18 +106,42 @@ function llmParamsWithReasoning(
 	return { ...(currentParams ?? {}), reasoning };
 }
 
+const DEFAULT_INWORLD_TTS_MODEL = "inworld-tts-2";
+const DEFAULT_INWORLD_TTS_VOICE = "Ashley";
+
+function isInworldTtsModelId(providerModelId: string | null | undefined): boolean {
+	const id = (providerModelId ?? "").trim();
+	return id.startsWith("inworld-tts") || id.startsWith("inworld/inworld-tts");
+}
+
 export function selectLlmModel(
 	config: AgentConfigDocument,
 	providerModelId: string,
 	models: ProviderModel[],
 ): Partial<AgentConfigDocument> {
 	const model = models.find((item) => item.id === providerModelId);
-	return {
+	const next: Partial<AgentConfigDocument> = {
 		llm: {
 			provider_model_id: providerModelId,
 			params: llmParamsWithReasoning(model, config.llm?.params),
 		},
 	};
+
+	// Voice Response soft-default: Inworld Inference LLM pairs with Inworld TTS.
+	if (
+		config.pipeline_mode === "cascaded" &&
+		model?.provider_id === "inworld" &&
+		!isInworldTtsModelId(config.tts?.provider_model_id)
+	) {
+		next.tts = {
+			...config.tts,
+			provider_model_id: DEFAULT_INWORLD_TTS_MODEL,
+			voice_id: DEFAULT_INWORLD_TTS_VOICE,
+			params: config.tts?.params ?? {},
+		};
+	}
+
+	return next;
 }
 
 export function selectLlmReasoning(

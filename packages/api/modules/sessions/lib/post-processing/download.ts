@@ -6,6 +6,7 @@ import {
 	inferEgressContentType,
 	isEgressAudioOnly,
 	resolveEgressPlayableUrl,
+	stripBucketPrefixFromKey,
 } from "../egress-media-url";
 import type { MediaPart } from "./types";
 
@@ -111,10 +112,15 @@ export async function downloadSessionRecording(
 	if (destination?.filepath && cfg) {
 		const client = createRecordingsS3Client();
 		if (client) {
+			const bucket = destination.bucket || cfg.bucket;
+			const key = stripBucketPrefixFromKey(
+				destination.filepath,
+				bucket,
+			);
 			const response = await client.send(
 				new GetObjectCommand({
-					Bucket: destination.bucket || cfg.bucket,
-					Key: destination.filepath,
+					Bucket: bucket,
+					Key: key,
 				}),
 			);
 			const bytes = await streamToBuffer(response.Body);

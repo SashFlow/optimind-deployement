@@ -13,11 +13,15 @@ import { Loader } from "lucide-react";
 import { useMemo } from "react";
 import { useProctoringContext } from "@/context/proctoring-provider";
 import {
+	BodyGuideMask,
+	captureGuideTone,
+} from "@/components/saas/agents/proctoring/capture-guide-mask";
+import {
 	BODY_CAPTURE_HINTS,
 	bodyGuideRect,
 } from "@/lib/proctoring/bodyCapture";
 
-/** Full-screen camera view with a tall body guide, shown while body capture is active. */
+/** Full-screen camera view with a body-silhouette guide. */
 export function BodyCaptureOverlay() {
 	const proctoring = useProctoringContext();
 	const room = useRoomContext();
@@ -73,9 +77,8 @@ export function BodyCaptureOverlay() {
 						Verify your body position
 					</h2>
 					<p className="text-muted-foreground text-sm">
-						Stand so your head, shoulders, and hips are inside the
-						frame. We capture and submit automatically once you hold
-						still.
+						Stand so your full body lines up with the silhouette.
+						We capture and submit automatically once you hold still.
 					</p>
 				</div>
 
@@ -96,22 +99,12 @@ export function BodyCaptureOverlay() {
 								trackRef={trackRef}
 								className="absolute inset-0 size-full object-cover"
 							/>
-							<div
-								aria-hidden
-								className={cn(
-									"absolute rounded-lg border-2 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] transition-colors",
-									bodyDetection?.detected
-										? "border-emerald-400"
-										: bodyDetection?.bodyFound
-											? "border-amber-400"
-											: "border-white/80",
-								)}
-								style={{
-									left: `${guide.x * 100}%`,
-									top: `${guide.y * 100}%`,
-									width: `${guide.width * 100}%`,
-									height: `${guide.height * 100}%`,
-								}}
+							<BodyGuideMask
+								guide={guide}
+								tone={captureGuideTone({
+									detected: bodyDetection?.detected,
+									found: bodyDetection?.bodyFound,
+								})}
 							/>
 						</>
 					) : (

@@ -45,18 +45,22 @@ export interface FaceCaptureResult {
 const clamp = (value: number, min: number, max: number) =>
 	Math.min(max, Math.max(min, value));
 
-/** Centred oval guide the candidate lines their face up with. */
+/**
+ * Centred oval guide the candidate lines their face up with.
+ * `aspectRatio` is visual height/width (portrait > 1). Width/height are
+ * fractions of frame width/height, so height accounts for frameAspect.
+ */
 export function faceGuideRect(
 	frameWidth: number,
 	frameHeight: number,
 	config: FaceCaptureConfig,
 ): NormalizedRect {
-	const frameAspect = frameWidth / frameHeight;
+	const frameAspect = frameWidth / Math.max(frameHeight, 1);
 	let width = config.guideWidthRatio;
-	let height = (width * frameAspect) / config.aspectRatio;
-	if (height > 0.75) {
-		height = 0.75;
-		width = (height * config.aspectRatio) / frameAspect;
+	let height = width * frameAspect * config.aspectRatio;
+	if (height > 0.78) {
+		height = 0.78;
+		width = height / (frameAspect * config.aspectRatio);
 	}
 	return { x: (1 - width) / 2, y: (1 - height) / 2, width, height };
 }

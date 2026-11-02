@@ -3,6 +3,7 @@ import { updateEgressJob } from "@repo/database";
 import { listEgress, stopEgress } from "@repo/livekit";
 import { logger } from "@repo/logs";
 import { maybeEnqueueSessionTrackMerge } from "./enqueue-track-merge";
+import { objectKeyFromEgressLocation } from "./egress-media-url";
 
 const SOURCE_EGRESS_TYPES = new Set(["TRACK", "PARTICIPANT"]);
 
@@ -126,17 +127,18 @@ type EgressJobLike = {
 	destination?: unknown;
 };
 
-function filepathFromLocation(location: string): string | undefined {
-	if (location.startsWith("s3://")) {
-		const without = location.slice("s3://".length);
-		const slash = without.indexOf("/");
-		return slash === -1 ? undefined : without.slice(slash + 1);
-	}
-	try {
-		return new URL(location).pathname.replace(/^\//, "") || undefined;
-	} catch {
-		return undefined;
-	}
+function filepathFromLocation(
+	location: string,
+	destination?: unknown,
+): string | undefined {
+	const destBucket =
+		destination &&
+		typeof destination === "object" &&
+		!Array.isArray(destination) &&
+		typeof (destination as { bucket?: unknown }).bucket === "string"
+			? (destination as { bucket: string }).bucket
+			: undefined;
+	return objectKeyFromEgressLocation(location, destBucket);
 }
 
 function withUpdatedDestinationFilepath(
@@ -220,7 +222,9 @@ export async function reconcileEgressJob(job: EgressJobLike) {
 			? Array.from(new Set([...(job.outputUrls ?? []), fileUrl]))
 			: (job.outputUrls ?? undefined);
 
-		const filepath = fileUrl ? filepathFromLocation(fileUrl) : undefined;
+		const filepath = fileUrl
+			? filepathFromLocation(fileUrl, job.destination)
+			: undefined;
 		const destination = filepath
 			? withUpdatedDestinationFilepath(job.destination, filepath)
 			: undefined;

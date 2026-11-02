@@ -220,6 +220,38 @@ export const CATALOG_MODELS: CatalogModel[] = [
 		reasoning: CLAUDE_REASONING_BASIC,
 	}),
 
+	// LLM — Inworld Inference (hosted)
+	model(
+		"inworld/models/gemma-4-26b-a4b-it",
+		"Gemma 4 26B (Inworld)",
+		"inworld",
+		"llm",
+	),
+	model(
+		"inworld/models/gemma-4-31b-it",
+		"Gemma 4 31B (Inworld)",
+		"inworld",
+		"llm",
+	),
+	model(
+		"inworld/models/GLM-5.3-Flash",
+		"GLM 5.3 Flash (Inworld)",
+		"inworld",
+		"llm",
+	),
+	model(
+		"inworld/models/deepseek-v4.1-flash",
+		"DeepSeek V4.1 Flash (Inworld)",
+		"inworld",
+		"llm",
+	),
+	model(
+		"inworld/models/deepseek-v4-flash-0731",
+		"DeepSeek V4 Flash (Inworld)",
+		"inworld",
+		"llm",
+	),
+
 	// Realtime — OpenAI
 	model("gpt-realtime-2.1", "GPT Realtime 2.1", "openai", "realtime", {
 		supports_text_output: true,
@@ -321,6 +353,9 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("sarvam:saaras:v4", "Saaras v4", "sarvam", "stt"),
 	model("sarvam:saaras:v3", "Saaras v3", "sarvam", "stt"),
 	model("sarvam:saaras:v3-realtime", "Saaras Realtime", "sarvam", "stt"),
+
+	// STT — Inworld
+	model("inworld/inworld-stt-1", "Inworld STT 1", "inworld", "stt"),
 
 	// TTS — OpenAI
 	model("gpt-4o-mini-tts", "GPT-4o Mini TTS", "openai", "tts"),

@@ -87,7 +87,7 @@ export interface FaceCaptureConfig {
 	stabilityTolerance: number;
 	/** Guide oval width as a fraction of the frame width. */
 	guideWidthRatio: number;
-	/** Guide oval height / width (portrait oval). */
+	/** Visual height/width of the guide oval (portrait > 1). */
 	aspectRatio: number;
 	/** Minimum face width relative to the guide width (0-1). */
 	minFaceWidthRatio: number;
@@ -114,7 +114,7 @@ export interface BodyCaptureConfig {
 	stabilityTolerance: number;
 	/** Guide width as a fraction of the frame width. */
 	guideWidthRatio: number;
-	/** Guide height / width (taller body frame). */
+	/** Visual height/width of the body guide (portrait > 1). */
 	aspectRatio: number;
 	/** Minimum body height relative to the guide height (0-1). */
 	minBodyHeightRatio: number;
@@ -249,8 +249,10 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 		timeoutMs: 90_000,
 		requiredStableFrames: 5,
 		stabilityTolerance: 0.02,
-		guideWidthRatio: 0.45,
-		aspectRatio: 1.25,
+		/** Width of the face oval relative to the frame width. */
+		guideWidthRatio: 0.36,
+		/** Visual height/width of the oval (~face proportions). */
+		aspectRatio: 1.3,
 		minFaceWidthRatio: 0.55,
 		maxFaceWidthRatio: 1.15,
 		centerTolerance: 0.18,
@@ -263,8 +265,10 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 		timeoutMs: 90_000,
 		requiredStableFrames: 5,
 		stabilityTolerance: 0.03,
-		guideWidthRatio: 0.55,
-		aspectRatio: 1.8,
+		/** Width of the body silhouette relative to the frame width. */
+		guideWidthRatio: 0.28,
+		/** Visual height/width of the silhouette (~standing person). */
+		aspectRatio: 2.15,
 		minBodyHeightRatio: 0.55,
 		maxBodyHeightRatio: 1.2,
 		centerTolerance: 0.2,
