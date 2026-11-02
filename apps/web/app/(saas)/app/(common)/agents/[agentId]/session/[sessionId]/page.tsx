@@ -14,6 +14,7 @@ import {
 	SessionEventsPanel,
 	SessionFilesPanel,
 	SessionMemoriesPanel,
+	SessionPostProcessingPanel,
 } from "@/components/saas/agents/AgentSessionDetail";
 import type { SessionDetail } from "@/components/saas/agents/lib/hooks";
 import { useSessionDetailQuery } from "@/components/saas/agents/lib/hooks";
@@ -53,6 +54,9 @@ export default function AgentSessionPage() {
 						Memories
 					</FolderTabsTrigger>
 					<FolderTabsTrigger value="files">Files</FolderTabsTrigger>
+					<FolderTabsTrigger value="post-processing">
+						Post Processing
+					</FolderTabsTrigger>
 				</FolderTabsList>
 			</FolderTabsBar>
 			<FolderTabsContent value="overview">
@@ -66,6 +70,9 @@ export default function AgentSessionPage() {
 			</FolderTabsContent>
 			<FolderTabsContent value="files" scrollable={false}>
 				<SessionFilesPanel session={session} />
+			</FolderTabsContent>
+			<FolderTabsContent value="post-processing" scrollable={false}>
+				<SessionPostProcessingPanel session={session} />
 			</FolderTabsContent>
 		</FolderTabs>
 	);

@@ -29,6 +29,57 @@ export type SessionDetail = {
 	egressJobs?: EgressJobRow[];
 	metadata?: {
 		collectedData?: Record<string, unknown>;
+		postProcessing?: {
+			status?:
+				| "pending"
+				| "running"
+				| "completed"
+				| "failed"
+				| "skipped";
+			startedAt?: string;
+			completedAt?: string;
+			error?: string;
+			model?: string;
+			face?: {
+				livenessPass: boolean;
+				confidence: number;
+				signals: string[];
+				summary: string;
+			};
+			idCard?: {
+				extracted: Record<string, string>;
+				confidence: number;
+				summary: string;
+			};
+			body?: {
+				vitals: {
+					heightCm: number | null;
+					weightKg: number | null;
+					bmi: number | null;
+					heartRateBpm: number | null;
+					respiratoryRate: number | null;
+					fitnessAssessment: string;
+				};
+				physicalCondition: {
+					impairments: string[];
+					mobilityLimitations: string[];
+					postureNotes: string;
+					assistiveDevices: string[];
+					otherFindings: string[];
+				};
+				underwriting: {
+					identityStatus: string;
+					livenessStatus: string;
+					riskIndicators: string[];
+					exceptionFlags: string[];
+					underwriterReviewRecommended: boolean;
+					summary: string;
+				};
+				videoUnavailable?: boolean;
+			};
+			reportFileId?: string;
+			videoUnavailable?: boolean;
+		};
 	} | null;
 	endUser?: {
 		id: string;
@@ -127,7 +178,27 @@ export function useSessionDetailQuery(sessionId: string | null | undefined) {
 					value === "STARTING"
 				);
 			});
-			if (status === "ACTIVE" || status === "QUEUED" || egressOpen) {
+			const metadata = query.state.data?.session?.metadata;
+			const postProcessing =
+				metadata &&
+				typeof metadata === "object" &&
+				!Array.isArray(metadata) &&
+				"postProcessing" in metadata &&
+				metadata.postProcessing &&
+				typeof metadata.postProcessing === "object" &&
+				!Array.isArray(metadata.postProcessing)
+					? (metadata.postProcessing as { status?: string })
+					: null;
+			const postProcessingStatus = postProcessing?.status;
+			const postProcessingOpen =
+				postProcessingStatus === "pending" ||
+				postProcessingStatus === "running";
+			if (
+				status === "ACTIVE" ||
+				status === "QUEUED" ||
+				egressOpen ||
+				postProcessingOpen
+			) {
 				return 5_000;
 			}
 			return false;

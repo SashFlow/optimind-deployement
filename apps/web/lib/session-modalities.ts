@@ -4,6 +4,10 @@ import type {
 	SessionModalitiesConfig,
 	SessionTrackRequirement,
 } from "@/lib/agent-config";
+import {
+	DEFAULT_POST_PROCESSING_MODEL,
+	DEFAULT_POST_PROCESSING_PROMPTS,
+} from "@/lib/agent-config";
 
 export const DEFAULT_SESSION_MODALITIES: SessionModalitiesConfig = {
 	call_type: "web",
@@ -23,6 +27,11 @@ export const DEFAULT_SESSION_MODALITIES: SessionModalitiesConfig = {
 		enabled: false,
 	},
 	location_tracking: "disabled",
+	post_processing: {
+		enabled: false,
+		model: DEFAULT_POST_PROCESSING_MODEL,
+		prompts: { ...DEFAULT_POST_PROCESSING_PROMPTS },
+	},
 };
 
 function asTrackRequirement(
@@ -78,6 +87,18 @@ export function normalizeSessionModalities(
 		typeof source.otp_input === "object" &&
 		!Array.isArray(source.otp_input)
 			? (source.otp_input as Record<string, unknown>)
+			: {};
+	const postProcessingRaw =
+		source.post_processing &&
+		typeof source.post_processing === "object" &&
+		!Array.isArray(source.post_processing)
+			? (source.post_processing as Record<string, unknown>)
+			: {};
+	const postProcessingPromptsRaw =
+		postProcessingRaw.prompts &&
+		typeof postProcessingRaw.prompts === "object" &&
+		!Array.isArray(postProcessingRaw.prompts)
+			? (postProcessingRaw.prompts as Record<string, unknown>)
 			: {};
 
 	return {
@@ -135,6 +156,34 @@ export function normalizeSessionModalities(
 			source.location_tracking,
 			DEFAULT_SESSION_MODALITIES.location_tracking,
 		),
+		post_processing: {
+			enabled: Boolean(
+				postProcessingRaw.enabled ??
+					DEFAULT_SESSION_MODALITIES.post_processing.enabled,
+			),
+			model:
+				typeof postProcessingRaw.model === "string" &&
+				postProcessingRaw.model.trim()
+					? postProcessingRaw.model.trim()
+					: DEFAULT_SESSION_MODALITIES.post_processing.model,
+			prompts: {
+				face_liveness:
+					typeof postProcessingPromptsRaw.face_liveness === "string"
+						? postProcessingPromptsRaw.face_liveness
+						: DEFAULT_SESSION_MODALITIES.post_processing.prompts
+								.face_liveness,
+				id_extraction:
+					typeof postProcessingPromptsRaw.id_extraction === "string"
+						? postProcessingPromptsRaw.id_extraction
+						: DEFAULT_SESSION_MODALITIES.post_processing.prompts
+								.id_extraction,
+				body_assessment:
+					typeof postProcessingPromptsRaw.body_assessment === "string"
+						? postProcessingPromptsRaw.body_assessment
+						: DEFAULT_SESSION_MODALITIES.post_processing.prompts
+								.body_assessment,
+			},
+		},
 	};
 }
 

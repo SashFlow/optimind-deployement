@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@repo/ui/button";
+import { Label } from "@repo/ui/label";
+import { Textarea } from "@repo/ui/textarea";
 import { PlusIcon } from "lucide-react";
 import { type ReactNode, useRef } from "react";
 import { ConfigureSectionToggle } from "@/components/saas/agents/configure/ConfigureSectionToggle";
@@ -152,6 +154,140 @@ export function AdvancedSection({
 						mcp={config.mcp}
 						onChange={(mcp) => onConfigChange({ mcp })}
 					/>
+				</ConfigureSectionToggle>
+			</div>
+
+			<div className="px-4 py-4 md:px-5">
+				<ConfigureSectionToggle
+					title="Post Processing"
+					description="After a call ends, run Gemini multimodal analysis on face, ID, and body captures. Face / ID / body steps only run when those files were captured in the session."
+					checked={
+						config.session_modalities.post_processing.enabled ===
+						true
+					}
+					onCheckedChange={(enabled) =>
+						onConfigChange({
+							session_modalities: {
+								...config.session_modalities,
+								post_processing: {
+									...config.session_modalities
+										.post_processing,
+									enabled,
+								},
+							},
+						})
+					}
+				>
+					<div className="space-y-4">
+						<p className="text-xs text-muted-foreground">
+							Uses model{" "}
+							<code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+								{config.session_modalities.post_processing
+									.model || "gemini-3.1-flash-lite"}
+							</code>
+							. Results appear on the session dashboard with a
+							downloadable PDF report.
+						</p>
+						<div className="space-y-2">
+							<Label
+								htmlFor="post-processing-face-liveness"
+								className="text-sm font-medium"
+							>
+								Face liveness prompt
+							</Label>
+							<Textarea
+								id="post-processing-face-liveness"
+								className="min-h-28 bg-background font-mono text-xs"
+								value={
+									config.session_modalities.post_processing
+										.prompts.face_liveness
+								}
+								onChange={(event) =>
+									onConfigChange({
+										session_modalities: {
+											...config.session_modalities,
+											post_processing: {
+												...config.session_modalities
+													.post_processing,
+												prompts: {
+													...config.session_modalities
+														.post_processing.prompts,
+													face_liveness:
+														event.target.value,
+												},
+											},
+										},
+									})
+								}
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label
+								htmlFor="post-processing-id-extraction"
+								className="text-sm font-medium"
+							>
+								ID extraction prompt
+							</Label>
+							<Textarea
+								id="post-processing-id-extraction"
+								className="min-h-28 bg-background font-mono text-xs"
+								value={
+									config.session_modalities.post_processing
+										.prompts.id_extraction
+								}
+								onChange={(event) =>
+									onConfigChange({
+										session_modalities: {
+											...config.session_modalities,
+											post_processing: {
+												...config.session_modalities
+													.post_processing,
+												prompts: {
+													...config.session_modalities
+														.post_processing.prompts,
+													id_extraction:
+														event.target.value,
+												},
+											},
+										},
+									})
+								}
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label
+								htmlFor="post-processing-body-assessment"
+								className="text-sm font-medium"
+							>
+								Body assessment prompt
+							</Label>
+							<Textarea
+								id="post-processing-body-assessment"
+								className="min-h-28 bg-background font-mono text-xs"
+								value={
+									config.session_modalities.post_processing
+										.prompts.body_assessment
+								}
+								onChange={(event) =>
+									onConfigChange({
+										session_modalities: {
+											...config.session_modalities,
+											post_processing: {
+												...config.session_modalities
+													.post_processing,
+												prompts: {
+													...config.session_modalities
+														.post_processing.prompts,
+													body_assessment:
+														event.target.value,
+												},
+											},
+										},
+									})
+								}
+							/>
+						</div>
+					</div>
 				</ConfigureSectionToggle>
 			</div>
 		</div>

@@ -266,6 +266,24 @@ export const agentConfigSchema = z
 					.enum(["disabled", "optional", "mandatory"])
 					.optional()
 					.default("disabled"),
+				post_processing: z
+					.object({
+						enabled: z.boolean().optional().default(false),
+						model: z
+							.string()
+							.optional()
+							.default("gemini-3.1-flash-lite"),
+						prompts: z
+							.object({
+								face_liveness: z.string(),
+								id_extraction: z.string(),
+								body_assessment: z.string(),
+							})
+							.passthrough()
+							.optional(),
+					})
+					.passthrough()
+					.optional(),
 			})
 			.passthrough()
 			.optional(),

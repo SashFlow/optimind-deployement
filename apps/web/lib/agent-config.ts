@@ -161,6 +161,41 @@ export type SessionOtpInputConfig = {
 	enabled: boolean;
 };
 
+export type SessionPostProcessingPrompts = {
+	face_liveness: string;
+	id_extraction: string;
+	body_assessment: string;
+};
+
+export type SessionPostProcessingConfig = {
+	enabled: boolean;
+	model: string;
+	prompts: SessionPostProcessingPrompts;
+};
+
+export const DEFAULT_POST_PROCESSING_PROMPTS: SessionPostProcessingPrompts = {
+	face_liveness: `You are evaluating a face capture image for liveness (anti-spoofing) for identity verification.
+Analyze the image and return JSON only:
+{"livenessPass":boolean,"confidence":number,"signals":string[],"summary":string}
+- confidence is 0..1
+- signals: short observations (e.g. "natural skin texture", "possible screen glare", "flat print-like appearance")
+- Prefer fail when evidence is weak or the face looks like a photo/screen/mask
+- summary: one short sentence for an underwriter`,
+	id_extraction: `Extract identity document fields from the ID card image. Return JSON only:
+{"extracted":{"fullName":string,"documentNumber":string,"dateOfBirth":string,"expiryDate":string,"nationality":string,"documentType":string,"address":string,"sex":string},"confidence":number,"summary":string}
+- Use empty string for fields you cannot read
+- confidence is 0..1 for overall OCR quality
+- summary: one short sentence about document readability and type`,
+	body_assessment: `You are assisting insurance underwriting with a best-effort visual assessment from full-body capture image(s) and optional video.
+These are AI estimates only — not clinical measurements. Return JSON only:
+{"vitals":{"heightCm":number|null,"weightKg":number|null,"bmi":number|null,"heartRateBpm":number|null,"respiratoryRate":number|null,"fitnessAssessment":string},"physicalCondition":{"impairments":string[],"mobilityLimitations":string[],"postureNotes":string,"assistiveDevices":string[],"otherFindings":string[]},"underwriting":{"identityStatus":string,"livenessStatus":string,"riskIndicators":string[],"exceptionFlags":string[],"underwriterReviewRecommended":boolean,"summary":string},"videoUnavailable":boolean}
+- Prefer null over inventing vitals when the media does not support a guess
+- Note visible impairments, amputations, mobility aids, posture abnormalities, swelling, asymmetry
+- Flag uncertainty and recommend underwriter review when evidence is weak`,
+};
+
+export const DEFAULT_POST_PROCESSING_MODEL = "gemini-3.1-flash-lite";
+
 export type SessionModalitiesConfig = {
 	call_type: SessionCallType;
 	audio_track: SessionTrackRequirement;
@@ -175,6 +210,8 @@ export type SessionModalitiesConfig = {
 	 * or mandatory (must grant to start).
 	 */
 	location_tracking: SessionLocationTracking;
+	/** After-call Gemini multimodal analysis of face / ID / body captures. */
+	post_processing: SessionPostProcessingConfig;
 };
 
 export type AgentConfigDocument = {
@@ -409,6 +446,11 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 				enabled: false,
 			},
 			location_tracking: "disabled",
+			post_processing: {
+				enabled: false,
+				model: DEFAULT_POST_PROCESSING_MODEL,
+				prompts: { ...DEFAULT_POST_PROCESSING_PROMPTS },
+			},
 		},
 		tools: [],
 		tools_config: {
@@ -543,6 +585,17 @@ export function normalizeAgentConfig(
 				c.session_modalities?.location_tracking === "disabled"
 					? c.session_modalities.location_tracking
 					: defaults.session_modalities.location_tracking,
+			post_processing: {
+				...defaults.session_modalities.post_processing,
+				...(c.session_modalities?.post_processing ?? {}),
+				model:
+					c.session_modalities?.post_processing?.model?.trim() ||
+					defaults.session_modalities.post_processing.model,
+				prompts: {
+					...defaults.session_modalities.post_processing.prompts,
+					...(c.session_modalities?.post_processing?.prompts ?? {}),
+				},
+			},
 		},
 		tools_config: { ...defaults.tools_config, ...(c.tools_config ?? {}) },
 		before_session_start: {

@@ -9,6 +9,10 @@ import { logger } from "@repo/logs";
 import { maybeEnqueueSessionTrackMerge } from "../lib/enqueue-track-merge";
 import { generateEndUserMemoriesSafe } from "../lib/memories";
 import {
+	maybeRetryPostProcessingForVideo,
+	runPostProcessingSafe,
+} from "../lib/post-processing";
+import {
 	egressTimingFields,
 	mapLivekitEgressStatus,
 } from "../lib/reconcile-egress";
@@ -124,6 +128,17 @@ export async function livekitWebhookHandler(
 					) {
 						await maybeEnqueueSessionTrackMerge(job.agentSessionId);
 					}
+					if (
+						job.agentSessionId &&
+						status === "COMPLETE" &&
+						(job.type === "ROOM_COMPOSITE" ||
+							job.type === "PARTICIPANT" ||
+							job.type === "TRACK")
+					) {
+						void maybeRetryPostProcessingForVideo(
+							job.agentSessionId,
+						);
+					}
 				}
 			}
 		}
@@ -144,6 +159,7 @@ export async function livekitWebhookHandler(
 			}
 			if (session) {
 				await generateEndUserMemoriesSafe(session.id);
+				void runPostProcessingSafe(session.id);
 				try {
 					const { resumeAgentSessionWait } = await import(
 						"../../workflows/lib/runner"

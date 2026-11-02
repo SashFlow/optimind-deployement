@@ -50,6 +50,7 @@ import {
 	withSignedFileUrls,
 } from "./lib/end-user-files";
 import { generateEndUserMemoriesSafe } from "./lib/memories";
+import { runPostProcessingSafe } from "./lib/post-processing";
 import {
 	isMetricsOnlyReport,
 	persistSessionArtifacts,
@@ -1510,6 +1511,7 @@ export const patchLifecycle = workerProcedure
 			}
 			if (data.status === "COMPLETED") {
 				await generateEndUserMemoriesSafe(session.id);
+				void runPostProcessingSafe(session.id);
 			}
 		}
 
@@ -1690,6 +1692,7 @@ export const postReport = workerProcedure
 		// Report can land after lifecycle COMPLETED; memories need the transcript.
 		if (input.isFinal !== false && session.status === "COMPLETED") {
 			await generateEndUserMemoriesSafe(session.id);
+			void runPostProcessingSafe(session.id);
 		}
 
 		return {

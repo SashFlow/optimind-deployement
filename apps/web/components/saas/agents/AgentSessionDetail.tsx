@@ -818,6 +818,288 @@ export function SessionFilesPanel({ session }: { session: SessionDetail }) {
 	);
 }
 
+function PostProcessingStatusBadge({
+	status,
+}: {
+	status: string | undefined;
+}) {
+	const label = status ?? "not started";
+	const tone =
+		status === "completed"
+			? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+			: status === "failed"
+				? "bg-destructive/15 text-destructive"
+				: status === "running" || status === "pending"
+					? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+					: "bg-muted text-muted-foreground";
+	return (
+		<span
+			className={cn(
+				"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize",
+				tone,
+			)}
+		>
+			{(status === "running" || status === "pending") && (
+				<LoaderCircleIcon className="mr-1 size-3 animate-spin" />
+			)}
+			{label}
+		</span>
+	);
+}
+
+function DetailGrid({
+	entries,
+}: {
+	entries: Array<[string, unknown]>;
+}) {
+	return (
+		<div className="grid gap-2 sm:grid-cols-2">
+			{entries.map(([key, value]) => (
+				<div
+					key={key}
+					className="rounded-xl border border-border/70 px-3 py-2 text-sm shadow-xs"
+				>
+					<div className="text-xs text-muted-foreground">{key}</div>
+					<div className="font-medium break-words">
+						{value == null || value === ""
+							? "—"
+							: Array.isArray(value)
+								? value.length > 0
+									? value.join("; ")
+									: "—"
+								: String(value)}
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+export function SessionPostProcessingPanel({
+	session,
+}: {
+	session: SessionDetail;
+}) {
+	const result = session.metadata?.postProcessing;
+	const reportFile = result?.reportFileId
+		? session.files?.find((file) => file.id === result.reportFileId)
+		: session.files?.find(
+				(file) => file.name === "post-processing-report.pdf",
+			);
+
+	if (!result) {
+		return (
+			<div className="flex min-h-0 flex-1 items-center justify-center p-6">
+				<p className="text-sm text-muted-foreground">
+					No post-processing results for this session. Enable Post
+					Processing in Advanced agent settings to analyze face, ID,
+					and body captures after the call.
+				</p>
+			</div>
+		);
+	}
+
+	return (
+		<div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3 md:p-6">
+			<Card className="shadow-xs">
+				<CardHeader className="flex-row items-center justify-between space-y-0">
+					<div>
+						<CardTitle className="text-base font-bold leading-none">
+							Post Processing
+						</CardTitle>
+						<p className="mt-1 text-xs text-muted-foreground">
+							AI estimates only — not clinical measurements.
+							{result.model ? ` Model: ${result.model}` : null}
+						</p>
+					</div>
+					<div className="flex items-center gap-2">
+						<PostProcessingStatusBadge status={result.status} />
+						{reportFile?.downloadUrl ? (
+							<Button type="button" variant="outline" size="sm" asChild>
+								<a
+									href={reportFile.downloadUrl}
+									download={reportFile.name}
+									target="_blank"
+									rel="noreferrer"
+								>
+									<DownloadIcon className="size-4" />
+									PDF
+								</a>
+							</Button>
+						) : null}
+					</div>
+				</CardHeader>
+				{result.error ? (
+					<CardContent className="text-sm text-destructive">
+						{result.error}
+					</CardContent>
+				) : null}
+			</Card>
+
+			{result.face ? (
+				<Card className="shadow-xs">
+					<CardHeader>
+						<CardTitle className="text-base font-bold leading-none">
+							Face liveness
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<DetailGrid
+							entries={[
+								["Pass", result.face.livenessPass ? "Yes" : "No"],
+								[
+									"Confidence",
+									`${Math.round(result.face.confidence * 100)}%`,
+								],
+								["Signals", result.face.signals],
+								["Summary", result.face.summary],
+							]}
+						/>
+					</CardContent>
+				</Card>
+			) : null}
+
+			{result.idCard ? (
+				<Card className="shadow-xs">
+					<CardHeader>
+						<CardTitle className="text-base font-bold leading-none">
+							ID card extraction
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-3">
+						<DetailGrid
+							entries={[
+								[
+									"Confidence",
+									`${Math.round(result.idCard.confidence * 100)}%`,
+								],
+								["Summary", result.idCard.summary],
+							]}
+						/>
+						<DetailGrid
+							entries={Object.entries(result.idCard.extracted)}
+						/>
+					</CardContent>
+				</Card>
+			) : null}
+
+			{result.body ? (
+				<>
+					<Card className="shadow-xs">
+						<CardHeader>
+							<CardTitle className="text-base font-bold leading-none">
+								Body — vitals (estimate)
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<DetailGrid
+								entries={[
+									["Height (cm)", result.body.vitals.heightCm],
+									["Weight (kg)", result.body.vitals.weightKg],
+									["BMI", result.body.vitals.bmi],
+									[
+										"Heart rate (bpm)",
+										result.body.vitals.heartRateBpm,
+									],
+									[
+										"Respiratory rate",
+										result.body.vitals.respiratoryRate,
+									],
+									[
+										"Fitness assessment",
+										result.body.vitals.fitnessAssessment,
+									],
+									[
+										"Video used",
+										result.body.videoUnavailable
+											? "No"
+											: "Yes",
+									],
+								]}
+							/>
+						</CardContent>
+					</Card>
+					<Card className="shadow-xs">
+						<CardHeader>
+							<CardTitle className="text-base font-bold leading-none">
+								Body — physical condition
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<DetailGrid
+								entries={[
+									[
+										"Impairments",
+										result.body.physicalCondition.impairments,
+									],
+									[
+										"Mobility limitations",
+										result.body.physicalCondition
+											.mobilityLimitations,
+									],
+									[
+										"Posture notes",
+										result.body.physicalCondition.postureNotes,
+									],
+									[
+										"Assistive devices",
+										result.body.physicalCondition
+											.assistiveDevices,
+									],
+									[
+										"Other findings",
+										result.body.physicalCondition.otherFindings,
+									],
+								]}
+							/>
+						</CardContent>
+					</Card>
+					<Card className="shadow-xs">
+						<CardHeader>
+							<CardTitle className="text-base font-bold leading-none">
+								Body — underwriting
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<DetailGrid
+								entries={[
+									[
+										"Identity status",
+										result.body.underwriting.identityStatus,
+									],
+									[
+										"Liveness status",
+										result.body.underwriting.livenessStatus,
+									],
+									[
+										"Risk indicators",
+										result.body.underwriting.riskIndicators,
+									],
+									[
+										"Exception flags",
+										result.body.underwriting.exceptionFlags,
+									],
+									[
+										"Underwriter review recommended",
+										result.body.underwriting
+											.underwriterReviewRecommended
+											? "Yes"
+											: "No",
+									],
+									[
+										"Summary",
+										result.body.underwriting.summary,
+									],
+								]}
+							/>
+						</CardContent>
+					</Card>
+				</>
+			) : null}
+		</div>
+	);
+}
+
 function SessionNavigator({ session }: { session: SessionDetail }) {
 	const params = useParams<{ agentId: string }>();
 	const agentId = params.agentId;
