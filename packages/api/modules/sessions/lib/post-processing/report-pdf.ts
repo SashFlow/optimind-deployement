@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import { REPORT_LOGO_PNG } from "./report-logo";
 import type { PostProcessingResult, TimedMediaFinding } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -358,29 +359,23 @@ function drawHeader(doc: Doc, ctx: ChromeContext) {
 		.stroke();
 
 	let drewLogo = false;
-	if (ctx.logo) {
+	const logo = ctx.logo ?? REPORT_LOGO_PNG;
+	if (logo) {
 		try {
-			doc.image(ctx.logo, PAGE_MARGIN, 15, { height: 26 });
+			doc.image(logo, PAGE_MARGIN, 15, { height: 26 });
 			drewLogo = true;
 		} catch {
 			drewLogo = false;
 		}
 	}
 	if (!drewLogo) {
-		// Simple wordmark: ring mark + name + byline.
+		// Simple wordmark: ring mark + name.
 		doc.circle(PAGE_MARGIN + 11, 28, 11).fill(BRAND.primary);
 		doc.circle(PAGE_MARGIN + 11, 28, 5).fill("#FFFFFF");
 		doc.font("Helvetica-Bold")
 			.fontSize(15)
 			.fillColor(BRAND.ink)
 			.text(BRAND.name, PAGE_MARGIN + 30, 19, { lineBreak: false });
-		const nameW = doc.widthOfString(BRAND.name);
-		doc.font("Helvetica")
-			.fontSize(8)
-			.fillColor(BRAND.muted)
-			.text(BRAND.byline, PAGE_MARGIN + 30 + nameW + 6, 25, {
-				lineBreak: false,
-			});
 	}
 
 	doc.font("Helvetica-Bold")
@@ -763,7 +758,7 @@ export async function buildPostProcessingPdf(args: {
 	result: PostProcessingResult;
 	images?: ReportImage[];
 	userResponses?: UserResponseEntry[];
-	/** Optional PNG/JPEG logo (use the version designed for light backgrounds). */
+	/** Optional PNG/JPEG logo override. Defaults to Optimind icon + wordmark. */
 	logo?: Buffer;
 }): Promise<Buffer> {
 	const doc = new PDFDocument({
