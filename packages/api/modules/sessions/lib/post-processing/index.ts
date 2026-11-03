@@ -8,7 +8,10 @@ import {
 	downloadSessionRecording,
 } from "./download";
 import { generateJsonFromMedia, hasGeminiApiKey } from "./gemini";
-import { resolvePostProcessingConfig } from "./prompts";
+import {
+	BODY_ASSESSMENT_RESPONSE_SCHEMA,
+	resolvePostProcessingConfig,
+} from "./prompts";
 import {
 	buildPostProcessingPdf,
 	type ReportImage,
@@ -35,7 +38,19 @@ function asString(value: unknown, fallback = ""): string {
 }
 
 function asNumber(value: unknown): number | null {
-	return typeof value === "number" && Number.isFinite(value) ? value : null;
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return value;
+	}
+	if (typeof value === "string") {
+		const cleaned = value.trim().replace(/,/g, "");
+		const match = /-?\d+(\.\d+)?/.exec(cleaned);
+		if (!match) {
+			return null;
+		}
+		const parsed = Number(match[0]);
+		return Number.isFinite(parsed) ? parsed : null;
+	}
+	return null;
 }
 
 function asBoolean(value: unknown, fallback = false): boolean {
@@ -86,18 +101,47 @@ function parseIdCard(raw: unknown): IdExtractionResult {
 	};
 }
 
+function deriveBmi(
+	heightCm: number | null,
+	weightKg: number | null,
+): number | null {
+	if (
+		heightCm == null ||
+		weightKg == null ||
+		heightCm <= 0 ||
+		weightKg <= 0
+	) {
+		return null;
+	}
+	const meters = heightCm / 100;
+	return Math.round((weightKg / (meters * meters)) * 10) / 10;
+}
+
 function parseBody(raw: unknown): BodyAssessmentResult {
 	const data = asRecord(raw);
 	const vitals = asRecord(data.vitals);
 	const physical = asRecord(data.physicalCondition);
 	const underwriting = asRecord(data.underwriting);
+	const heightCm = asNumber(vitals.heightCm);
+	const weightKg = asNumber(vitals.weightKg);
+	const bmi = asNumber(vitals.bmi) ?? deriveBmi(heightCm, weightKg);
+	const heartRateBpm = asNumber(vitals.heartRateBpm);
+	const respiratoryRate = asNumber(vitals.respiratoryRate);
+	const exceptionFlags = asStringArray(underwriting.exceptionFlags);
+	const missingVitals =
+		heightCm == null ||
+		weightKg == null ||
+		bmi == null ||
+		heartRateBpm == null ||
+		respiratoryRate == null;
+
 	return {
 		vitals: {
-			heightCm: asNumber(vitals.heightCm),
-			weightKg: asNumber(vitals.weightKg),
-			bmi: asNumber(vitals.bmi),
-			heartRateBpm: asNumber(vitals.heartRateBpm),
-			respiratoryRate: asNumber(vitals.respiratoryRate),
+			heightCm,
+			weightKg,
+			bmi,
+			heartRateBpm,
+			respiratoryRate,
 			fitnessAssessment: asString(vitals.fitnessAssessment),
 		},
 		physicalCondition: {
@@ -111,10 +155,14 @@ function parseBody(raw: unknown): BodyAssessmentResult {
 			identityStatus: asString(underwriting.identityStatus),
 			livenessStatus: asString(underwriting.livenessStatus),
 			riskIndicators: asStringArray(underwriting.riskIndicators),
-			exceptionFlags: asStringArray(underwriting.exceptionFlags),
-			underwriterReviewRecommended: asBoolean(
-				underwriting.underwriterReviewRecommended,
-			),
+			exceptionFlags: missingVitals
+				? Array.from(
+						new Set([...exceptionFlags, "vitals_incomplete"]),
+					)
+				: exceptionFlags,
+			underwriterReviewRecommended:
+				asBoolean(underwriting.underwriterReviewRecommended) ||
+				missingVitals,
 			summary: asString(underwriting.summary, "No summary provided."),
 		},
 		videoUnavailable: asBoolean(data.videoUnavailable),
@@ -548,6 +596,10 @@ export async function runPostProcessing(
 					model: config.model,
 					prompt: config.prompts.body_assessment,
 					media,
+					responseJsonSchema: BODY_ASSESSMENT_RESPONSE_SCHEMA,
+					// Slightly higher temp so the model commits to visual estimates
+					// instead of refusing with nulls.
+					temperature: 0.4,
 				}),
 			);
 			body.videoUnavailable = videoUnavailable || body.videoUnavailable;

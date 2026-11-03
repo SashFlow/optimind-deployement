@@ -16,13 +16,21 @@ Analyze the image and return JSON only:
 - Use empty string for fields you cannot read
 - confidence is 0..1 for overall OCR quality
 - summary: one short sentence about document readability and type`,
-		body_assessment: `You are assisting insurance underwriting with a best-effort visual assessment from full-body capture image(s) and optional video.
-These are AI estimates only — not clinical measurements. Return JSON only:
-{"vitals":{"heightCm":number|null,"weightKg":number|null,"bmi":number|null,"heartRateBpm":number|null,"respiratoryRate":number|null,"fitnessAssessment":string},"physicalCondition":{"impairments":string[],"mobilityLimitations":string[],"postureNotes":string,"assistiveDevices":string[],"otherFindings":string[]},"underwriting":{"identityStatus":string,"livenessStatus":string,"riskIndicators":string[],"exceptionFlags":string[],"underwriterReviewRecommended":boolean,"summary":string},"videoUnavailable":boolean}
-- Always provide best-guess numeric values for heightCm, weightKg, bmi, heartRateBpm, and respiratoryRate — never return null for those fields
-- Derive BMI from the estimated height and weight when possible
-- Note visible impairments, amputations, mobility aids, posture abnormalities, swelling, asymmetry
-- Flag uncertainty and recommend underwriter review when evidence is weak`,
+		body_assessment: `You are assisting insurance underwriting with a best-effort VISUAL ESTIMATE from full-body capture image(s) and optional video.
+These values are approximate AI guesses for triage only — NOT clinical measurements, NOT a diagnosis, and NOT medical advice.
+You MUST still output numeric estimates for every vital field. Do not omit them and do not use null.
+Return JSON only with this exact shape (all vitals are required numbers):
+{"vitals":{"heightCm":number,"weightKg":number,"bmi":number,"heartRateBpm":number,"respiratoryRate":number,"fitnessAssessment":string},"physicalCondition":{"impairments":string[],"mobilityLimitations":string[],"postureNotes":string,"assistiveDevices":string[],"otherFindings":string[]},"underwriting":{"identityStatus":string,"livenessStatus":string,"riskIndicators":string[],"exceptionFlags":string[],"underwriterReviewRecommended":boolean,"summary":string},"videoUnavailable":boolean}
+Required estimation rules:
+- heightCm: adult visual estimate typically 140–200 (cm). Use body proportions vs surroundings when possible.
+- weightKg: adult visual estimate typically 40–150 (kg).
+- bmi: compute as weightKg / (heightCm/100)^2 and round to 1 decimal.
+- heartRateBpm: if video shows face/chest motion, estimate resting-like BPM (typical 55–100); otherwise give a plausible resting estimate from appearance and note uncertainty in underwriting.summary / exceptionFlags.
+- respiratoryRate: breaths/min typically 12–22; estimate from visible chest/shoulder motion when video is present, otherwise a plausible resting estimate.
+- fitnessAssessment: one short sentence.
+- If uncertain, still give your best single number and set underwriterReviewRecommended=true and add an exceptionFlag like "vitals_low_confidence".
+- Never return null/empty for heightCm, weightKg, bmi, heartRateBpm, or respiratoryRate.
+- Note visible impairments, amputations, mobility aids, posture abnormalities, swelling, asymmetry.`,
 		media_integrity: `You are reviewing session recordings (user video and/or user/agent audio) for underwriting integrity and quality.
 Media parts may be labeled in the prompt context. Timestamps are milliseconds from the start of each provided media file (use null when unknown).
 Return JSON only:
@@ -35,6 +43,78 @@ Return JSON only:
 - Prefer concrete timed events when evidence supports them; use empty arrays when nothing notable
 - underwriterReviewRecommended true when integrity risk is material`,
 	};
+
+/** Enforced Gemini JSON schema so vitals cannot be omitted/null. */
+export const BODY_ASSESSMENT_RESPONSE_SCHEMA = {
+	type: "object",
+	properties: {
+		vitals: {
+			type: "object",
+			properties: {
+				heightCm: { type: "number" },
+				weightKg: { type: "number" },
+				bmi: { type: "number" },
+				heartRateBpm: { type: "number" },
+				respiratoryRate: { type: "number" },
+				fitnessAssessment: { type: "string" },
+			},
+			required: [
+				"heightCm",
+				"weightKg",
+				"bmi",
+				"heartRateBpm",
+				"respiratoryRate",
+				"fitnessAssessment",
+			],
+		},
+		physicalCondition: {
+			type: "object",
+			properties: {
+				impairments: { type: "array", items: { type: "string" } },
+				mobilityLimitations: {
+					type: "array",
+					items: { type: "string" },
+				},
+				postureNotes: { type: "string" },
+				assistiveDevices: { type: "array", items: { type: "string" } },
+				otherFindings: { type: "array", items: { type: "string" } },
+			},
+			required: [
+				"impairments",
+				"mobilityLimitations",
+				"postureNotes",
+				"assistiveDevices",
+				"otherFindings",
+			],
+		},
+		underwriting: {
+			type: "object",
+			properties: {
+				identityStatus: { type: "string" },
+				livenessStatus: { type: "string" },
+				riskIndicators: { type: "array", items: { type: "string" } },
+				exceptionFlags: { type: "array", items: { type: "string" } },
+				underwriterReviewRecommended: { type: "boolean" },
+				summary: { type: "string" },
+			},
+			required: [
+				"identityStatus",
+				"livenessStatus",
+				"riskIndicators",
+				"exceptionFlags",
+				"underwriterReviewRecommended",
+				"summary",
+			],
+		},
+		videoUnavailable: { type: "boolean" },
+	},
+	required: [
+		"vitals",
+		"physicalCondition",
+		"underwriting",
+		"videoUnavailable",
+	],
+} as const;
 
 export function resolvePostProcessingConfig(
 	raw: unknown,

@@ -40,6 +40,9 @@ export async function generateJsonFromMedia(args: {
 	model: string;
 	prompt: string;
 	media: MediaPart[];
+	/** Optional JSON Schema enforced by Gemini (responseJsonSchema). */
+	responseJsonSchema?: unknown;
+	temperature?: number;
 }): Promise<unknown> {
 	const client = getClient();
 	const parts = [
@@ -57,7 +60,10 @@ export async function generateJsonFromMedia(args: {
 		contents: parts,
 		config: {
 			responseMimeType: "application/json",
-			temperature: 0.2,
+			temperature: args.temperature ?? 0.2,
+			...(args.responseJsonSchema
+				? { responseJsonSchema: args.responseJsonSchema }
+				: {}),
 		},
 	});
 
