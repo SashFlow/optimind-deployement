@@ -64,7 +64,11 @@ export async function createAgent(data: {
 	});
 }
 
-/** Shallow copy: name/description, draft config, and KB links. No trials/embed/published. */
+/**
+ * Shallow copy: name/description, draft config, and KB links.
+ * No trials/embed/published. Custom org tools are cloned by the API layer
+ * (they live in organization metadata, not on the agent row).
+ */
 export async function duplicateAgent(id: string) {
 	const source = await getAgentById(id);
 	if (!source) {

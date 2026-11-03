@@ -17,10 +17,15 @@ import {
 	updateAgentDraftConfig,
 	updateAgentTrial,
 } from "@repo/database";
+import { nanoid } from "nanoid";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
 import { recordAudit } from "../shared/audit";
 import { requireOrgMembership } from "../shared/require-org-membership";
+import {
+	cloneOrgToolsForAgent,
+	remapToolIdsInConfig,
+} from "../tools/lib/org-tools";
 import { agentConfigSchema } from "./lib/agent-config";
 
 export const list = protectedProcedure
@@ -111,21 +116,41 @@ export const duplicate = protectedProcedure
 		if (!agent) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		// Custom tools live in org metadata keyed by agent_id; clone them so
+		// the configure UI can list/edit them on the duplicate independently.
+		const toolIdMap = await cloneOrgToolsForAgent({
+			organizationId: agent.organizationId,
+			sourceAgentId: existing.id,
+			targetAgentId: agent.id,
+			createId: () => nanoid(),
+		});
+		if (toolIdMap.size > 0) {
+			const draftConfig =
+				(agent.draftVersion?.config as Record<string, unknown> | null) ??
+				{};
+			await updateAgentDraftConfig(
+				agent.id,
+				remapToolIdsInConfig(draftConfig, toolIdMap),
+			);
+		}
+
+		const refreshed = (await getAgentById(agent.id)) ?? agent;
 		await recordAudit({
 			headers: context.headers,
 			userId: context.user.id,
-			organizationId: agent.organizationId,
+			organizationId: refreshed.organizationId,
 			actionType: "CREATE",
 			resourceType: "agent",
-			resourceId: agent.id,
+			resourceId: refreshed.id,
 			after: {
-				name: agent.name,
-				description: agent.description,
-				status: agent.status,
+				name: refreshed.name,
+				description: refreshed.description,
+				status: refreshed.status,
 				duplicatedFrom: existing.id,
 			},
 		});
-		return { agent };
+		return { agent: refreshed };
 	});
 
 export const update = protectedProcedure

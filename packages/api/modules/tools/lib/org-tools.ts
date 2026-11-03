@@ -122,6 +122,31 @@ export async function resolveOrgToolsByIds(
 	return resolved;
 }
 
+function stringIdsFrom(value: unknown): string[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.filter((id): id is string => typeof id === "string");
+}
+
+/** All custom tool IDs referenced in draft config (every phase + flat tools). */
+export function collectAllConfigToolIds(
+	config: Record<string, unknown>,
+): string[] {
+	const ids: string[] = [];
+	const byPhase = config.tools_by_phase;
+	if (byPhase && typeof byPhase === "object" && !Array.isArray(byPhase)) {
+		const phases = byPhase as Record<string, unknown>;
+		ids.push(
+			...stringIdsFrom(phases.pre_call),
+			...stringIdsFrom(phases.on_call),
+			...stringIdsFrom(phases.post_call),
+		);
+	}
+	ids.push(...stringIdsFrom(config.tools));
+	return [...new Set(ids)];
+}
+
 export function collectDispatchToolIds(
 	config: Record<string, unknown>,
 ): string[] {
@@ -138,6 +163,153 @@ export function collectDispatchToolIds(
 		);
 	}
 	return [];
+}
+
+function remapToolIdList(
+	ids: unknown,
+	idMap: Map<string, string>,
+): string[] | null {
+	if (!Array.isArray(ids)) {
+		return null;
+	}
+	return ids.map((id) => {
+		if (typeof id !== "string") {
+			return id as string;
+		}
+		return idMap.get(id) ?? id;
+	});
+}
+
+/** Remap custom tool IDs inside a copied agent draft config. */
+export function remapToolIdsInConfig(
+	config: Record<string, unknown>,
+	idMap: Map<string, string>,
+): Record<string, unknown> {
+	if (idMap.size === 0) {
+		return config;
+	}
+
+	const next: Record<string, unknown> = { ...config };
+
+	const tools = remapToolIdList(config.tools, idMap);
+	if (tools) {
+		next.tools = tools;
+	}
+
+	const byPhase = config.tools_by_phase;
+	if (byPhase && typeof byPhase === "object" && !Array.isArray(byPhase)) {
+		const phases = byPhase as Record<string, unknown>;
+		next.tools_by_phase = {
+			...phases,
+			pre_call:
+				remapToolIdList(phases.pre_call, idMap) ?? phases.pre_call,
+			on_call: remapToolIdList(phases.on_call, idMap) ?? phases.on_call,
+			post_call:
+				remapToolIdList(phases.post_call, idMap) ?? phases.post_call,
+		};
+	}
+
+	return next;
+}
+
+/**
+ * Clone all org tools owned by `sourceAgentId` onto `targetAgentId`.
+ * Returns a map of old tool id → new tool id.
+ */
+export async function cloneOrgToolsForAgent(params: {
+	organizationId: string;
+	sourceAgentId: string;
+	targetAgentId: string;
+	createId: () => string;
+}): Promise<Map<string, string>> {
+	const { organizationId, sourceAgentId, targetAgentId, createId } = params;
+	const allTools = await listOrgTools(organizationId);
+	const sourceTools = allTools.filter(
+		(tool) => tool.agent_id === sourceAgentId,
+	);
+	if (sourceTools.length === 0) {
+		return new Map();
+	}
+
+	const idMap = new Map<string, string>();
+	const clones: ToolDefinition[] = sourceTools.map((tool) => {
+		const newId = createId();
+		idMap.set(tool.id, newId);
+		return {
+			...tool,
+			id: newId,
+			agent_id: targetAgentId,
+			config: structuredClone(tool.config),
+			parameters_schema: structuredClone(tool.parameters_schema),
+		};
+	});
+
+	await writeTools(organizationId, [...allTools, ...clones]);
+	return idMap;
+}
+
+/**
+ * Fix agents duplicated before tool cloning existed: config still points at
+ * another agent's tools. Clone those source tools onto this agent and remap
+ * draft config IDs. Returns tools owned by `agentId` after repair.
+ */
+export async function repairSharedOrgToolsForAgent(params: {
+	organizationId: string;
+	agentId: string;
+	draftConfig: Record<string, unknown>;
+	createId: () => string;
+	persistConfig: (
+		config: Record<string, unknown>,
+	) => Promise<void>;
+}): Promise<ToolDefinition[]> {
+	const { organizationId, agentId, draftConfig, createId, persistConfig } =
+		params;
+
+	const owned = await listOrgTools(organizationId, { agentId });
+	const referencedIds = collectAllConfigToolIds(draftConfig);
+	if (referencedIds.length === 0) {
+		return owned;
+	}
+
+	const allTools = await listOrgTools(organizationId);
+	const byId = new Map(allTools.map((tool) => [tool.id, tool]));
+	const foreignSourceIds = new Set<string>();
+	for (const id of referencedIds) {
+		const tool = byId.get(id);
+		if (tool && tool.agent_id !== agentId) {
+			foreignSourceIds.add(tool.agent_id);
+		}
+	}
+	if (foreignSourceIds.size === 0) {
+		return owned;
+	}
+
+	const idMap = new Map<string, string>();
+	const clones: ToolDefinition[] = [];
+	for (const sourceAgentId of foreignSourceIds) {
+		for (const tool of allTools) {
+			if (tool.agent_id !== sourceAgentId) {
+				continue;
+			}
+			const newId = createId();
+			idMap.set(tool.id, newId);
+			clones.push({
+				...tool,
+				id: newId,
+				agent_id: agentId,
+				config: structuredClone(tool.config),
+				parameters_schema: structuredClone(tool.parameters_schema),
+			});
+		}
+	}
+
+	if (clones.length === 0) {
+		return owned;
+	}
+
+	await writeTools(organizationId, [...allTools, ...clones]);
+	await persistConfig(remapToolIdsInConfig(draftConfig, idMap));
+	return listOrgTools(organizationId, { agentId });
 }
 
 export type { OrgMetadata };

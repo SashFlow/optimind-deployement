@@ -1,11 +1,16 @@
 import { ORPCError } from "@orpc/client";
-import { getOrganizationById } from "@repo/database";
+import {
+	getAgentById,
+	getOrganizationById,
+	updateAgentDraftConfig,
+} from "@repo/database";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
 import { requireOrgMembership } from "../shared/require-org-membership";
 import {
 	listOrgTools,
+	repairSharedOrgToolsForAgent,
 	toolDefinitionSchema,
 	writeTools,
 } from "./lib/org-tools";
@@ -29,6 +34,28 @@ export const list = protectedProcedure
 		if (!organization) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		const agent = await getAgentById(input.agentId);
+		if (
+			agent &&
+			agent.organizationId === input.organizationId &&
+			agent.draftVersion?.config
+		) {
+			const tools = await repairSharedOrgToolsForAgent({
+				organizationId: input.organizationId,
+				agentId: input.agentId,
+				draftConfig: agent.draftVersion.config as Record<
+					string,
+					unknown
+				>,
+				createId: () => nanoid(),
+				persistConfig: async (config) => {
+					await updateAgentDraftConfig(input.agentId, config);
+				},
+			});
+			return { tools };
+		}
+
 		return {
 			tools: await listOrgTools(input.organizationId, {
 				agentId: input.agentId,
