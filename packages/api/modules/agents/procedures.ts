@@ -131,7 +131,7 @@ export const duplicate = protectedProcedure
 				{};
 			await updateAgentDraftConfig(
 				agent.id,
-				remapToolIdsInConfig(draftConfig, toolIdMap),
+				remapToolIdsInConfig(draftConfig, toolIdMap) as object,
 			);
 		}
 
