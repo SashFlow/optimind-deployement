@@ -746,12 +746,12 @@ export function useProctoring({
 				id: `proctoring-${type}`,
 				description: check.message,
 			});
-			void sendContext(room, {
-				state: check.message,
-				action: check.action,
-				type,
-				details,
-			});
+			// void sendContext(room, {
+			// 	state: check.message,
+			// 	action: check.action,
+			// 	type,
+			// 	details,
+			// });
 		};
 
 		const tick = () => {
@@ -1119,15 +1119,15 @@ export function useProctoring({
 				return;
 			}
 			lastBodyFramingAtRef.current = now;
-			void sendContext(room, {
-				state: BODY_FRAMING_CONTEXT[detection.hint],
-				action: "say",
-				type: "body_framing",
-				details: {
-					hint: detection.hint,
-					confidence: detection.confidence,
-				},
-			});
+			// void sendContext(room, {
+			// 	state: BODY_FRAMING_CONTEXT[detection.hint],
+			// 	action: "say",
+			// 	type: "body_framing",
+			// 	details: {
+			// 		hint: detection.hint,
+			// 		confidence: detection.confidence,
+			// 	},
+			// });
 		};
 
 		const tick = async () => {
