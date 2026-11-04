@@ -62,9 +62,9 @@ const ANALYSIS_WIDTH = 400;
 /** Each edge is split into segments so a slightly tilted card still lines up. */
 const EDGE_SEGMENTS = 8;
 /** Fraction of an edge's segments that must line up for that side to count. */
-const MIN_SIDE_SEGMENTS = 0.75;
-/** Max tilt of a card edge relative to the guide (tan 8°). */
-const MAX_EDGE_SLOPE = 0.14;
+const MIN_SIDE_SEGMENTS = 0.6;
+/** Max tilt of a card edge relative to the guide (tan ~12°). */
+const MAX_EDGE_SLOPE = 0.21;
 const GLARE_LEVEL = 250;
 
 /** Centred guide the candidate lines the card up with; shared with the overlay so they match. */
