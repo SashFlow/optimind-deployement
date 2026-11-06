@@ -967,6 +967,33 @@ function DetailGrid({ entries }: { entries: Array<[string, unknown]> }) {
 	);
 }
 
+function isCaptureFileName(name: string) {
+	const base = name.trim().toLowerCase().split(/[\\/]/).pop() ?? "";
+	return (
+		base.startsWith("face-full.") ||
+		base.startsWith("id-card.") ||
+		base.startsWith("id-card-full.") ||
+		base.startsWith("body-full.")
+	);
+}
+
+function captureLabel(name: string) {
+	const base = name.trim().toLowerCase().split(/[\\/]/).pop() ?? "";
+	if (base.startsWith("face-full.")) {
+		return "Face capture";
+	}
+	if (base.startsWith("id-card-full.")) {
+		return "ID card (full frame)";
+	}
+	if (base.startsWith("id-card.")) {
+		return "ID card";
+	}
+	if (base.startsWith("body-full.")) {
+		return "Body capture";
+	}
+	return name;
+}
+
 export function SessionPostProcessingPanel({
 	session,
 }: {
@@ -983,6 +1010,13 @@ export function SessionPostProcessingPanel({
 		: session.files?.find(
 				(file) => file.name === "post-processing-report.pdf",
 			);
+	const captureFiles = (session.files ?? []).filter((file) =>
+		isCaptureFileName(file.name),
+	);
+	const egressJobs = session.egressJobs ?? [];
+	const transcriptSegments = session.transcript?.segments ?? [];
+	const transcriptText =
+		session.transcript?.fullText ?? session.transcript?.text ?? null;
 
 	const regenerateButton = (
 		<Button
@@ -999,6 +1033,68 @@ export function SessionPostProcessingPanel({
 			)}
 			Regenerate
 		</Button>
+	);
+
+	const sessionArtifacts = (
+		<>
+			{captureFiles.length > 0 ? (
+				<Card className="shadow-xs">
+					<CardHeader>
+						<CardTitle className="text-base font-bold leading-none">
+							Session captures
+						</CardTitle>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Face, ID, and body captures included in the final
+							report.
+						</p>
+					</CardHeader>
+					<CardContent>
+						<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+							{captureFiles.map((file) => (
+								<div key={file.id} className="space-y-2">
+									<p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+										{captureLabel(file.name)}
+									</p>
+									<SessionFilePreview file={file} />
+								</div>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+			) : null}
+
+			<Card className="shadow-xs">
+				<CardHeader>
+					<CardTitle className="text-base font-bold leading-none">
+						Transcript
+					</CardTitle>
+					<p className="mt-1 text-xs text-muted-foreground">
+						Full session conversation included in the PDF report
+						attachment.
+					</p>
+				</CardHeader>
+				<CardContent>
+					<TranscriptPanel
+						segments={transcriptSegments}
+						fullText={transcriptText}
+					/>
+				</CardContent>
+			</Card>
+
+			<Card className="shadow-xs">
+				<CardHeader>
+					<CardTitle className="text-base font-bold leading-none">
+						Egress recordings
+					</CardTitle>
+					<p className="mt-1 text-xs text-muted-foreground">
+						Session recording files catalogued in the final report.
+					</p>
+				</CardHeader>
+				<CardContent>
+					<EgressPanel jobs={egressJobs} />
+				</CardContent>
+			</Card>
+		</>
 	);
 
 	if (!result) {
@@ -1022,6 +1118,7 @@ export function SessionPostProcessingPanel({
 						analyze face, ID, and body captures after the call.
 					</CardContent>
 				</Card>
+				{sessionArtifacts}
 			</div>
 		);
 	}
@@ -1071,6 +1168,8 @@ export function SessionPostProcessingPanel({
 					</CardContent>
 				) : null}
 			</Card>
+
+			{sessionArtifacts}
 
 			{result.face ? (
 				<Card className="shadow-xs">

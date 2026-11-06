@@ -14,10 +14,11 @@ export type BodyCaptureHint =
 	| "hold_steady";
 
 export const BODY_CAPTURE_HINTS: Record<BodyCaptureHint, string> = {
-	no_body: "Stand so your full upper body is visible in the frame",
+	no_body: "Stand so your head, shoulders, hips, and legs are in frame",
 	multiple_people: "Only one person should be visible",
 	move_closer: "Step a little closer to the camera",
-	move_back: "Step a little farther from the camera",
+	move_back:
+		"Step farther back — a face close-up is not enough for body capture",
 	center: "Center your body in the frame",
 	hold_steady: "Hold steady…",
 };
@@ -25,13 +26,13 @@ export const BODY_CAPTURE_HINTS: Record<BodyCaptureHint, string> = {
 /** Spoken / agent-facing framing tips (used for periodic add_context). */
 export const BODY_FRAMING_CONTEXT: Record<BodyCaptureHint, string> = {
 	no_body:
-		"The candidate's body is not fully visible. Ask them to stand so their head, shoulders, and hips are in frame.",
+		"The candidate's body is not fully visible. Ask them to stand so their head, shoulders, hips, and at least one knee are in frame.",
 	multiple_people:
 		"More than one person is visible. Ask the candidate to ensure only they are in the camera frame.",
 	move_closer:
 		"The candidate is too far from the camera. Ask them to step closer so their body fills more of the frame.",
 	move_back:
-		"The candidate is too close to the camera. Ask them to step back so their full upper body fits in the frame.",
+		"The candidate is too close — likely face-only. Ask them to step back so shoulders, hips, and legs fit in the frame.",
 	center: "The candidate is off-center. Ask them to center their body in the frame.",
 	hold_steady: "The candidate's body is well framed. Hold for capture.",
 };
@@ -56,14 +57,23 @@ export interface BodyCaptureResult {
 	timestamp: number;
 }
 
-/** BlazePose landmark indices used for torso framing. */
+/** BlazePose landmark indices used for torso / lower-limb framing. */
 const NOSE = 0;
 const LEFT_SHOULDER = 11;
 const RIGHT_SHOULDER = 12;
 const LEFT_HIP = 23;
 const RIGHT_HIP = 24;
+const LEFT_KNEE = 25;
+const RIGHT_KNEE = 26;
 const LEFT_ANKLE = 27;
 const RIGHT_ANKLE = 28;
+
+/** Reject face close-ups that PoseLandmarker often hallucinates as a torso. */
+const MAX_NOSE_Y = 0.34;
+const MIN_TORSO_SPAN = 0.32;
+const MIN_SHOULDER_WIDTH = 0.14;
+const MIN_HEAD_TO_SHOULDER = 0.06;
+const MIN_SHOULDER_TO_HIP = 0.1;
 
 const clamp = (value: number, min: number, max: number) =>
 	Math.min(max, Math.max(min, value));
@@ -162,6 +172,8 @@ export function evaluateBodyFraming(
 	const rightShoulder = landmarks[RIGHT_SHOULDER];
 	const leftHip = landmarks[LEFT_HIP];
 	const rightHip = landmarks[RIGHT_HIP];
+	const leftKnee = landmarks[LEFT_KNEE];
+	const rightKnee = landmarks[RIGHT_KNEE];
 	const leftAnkle = landmarks[LEFT_ANKLE];
 	const rightAnkle = landmarks[RIGHT_ANKLE];
 
@@ -178,7 +190,8 @@ export function evaluateBodyFraming(
 		}
 	}
 
-	// Need shoulders + hips (and preferably head) for a usable upper-body frame.
+	// Need nose + shoulders + hips for a usable body frame.
+	const noseOk = landmarkVisible(nose, config.minVisibility);
 	const shouldersOk =
 		landmarkVisible(leftShoulder, config.minVisibility) &&
 		landmarkVisible(rightShoulder, config.minVisibility);
@@ -186,7 +199,7 @@ export function evaluateBodyFraming(
 		landmarkVisible(leftHip, config.minVisibility) &&
 		landmarkVisible(rightHip, config.minVisibility);
 
-	if (!shouldersOk || !hipsOk || core.length < 4) {
+	if (!noseOk || !shouldersOk || !hipsOk || core.length < 5) {
 		return {
 			detected: false,
 			bodyFound: false,
@@ -196,12 +209,57 @@ export function evaluateBodyFraming(
 		};
 	}
 
-	const extent = [...core];
-	if (landmarkVisible(leftAnkle, config.minVisibility)) {
-		extent.push(leftAnkle);
+	// Face close-ups often invent shoulder/hip points; knees/ankles stay missing.
+	const lowerLimbOk =
+		landmarkVisible(leftKnee, config.minVisibility) ||
+		landmarkVisible(rightKnee, config.minVisibility) ||
+		landmarkVisible(leftAnkle, config.minVisibility) ||
+		landmarkVisible(rightAnkle, config.minVisibility);
+	if (!lowerLimbOk) {
+		return {
+			detected: false,
+			bodyFound: true,
+			confidence: 0,
+			box: null,
+			hint: "move_back",
+		};
 	}
-	if (landmarkVisible(rightAnkle, config.minVisibility)) {
-		extent.push(rightAnkle);
+
+	const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+	const hipMidY = (leftHip.y + rightHip.y) / 2;
+	const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x);
+	const torsoSpan = hipMidY - nose.y;
+
+	if (!(nose.y < shoulderMidY && shoulderMidY < hipMidY)) {
+		return {
+			detected: false,
+			bodyFound: false,
+			confidence: 0,
+			box: null,
+			hint: "no_body",
+		};
+	}
+	if (
+		nose.y > MAX_NOSE_Y ||
+		torsoSpan < MIN_TORSO_SPAN ||
+		shoulderMidY - nose.y < MIN_HEAD_TO_SHOULDER ||
+		hipMidY - shoulderMidY < MIN_SHOULDER_TO_HIP ||
+		shoulderWidth < MIN_SHOULDER_WIDTH
+	) {
+		return {
+			detected: false,
+			bodyFound: true,
+			confidence: 0,
+			box: null,
+			hint: "move_back",
+		};
+	}
+
+	const extent = [...core];
+	for (const point of [leftKnee, rightKnee, leftAnkle, rightAnkle]) {
+		if (landmarkVisible(point, config.minVisibility)) {
+			extent.push(point);
+		}
 	}
 
 	const box = landmarksBox(extent);

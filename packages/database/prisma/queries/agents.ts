@@ -2,13 +2,16 @@ import { createId } from "@paralleldrive/cuid2";
 import { db } from "../client";
 import type { AgentStatus, AgentTrial, Prisma } from "../generated/client";
 
+/** Lean rows for /app/agents list (+ id/name pickers). No version configs or KBs. */
 export async function listAgents(organizationId: string) {
 	return db.agent.findMany({
 		where: { organizationId, status: { not: "DELETED" } },
-		include: {
-			draftVersion: true,
-			publishedVersion: true,
-			knowledgeBases: { include: { knowledgeBase: true } },
+		select: {
+			id: true,
+			name: true,
+			description: true,
+			status: true,
+			updatedAt: true,
 		},
 		orderBy: { updatedAt: "desc" },
 	});

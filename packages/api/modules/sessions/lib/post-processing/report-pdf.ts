@@ -57,6 +57,26 @@ export type UserResponseEntry = {
 	label?: string;
 };
 
+export type ReportTranscriptSegment = {
+	role: string;
+	text: string;
+	startMs?: number | null;
+	endMs?: number | null;
+	sequence?: number;
+};
+
+export type ReportEgressEntry = {
+	id?: string;
+	type?: string | null;
+	status?: string | null;
+	role?: string | null;
+	filename?: string | null;
+	durationMs?: number | null;
+	sizeBytes?: number | null;
+	filepath?: string | null;
+	url?: string | null;
+};
+
 type Tone = "good" | "warn" | "bad" | "neutral";
 
 type Row = {
@@ -745,6 +765,175 @@ function attachUserResponses(doc: Doc, entries: UserResponseEntry[]) {
 	userResponsesSection(doc, entries);
 }
 
+function formatBytes(bytes: number | null | undefined) {
+	if (bytes == null || bytes < 0) {
+		return "—";
+	}
+	if (bytes < 1024) {
+		return `${bytes} B`;
+	}
+	const units = ["KB", "MB", "GB", "TB"];
+	let value = bytes / 1024;
+	let unitIndex = 0;
+	while (value >= 1024 && unitIndex < units.length - 1) {
+		value /= 1024;
+		unitIndex += 1;
+	}
+	return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function formatDurationMs(ms: number | null | undefined) {
+	if (ms == null || !Number.isFinite(ms) || ms < 0) {
+		return "—";
+	}
+	const total = Math.round(ms / 1000);
+	const m = Math.floor(total / 60);
+	const s = total % 60;
+	return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function roleLabel(role: string) {
+	const normalized = role.trim().toLowerCase();
+	if (normalized === "assistant" || normalized === "agent") {
+		return "Agent";
+	}
+	if (normalized === "user") {
+		return "User";
+	}
+	if (normalized === "system") {
+		return "System";
+	}
+	return humanize(role);
+}
+
+function attachJsonFile(
+	doc: Doc,
+	name: string,
+	description: string,
+	payload: unknown,
+) {
+	const json = Buffer.from(`${JSON.stringify(payload, null, 2)}\n`, "utf8");
+	doc.file(json, {
+		name,
+		type: "application/json",
+		description,
+	});
+}
+
+function transcriptSection(doc: Doc, segments: ReportTranscriptSegment[]) {
+	const W = contentWidth(doc);
+	const left = doc.page.margins.left;
+	const sorted = [...segments].sort(
+		(a, b) => (a.sequence ?? 0) - (b.sequence ?? 0),
+	);
+
+	ensureSpace(doc, 90);
+	let top = doc.y;
+	doc.roundedRect(left, top + 2, 3.5, 14, 1.75).fill(BRAND.primary);
+	doc.font("Helvetica-Bold")
+		.fontSize(12)
+		.fillColor(BRAND.ink)
+		.text("Session transcript", left + 11, top + 2, { lineBreak: false });
+	doc.font("Helvetica")
+		.fontSize(9)
+		.fillColor(BRAND.muted)
+		.text(
+			sorted.length > 0
+				? `${sorted.length} segment${sorted.length === 1 ? "" : "s"}`
+				: "No transcript segments",
+			left + W - 140,
+			top + 4,
+			{ width: 140, align: "right", lineBreak: false },
+		);
+	doc.y = top + 28;
+	doc.x = left;
+
+	if (sorted.length === 0) {
+		doc.font("Helvetica")
+			.fontSize(10)
+			.fillColor(BRAND.muted)
+			.text("No transcript was available for this session.", left, doc.y, {
+				width: W,
+			});
+		doc.moveDown(1);
+		return;
+	}
+
+	for (const segment of sorted) {
+		const text = segment.text?.trim();
+		if (!text) {
+			continue;
+		}
+		const stamp = formatMediaClock(segment.startMs);
+		const speaker = roleLabel(segment.role || "unknown");
+		const heading = stamp ? `${speaker}  ·  ${stamp}` : speaker;
+		doc.font("Helvetica").fontSize(9.5);
+		const textH = doc.heightOfString(text, { width: W - 16 });
+		const blockH = 18 + textH + 10;
+		ensureSpace(doc, blockH + 8);
+		const y = doc.y;
+		doc.roundedRect(left, y, W, blockH, 6)
+			.lineWidth(0.5)
+			.fillAndStroke(BRAND.surface, BRAND.border);
+		doc.font("Helvetica-Bold")
+			.fontSize(8.5)
+			.fillColor(BRAND.primary)
+			.text(heading, left + 10, y + 6, {
+				width: W - 20,
+				lineBreak: false,
+			});
+		doc.font("Helvetica")
+			.fontSize(9.5)
+			.fillColor(BRAND.text)
+			.text(text, left + 10, y + 20, { width: W - 20 });
+		doc.y = y + blockH + 8;
+		doc.x = left;
+	}
+	doc.moveDown(0.4);
+}
+
+function egressSection(doc: Doc, entries: ReportEgressEntry[]) {
+	if (entries.length === 0) {
+		section(doc, {
+			title: "Egress recordings",
+			rows: [{ label: "Recordings", value: "None available" }],
+			summary:
+				"No completed egress jobs were found for this session. Media integrity may be limited.",
+		});
+		return;
+	}
+
+	for (const [index, entry] of entries.entries()) {
+		const title =
+			entries.length === 1
+				? "Egress recording"
+				: `Egress recording ${index + 1}`;
+		const typeLabel = (entry.type ?? "Recording").replace(/_/g, " ");
+		const role = entry.role ? humanize(entry.role) : null;
+		section(doc, {
+			title,
+			tag: {
+				text: String(entry.status ?? "unknown").toUpperCase(),
+				tone:
+					String(entry.status ?? "").toUpperCase() === "COMPLETE"
+						? "good"
+						: /fail|abort/i.test(String(entry.status ?? ""))
+							? "bad"
+							: "warn",
+			},
+			rows: [
+				{ label: "Type", value: typeLabel },
+				{ label: "Role", value: role ?? "—" },
+				{ label: "File", value: entry.filename ?? "—" },
+				{ label: "Duration", value: formatDurationMs(entry.durationMs) },
+				{ label: "Size", value: formatBytes(entry.sizeBytes) },
+				{ label: "Path", value: entry.filepath ?? "—" },
+				{ label: "URL", value: entry.url ?? "—" },
+			],
+		});
+	}
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Public API                                                                */
 /* -------------------------------------------------------------------------- */
@@ -758,6 +947,8 @@ export async function buildPostProcessingPdf(args: {
 	result: PostProcessingResult;
 	images?: ReportImage[];
 	userResponses?: UserResponseEntry[];
+	transcriptSegments?: ReportTranscriptSegment[];
+	egressEntries?: ReportEgressEntry[];
 	/** Optional PNG/JPEG logo override. Defaults to Optimind icon + wordmark. */
 	logo?: Buffer;
 }): Promise<Buffer> {
@@ -790,6 +981,8 @@ export async function buildPostProcessingPdf(args: {
 
 	const images = args.images ?? [];
 	const userResponses = args.userResponses ?? [];
+	const transcriptSegments = args.transcriptSegments ?? [];
+	const egressEntries = args.egressEntries ?? [];
 	const placed = new Set<ReportImage>();
 	const takeImages = (kind: ReportImageKind) => {
 		const picked = images.filter((i) => i.kind === kind && !placed.has(i));
@@ -1112,6 +1305,29 @@ export async function buildPostProcessingPdf(args: {
 			images: leftover,
 		});
 	}
+
+	/* Egress recordings ----------------------------------------------------- */
+	egressSection(doc, egressEntries);
+	attachJsonFile(doc, "session-egress.json", "Egress recording catalog", {
+		generatedAt: new Date().toISOString(),
+		sessionId: args.sessionId,
+		count: egressEntries.length,
+		recordings: egressEntries,
+	});
+
+	/* Transcript ------------------------------------------------------------ */
+	transcriptSection(doc, transcriptSegments);
+	attachJsonFile(
+		doc,
+		"session-transcript.json",
+		"Full session transcript segments",
+		{
+			generatedAt: new Date().toISOString(),
+			sessionId: args.sessionId,
+			count: transcriptSegments.length,
+			segments: transcriptSegments,
+		},
+	);
 
 	/* User responses + attachment ------------------------------------------ */
 	attachUserResponses(doc, userResponses);

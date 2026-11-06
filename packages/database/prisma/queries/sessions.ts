@@ -54,6 +54,156 @@ const sessionDetailInclude = {
 	callbackSchedules: { orderBy: { scheduledAt: "desc" as const }, take: 20 },
 } satisfies Prisma.AgentSessionInclude;
 
+/** Fields shown on agent session list / prev-next navigator (not detail tabs). */
+const sessionListSelect = {
+	id: true,
+	status: true,
+	channel: true,
+	livekitRoomName: true,
+	startedAt: true,
+	endedAt: true,
+	durationMs: true,
+	createdAt: true,
+	agentId: true,
+	errorMessage: true,
+	endUser: {
+		select: {
+			id: true,
+			name: true,
+			identity: true,
+			email: true,
+			phone: true,
+		},
+	},
+} satisfies Prisma.AgentSessionSelect;
+
+/**
+ * Dashboard session detail (overview / events / memories / files / post-processing).
+ * Omits unused heavy blobs: configSnapshot, sipAttrs, usages, toolCalls, full agent.
+ */
+const sessionUiSelect = {
+	id: true,
+	createdAt: true,
+	updatedAt: true,
+	organizationId: true,
+	agentId: true,
+	livekitRoomName: true,
+	livekitRoomSid: true,
+	channel: true,
+	direction: true,
+	status: true,
+	startedAt: true,
+	connectedAt: true,
+	endedAt: true,
+	durationMs: true,
+	endReason: true,
+	errorCode: true,
+	errorMessage: true,
+	recordingEnabled: true,
+	transcriptStatus: true,
+	endUserId: true,
+	metadata: true,
+	transcript: {
+		select: {
+			id: true,
+			status: true,
+			fullText: true,
+			language: true,
+			wordCount: true,
+			segments: {
+				orderBy: { sequence: "asc" as const },
+				select: {
+					id: true,
+					sequence: true,
+					role: true,
+					text: true,
+					speakerIdentity: true,
+					startMs: true,
+					endMs: true,
+				},
+			},
+		},
+	},
+	egressJobs: {
+		orderBy: { createdAt: "desc" as const },
+		select: {
+			id: true,
+			createdAt: true,
+			updatedAt: true,
+			organizationId: true,
+			agentSessionId: true,
+			agentId: true,
+			livekitEgressId: true,
+			type: true,
+			status: true,
+			roomName: true,
+			outputUrls: true,
+			destination: true,
+			fileUrl: true,
+			startedAt: true,
+			endedAt: true,
+			durationMs: true,
+			sizeBytes: true,
+			errorMessage: true,
+			metadata: true,
+		},
+	},
+	events: {
+		orderBy: { sequence: "asc" as const },
+		take: 200,
+		select: {
+			id: true,
+			sequence: true,
+			eventType: true,
+			actor: true,
+			occurredAt: true,
+			createdAt: true,
+			payload: true,
+		},
+	},
+	campaignSession: {
+		select: {
+			id: true,
+			status: true,
+			outcome: true,
+			summary: true,
+			recordingUrl: true,
+		},
+	},
+	endUser: {
+		select: {
+			id: true,
+			name: true,
+			identity: true,
+			email: true,
+			phone: true,
+			memory: true,
+		},
+	},
+	files: {
+		orderBy: { createdAt: "desc" as const },
+		select: {
+			id: true,
+			name: true,
+			url: true,
+			type: true,
+			size: true,
+			createdAt: true,
+		},
+	},
+	callbackSchedules: {
+		orderBy: { scheduledAt: "desc" as const },
+		take: 20,
+		select: {
+			id: true,
+			scheduledAt: true,
+			status: true,
+			phoneE164: true,
+			source: true,
+		},
+	},
+} satisfies Prisma.AgentSessionSelect;
+
 export async function createAgentSession(data: {
 	organizationId: string;
 	agentId: string;
@@ -143,6 +293,14 @@ export async function getAgentSessionById(id: string) {
 	});
 }
 
+/** Lean session payload for the SaaS session detail tabs. */
+export async function getAgentSessionUiById(id: string) {
+	return db.agentSession.findUnique({
+		where: { id },
+		select: sessionUiSelect,
+	});
+}
+
 export async function getAgentSessionByRoomName(livekitRoomName: string) {
 	return db.agentSession.findFirst({
 		where: { livekitRoomName },
@@ -191,12 +349,7 @@ export async function listAgentSessions(
 					}
 				: {}),
 		},
-		include: {
-			agent: true,
-			endUser: true,
-			transcript: true,
-			egressJobs: { take: 5, orderBy: { createdAt: "desc" } },
-		},
+		select: sessionListSelect,
 		orderBy: { createdAt: "desc" },
 		take: opts?.take ?? 50,
 		skip: opts?.skip ?? 0,

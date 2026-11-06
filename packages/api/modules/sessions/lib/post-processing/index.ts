@@ -14,7 +14,9 @@ import {
 } from "./prompts";
 import {
 	buildPostProcessingPdf,
+	type ReportEgressEntry,
 	type ReportImage,
+	type ReportTranscriptSegment,
 	type UserResponseEntry,
 } from "./report-pdf";
 import type {
@@ -355,6 +357,82 @@ async function loadUploadedUserResponses(
 	}
 }
 
+function buildTranscriptSegments(session: {
+	transcript?: {
+		segments?: Array<{
+			role?: string;
+			text?: string;
+			startMs?: number | null;
+			endMs?: number | null;
+			sequence?: number;
+		}>;
+	} | null;
+}): ReportTranscriptSegment[] {
+	const segments = [...(session.transcript?.segments ?? [])]
+		.map((segment) => ({
+			role: asString(segment.role, "unknown"),
+			text: asString(segment.text).trim(),
+			startMs:
+				typeof segment.startMs === "number" ? segment.startMs : null,
+			endMs: typeof segment.endMs === "number" ? segment.endMs : null,
+			sequence:
+				typeof segment.sequence === "number"
+					? segment.sequence
+					: undefined,
+		}))
+		.filter((segment) => Boolean(segment.text))
+		.sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
+	return segments;
+}
+
+function filenameFromPath(path: string | null | undefined) {
+	if (!path) {
+		return null;
+	}
+	const cleaned = path.split("?")[0]?.split("#")[0] ?? path;
+	const parts = cleaned.split(/[\\/]/);
+	return parts[parts.length - 1] || path;
+}
+
+function buildEgressEntries(
+	jobs: Array<{
+		id?: string;
+		type?: string | null;
+		status?: string | null;
+		fileUrl?: string | null;
+		outputUrls?: string[] | null;
+		durationMs?: number | null;
+		sizeBytes?: number | null;
+		destination?: unknown;
+		metadata?: unknown;
+	}>,
+): ReportEgressEntry[] {
+	return jobs.map((job) => {
+		const destination = asRecord(job.destination);
+		const metadata = asRecord(job.metadata);
+		const filepath =
+			asString(destination.filepath) ||
+			asString(job.fileUrl) ||
+			(Array.isArray(job.outputUrls) ? asString(job.outputUrls[0]) : "");
+		const role = asString(metadata.role) || null;
+		const httpUrl = [job.fileUrl, ...(job.outputUrls ?? [])].find(
+			(url) => typeof url === "string" && /^https?:\/\//i.test(url),
+		);
+		return {
+			id: job.id,
+			type: job.type ?? null,
+			status: job.status ?? null,
+			role,
+			filename: filenameFromPath(filepath),
+			durationMs:
+				typeof job.durationMs === "number" ? job.durationMs : null,
+			sizeBytes: typeof job.sizeBytes === "number" ? job.sizeBytes : null,
+			filepath: filepath || null,
+			url: typeof httpUrl === "string" ? httpUrl : null,
+		};
+	});
+}
+
 function buildUserResponses(session: {
 	metadata?: unknown;
 	configSnapshot?: unknown;
@@ -690,6 +768,10 @@ Use startMs/endMs relative to each attached file's own timeline when possible.`;
 			uploadedResponses.length > 0
 				? uploadedResponses
 				: buildUserResponses(reportSession);
+		const transcriptSegments = buildTranscriptSegments(reportSession);
+		const egressEntries = buildEgressEntries(
+			reportSession.egressJobs ?? session.egressJobs ?? [],
+		);
 		const pdf = await buildPostProcessingPdf({
 			sessionId: session.id,
 			agentName: session.agent?.name,
@@ -699,6 +781,8 @@ Use startMs/endMs relative to each attached file's own timeline when possible.`;
 			result,
 			images: reportImages,
 			userResponses,
+			transcriptSegments,
+			egressEntries,
 		});
 
 		const reportFile = await uploadEndUserBytes({

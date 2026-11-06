@@ -10,6 +10,7 @@ import {
 	getAgentByEmbedToken,
 	getAgentById,
 	getAgentSessionById,
+	getAgentSessionUiById,
 	getAgentTrialByToken,
 	linkCampaignSessionToAgentSession,
 	listAgentSessions,
@@ -264,7 +265,7 @@ export const get = protectedProcedure
 	})
 	.input(z.object({ id: z.string() }))
 	.handler(async ({ input, context }) => {
-		const existing = await getAgentSessionById(input.id);
+		const existing = await getAgentSessionUiById(input.id);
 		if (!existing) {
 			throw new ORPCError("NOT_FOUND");
 		}
@@ -277,7 +278,7 @@ export const get = protectedProcedure
 			// retry body analysis that previously ran without video.
 			void maybeRetryPostProcessingForVideo(input.id);
 		}
-		const session = (await getAgentSessionById(input.id)) ?? existing;
+		const session = (await getAgentSessionUiById(input.id)) ?? existing;
 
 		const egressJobs = await Promise.all(
 			session.egressJobs.map(async (job) => {

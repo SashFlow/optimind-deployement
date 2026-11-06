@@ -291,6 +291,46 @@ export const useCases: UseCase[] = [
 			},
 		],
 	},
+	// {
+	// 	id: "patient-follow-up",
+	// 	category: "09 — Patient Follow-Up",
+	// 	title: "Stay Connected After the Visit",
+	// 	snippet:
+	// 		"Automate routine patient follow-ups with voice conversations that check in, reinforce next steps, capture updates, and surface situations that need human attention and care.",
+	// 	image: "/images/use-case/patient_followup.webp",
+	// 	blogHref: "/blog/patient-follow-up",
+	// 	sections: [
+	// 		{
+	// 			paragraphs: [
+	// 				"Care doesn't stop when the appointment ends.",
+	// 				"Patients may need follow-up communication after a consultation, procedure, test, or treatment.",
+	// 				"But manually calling every patient is difficult to sustain.",
+	// 				"Optimind can create an automated follow-up layer that keeps patients connected between interactions with the healthcare team.",
+	// 			],
+	// 		},
+	// 		{
+	// 			heading: "A conversation that knows why it is calling",
+	// 			paragraphs: [
+	// 				"The agent can follow a workflow specific to the patient's journey.",
+	// 				"It can ask the appropriate questions, collect responses, reinforce approved information, and recognize when the configured workflow requires escalation.",
+	// 			],
+	// 		},
+	// 		{
+	// 			heading: "Human when it matters",
+	// 			paragraphs: [
+	// 				"Not every conversation should end with AI.",
+	// 				"If the interaction reaches a situation that requires clinical or human attention, Optimind can follow the configured escalation and handoff process.",
+	// 				"This creates a practical balance: AI handles the routine. People handle what needs people.",
+	// 			],
+	// 		},
+	// 		{
+	// 			heading: "Extend the team's reach",
+	// 			paragraphs: [
+	// 				"Instead of choosing between limited manual follow-up and no follow-up at all, healthcare organizations can create a scalable voice layer for routine patient engagement.",
+	// 			],
+	// 		},
+	// 	],
+	// },
 	{
 		id: "health-coach",
 		category: "12 — Health Coach",
@@ -444,46 +484,6 @@ export const useCases: UseCase[] = [
 	// 			paragraphs: [
 	// 				"The same communication standards can be maintained across thousands of conversations without requiring every interaction to be handled manually.",
 	// 				"Customers get an immediate conversational experience, while teams can focus on cases that genuinely require human judgment.",
-	// 			],
-	// 		},
-	// 	],
-	// },
-	// {
-	// 	id: "patient-follow-up",
-	// 	category: "09 — Patient Follow-Up",
-	// 	title: "Stay Connected After the Visit",
-	// 	snippet:
-	// 		"Automate routine patient follow-ups with voice conversations that check in, reinforce next steps, capture updates, and surface situations that need human attention and care.",
-	// 	image: "/images/use-case/patient_followup.webp",
-	// 	blogHref: "/blog/patient-follow-up",
-	// 	sections: [
-	// 		{
-	// 			paragraphs: [
-	// 				"Care doesn't stop when the appointment ends.",
-	// 				"Patients may need follow-up communication after a consultation, procedure, test, or treatment.",
-	// 				"But manually calling every patient is difficult to sustain.",
-	// 				"Optimind can create an automated follow-up layer that keeps patients connected between interactions with the healthcare team.",
-	// 			],
-	// 		},
-	// 		{
-	// 			heading: "A conversation that knows why it is calling",
-	// 			paragraphs: [
-	// 				"The agent can follow a workflow specific to the patient's journey.",
-	// 				"It can ask the appropriate questions, collect responses, reinforce approved information, and recognize when the configured workflow requires escalation.",
-	// 			],
-	// 		},
-	// 		{
-	// 			heading: "Human when it matters",
-	// 			paragraphs: [
-	// 				"Not every conversation should end with AI.",
-	// 				"If the interaction reaches a situation that requires clinical or human attention, Optimind can follow the configured escalation and handoff process.",
-	// 				"This creates a practical balance: AI handles the routine. People handle what needs people.",
-	// 			],
-	// 		},
-	// 		{
-	// 			heading: "Extend the team's reach",
-	// 			paragraphs: [
-	// 				"Instead of choosing between limited manual follow-up and no follow-up at all, healthcare organizations can create a scalable voice layer for routine patient engagement.",
 	// 			],
 	// 		},
 	// 	],
