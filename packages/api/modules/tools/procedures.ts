@@ -50,7 +50,10 @@ export const list = protectedProcedure
 				>,
 				createId: () => nanoid(),
 				persistConfig: async (config) => {
-					await updateAgentDraftConfig(input.agentId, config as object);
+					await updateAgentDraftConfig(
+						input.agentId,
+						config as object,
+					);
 				},
 			});
 			return { tools };

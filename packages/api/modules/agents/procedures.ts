@@ -127,8 +127,10 @@ export const duplicate = protectedProcedure
 		});
 		if (toolIdMap.size > 0) {
 			const draftConfig =
-				(agent.draftVersion?.config as Record<string, unknown> | null) ??
-				{};
+				(agent.draftVersion?.config as Record<
+					string,
+					unknown
+				> | null) ?? {};
 			await updateAgentDraftConfig(
 				agent.id,
 				remapToolIdsInConfig(draftConfig, toolIdMap) as object,

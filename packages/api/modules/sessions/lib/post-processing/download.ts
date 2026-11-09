@@ -92,10 +92,7 @@ function scoreVideoEgressJob(job: EgressJobLike): number {
 	if (job.status !== "COMPLETE" || isEgressAudioOnly(job)) {
 		return -1;
 	}
-	if (
-		typeof job.sizeBytes === "number" &&
-		job.sizeBytes > MAX_VIDEO_BYTES
-	) {
+	if (typeof job.sizeBytes === "number" && job.sizeBytes > MAX_VIDEO_BYTES) {
 		return -1;
 	}
 	const meta = asRecord(job.metadata);
@@ -120,10 +117,7 @@ async function downloadEgressJobBytes(
 	job: EgressJobLike,
 	maxBytes: number,
 ): Promise<MediaPart | null> {
-	if (
-		typeof job.sizeBytes === "number" &&
-		job.sizeBytes > maxBytes
-	) {
+	if (typeof job.sizeBytes === "number" && job.sizeBytes > maxBytes) {
 		return null;
 	}
 

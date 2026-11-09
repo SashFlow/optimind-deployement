@@ -82,6 +82,20 @@ const GEMINI_REASONING_MINIMAL_HIGH: CatalogReasoning = {
 	levels: ["minimal", "high"],
 };
 
+/** Sarvam Inference reasoning_effort (lowest first). glm* cannot disable thinking. */
+const SARVAM_REASONING_GLM: CatalogReasoning = {
+	levels: ["low", "high", "max"],
+};
+const SARVAM_REASONING_NONE: CatalogReasoning = {
+	levels: ["none", "low", "medium", "high", "max"],
+};
+const SARVAM_REASONING_OPTIONAL: CatalogReasoning = {
+	levels: ["low", "high", "max"],
+};
+const SARVAM_REASONING_DEEPSEEK: CatalogReasoning = {
+	levels: ["none", "low", "high", "max"],
+};
+
 function model(
 	id: string,
 	display_name: string,
@@ -250,6 +264,47 @@ export const CATALOG_MODELS: CatalogModel[] = [
 		"DeepSeek V4 Flash (Inworld)",
 		"inworld",
 		"llm",
+	),
+
+	// LLM — Sarvam Inference (OpenAI-compat /v2; conversations is /v1-only)
+	model("sarvam/glm5.3-flash", "GLM 5.3 Flash (Sarvam)", "sarvam", "llm", {
+		reasoning: SARVAM_REASONING_GLM,
+	}),
+	model("sarvam/glm5.3", "GLM 5.3 (Sarvam)", "sarvam", "llm", {
+		reasoning: SARVAM_REASONING_GLM,
+	}),
+	model("sarvam/sarvam-105b", "Sarvam 105B", "sarvam", "llm", {
+		reasoning: SARVAM_REASONING_NONE,
+	}),
+	model(
+		"sarvam/sarvam-105b-conversations",
+		"Sarvam 105B Conversations",
+		"sarvam",
+		"llm",
+		{
+			reasoning: SARVAM_REASONING_NONE,
+		},
+	),
+	model("sarvam/gemma4", "Gemma 4 (Sarvam)", "sarvam", "llm", {
+		reasoning: SARVAM_REASONING_OPTIONAL,
+	}),
+	model(
+		"sarvam/deepseekv4.1-flash-1017",
+		"DeepSeek V4.1 Flash (Sarvam)",
+		"sarvam",
+		"llm",
+		{
+			reasoning: SARVAM_REASONING_DEEPSEEK,
+		},
+	),
+	model(
+		"sarvam/deepseekv4.1-flash-1017-interactive",
+		"DeepSeek V4.1 Flash Interactive (Sarvam)",
+		"sarvam",
+		"llm",
+		{
+			reasoning: SARVAM_REASONING_DEEPSEEK,
+		},
 	),
 
 	// Realtime — OpenAI

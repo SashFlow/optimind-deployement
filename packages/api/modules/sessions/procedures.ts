@@ -1273,14 +1273,7 @@ const registeredEgressTrackSchema = z.object({
 	filepath: z.string().min(1),
 	livekitEgressId: z.string().min(1),
 	status: z
-		.enum([
-			"STARTING",
-			"ACTIVE",
-			"ENDING",
-			"COMPLETE",
-			"FAILED",
-			"ABORTED",
-		])
+		.enum(["STARTING", "ACTIVE", "ENDING", "COMPLETE", "FAILED", "ABORTED"])
 		.optional(),
 });
 

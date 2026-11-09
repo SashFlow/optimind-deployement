@@ -176,8 +176,7 @@ export async function backfillTrackEgressJobsFromStorage(
 		return 0;
 	}
 
-	const audioOnly =
-		session.channel === "SIP" || session.channel === "PHONE";
+	const audioOnly = session.channel === "SIP" || session.channel === "PHONE";
 	let created = 0;
 
 	for (const [role, object] of found) {

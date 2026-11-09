@@ -258,9 +258,7 @@ export async function repairSharedOrgToolsForAgent(params: {
 	agentId: string;
 	draftConfig: Record<string, unknown>;
 	createId: () => string;
-	persistConfig: (
-		config: Record<string, unknown>,
-	) => Promise<void>;
+	persistConfig: (config: Record<string, unknown>) => Promise<void>;
 }): Promise<ToolDefinition[]> {
 	const { organizationId, agentId, draftConfig, createId, persistConfig } =
 		params;

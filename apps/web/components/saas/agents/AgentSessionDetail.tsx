@@ -1351,8 +1351,8 @@ export function SessionPostProcessingPanel({
 							Media integrity
 						</CardTitle>
 						<p className="mt-1 text-xs text-muted-foreground">
-							Gemini review of session audio/video with
-							timestamps when available.
+							Gemini review of session audio/video with timestamps
+							when available.
 						</p>
 					</CardHeader>
 					<CardContent>
@@ -1396,8 +1396,8 @@ export function SessionPostProcessingPanel({
 										? [
 												`Yes${
 													result.mediaIntegrity
-														.multipleVoices
-														.count != null
+														.multipleVoices.count !=
+													null
 														? ` (${result.mediaIntegrity.multipleVoices.count})`
 														: ""
 												}`,
@@ -1409,8 +1409,7 @@ export function SessionPostProcessingPanel({
 								],
 								[
 									"Multiple users",
-									result.mediaIntegrity.multipleUsers
-										.detected
+									result.mediaIntegrity.multipleUsers.detected
 										? [
 												`Yes${
 													result.mediaIntegrity

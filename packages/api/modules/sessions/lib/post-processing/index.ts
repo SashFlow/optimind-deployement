@@ -158,9 +158,7 @@ function parseBody(raw: unknown): BodyAssessmentResult {
 			livenessStatus: asString(underwriting.livenessStatus),
 			riskIndicators: asStringArray(underwriting.riskIndicators),
 			exceptionFlags: missingVitals
-				? Array.from(
-						new Set([...exceptionFlags, "vitals_incomplete"]),
-					)
+				? Array.from(new Set([...exceptionFlags, "vitals_incomplete"]))
 				: exceptionFlags,
 			underwriterReviewRecommended:
 				asBoolean(underwriting.underwriterReviewRecommended) ||
@@ -543,7 +541,11 @@ export async function runPostProcessing(
 	) {
 		return;
 	}
-	if (!opts?.force && opts?.retryForVideo && existing?.status === "completed") {
+	if (
+		!opts?.force &&
+		opts?.retryForVideo &&
+		existing?.status === "completed"
+	) {
 		const media = existing.mediaIntegrity?.mediaAvailable;
 		const stillNeedsRetry =
 			Boolean(existing.videoUnavailable) ||
@@ -579,8 +581,7 @@ export async function runPostProcessing(
 			status: "skipped",
 			completedAt: new Date().toISOString(),
 			model: config.model,
-			error:
-				"No face, ID, body captures, or completed egress recordings found for this session.",
+			error: "No face, ID, body captures, or completed egress recordings found for this session.",
 		});
 		return;
 	}
@@ -726,8 +727,7 @@ Use startMs/endMs relative to each attached file's own timeline when possible.`;
 							"media_integrity_review_recommended",
 						]),
 					);
-					result.body.underwriting.underwriterReviewRecommended =
-						true;
+					result.body.underwriting.underwriterReviewRecommended = true;
 				}
 			}
 		} else if (egressReady || classified.body) {
@@ -736,8 +736,7 @@ Use startMs/endMs relative to each attached file's own timeline when possible.`;
 				videoIssues: [
 					{
 						label: "recording_unavailable",
-						detail:
-							"Session recordings were expected but could not be downloaded for integrity review.",
+						detail: "Session recordings were expected but could not be downloaded for integrity review.",
 						startMs: null,
 						endMs: null,
 						severity: "warn",

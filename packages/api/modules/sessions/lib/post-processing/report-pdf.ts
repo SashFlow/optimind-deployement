@@ -156,7 +156,10 @@ function formatDateTime(value?: Date | string | null) {
 	}
 }
 
-function formatDuration(start?: Date | string | null, end?: Date | string | null) {
+function formatDuration(
+	start?: Date | string | null,
+	end?: Date | string | null,
+) {
 	const a = toDate(start);
 	const b = toDate(end);
 	if (!a || !b || b < a) {
@@ -332,11 +335,16 @@ function drawRows(
 					8,
 				).fill(bg);
 				doc.font("Helvetica-Bold").fontSize(8).fillColor(fg);
-				doc.text(chip.item, x + labelW + chip.x + 7, cy + 9.5 + chip.y, {
-					width: chip.w - 14,
-					lineBreak: false,
-					ellipsis: true,
-				});
+				doc.text(
+					chip.item,
+					x + labelW + chip.x + 7,
+					cy + 9.5 + chip.y,
+					{
+						width: chip.w - 14,
+						lineBreak: false,
+						ellipsis: true,
+					},
+				);
 			}
 		} else if (row.tone) {
 			pill(doc, asString(row.value), row.tone, x + labelW, cy + 5);
@@ -401,12 +409,12 @@ function drawHeader(doc: Doc, ctx: ChromeContext) {
 	doc.font("Helvetica-Bold")
 		.fontSize(8)
 		.fillColor(BRAND.muted)
-		.text(
-			"VERIFICATION REPORT",
-			w - PAGE_MARGIN - 200,
-			25,
-			{ width: 200, align: "right", lineBreak: false, characterSpacing: 1 },
-		);
+		.text("VERIFICATION REPORT", w - PAGE_MARGIN - 200, 25, {
+			width: 200,
+			align: "right",
+			lineBreak: false,
+			characterSpacing: 1,
+		});
 	doc.restore();
 	doc.x = x;
 	doc.y = y;
@@ -502,7 +510,9 @@ function section(doc: Doc, opts: SectionOptions) {
 	const hasRows = opts.rows.length > 0;
 	const imgColW = hasRows ? IMAGE_COL_W : innerW;
 	const imgMaxH = hasRows ? 120 : 240;
-	const plans = opts.images ? planImages(doc, opts.images, imgColW, imgMaxH) : [];
+	const plans = opts.images
+		? planImages(doc, opts.images, imgColW, imgMaxH)
+		: [];
 	const hasImages = plans.length > 0 && hasRows;
 
 	const textW = hasImages ? innerW - IMAGE_COL_W - COL_GAP : innerW;
@@ -529,13 +539,16 @@ function section(doc: Doc, opts: SectionOptions) {
 	let summaryH = 0;
 	if (opts.summary) {
 		doc.font("Helvetica").fontSize(9.5);
-		summaryH =
-			doc.heightOfString(opts.summary, { width: textW - 24 }) + 18;
+		summaryH = doc.heightOfString(opts.summary, { width: textW - 24 }) + 18;
 	}
 	const textH = rowsH + (summaryH ? summaryH + 10 : 0);
 
-	const imagesH = plans.reduce((sum, p) => sum + p.height + p.captionH + 8, 0);
-	const bodyH = Math.max(textH, hasRows ? imagesH : 0) + (hasRows ? 0 : imagesH);
+	const imagesH = plans.reduce(
+		(sum, p) => sum + p.height + p.captionH + 8,
+		0,
+	);
+	const bodyH =
+		Math.max(textH, hasRows ? imagesH : 0) + (hasRows ? 0 : imagesH);
 	const total = headH + bodyH + CARD_PAD;
 
 	ensureSpace(doc, total + 14);
@@ -547,7 +560,9 @@ function section(doc: Doc, opts: SectionOptions) {
 		.fillAndStroke("#FFFFFF", BRAND.border);
 
 	// Heading
-	doc.roundedRect(left + CARD_PAD, top + 13, 3.5, 14, 1.75).fill(BRAND.primary);
+	doc.roundedRect(left + CARD_PAD, top + 13, 3.5, 14, 1.75).fill(
+		BRAND.primary,
+	);
 	doc.font("Helvetica-Bold")
 		.fontSize(12)
 		.fillColor(BRAND.ink)
@@ -555,7 +570,13 @@ function section(doc: Doc, opts: SectionOptions) {
 	if (opts.tag) {
 		doc.font("Helvetica-Bold").fontSize(8);
 		const tw = doc.widthOfString(opts.tag.text) + 16;
-		pill(doc, opts.tag.text, opts.tag.tone, left + W - CARD_PAD - tw, top + 11);
+		pill(
+			doc,
+			opts.tag.text,
+			opts.tag.tone,
+			left + W - CARD_PAD - tw,
+			top + 11,
+		);
 	}
 	doc.moveTo(left + CARD_PAD, top + headH - 2)
 		.lineTo(left + W - CARD_PAD, top + headH - 2)
@@ -596,7 +617,10 @@ function section(doc: Doc, opts: SectionOptions) {
 		const ix = imgX + (imgAreaW - p.width) / 2;
 		const iyy = iy + p.captionH;
 		try {
-			doc.image(p.image.bytes, ix, iyy, { width: p.width, height: p.height });
+			doc.image(p.image.bytes, ix, iyy, {
+				width: p.width,
+				height: p.height,
+			});
 			doc.roundedRect(ix, iyy, p.width, p.height, 4)
 				.lineWidth(0.75)
 				.strokeColor(BRAND.border)
@@ -692,8 +716,14 @@ function userResponsesSection(doc: Doc, entries: UserResponseEntry[]) {
 	top = doc.y;
 	doc.roundedRect(left, top, W, 22, 5).fill(BRAND.ink);
 	doc.font("Helvetica-Bold").fontSize(8).fillColor("#FFFFFF");
-	doc.text("QUESTION", left + pad, top + 7, { lineBreak: false, characterSpacing: 0.8 });
-	doc.text("ANSWER", left + qW + pad, top + 7, { lineBreak: false, characterSpacing: 0.8 });
+	doc.text("QUESTION", left + pad, top + 7, {
+		lineBreak: false,
+		characterSpacing: 0.8,
+	});
+	doc.text("ANSWER", left + qW + pad, top + 7, {
+		lineBreak: false,
+		characterSpacing: 0.8,
+	});
 	let y = top + 22;
 
 	entries.forEach((entry, i) => {
@@ -707,7 +737,9 @@ function userResponsesSection(doc: Doc, entries: UserResponseEntry[]) {
 			subH = doc.heightOfString(entry.question, { width: qW - pad * 2 });
 		}
 		doc.font("Helvetica").fontSize(10);
-		const ah = doc.heightOfString(asString(entry.answer), { width: aW - pad * 2 });
+		const ah = doc.heightOfString(asString(entry.answer), {
+			width: aW - pad * 2,
+		});
 		const rowH = Math.max(qh + subH, ah) + 16;
 
 		doc.y = y;
@@ -716,7 +748,9 @@ function userResponsesSection(doc: Doc, entries: UserResponseEntry[]) {
 			y = doc.y;
 		}
 
-		doc.rect(left, y, W, rowH).fill(i % 2 === 0 ? "#FFFFFF" : BRAND.surface);
+		doc.rect(left, y, W, rowH).fill(
+			i % 2 === 0 ? "#FFFFFF" : BRAND.surface,
+		);
 		doc.moveTo(left, y + rowH)
 			.lineTo(left + W, y + rowH)
 			.lineWidth(0.5)
@@ -729,7 +763,9 @@ function userResponsesSection(doc: Doc, entries: UserResponseEntry[]) {
 			doc.font("Helvetica")
 				.fontSize(8.5)
 				.fillColor(BRAND.muted)
-				.text(entry.question, left + pad, y + 8 + qh, { width: qW - pad * 2 });
+				.text(entry.question, left + pad, y + 8 + qh, {
+					width: qW - pad * 2,
+				});
 		}
 		doc.font("Helvetica").fontSize(10).fillColor(BRAND.text);
 		doc.text(asString(entry.answer), left + qW + pad, y + 8, {
@@ -852,9 +888,14 @@ function transcriptSection(doc: Doc, segments: ReportTranscriptSegment[]) {
 		doc.font("Helvetica")
 			.fontSize(10)
 			.fillColor(BRAND.muted)
-			.text("No transcript was available for this session.", left, doc.y, {
-				width: W,
-			});
+			.text(
+				"No transcript was available for this session.",
+				left,
+				doc.y,
+				{
+					width: W,
+				},
+			);
 		doc.moveDown(1);
 		return;
 	}
@@ -925,7 +966,10 @@ function egressSection(doc: Doc, entries: ReportEgressEntry[]) {
 				{ label: "Type", value: typeLabel },
 				{ label: "Role", value: role ?? "—" },
 				{ label: "File", value: entry.filename ?? "—" },
-				{ label: "Duration", value: formatDurationMs(entry.durationMs) },
+				{
+					label: "Duration",
+					value: formatDurationMs(entry.durationMs),
+				},
 				{ label: "Size", value: formatBytes(entry.sizeBytes) },
 				{ label: "Path", value: entry.filepath ?? "—" },
 				{ label: "URL", value: entry.url ?? "—" },
@@ -975,7 +1019,10 @@ export async function buildPostProcessingPdf(args: {
 		doc.on("error", reject);
 	});
 
-	const chrome: ChromeContext = { logo: args.logo, sessionId: args.sessionId };
+	const chrome: ChromeContext = {
+		logo: args.logo,
+		sessionId: args.sessionId,
+	};
 	doc.on("pageAdded", () => drawHeader(doc, chrome));
 	drawHeader(doc, chrome);
 
@@ -1058,7 +1105,9 @@ export async function buildPostProcessingPdf(args: {
 			value: body.underwriting.underwriterReviewRecommended
 				? "Recommended"
 				: "Not required",
-			tone: body.underwriting.underwriterReviewRecommended ? "warn" : "good",
+			tone: body.underwriting.underwriterReviewRecommended
+				? "warn"
+				: "good",
 		});
 	}
 	summaryTiles(doc, tiles);
@@ -1073,7 +1122,10 @@ export async function buildPostProcessingPdf(args: {
 			{ label: "End user", value: args.endUserName ?? "—" },
 			{ label: "Started", value: formatDateTime(args.startedAt) },
 			{ label: "Ended", value: formatDateTime(args.endedAt) },
-			{ label: "Duration", value: formatDuration(args.startedAt, args.endedAt) },
+			{
+				label: "Duration",
+				value: formatDuration(args.startedAt, args.endedAt),
+			},
 		],
 	});
 
@@ -1132,7 +1184,10 @@ export async function buildPostProcessingPdf(args: {
 				{ label: "BMI", value: vitals.bmi },
 				{ label: "Heart rate", value: vitals.heartRateBpm },
 				{ label: "Resp. rate", value: vitals.respiratoryRate },
-				{ label: "Video used", value: body.videoUnavailable ? "No" : "Yes" },
+				{
+					label: "Video used",
+					value: body.videoUnavailable ? "No" : "Yes",
+				},
 			],
 			summary: vitals.fitnessAssessment
 				? `Fitness assessment: ${vitals.fitnessAssessment}`
@@ -1142,12 +1197,18 @@ export async function buildPostProcessingPdf(args: {
 		section(doc, {
 			title: "Body — physical condition",
 			rows: [
-				{ label: "Impairments", value: joined(physicalCondition.impairments) },
+				{
+					label: "Impairments",
+					value: joined(physicalCondition.impairments),
+				},
 				{
 					label: "Mobility limits",
 					value: joined(physicalCondition.mobilityLimitations),
 				},
-				{ label: "Posture notes", value: physicalCondition.postureNotes },
+				{
+					label: "Posture notes",
+					value: physicalCondition.postureNotes,
+				},
 				{
 					label: "Assistive devices",
 					value: joined(physicalCondition.assistiveDevices),
@@ -1159,11 +1220,7 @@ export async function buildPostProcessingPdf(args: {
 			],
 		});
 
-		const flagRow = (
-			label: string,
-			items: string[],
-			tone: Tone,
-		): Row =>
+		const flagRow = (label: string, items: string[], tone: Tone): Row =>
 			items.length > 0
 				? { label, chips: items, chipTone: tone }
 				: { label, value: "—" };
@@ -1188,7 +1245,9 @@ export async function buildPostProcessingPdf(args: {
 					value: underwriting.underwriterReviewRecommended
 						? "Recommended"
 						: "Not required",
-					tone: underwriting.underwriterReviewRecommended ? "warn" : "good",
+					tone: underwriting.underwriterReviewRecommended
+						? "warn"
+						: "good",
 				},
 			],
 			summary: underwriting.summary,
