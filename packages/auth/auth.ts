@@ -13,6 +13,7 @@ import { cancelSubscription } from "@repo/payments";
 import { getBaseUrl } from "@repo/utils";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { nextCookies } from "better-auth/next-js";
 import {
 	admin,
 	captcha,
@@ -274,6 +275,8 @@ export const auth = betterAuth({
 					}),
 				]
 			: []),
+		// Must be last so Set-Cookie from auth.api calls reaches Next.js cookies().
+		nextCookies(),
 	],
 	onAPIError: {
 		onError(error, ctx) {

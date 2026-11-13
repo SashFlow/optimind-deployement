@@ -4,6 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 
 export const sessionQueryKey = ["user", "session"] as const;
 
+// Refresh before updateAge (half of sessionCookieMaxAge) so the browser
+// cookie maxAge is extended while the tab stays open.
+const sessionRefreshIntervalMs = Math.floor(
+	(config.auth.sessionCookieMaxAge / 3) * 1000,
+);
+
 export const useSessionQuery = () => {
 	return useQuery({
 		queryKey: sessionQueryKey,
@@ -20,8 +26,10 @@ export const useSessionQuery = () => {
 
 			return data;
 		},
-		staleTime: Number.POSITIVE_INFINITY,
-		refetchOnWindowFocus: false,
+		staleTime: sessionRefreshIntervalMs,
+		refetchInterval: (query) =>
+			query.state.data ? sessionRefreshIntervalMs : false,
+		refetchOnWindowFocus: true,
 		retry: false,
 		enabled: config.ui.saas.enabled,
 	});

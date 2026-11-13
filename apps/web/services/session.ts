@@ -8,6 +8,11 @@ export const getSession = cache(async () => {
 		headers: await headers(),
 		query: {
 			disableCookieCache: true,
+			// RSCs cannot set cookies. Refreshing here would extend the DB
+			// session without updating the browser cookie, so active users
+			// still get logged out when the original cookie maxAge elapses.
+			// Client-side getSession (via /api/auth) owns sliding renewal.
+			disableRefresh: true,
 		},
 	});
 

@@ -20,14 +20,20 @@ export const SessionContext = React.createContext<
 export function SessionProvider({ children }: { children: ReactNode }) {
 	const queryClient = useQueryClient();
 
-	const { data: session } = useSessionQuery();
+	const { data: session, refetch } = useSessionQuery();
 	const [loaded, setLoaded] = useState(!!session);
 
 	useEffect(() => {
 		if (session && !loaded) {
 			setLoaded(true);
 		}
-	}, [session]);
+	}, [session, loaded]);
+
+	// Server components read the session with disableRefresh. Kick a client
+	// getSession on mount so sliding cookie renewal can run when due.
+	useEffect(() => {
+		void refetch();
+	}, [refetch]);
 
 	return (
 		<SessionContext.Provider
