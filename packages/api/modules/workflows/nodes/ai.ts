@@ -37,6 +37,29 @@ function configRecordingEnabled(config: unknown): boolean {
 	return Boolean(c.recording_enabled ?? c.recordingEnabled);
 }
 
+function configEgressMode(config: unknown): "track" | "room_composite" {
+	if (!config || typeof config !== "object") {
+		return "track";
+	}
+	const c = config as {
+		egress_mode?: string;
+		egressMode?: string;
+	};
+	const raw = (c.egress_mode ?? c.egressMode ?? "track")
+		.toString()
+		.trim()
+		.toLowerCase()
+		.replace(/-/g, "_");
+	if (
+		raw === "room_composite" ||
+		raw === "roomcomposite" ||
+		raw === "composite"
+	) {
+		return "room_composite";
+	}
+	return "track";
+}
+
 export async function handleKnowledgeRetrieve(
 	args: NodeHandlerArgs,
 ): Promise<NodeHandlerResult> {
@@ -168,6 +191,7 @@ export async function handleAgent(
 		cfg.recordingEnabled !== undefined
 			? Boolean(cfg.recordingEnabled)
 			: configRecordingEnabled(configSnapshot);
+	const egressMode = configEgressMode(configSnapshot);
 
 	const endUser = await resolveSessionEndUser(
 		{ organizationId: args.run.organizationId, agentId: agent.id },
@@ -221,6 +245,7 @@ export async function handleAgent(
 		contact_metadata: contactMetadata,
 		end_user: toDispatchEndUser(endUser),
 		recording_enabled: recordingEnabled,
+		egress_mode: egressMode,
 	});
 
 	await createOutboundRoomWithDispatch({

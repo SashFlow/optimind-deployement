@@ -652,12 +652,46 @@ export function CallSessionSection({
 				<div className="rounded-lg border bg-background/60 px-3">
 					<ToggleField
 						label="Enable recording"
-						description="Saves a composite recording when the session runs. Requires S3 egress to be configured."
+						description="Starts LiveKit egress when the session runs. Requires recordings storage to be configured."
 						checked={config.recording_enabled}
 						onCheckedChange={(recording_enabled) =>
 							onConfigChange({ recording_enabled })
 						}
-					/>
+					>
+						{config.recording_enabled ? (
+							<div className="space-y-1.5">
+								<Label className="text-xs">
+									Recording mode
+								</Label>
+								<Select
+									value={config.egress_mode}
+									onValueChange={(egress_mode) =>
+										onConfigChange({
+											egress_mode:
+												egress_mode as AgentConfigDocument["egress_mode"],
+										})
+									}
+								>
+									<SelectTrigger className="w-full bg-background">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="track">
+											Track (separate user/agent files)
+										</SelectItem>
+										<SelectItem value="room_composite">
+											Room composite (single mixed file)
+										</SelectItem>
+									</SelectContent>
+								</Select>
+								<p className="text-xs text-muted-foreground">
+									Track keeps per-role files for later merge.
+									Room composite records one LiveKit layout
+									mix.
+								</p>
+							</div>
+						) : null}
+					</ToggleField>
 				</div>
 			</div>
 

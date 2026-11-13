@@ -148,6 +148,14 @@ export type ProviderModel = {
 	supports_text_output?: boolean;
 	/** Present when the model supports configurable reasoning / thinking effort. */
 	reasoning?: ProviderModelReasoning | null;
+	/** `livekit_inference` uses LiveKit Cloud (no provider API key required). */
+	delivery?: "byok" | "livekit_inference";
+	/** Hosts that serve this model on LiveKit Inference (e.g. livekit, azure). */
+	inference_providers?: string[];
+	/** Groups BYOK + LiveKit Inference twins for a delivery picker. */
+	variant_group?: string;
+	/** Same model id supports both paths (no separate twin id). */
+	available_deliveries?: Array<"byok" | "livekit_inference">;
 };
 
 export type ProviderVoice = {

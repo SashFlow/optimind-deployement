@@ -1,4 +1,10 @@
 import type { AgentConfigDocument } from "@/lib/agent-config";
+import {
+	findDeliveryVariant,
+	isLivekitInferenceModel,
+	type ModelDelivery,
+	resolveModelDelivery,
+} from "@/lib/models";
 import type { ProviderModel } from "@/services/api/types";
 
 export function isRealtimePipeline(config: AgentConfigDocument): boolean {
@@ -98,12 +104,68 @@ function llmParamsWithReasoning(
 	currentParams: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
 	const reasoning = resolveReasoningLevel(model, currentParams?.reasoning);
+	const next = modelParamsFromCatalog(model, currentParams);
 	if (reasoning === null) {
-		const next = { ...(currentParams ?? {}) };
 		delete next.reasoning;
 		return next;
 	}
-	return { ...(currentParams ?? {}), reasoning };
+	return { ...next, reasoning };
+}
+
+/** Stamp routing hints from the catalog onto model ref params. */
+function modelParamsFromCatalog(
+	model: ProviderModel | undefined,
+	currentParams: Record<string, unknown> | undefined,
+	deliveryOverride?: ModelDelivery,
+): Record<string, unknown> {
+	const next: Record<string, unknown> = { ...(currentParams ?? {}) };
+	if (model?.provider_id) {
+		next.provider_key = model.provider_id;
+	}
+	const delivery =
+		deliveryOverride ??
+		resolveModelDelivery(model, currentParams?.delivery_mode);
+	if (delivery === "livekit_inference" || isLivekitInferenceModel(model)) {
+		next.delivery_mode = "livekit_inference";
+	} else if (
+		model?.delivery === "byok" ||
+		(model?.available_deliveries?.length ?? 0) > 1 ||
+		Boolean(model?.variant_group)
+	) {
+		// Explicit BYOK so the worker does not silently fall back to Inference.
+		next.delivery_mode = "byok";
+	} else {
+		delete next.delivery_mode;
+	}
+	return next;
+}
+
+function selectModelWithDelivery(
+	models: ProviderModel[],
+	providerModelId: string,
+	delivery: ModelDelivery | undefined,
+	currentParams: Record<string, unknown> | undefined,
+): { modelId: string; params: Record<string, unknown> } {
+	const model = models.find((item) => item.id === providerModelId);
+	// Prefer an explicit toggle, then the catalog row's own delivery. Do not
+	// inherit leftover delivery_mode from a previously selected twin.
+	const resolvedDelivery: ModelDelivery =
+		delivery ??
+		(model?.delivery === "livekit_inference"
+			? "livekit_inference"
+			: model?.delivery === "byok"
+				? "byok"
+				: resolveModelDelivery(model, currentParams?.delivery_mode));
+	const twin = findDeliveryVariant(models, model, resolvedDelivery);
+	const resolvedModel = twin ?? model;
+	return {
+		modelId: resolvedModel?.id ?? providerModelId,
+		params: modelParamsFromCatalog(
+			resolvedModel,
+			currentParams,
+			resolvedDelivery,
+		),
+	};
 }
 
 const DEFAULT_INWORLD_TTS_MODEL = "inworld-tts-2";
@@ -120,12 +182,23 @@ export function selectLlmModel(
 	config: AgentConfigDocument,
 	providerModelId: string,
 	models: ProviderModel[],
+	delivery?: ModelDelivery,
 ): Partial<AgentConfigDocument> {
-	const model = models.find((item) => item.id === providerModelId);
+	const { modelId, params } = selectModelWithDelivery(
+		models,
+		providerModelId,
+		delivery,
+		config.llm?.params,
+	);
+	const model = models.find((item) => item.id === modelId);
 	const next: Partial<AgentConfigDocument> = {
 		llm: {
-			provider_model_id: providerModelId,
-			params: llmParamsWithReasoning(model, config.llm?.params),
+			provider_model_id: modelId,
+			params: llmParamsWithReasoning(
+				model,
+				// Reasoning helper re-stamps catalog params; preserve delivery.
+				params,
+			),
 		},
 	};
 
@@ -139,7 +212,11 @@ export function selectLlmModel(
 			...config.tts,
 			provider_model_id: DEFAULT_INWORLD_TTS_MODEL,
 			voice_id: DEFAULT_INWORLD_TTS_VOICE,
-			params: config.tts?.params ?? {},
+			params: modelParamsFromCatalog(
+				models.find((item) => item.id === DEFAULT_INWORLD_TTS_MODEL),
+				config.tts?.params,
+				"byok",
+			),
 		};
 	}
 
@@ -169,12 +246,19 @@ export function selectLlmReasoning(
 export function selectSttModel(
 	_config: AgentConfigDocument,
 	providerModelId: string,
-	_models: ProviderModel[],
+	models: ProviderModel[],
+	delivery?: ModelDelivery,
 ): Partial<AgentConfigDocument> {
+	const { modelId, params } = selectModelWithDelivery(
+		models,
+		providerModelId,
+		delivery,
+		{},
+	);
 	return {
 		stt: {
-			provider_model_id: providerModelId,
-			params: {},
+			provider_model_id: modelId,
+			params,
 		},
 	};
 }
@@ -182,14 +266,30 @@ export function selectSttModel(
 export function selectTtsModel(
 	config: AgentConfigDocument,
 	providerModelId: string,
-	_models: ProviderModel[],
+	models: ProviderModel[],
+	delivery?: ModelDelivery,
 ): Partial<AgentConfigDocument> {
+	const { modelId, params } = selectModelWithDelivery(
+		models,
+		providerModelId,
+		delivery,
+		config.tts?.params,
+	);
+	const previous = models.find(
+		(item) => item.id === config.tts?.provider_model_id,
+	);
+	const nextModel = models.find((item) => item.id === modelId);
+	const sameVariantGroup =
+		Boolean(previous?.variant_group) &&
+		previous?.variant_group === nextModel?.variant_group;
+	const keepVoice =
+		modelId === config.tts?.provider_model_id || sameVariantGroup;
 	return {
 		tts: {
 			...config.tts,
-			provider_model_id: providerModelId,
-			voice_id: null,
-			params: config.tts?.params ?? {},
+			provider_model_id: modelId,
+			voice_id: keepVoice ? (config.tts?.voice_id ?? null) : null,
+			params,
 		},
 	};
 }
@@ -223,7 +323,7 @@ export function selectRealtimeModel(
 			output_modality: supportsText
 				? (config.realtime?.output_modality ?? "audio")
 				: "audio",
-			params: config.realtime?.params ?? {},
+			params: modelParamsFromCatalog(model, config.realtime?.params),
 		},
 	};
 }

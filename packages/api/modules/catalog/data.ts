@@ -17,6 +17,26 @@ export type CatalogModel = {
 	supports_text_output?: boolean;
 	/** Present when the model supports configurable reasoning / thinking effort. */
 	reasoning?: CatalogReasoning | null;
+	/**
+	 * How the worker should reach the model.
+	 * `livekit_inference` uses LiveKit Cloud (no provider API key required).
+	 */
+	delivery?: "byok" | "livekit_inference";
+	/**
+	 * Hosts that serve this model on LiveKit Inference (e.g. livekit, azure, baseten).
+	 * Only set when `delivery` is `livekit_inference`.
+	 */
+	inference_providers?: string[];
+	/**
+	 * Groups BYOK + LiveKit Inference twins so the UI shows one model with a
+	 * delivery picker (e.g. Inworld TTS 2).
+	 */
+	variant_group?: string;
+	/**
+	 * When the same model id supports both paths (no separate twin id), list
+	 * both options so the UI can offer a delivery picker.
+	 */
+	available_deliveries?: Array<"byok" | "livekit_inference">;
 };
 
 export type CatalogVoice = {
@@ -45,6 +65,20 @@ export const CATALOG_PROVIDERS: CatalogProvider[] = [
 	{ id: "anthropic", display_name: "Anthropic" },
 	{ id: "sarvam", display_name: "Sarvam" },
 	{ id: "inworld", display_name: "Inworld" },
+	{ id: "livekit", display_name: "LiveKit" },
+	{ id: "deepgram", display_name: "Deepgram" },
+	{ id: "cartesia", display_name: "Cartesia" },
+	{ id: "assemblyai", display_name: "AssemblyAI" },
+	{ id: "fishaudio", display_name: "Fish Audio" },
+	{ id: "speechmatics", display_name: "Speechmatics" },
+	{ id: "rime", display_name: "Rime" },
+	{ id: "gradium", display_name: "Gradium" },
+	{ id: "xai", display_name: "xAI" },
+	{ id: "meta", display_name: "Meta" },
+	{ id: "microsoft", display_name: "Microsoft AI" },
+	{ id: "deepseek-ai", display_name: "DeepSeek" },
+	{ id: "moonshotai", display_name: "Kimi" },
+	{ id: "zai", display_name: "Z.ai" },
 ];
 
 /** OpenAI GPT-5 (pre-5.1): no `none`, lowest is `minimal`. */
@@ -111,6 +145,22 @@ function model(
 		kind,
 		...extra,
 	};
+}
+
+/** LiveKit Inference catalog entry (gateway; no provider API key required). */
+function inferenceModel(
+	id: string,
+	display_name: string,
+	provider_id: string,
+	kind: CatalogModel["kind"],
+	inference_providers: string[],
+	extra?: Partial<CatalogModel>,
+): CatalogModel {
+	return model(id, display_name, provider_id, kind, {
+		delivery: "livekit_inference",
+		inference_providers,
+		...extra,
+	});
 }
 
 export const CATALOG_MODELS: CatalogModel[] = [
@@ -185,6 +235,8 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	}),
 	model("gemma-4-31b-it", "Gemma 4 31B IT", "gemini", "llm", {
 		reasoning: GEMINI_REASONING_MINIMAL_HIGH,
+		delivery: "byok",
+		variant_group: "gemma-4-31b-it",
 	}),
 
 	// LLM — Anthropic (Claude)
@@ -398,6 +450,10 @@ export const CATALOG_MODELS: CatalogModel[] = [
 		"Gemini 3.5 Transcribe Live",
 		"gemini",
 		"stt",
+		{
+			delivery: "byok",
+			variant_group: "gemini-3.5-transcribe-live",
+		},
 	),
 	model("gemini-3.5-flash", "Gemini 3.5 Flash STT", "gemini", "stt"),
 	model("gemini-3-flash-preview", "Gemini 3 Flash STT", "gemini", "stt"),
@@ -409,8 +465,13 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("sarvam:saaras:v3", "Saaras v3", "sarvam", "stt"),
 	model("sarvam:saaras:v3-realtime", "Saaras Realtime", "sarvam", "stt"),
 
-	// STT — Inworld
-	model("inworld/inworld-stt-1", "Inworld STT 1", "inworld", "stt"),
+	// STT — Inworld (same id for BYOK + LiveKit Inference)
+	model("inworld/inworld-stt-1", "Inworld STT 1", "inworld", "stt", {
+		delivery: "byok",
+		variant_group: "inworld-stt-1",
+		available_deliveries: ["byok", "livekit_inference"],
+		inference_providers: ["inworld"],
+	}),
 
 	// TTS — OpenAI
 	model("gpt-4o-mini-tts", "GPT-4o Mini TTS", "openai", "tts"),
@@ -436,11 +497,364 @@ export const CATALOG_MODELS: CatalogModel[] = [
 	model("sarvam:bulbul:v3", "Bulbul v3", "sarvam", "tts"),
 	model("sarvam:bulbul:v2", "Bulbul v2", "sarvam", "tts"),
 
-	// TTS — Inworld
-	model("inworld-tts-1.5-max", "Inworld TTS 1.5 Max", "inworld", "tts"),
-	model("inworld-tts-1.5-mini", "Inworld TTS 1.5 Mini", "inworld", "tts"),
-	model("inworld-tts-2", "Inworld TTS 2", "inworld", "tts"),
-	model("inworld-tts-2-flash", "Inworld TTS 2 Flash", "inworld", "tts"),
+	// TTS — Inworld (BYOK; LiveKit Inference twins share variant_group)
+	model("inworld-tts-1.5-max", "Inworld TTS 1.5 Max", "inworld", "tts", {
+		delivery: "byok",
+	}),
+	model("inworld-tts-1.5-mini", "Inworld TTS 1.5 Mini", "inworld", "tts", {
+		delivery: "byok",
+	}),
+	model("inworld-tts-2", "Inworld TTS 2", "inworld", "tts", {
+		delivery: "byok",
+		variant_group: "inworld-tts-2",
+	}),
+	model("inworld-tts-2-flash", "Inworld TTS 2 Flash", "inworld", "tts", {
+		delivery: "byok",
+		variant_group: "inworld-tts-2-flash",
+	}),
+
+	// ── LiveKit Inference (gateway) ──────────────────────────────────────────
+	// LLM — LiveKit-hosted / gateway-only families
+	inferenceModel(
+		"google/gemma-4-31b-it",
+		"Gemma 4 31B IT",
+		"livekit",
+		"llm",
+		["livekit"],
+		{
+			reasoning: GEMINI_REASONING_MINIMAL_HIGH,
+			variant_group: "gemma-4-31b-it",
+		},
+	),
+	inferenceModel(
+		"deepseek-ai/deepseek-v4-pro",
+		"DeepSeek V4 Pro",
+		"deepseek-ai",
+		"llm",
+		["vercel"],
+	),
+	inferenceModel(
+		"deepseek-ai/deepseek-v4.1-flash",
+		"DeepSeek V4.1 Flash",
+		"deepseek-ai",
+		"llm",
+		["baseten"],
+	),
+	inferenceModel("google/gemini-4-argon", "Gemini 4 Argon", "gemini", "llm", [
+		"google",
+	]),
+	inferenceModel(
+		"google/gemini-4-hydrogen",
+		"Gemini 4 Hydrogen",
+		"gemini",
+		"llm",
+		["google"],
+	),
+	inferenceModel(
+		"google/gemini-decision-1",
+		"Gemini Decision 1",
+		"gemini",
+		"llm",
+		["google"],
+	),
+	inferenceModel("meta/muse-spark-1.3", "Muse Spark 1.3", "meta", "llm", [
+		"meta",
+	]),
+	inferenceModel("meta/muse-wonder-1.0", "Muse Wonder 1.0", "meta", "llm", [
+		"meta",
+	]),
+	inferenceModel(
+		"microsoft/decision-1",
+		"Microsoft Decision 1",
+		"microsoft",
+		"llm",
+		["azure"],
+	),
+	inferenceModel("moonshotai/kimi-k2.6", "Kimi K2.6", "moonshotai", "llm", [
+		"vercel",
+	]),
+	inferenceModel(
+		"openai/gpt-6-luna",
+		"GPT-6 Luna",
+		"openai",
+		"llm",
+		["azure", "openai"],
+		{ reasoning: OPENAI_REASONING_NONE_XHIGH },
+	),
+	inferenceModel(
+		"openai/gpt-6-luna-decisions",
+		"GPT-6 Luna (Decisions)",
+		"openai",
+		"llm",
+		["openai"],
+		{ reasoning: OPENAI_REASONING_NONE_XHIGH },
+	),
+	inferenceModel(
+		"openai/gpt-6-sol",
+		"GPT-6 Sol",
+		"openai",
+		"llm",
+		["azure", "openai"],
+		{ reasoning: OPENAI_REASONING_NONE_XHIGH },
+	),
+	inferenceModel(
+		"openai/gpt-6.1-sol",
+		"GPT-6.1 Sol",
+		"openai",
+		"llm",
+		["azure", "openai"],
+		{ reasoning: OPENAI_REASONING_NONE_XHIGH },
+	),
+	inferenceModel(
+		"openai/gpt-6.1-terra",
+		"GPT-6.1 Terra",
+		"openai",
+		"llm",
+		["openai"],
+		{ reasoning: OPENAI_REASONING_NONE_XHIGH },
+	),
+	inferenceModel("openai/gpt-oss-120b", "GPT OSS 120B", "openai", "llm", [
+		"baseten",
+		"groq",
+	]),
+	inferenceModel(
+		"xai/grok-4.20-0309-non-reasoning",
+		"Grok 4.20",
+		"xai",
+		"llm",
+		["xai"],
+	),
+	inferenceModel(
+		"xai/grok-4.20-0309-reasoning",
+		"Grok 4.20 Reasoning",
+		"xai",
+		"llm",
+		["xai"],
+	),
+	inferenceModel(
+		"xai/grok-4.20-multi-agent-0309",
+		"Grok 4.20 Multi-Agent",
+		"xai",
+		"llm",
+		["xai"],
+	),
+	inferenceModel("xai/grok-4.3", "Grok 4.3", "xai", "llm", ["xai"]),
+	inferenceModel("xai/grok-4.5", "Grok 4.5", "xai", "llm", ["xai"]),
+	inferenceModel("xai/grok-4.6", "Grok 4.6", "xai", "llm", ["xai"]),
+	inferenceModel("xai/grok-4.7", "Grok 4.7", "xai", "llm", ["xai"]),
+	inferenceModel("zai/glm-5.1", "GLM 5.1", "zai", "llm", ["zai"]),
+
+	// STT — LiveKit Inference
+	inferenceModel(
+		"assemblyai/universal-3-6-pro",
+		"Universal 3.6 Pro",
+		"assemblyai",
+		"stt",
+		["assemblyai"],
+	),
+	inferenceModel(
+		"assemblyai/universal-3-5-pro",
+		"Universal 3.5 Pro",
+		"assemblyai",
+		"stt",
+		["assemblyai"],
+	),
+	inferenceModel(
+		"assemblyai/universal-streaming",
+		"Universal Streaming",
+		"assemblyai",
+		"stt",
+		["assemblyai"],
+	),
+	inferenceModel(
+		"assemblyai/universal-streaming-multilingual",
+		"Universal Streaming Multilingual",
+		"assemblyai",
+		"stt",
+		["assemblyai"],
+	),
+	inferenceModel(
+		"deepgram/flux-general-en",
+		"Flux (English)",
+		"deepgram",
+		"stt",
+		["deepgram"],
+	),
+	inferenceModel(
+		"deepgram/flux-general-multi",
+		"Flux (Multilingual)",
+		"deepgram",
+		"stt",
+		["deepgram"],
+	),
+	inferenceModel("deepgram/nova-3", "Nova-3", "deepgram", "stt", [
+		"deepgram",
+	]),
+	inferenceModel(
+		"deepgram/nova-3-medical",
+		"Nova-3 Medical",
+		"deepgram",
+		"stt",
+		["deepgram"],
+	),
+	inferenceModel(
+		"deepgram/nova-3-pharma",
+		"Nova-3 Pharma",
+		"deepgram",
+		"stt",
+		["deepgram"],
+	),
+	inferenceModel("deepgram/nova-2", "Nova-2", "deepgram", "stt", [
+		"deepgram",
+	]),
+	inferenceModel(
+		"deepgram/nova-2-conversationalai",
+		"Nova-2 Conversational AI",
+		"deepgram",
+		"stt",
+		["deepgram"],
+	),
+	inferenceModel(
+		"deepgram/nova-2-medical",
+		"Nova-2 Medical",
+		"deepgram",
+		"stt",
+		["deepgram"],
+	),
+	inferenceModel(
+		"deepgram/nova-2-phonecall",
+		"Nova-2 Phone Call",
+		"deepgram",
+		"stt",
+		["deepgram"],
+	),
+	inferenceModel("cartesia/ink-2", "Ink 2", "cartesia", "stt", ["cartesia"]),
+	inferenceModel("cartesia/ink-whisper", "Ink Whisper", "cartesia", "stt", [
+		"cartesia",
+	]),
+	inferenceModel(
+		"google/gemini-3.5-transcribe-live",
+		"Gemini 3.5 Transcribe Live",
+		"gemini",
+		"stt",
+		["google"],
+		{ variant_group: "gemini-3.5-transcribe-live" },
+	),
+	inferenceModel(
+		"meta/muse-voice-transcribe-1.0",
+		"Muse Voice Transcribe 1.0",
+		"meta",
+		"stt",
+		["meta"],
+	),
+	inferenceModel(
+		"openai/gpt-live-transcribe",
+		"GPT-Live Transcribe",
+		"openai",
+		"stt",
+		["openai"],
+	),
+	inferenceModel("speechmatics/linden-1", "Linden-1", "speechmatics", "stt", [
+		"speechmatics",
+	]),
+	inferenceModel("speechmatics/oak-1", "Oak-1", "speechmatics", "stt", [
+		"speechmatics",
+	]),
+	inferenceModel("xai/stt-1", "Speech to Text", "xai", "stt", ["xai"]),
+	inferenceModel("xai/stt-2", "Speech to Text 2", "xai", "stt", ["xai"]),
+
+	// TTS — LiveKit Inference
+	inferenceModel(
+		"assemblyai/assemblyai-tts-1",
+		"AssemblyAI TTS 1",
+		"assemblyai",
+		"tts",
+		["assemblyai"],
+	),
+	inferenceModel("cartesia/sonic-3.6", "Sonic 3.6", "cartesia", "tts", [
+		"cartesia",
+	]),
+	inferenceModel("cartesia/sonic-3.5", "Sonic 3.5", "cartesia", "tts", [
+		"cartesia",
+	]),
+	inferenceModel("cartesia/sonic-3", "Sonic 3", "cartesia", "tts", [
+		"cartesia",
+	]),
+	inferenceModel(
+		"cartesia/sonic-3-latest",
+		"Sonic 3 Latest",
+		"cartesia",
+		"tts",
+		["cartesia"],
+	),
+	inferenceModel("cartesia/sonic-latest", "Sonic Latest", "cartesia", "tts", [
+		"cartesia",
+	]),
+	inferenceModel(
+		"cartesia/sonic-preview",
+		"Sonic Preview",
+		"cartesia",
+		"tts",
+		["cartesia"],
+	),
+	inferenceModel("deepgram/aura-2", "Aura-2", "deepgram", "tts", [
+		"deepgram",
+	]),
+	inferenceModel("deepgram/flux-tts", "Flux TTS", "deepgram", "tts", [
+		"deepgram",
+	]),
+	inferenceModel("fishaudio/s2.1-pro", "S2.1 Pro", "fishaudio", "tts", [
+		"fishaudio",
+	]),
+	inferenceModel("fishaudio/s2-pro", "S2 Pro", "fishaudio", "tts", [
+		"fishaudio",
+	]),
+	inferenceModel("fishaudio/drama-3", "Drama 3", "fishaudio", "tts", [
+		"fishaudio",
+	]),
+	inferenceModel(
+		"google/gemini-3.8-flash-tts",
+		"Gemini 3.8 Flash TTS",
+		"gemini",
+		"tts",
+		["google"],
+	),
+	inferenceModel(
+		"google/gemini-3.8-flash-lite-tts",
+		"Gemini 3.8 Flash-Lite TTS",
+		"gemini",
+		"tts",
+		["google"],
+	),
+	inferenceModel("gradium/default", "Gradium TTS", "gradium", "tts", [
+		"gradium",
+	]),
+	inferenceModel(
+		"gradium/gradium-tts-beta",
+		"Gradium TTS Beta",
+		"gradium",
+		"tts",
+		["gradium"],
+	),
+	inferenceModel(
+		"inworld/inworld-tts-2",
+		"Inworld TTS 2",
+		"inworld",
+		"tts",
+		["inworld"],
+		{ variant_group: "inworld-tts-2" },
+	),
+	inferenceModel(
+		"inworld/inworld-tts-2-flash",
+		"Inworld TTS 2 Flash",
+		"inworld",
+		"tts",
+		["inworld"],
+		{ variant_group: "inworld-tts-2-flash" },
+	),
+	inferenceModel("rime/coda", "Coda", "rime", "tts", ["rime"]),
+	inferenceModel("rime/mistv3", "Mist v3", "rime", "tts", ["rime"]),
+	inferenceModel("xai/tts-1", "Text to Speech", "xai", "tts", ["xai"]),
 ];
 
 const OPENAI_VOICES = [
@@ -556,6 +970,45 @@ const INWORLD_VOICES = [
 	{ id: "Aanya", label: "Aanya (Indian female)" },
 ] as const;
 
+const DEEPGRAM_AURA2_VOICES = [
+	{ id: "aura-2-thalia-en", label: "Thalia (English)" },
+	{ id: "aura-2-andromeda-en", label: "Andromeda (English)" },
+	{ id: "aura-2-helena-en", label: "Helena (English)" },
+	{ id: "aura-2-apollo-en", label: "Apollo (English)" },
+	{ id: "aura-2-arcas-en", label: "Arcas (English)" },
+	{ id: "aura-2-zeus-en", label: "Zeus (English)" },
+] as const;
+
+const RIME_CODA_VOICES = [
+	{ id: "lyra", label: "Lyra" },
+	{ id: "astra", label: "Astra" },
+	{ id: "celeste", label: "Celeste" },
+] as const;
+
+const RIME_MIST_VOICES = [
+	{ id: "cove", label: "Cove" },
+	{ id: "lake", label: "Lake" },
+] as const;
+
+/** Sample Cartesia voice UUIDs from the Cartesia library (paste more via Custom). */
+const CARTESIA_VOICES = [
+	{
+		id: "a0e99841-438c-4a64-b679-ae501e7d6091",
+		label: "Katie (Conversational)",
+	},
+	{
+		id: "794f9389-aac1-45b6-b726-9d9369183238",
+		label: "Sarah (News)",
+	},
+] as const;
+
+const FISHAUDIO_VOICES = [
+	{
+		id: "fa4c9eb3dccc4806b382b40d61c6b10a",
+		label: "Default (Fish Audio)",
+	},
+] as const;
+
 const OPENAI_REALTIME_VOICES = [
 	"alloy",
 	"ash",
@@ -634,6 +1087,22 @@ export const CATALOG_VOICES: CatalogVoice[] = [
 	...voicesFor("inworld-tts-1.5-mini", INWORLD_VOICES),
 	...voicesFor("inworld-tts-2", INWORLD_VOICES),
 	...voicesFor("inworld-tts-2-flash", INWORLD_VOICES),
+	...voicesFor("inworld/inworld-tts-2", INWORLD_VOICES),
+	...voicesFor("inworld/inworld-tts-2-flash", INWORLD_VOICES),
+	...voicesFor("deepgram/aura-2", DEEPGRAM_AURA2_VOICES),
+	...voicesFor("rime/coda", RIME_CODA_VOICES),
+	...voicesFor("rime/mistv3", RIME_MIST_VOICES),
+	...voicesFor("cartesia/sonic-3.6", CARTESIA_VOICES),
+	...voicesFor("cartesia/sonic-3.5", CARTESIA_VOICES),
+	...voicesFor("cartesia/sonic-3", CARTESIA_VOICES),
+	...voicesFor("cartesia/sonic-3-latest", CARTESIA_VOICES),
+	...voicesFor("cartesia/sonic-latest", CARTESIA_VOICES),
+	...voicesFor("cartesia/sonic-preview", CARTESIA_VOICES),
+	...voicesFor("fishaudio/s2.1-pro", FISHAUDIO_VOICES),
+	...voicesFor("fishaudio/s2-pro", FISHAUDIO_VOICES),
+	...voicesFor("fishaudio/drama-3", FISHAUDIO_VOICES),
+	...voicesFor("google/gemini-3.8-flash-tts", GEMINI_VOICES),
+	...voicesFor("google/gemini-3.8-flash-lite-tts", GEMINI_VOICES),
 ];
 
 export const CATALOG_AUDIO_CLIPS: CatalogAudioClip[] = [

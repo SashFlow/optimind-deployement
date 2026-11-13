@@ -35,6 +35,7 @@ export const dispatchMetadataSchema = z.object({
 		.nullable()
 		.optional(),
 	recording_enabled: z.boolean().default(false),
+	egress_mode: z.enum(["track", "room_composite"]).default("track"),
 });
 
 export type DispatchMetadata = z.infer<typeof dispatchMetadataSchema>;

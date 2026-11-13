@@ -41,6 +41,29 @@ function configRecordingEnabled(config: unknown): boolean {
 	return Boolean(c.recording_enabled ?? c.recordingEnabled);
 }
 
+function configEgressMode(config: unknown): "track" | "room_composite" {
+	if (!config || typeof config !== "object") {
+		return "track";
+	}
+	const c = config as {
+		egress_mode?: string;
+		egressMode?: string;
+	};
+	const raw = (c.egress_mode ?? c.egressMode ?? "track")
+		.toString()
+		.trim()
+		.toLowerCase()
+		.replace(/-/g, "_");
+	if (
+		raw === "room_composite" ||
+		raw === "roomcomposite" ||
+		raw === "composite"
+	) {
+		return "room_composite";
+	}
+	return "track";
+}
+
 export async function POST(req: Request) {
 	try {
 		const body = (await req.json()) as OutboundCallBody;
@@ -87,6 +110,7 @@ export async function POST(req: Request) {
 				(version.config as Record<string, unknown>) ?? {};
 			const recordingEnabled =
 				body.recordingEnabled ?? configRecordingEnabled(configSnapshot);
+			const egressMode = configEgressMode(configSnapshot);
 
 			const contactMetadata =
 				body.contactMetadata &&
@@ -150,6 +174,7 @@ export async function POST(req: Request) {
 				contact_metadata: contactMetadata,
 				end_user: toDispatchEndUser(endUser),
 				recording_enabled: recordingEnabled,
+				egress_mode: egressMode,
 			});
 
 			metadata = JSON.stringify({

@@ -299,12 +299,28 @@ export function GeneralSection({
 									models={llmModels}
 									providers={providers}
 									value={config.llm?.provider_model_id ?? ""}
+									deliveryMode={
+										typeof config.llm?.params
+											?.delivery_mode === "string"
+											? config.llm.params.delivery_mode
+											: null
+									}
 									onValueChange={(value) =>
 										update(
 											selectLlmModel(
 												config,
 												value,
 												llmModels,
+											),
+										)
+									}
+									onDeliveryChange={({ modelId, delivery }) =>
+										update(
+											selectLlmModel(
+												config,
+												modelId,
+												llmModels,
+												delivery,
 											),
 										)
 									}
@@ -324,12 +340,28 @@ export function GeneralSection({
 								models={sttModels}
 								providers={providers}
 								value={config.stt?.provider_model_id ?? ""}
+								deliveryMode={
+									typeof config.stt?.params?.delivery_mode ===
+									"string"
+										? config.stt.params.delivery_mode
+										: null
+								}
 								onValueChange={(value) =>
 									update(
 										selectSttModel(
 											config,
 											value,
 											sttModels,
+										),
+									)
+								}
+								onDeliveryChange={({ modelId, delivery }) =>
+									update(
+										selectSttModel(
+											config,
+											modelId,
+											sttModels,
+											delivery,
 										),
 									)
 								}
@@ -407,12 +439,32 @@ export function GeneralSection({
 												config.tts?.provider_model_id ??
 												""
 											}
+											deliveryMode={
+												typeof config.tts?.params
+													?.delivery_mode === "string"
+													? config.tts.params
+															.delivery_mode
+													: null
+											}
 											onValueChange={(value) =>
 												update(
 													selectTtsModel(
 														config,
 														value,
 														ttsModels,
+													),
+												)
+											}
+											onDeliveryChange={({
+												modelId,
+												delivery,
+											}) =>
+												update(
+													selectTtsModel(
+														config,
+														modelId,
+														ttsModels,
+														delivery,
 													),
 												)
 											}
@@ -470,12 +522,28 @@ export function GeneralSection({
 									models={ttsModels}
 									providers={providers}
 									value={config.tts?.provider_model_id ?? ""}
+									deliveryMode={
+										typeof config.tts?.params
+											?.delivery_mode === "string"
+											? config.tts.params.delivery_mode
+											: null
+									}
 									onValueChange={(value) =>
 										update(
 											selectTtsModel(
 												config,
 												value,
 												ttsModels,
+											),
+										)
+									}
+									onDeliveryChange={({ modelId, delivery }) =>
+										update(
+											selectTtsModel(
+												config,
+												modelId,
+												ttsModels,
+												delivery,
 											),
 										)
 									}

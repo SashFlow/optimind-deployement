@@ -299,6 +299,8 @@ export type AgentConfigDocument = {
 	};
 	metadata: Record<string, unknown>;
 	recording_enabled: boolean;
+	/** LiveKit egress style when recording is enabled. */
+	egress_mode: "track" | "room_composite";
 };
 
 export const defaultPromptSections: PromptSections = {
@@ -492,6 +494,7 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 		mcp: { enabled: false, servers: [] },
 		metadata: {},
 		recording_enabled: false,
+		egress_mode: "track",
 	};
 }
 
@@ -702,5 +705,9 @@ export function normalizeAgentConfig(
 		tools: c.tools ?? syncToolsFromPhases(toolsByPhase),
 		metadata: c.metadata ?? defaults.metadata,
 		recording_enabled: c.recording_enabled ?? defaults.recording_enabled,
+		egress_mode:
+			c.egress_mode === "room_composite" || c.egress_mode === "track"
+				? c.egress_mode
+				: defaults.egress_mode,
 	};
 }

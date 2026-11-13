@@ -229,6 +229,31 @@ function configRecordingEnabled(config: unknown): boolean {
 	return Boolean(c.recording_enabled ?? c.recordingEnabled);
 }
 
+type EgressMode = "track" | "room_composite";
+
+function configEgressMode(config: unknown): EgressMode {
+	if (!config || typeof config !== "object") {
+		return "track";
+	}
+	const c = config as {
+		egress_mode?: string;
+		egressMode?: string;
+	};
+	const raw = (c.egress_mode ?? c.egressMode ?? "track")
+		.toString()
+		.trim()
+		.toLowerCase()
+		.replace(/-/g, "_");
+	if (
+		raw === "room_composite" ||
+		raw === "roomcomposite" ||
+		raw === "composite"
+	) {
+		return "room_composite";
+	}
+	return "track";
+}
+
 export const list = protectedProcedure
 	.route({
 		method: "GET",
@@ -372,6 +397,7 @@ export const create = protectedProcedure
 			(version.config as Record<string, unknown>) ?? {};
 		const recordingEnabled =
 			input.recordingEnabled ?? configRecordingEnabled(configSnapshot);
+		const egressMode = configEgressMode(configSnapshot);
 
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const roomName =
@@ -440,6 +466,7 @@ export const create = protectedProcedure
 			contact_metadata: input.contactMetadata ?? {},
 			end_user: toDispatchEndUser(endUser),
 			recording_enabled: recordingEnabled,
+			egress_mode: egressMode,
 		});
 		const metadataJson = serializeDispatchMetadata(dispatchMetadata);
 		const agentName = input.agentName ?? AGENT_NAME;
@@ -862,6 +889,7 @@ export const startTrialSession = publicProcedure
 		const configSnapshot =
 			(version.config as Record<string, unknown>) ?? {};
 		const recordingEnabled = configRecordingEnabled(configSnapshot);
+		const egressMode = configEgressMode(configSnapshot);
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const roomName = isPhone
 			? `PHONE_SESSION_${Math.floor(Math.random() * 100_000)}`
@@ -918,6 +946,7 @@ export const startTrialSession = publicProcedure
 			contact_metadata: input.contactMetadata ?? {},
 			end_user: toDispatchEndUser(endUser),
 			recording_enabled: recordingEnabled,
+			egress_mode: egressMode,
 		});
 		const metadataJson = isPhone
 			? JSON.stringify({
@@ -1075,6 +1104,7 @@ export const startEmbedSession = publicProcedure
 		const configSnapshot =
 			(version.config as Record<string, unknown>) ?? {};
 		const recordingEnabled = configRecordingEnabled(configSnapshot);
+		const egressMode = configEgressMode(configSnapshot);
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const roomName = `SESSION_${timestamp}_${Math.floor(Math.random() * 10_000)}`;
 
@@ -1129,6 +1159,7 @@ export const startEmbedSession = publicProcedure
 			contact_metadata: input.contactMetadata ?? {},
 			end_user: toDispatchEndUser(endUser),
 			recording_enabled: recordingEnabled,
+			egress_mode: egressMode,
 		});
 		await createOutboundRoomWithDispatch({
 			roomName,
@@ -1277,24 +1308,80 @@ const registeredEgressTrackSchema = z.object({
 		.optional(),
 });
 
+const registeredCompositeSchema = z.object({
+	kind: z.literal("room_composite").optional(),
+	filepath: z.string().min(1),
+	livekitEgressId: z.string().min(1),
+	status: z
+		.enum(["STARTING", "ACTIVE", "ENDING", "COMPLETE", "FAILED", "ABORTED"])
+		.optional(),
+});
+
+const egressModeSchema = z.enum(["track", "room_composite"]);
+
 type EgressTrackInput = z.infer<typeof egressTrackSchema>;
 type RegisteredEgressTrackInput = z.infer<typeof registeredEgressTrackSchema>;
+type RegisteredCompositeInput = z.infer<typeof registeredCompositeSchema>;
 
 async function registerEgressJobsForSession(
 	session: NonNullable<Awaited<ReturnType<typeof getAgentSessionById>>>,
-	tracks: RegisteredEgressTrackInput[],
-	audioOnly?: boolean,
+	opts: {
+		tracks?: RegisteredEgressTrackInput[];
+		composite?: RegisteredCompositeInput;
+		audioOnly?: boolean;
+		mode?: EgressMode;
+	},
 ) {
 	const s3 = getEgressS3Config();
 	const resolvedAudioOnly =
-		audioOnly ?? (session.channel === "SIP" || session.channel === "PHONE");
+		opts.audioOnly ??
+		(session.channel === "SIP" || session.channel === "PHONE");
 	const existingIds = new Set(
 		session.egressJobs
 			.map((job) => job.livekitEgressId)
 			.filter((id): id is string => Boolean(id)),
 	);
 	const jobs = [];
-	for (const track of tracks) {
+
+	if (
+		opts.composite &&
+		(opts.mode === "room_composite" || !opts.tracks?.length)
+	) {
+		if (!existingIds.has(opts.composite.livekitEgressId)) {
+			const filepath = opts.composite.filepath;
+			const job = await createEgressJob({
+				organizationId: session.organizationId,
+				type: "ROOM_COMPOSITE",
+				agentSessionId: session.id,
+				agentId: session.agentId,
+				campaignSessionId: session.campaignSession?.id,
+				livekitEgressId: opts.composite.livekitEgressId,
+				roomName: session.livekitRoomName,
+				status: opts.composite.status ?? "ACTIVE",
+				startedAt: new Date(),
+				destination: s3
+					? {
+							bucket: s3.bucket,
+							region: s3.region,
+							filepath,
+							endpoint: s3.endpoint ?? null,
+						}
+					: { filepath },
+				fileUrl: s3 ? `s3://${s3.bucket}/${filepath}` : undefined,
+				outputUrls: s3 ? [`s3://${s3.bucket}/${filepath}`] : [],
+				metadata: {
+					audioOnly: resolvedAudioOnly,
+					kind: "room_composite",
+					source: "worker_register",
+				},
+			});
+			jobs.push(job);
+			existingIds.add(opts.composite.livekitEgressId);
+		}
+		return { jobs };
+	}
+
+	for (const track of opts.tracks ?? []) {
 		if (existingIds.has(track.livekitEgressId)) {
 			continue;
 		}
@@ -1335,17 +1422,29 @@ async function registerEgressJobsForSession(
 
 async function startEgressForSession(
 	session: NonNullable<Awaited<ReturnType<typeof getAgentSessionById>>>,
-	audioOnly?: boolean,
-	tracks?: EgressTrackInput[],
+	opts: {
+		audioOnly?: boolean;
+		tracks?: EgressTrackInput[];
+		mode?: EgressMode;
+	} = {},
 ) {
 	const s3 = getEgressS3Config();
 	const resolvedAudioOnly =
-		audioOnly ?? (session.channel === "SIP" || session.channel === "PHONE");
+		opts.audioOnly ??
+		(session.channel === "SIP" || session.channel === "PHONE");
+	const mode: EgressMode =
+		opts.mode ??
+		(opts.tracks && opts.tracks.length > 0 ? "track" : "room_composite");
 
-	if (tracks && tracks.length > 0) {
+	if (mode === "track") {
+		if (!opts.tracks?.length) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "track egress requires at least one track",
+			});
+		}
 		const jobs = [];
 		const remotes = [];
-		for (const track of tracks) {
+		for (const track of opts.tracks) {
 			const filepath =
 				track.filepath ??
 				recordingTrackFilepath({
@@ -1427,7 +1526,7 @@ async function startEgressForSession(
 			: { filepath },
 		fileUrl: s3 ? `s3://${s3.bucket}/${filepath}` : undefined,
 		outputUrls: s3 ? [`s3://${s3.bucket}/${filepath}`] : [],
-		metadata: { audioOnly: resolvedAudioOnly },
+		metadata: { audioOnly: resolvedAudioOnly, kind: "room_composite" },
 	});
 
 	return { job, remote };
@@ -1438,13 +1537,13 @@ export const startSessionEgress = protectedProcedure
 		method: "POST",
 		path: "/sessions/{id}/egress",
 		tags: ["Sessions"],
-		summary:
-			"Start track egress (or room-composite fallback) for a session",
+		summary: "Start track or room-composite egress for a session",
 	})
 	.input(
 		z.object({
 			id: z.string(),
 			audioOnly: z.boolean().optional(),
+			mode: egressModeSchema.optional(),
 			tracks: z.array(egressTrackSchema).optional(),
 		}),
 	)
@@ -1454,7 +1553,11 @@ export const startSessionEgress = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 		await requireOrgMembership(session.organizationId, context.user.id);
-		return startEgressForSession(session, input.audioOnly, input.tracks);
+		return startEgressForSession(session, {
+			audioOnly: input.audioOnly,
+			mode: input.mode,
+			tracks: input.tracks,
+		});
 	});
 
 export const rerunPostProcessing = protectedProcedure
@@ -1841,6 +1944,7 @@ export const startEgressInternal = workerProcedure
 		z.object({
 			id: z.string(),
 			audioOnly: z.boolean().optional(),
+			mode: egressModeSchema.optional(),
 			tracks: z.array(egressTrackSchema).optional(),
 		}),
 	)
@@ -1849,7 +1953,11 @@ export const startEgressInternal = workerProcedure
 		if (!session) {
 			throw new ORPCError("NOT_FOUND");
 		}
-		return startEgressForSession(session, input.audioOnly, input.tracks);
+		return startEgressForSession(session, {
+			audioOnly: input.audioOnly,
+			mode: input.mode,
+			tracks: input.tracks,
+		});
 	});
 
 export const registerEgressInternal = workerProcedure
@@ -1861,22 +1969,32 @@ export const registerEgressInternal = workerProcedure
 			"Register already-started LiveKit egress jobs for a session (worker fallback)",
 	})
 	.input(
-		z.object({
-			id: z.string(),
-			audioOnly: z.boolean().optional(),
-			tracks: z.array(registeredEgressTrackSchema).min(1),
-		}),
+		z
+			.object({
+				id: z.string(),
+				audioOnly: z.boolean().optional(),
+				mode: egressModeSchema.optional(),
+				tracks: z.array(registeredEgressTrackSchema).optional(),
+				composite: registeredCompositeSchema.optional(),
+			})
+			.refine(
+				(value) =>
+					Boolean(value.composite) ||
+					(value.tracks && value.tracks.length > 0),
+				{ message: "Provide tracks or composite to register" },
+			),
 	)
 	.handler(async ({ input }) => {
 		const session = await getAgentSessionById(input.id);
 		if (!session) {
 			throw new ORPCError("NOT_FOUND");
 		}
-		return registerEgressJobsForSession(
-			session,
-			input.tracks,
-			input.audioOnly,
-		);
+		return registerEgressJobsForSession(session, {
+			tracks: input.tracks,
+			composite: input.composite,
+			audioOnly: input.audioOnly,
+			mode: input.mode,
+		});
 	});
 
 export const uploadFileInternal = workerProcedure

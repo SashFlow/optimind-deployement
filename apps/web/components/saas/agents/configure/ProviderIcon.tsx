@@ -9,6 +9,12 @@ const PROVIDER_LOGOS: Record<string, string> = {
 	anthropic: "/images/providers/anthropic.png",
 	sarvam: "/images/providers/sarvam.png",
 	inworld: "/images/providers/inworld.png",
+	// Additional logos fall back to initials when the asset is missing.
+	livekit: "/images/providers/livekit.png",
+	deepgram: "/images/providers/deepgram.png",
+	cartesia: "/images/providers/cartesia.png",
+	assemblyai: "/images/providers/assemblyai.png",
+	xai: "/images/providers/xai.png",
 };
 
 export function ProviderIcon({

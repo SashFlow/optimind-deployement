@@ -328,6 +328,7 @@ export const agentConfigSchema = z
 			.optional(),
 		metadata: z.record(z.string(), z.unknown()).optional(),
 		recording_enabled: z.boolean().optional(),
+		egress_mode: z.enum(["track", "room_composite"]).optional(),
 	})
 	.passthrough()
 	.superRefine((value, ctx) => {

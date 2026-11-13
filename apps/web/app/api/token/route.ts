@@ -47,6 +47,29 @@ function configRecordingEnabled(config: unknown): boolean {
 	return Boolean(c.recording_enabled ?? c.recordingEnabled);
 }
 
+function configEgressMode(config: unknown): "track" | "room_composite" {
+	if (!config || typeof config !== "object") {
+		return "track";
+	}
+	const c = config as {
+		egress_mode?: string;
+		egressMode?: string;
+	};
+	const raw = (c.egress_mode ?? c.egressMode ?? "track")
+		.toString()
+		.trim()
+		.toLowerCase()
+		.replace(/-/g, "_");
+	if (
+		raw === "room_composite" ||
+		raw === "roomcomposite" ||
+		raw === "composite"
+	) {
+		return "room_composite";
+	}
+	return "track";
+}
+
 export async function POST(req: Request) {
 	try {
 		const cfg = getLiveKitConfig();
@@ -100,6 +123,7 @@ export async function POST(req: Request) {
 				(version.config as Record<string, unknown>) ?? {};
 			const recordingEnabled =
 				recordingOverride ?? configRecordingEnabled(configSnapshot);
+			const egressMode = configEgressMode(configSnapshot);
 
 			// Login is optional here: link to the signed-in user when present.
 			const authSession = await auth.api
@@ -160,6 +184,7 @@ export async function POST(req: Request) {
 				contact_metadata: contactMetadata,
 				end_user: toDispatchEndUser(endUser),
 				recording_enabled: recordingEnabled,
+				egress_mode: egressMode,
 			});
 
 			agentMetadata = JSON.stringify({
