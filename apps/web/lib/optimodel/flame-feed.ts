@@ -6,7 +6,9 @@ import { type FlameKeyframe, zeroKeyframe } from "@repo/arkit-flame";
  * Topic `avatar.flame`, little-endian binary:
  *   header (26 B): "FLM1" | turn_id[12] | u32 startFrame | u16 nFrames |
  *                  u8 fps | u8 flags (bit0 = final) | u16 cols
- *   body: nFrames × cols float16 — expression[100], jawPose[3], speech gate.
+ *   body: nFrames × cols float16 —
+ *     expression[100], jawPose[3], neckPose[3], speech gate (cols ≥ 107), or
+ *     legacy expression[100], jawPose[3], speech gate (cols === 104).
  * Frame i describes audio time i / fps, on the same clock as the phonemes.
  */
 export const FLAME_TOPIC = "avatar.flame";
@@ -14,7 +16,10 @@ export const FLAME_TOPIC = "avatar.flame";
 const HEADER_BYTES = 26;
 const EXPRESSION_DIMS = 100;
 const JAW_DIMS = 3;
+const NECK_DIMS = 3;
+/** Legacy wire: expr+jaw+gate. Current: expr+jaw+neck+gate. */
 const MIN_COLS = EXPRESSION_DIMS + JAW_DIMS + 1;
+const NECK_COLS = EXPRESSION_DIMS + JAW_DIMS + NECK_DIMS + 1;
 
 export type FlamePacket = {
 	turnId: string;
@@ -178,6 +183,16 @@ function toSample(
 	for (let i = 0; i < EXPRESSION_DIMS; i++) keyframe.expression[i] = at(i);
 	for (let i = 0; i < JAW_DIMS; i++) {
 		keyframe.jawPose[i] = at(EXPRESSION_DIMS + i);
+	}
+	const hasNeck = a.length >= NECK_COLS;
+	if (hasNeck) {
+		for (let i = 0; i < NECK_DIMS; i++) {
+			keyframe.neckPose[i] = at(EXPRESSION_DIMS + JAW_DIMS + i);
+		}
+		return {
+			keyframe,
+			gate: at(EXPRESSION_DIMS + JAW_DIMS + NECK_DIMS),
+		};
 	}
 	return { keyframe, gate: at(EXPRESSION_DIMS + JAW_DIMS) };
 }

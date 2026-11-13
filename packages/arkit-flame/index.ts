@@ -24,6 +24,10 @@ export {
 export {
 	ARKIT2FLAME_CHANNELS,
 	ARKIT2FLAME_COLS,
+	ARKIT2FLAME_COLS_LEGACY,
+	ARKIT2FLAME_EXPR_DIMS,
+	ARKIT2FLAME_JAW_OFFSET,
+	ARKIT2FLAME_NECK_OFFSET,
 	ARKIT2FLAME_ROWS,
 	DEFAULT_ARKIT_LAG_FRAMES,
 	DEFAULT_JAW_SCALE,
@@ -70,4 +74,5 @@ export {
 	createDefaultArkitFlameProcessor,
 	getDefaultArkit2FlameModel,
 	getDefaultArkitFlameFilter,
+	getDefaultFlameRestNeck,
 } from "./src/defaults";

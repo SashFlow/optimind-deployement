@@ -11,7 +11,13 @@ export const ARKIT2FLAME_CHANNELS: readonly ARKitBlendshape[] =
 	ARKIT_BLENDSHAPES.filter((n) => n !== "tongueOut");
 
 export const ARKIT2FLAME_ROWS = 51;
-export const ARKIT2FLAME_COLS = 103;
+/** Absolute FLAME vector: expr[100] + jaw[3] + neck[3]. */
+export const ARKIT2FLAME_COLS = 106;
+/** Legacy BEAT2 / pre-neck absolute width (expr+jaw only). */
+export const ARKIT2FLAME_COLS_LEGACY = 103;
+export const ARKIT2FLAME_EXPR_DIMS = 100;
+export const ARKIT2FLAME_JAW_OFFSET = 100;
+export const ARKIT2FLAME_NECK_OFFSET = 103;
 /** Midpoint of ~1.5–2.6× std match; tune by eye. */
 export const DEFAULT_JAW_SCALE = 2;
 /** Delay prediction by 1 frame (~40ms @25fps). */
@@ -24,18 +30,20 @@ export type Arkit2FlameModel = {
 	matrix: Float32Array;
 	/** Matrix input rows (51 or 51×(2R+1) when temporal). */
 	rows: number;
-	/** Matrix output cols (103 raw, or pcaK+3). */
+	/** Matrix output cols (106 raw, pcaK+6, or legacy 103 / pcaK+3). */
 	cols: number;
 	/** ARKit channel count per frame (always 51). */
 	arkitChannels: number;
 	/** Temporal radius R → stack t−R..t+R (0 = single frame). */
 	temporalRadius: number;
-	/** Silence / bind rest: expression[100] + jawPose[3]. */
+	/** Silence / bind rest: expression[100] + jawPose[3] + neckPose[3]. */
 	rest: Float32Array;
-	/** PCA basis (pcaK × 100) when predicting modes; null = raw 103. */
+	/** PCA basis (pcaK × 100) when predicting modes; null = raw 106/103. */
 	pcaBasis: Float32Array | null;
 	pcaMean: Float32Array | null;
 	pcaComponents: number;
+	/** True when matrix predicts neck (pcaK+6 or raw 106). */
+	hasNeck: boolean;
 };
 
 export type Arkit2FlameMatJson = {
@@ -57,12 +65,31 @@ function zeros(n: number): Float32Array {
 function parseRest(json: Arkit2FlameMatJson): Float32Array {
 	const rest = zeros(ARKIT2FLAME_COLS);
 	const src = json.restExpressionJaw;
-	if (!src || src.length < ARKIT2FLAME_COLS) return rest;
-	for (let i = 0; i < ARKIT2FLAME_COLS; i++) {
+	if (!src || src.length < ARKIT2FLAME_COLS_LEGACY) return rest;
+	const n = Math.min(src.length, ARKIT2FLAME_COLS);
+	for (let i = 0; i < n; i++) {
 		const v = src[i];
 		rest[i] = typeof v === "number" && Number.isFinite(v) ? v : 0;
 	}
 	return rest;
+}
+
+function inferHasNeck(pcaComponents: number, cols: number): boolean {
+	if (pcaComponents > 0) return cols === pcaComponents + 6;
+	return cols === ARKIT2FLAME_COLS;
+}
+
+function isValidMatrixShape(
+	rows: number,
+	cols: number,
+	expectedRows: number,
+	pcaComponents: number,
+): boolean {
+	if (rows !== expectedRows) return false;
+	if (pcaComponents > 0) {
+		return cols === pcaComponents + 6 || cols === pcaComponents + 3;
+	}
+	return cols === ARKIT2FLAME_COLS || cols === ARKIT2FLAME_COLS_LEGACY;
 }
 
 /** Parse a fitted / BEAT2 matrix JSON into a runtime model. */
@@ -76,35 +103,33 @@ export function parseArkit2FlameModel(
 			? arkitChannels * (2 * temporalRadius + 1)
 			: arkitChannels;
 	const pcaComponents = Math.max(0, json.pcaComponents ?? 0);
-	const expectedCols =
-		pcaComponents > 0 ? pcaComponents + 3 : ARKIT2FLAME_COLS;
 
 	if (
-		json.rows !== expectedRows ||
-		json.cols !== expectedCols ||
 		!Array.isArray(json.data) ||
-		json.data.length !== json.rows * json.cols
+		json.data.length !== json.rows * json.cols ||
+		!isValidMatrixShape(json.rows, json.cols, expectedRows, pcaComponents)
 	) {
 		if (
 			json.rows === ARKIT2FLAME_ROWS &&
-			json.cols === ARKIT2FLAME_COLS &&
+			json.cols === ARKIT2FLAME_COLS_LEGACY &&
 			Array.isArray(json.data) &&
-			json.data.length === ARKIT2FLAME_ROWS * ARKIT2FLAME_COLS
+			json.data.length === ARKIT2FLAME_ROWS * ARKIT2FLAME_COLS_LEGACY
 		) {
 			return {
 				matrix: Float32Array.from(json.data),
 				rows: ARKIT2FLAME_ROWS,
-				cols: ARKIT2FLAME_COLS,
+				cols: ARKIT2FLAME_COLS_LEGACY,
 				arkitChannels: ARKIT2FLAME_ROWS,
 				temporalRadius: 0,
 				rest: parseRest(json),
 				pcaBasis: null,
 				pcaMean: null,
 				pcaComponents: 0,
+				hasNeck: false,
 			};
 		}
 		throw new Error(
-			`Invalid ARKit→FLAME matrix shape (got ${json.rows}×${json.cols}, expected ${expectedRows}×${expectedCols})`,
+			`Invalid ARKit→FLAME matrix shape (got ${json.rows}×${json.cols}, expected ${expectedRows}×${pcaComponents > 0 ? `${pcaComponents}+3|+6` : `${ARKIT2FLAME_COLS_LEGACY}|${ARKIT2FLAME_COLS}`})`,
 		);
 	}
 
@@ -133,6 +158,7 @@ export function parseArkit2FlameModel(
 		pcaBasis,
 		pcaMean,
 		pcaComponents,
+		hasNeck: inferHasNeck(pcaComponents, json.cols),
 	};
 }
 
@@ -166,33 +192,62 @@ export type ArkitToFlameOptions = {
 	 * Prefer `model`.
 	 */
 	matrix?: Float32Array;
-	/** Override rest (103). Defaults to model.rest. */
+	/** Override rest (106, or legacy 103 padded). Defaults to model.rest. */
 	rest?: Float32Array | number[];
 	/** If true (default), silence frames emit pure rest. */
 	gateSilence?: boolean;
 	silenceThresh?: number;
 };
 
+function padRest(src: Float32Array | number[] | undefined): Float32Array {
+	const rest = zeros(ARKIT2FLAME_COLS);
+	if (!src) return rest;
+	const n = Math.min(src.length, ARKIT2FLAME_COLS);
+	for (let i = 0; i < n; i++) {
+		const v = src[i];
+		rest[i] = typeof v === "number" && Number.isFinite(v) ? v : 0;
+	}
+	return rest;
+}
+
 function modelFromOptions(options: ArkitToFlameOptions): Arkit2FlameModel {
-	if (options.model) return options.model;
+	if (options.model) {
+		return options.model.hasNeck !== undefined
+			? options.model
+			: {
+					...options.model,
+					hasNeck: inferHasNeck(
+						options.model.pcaComponents,
+						options.model.cols,
+					),
+				};
+	}
 	if (options.matrix) {
-		if (options.matrix.length !== ARKIT2FLAME_ROWS * ARKIT2FLAME_COLS) {
+		const legacyLen = ARKIT2FLAME_ROWS * ARKIT2FLAME_COLS_LEGACY;
+		const fullLen = ARKIT2FLAME_ROWS * ARKIT2FLAME_COLS;
+		if (
+			options.matrix.length !== fullLen &&
+			options.matrix.length !== legacyLen
+		) {
 			throw new Error(
 				"ARKit→FLAME matrix not loaded; pass a parsed model via options.model",
 			);
 		}
+		const cols =
+			options.matrix.length === fullLen
+				? ARKIT2FLAME_COLS
+				: ARKIT2FLAME_COLS_LEGACY;
 		return {
 			matrix: options.matrix,
 			rows: ARKIT2FLAME_ROWS,
-			cols: ARKIT2FLAME_COLS,
+			cols,
 			arkitChannels: ARKIT2FLAME_ROWS,
 			temporalRadius: 0,
-			rest: options.rest
-				? Float32Array.from(options.rest)
-				: zeros(ARKIT2FLAME_COLS),
+			rest: padRest(options.rest),
 			pcaBasis: null,
 			pcaMean: null,
 			pcaComponents: 0,
+			hasNeck: cols === ARKIT2FLAME_COLS,
 		};
 	}
 	throw new Error(
@@ -235,11 +290,13 @@ function decodeOutput(
 ): FlameKeyframe {
 	const rest = model.rest;
 	const kf = zeroKeyframe();
+	const hasNeck =
+		model.hasNeck ?? inferHasNeck(model.pcaComponents, model.cols);
 
 	if (model.pcaComponents > 0 && model.pcaBasis && model.pcaMean) {
 		const k = model.pcaComponents;
-		const expr = new Array<number>(100);
-		for (let i = 0; i < 100; i++) {
+		const expr = new Array<number>(ARKIT2FLAME_EXPR_DIMS);
+		for (let i = 0; i < ARKIT2FLAME_EXPR_DIMS; i++) {
 			let v = model.pcaMean[i] + rest[i];
 			for (let j = 0; j < k; j++) {
 				v += raw[j] * model.pcaBasis[j * 100 + i];
@@ -248,25 +305,68 @@ function decodeOutput(
 		}
 		kf.expression = expr;
 		kf.jawPose = [
-			rest[100] + raw[k] * jawScale,
-			rest[101] + raw[k + 1] * jawScale,
-			rest[102] + raw[k + 2] * jawScale,
+			rest[ARKIT2FLAME_JAW_OFFSET] + raw[k] * jawScale,
+			rest[ARKIT2FLAME_JAW_OFFSET + 1] + raw[k + 1] * jawScale,
+			rest[ARKIT2FLAME_JAW_OFFSET + 2] + raw[k + 2] * jawScale,
 		];
+		if (hasNeck) {
+			kf.neckPose = [
+				rest[ARKIT2FLAME_NECK_OFFSET] + raw[k + 3],
+				rest[ARKIT2FLAME_NECK_OFFSET + 1] + raw[k + 4],
+				rest[ARKIT2FLAME_NECK_OFFSET + 2] + raw[k + 5],
+			];
+		} else {
+			kf.neckPose = [
+				rest[ARKIT2FLAME_NECK_OFFSET],
+				rest[ARKIT2FLAME_NECK_OFFSET + 1],
+				rest[ARKIT2FLAME_NECK_OFFSET + 2],
+			];
+		}
 	} else {
-		kf.expression = Array.from({ length: 100 }, (_, i) => rest[i] + raw[i]);
+		kf.expression = Array.from(
+			{ length: ARKIT2FLAME_EXPR_DIMS },
+			(_, i) => rest[i] + raw[i],
+		);
 		kf.jawPose = [
-			rest[100] + raw[100] * jawScale,
-			rest[101] + raw[101] * jawScale,
-			rest[102] + raw[102] * jawScale,
+			rest[ARKIT2FLAME_JAW_OFFSET] +
+				raw[ARKIT2FLAME_JAW_OFFSET] * jawScale,
+			rest[ARKIT2FLAME_JAW_OFFSET + 1] +
+				raw[ARKIT2FLAME_JAW_OFFSET + 1] * jawScale,
+			rest[ARKIT2FLAME_JAW_OFFSET + 2] +
+				raw[ARKIT2FLAME_JAW_OFFSET + 2] * jawScale,
 		];
+		if (hasNeck) {
+			kf.neckPose = [
+				rest[ARKIT2FLAME_NECK_OFFSET] + raw[ARKIT2FLAME_NECK_OFFSET],
+				rest[ARKIT2FLAME_NECK_OFFSET + 1] +
+					raw[ARKIT2FLAME_NECK_OFFSET + 1],
+				rest[ARKIT2FLAME_NECK_OFFSET + 2] +
+					raw[ARKIT2FLAME_NECK_OFFSET + 2],
+			];
+		} else {
+			kf.neckPose = [
+				rest[ARKIT2FLAME_NECK_OFFSET],
+				rest[ARKIT2FLAME_NECK_OFFSET + 1],
+				rest[ARKIT2FLAME_NECK_OFFSET + 2],
+			];
+		}
 	}
 	return normalizeKeyframe(kf);
 }
 
 export function restKeyframe(model: Arkit2FlameModel): FlameKeyframe {
 	const kf = zeroKeyframe();
-	kf.expression = Array.from(model.rest.subarray(0, 100));
-	kf.jawPose = [model.rest[100], model.rest[101], model.rest[102]];
+	kf.expression = Array.from(model.rest.subarray(0, ARKIT2FLAME_EXPR_DIMS));
+	kf.jawPose = [
+		model.rest[ARKIT2FLAME_JAW_OFFSET],
+		model.rest[ARKIT2FLAME_JAW_OFFSET + 1],
+		model.rest[ARKIT2FLAME_JAW_OFFSET + 2],
+	];
+	kf.neckPose = [
+		model.rest[ARKIT2FLAME_NECK_OFFSET],
+		model.rest[ARKIT2FLAME_NECK_OFFSET + 1],
+		model.rest[ARKIT2FLAME_NECK_OFFSET + 2],
+	];
 	return normalizeKeyframe(kf);
 }
 

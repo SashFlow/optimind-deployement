@@ -176,13 +176,19 @@ export function gaussianSmoothWeightSeries(
 	return smoothed;
 }
 
-/** Decode matrix output to expression delta[100] + jaw delta[3] (not +rest). */
+/** Decode matrix output to expression + jaw + optional neck deltas (not +rest). */
 export function decodeDelta(
 	raw: Float32Array,
 	model: Arkit2FlameModel,
-): { expr: Float64Array; jaw: Float64Array } {
+): { expr: Float64Array; jaw: Float64Array; neck: Float64Array } {
 	const expr = new Float64Array(100);
 	const jaw = new Float64Array(3);
+	const neck = new Float64Array(3);
+	const hasNeck =
+		model.hasNeck ??
+		(model.pcaComponents > 0
+			? model.cols === model.pcaComponents + 6
+			: model.cols === 106);
 	if (model.pcaComponents > 0 && model.pcaBasis && model.pcaMean) {
 		const k = model.pcaComponents;
 		for (let i = 0; i < 100; i++) {
@@ -194,13 +200,23 @@ export function decodeDelta(
 		jaw[0] = raw[k];
 		jaw[1] = raw[k + 1];
 		jaw[2] = raw[k + 2];
+		if (hasNeck) {
+			neck[0] = raw[k + 3];
+			neck[1] = raw[k + 4];
+			neck[2] = raw[k + 5];
+		}
 	} else {
 		for (let i = 0; i < 100; i++) expr[i] = raw[i];
 		jaw[0] = raw[100];
 		jaw[1] = raw[101];
 		jaw[2] = raw[102];
+		if (hasNeck) {
+			neck[0] = raw[103];
+			neck[1] = raw[104];
+			neck[2] = raw[105];
+		}
 	}
-	return { expr, jaw };
+	return { expr, jaw, neck };
 }
 
 function stackTemporalRow(
@@ -292,6 +308,7 @@ export function bakeArkitFlameFiltered(
 	const jaw0Delta = new Float64Array(n);
 	const exprDeltas: Float64Array[] = new Array(n);
 	const jawDeltas: Float64Array[] = new Array(n);
+	const neckDeltas: Float64Array[] = new Array(n);
 
 	for (let t = 0; t < n; t++) {
 		const srcT = Math.max(0, t - Math.max(0, Math.floor(p.lagFrames)));
@@ -305,6 +322,7 @@ export function bakeArkitFlameFiltered(
 		const delta = decodeDelta(raw, model);
 		exprDeltas[t] = delta.expr;
 		jawDeltas[t] = delta.jaw;
+		neckDeltas[t] = delta.neck;
 		jaw0Delta[t] = delta.jaw[0];
 	}
 
@@ -334,6 +352,11 @@ export function bakeArkitFlameFiltered(
 			jaw0,
 			rest[101] + p.jawScale * gT * jawDeltas[t][1],
 			rest[102] + p.jawScale * gT * jawDeltas[t][2],
+		];
+		kf.neckPose = [
+			rest[103] + gT * neckDeltas[t][0],
+			rest[104] + gT * neckDeltas[t][1],
+			rest[105] + gT * neckDeltas[t][2],
 		];
 		frames[t] = normalizeKeyframe(kf);
 	}
@@ -405,6 +428,11 @@ export function composeGatedKeyframe(
 		rest[101] + jawScale * gate * delta.jaw[1],
 		rest[102] + jawScale * gate * delta.jaw[2],
 	];
+	kf.neckPose = [
+		rest[103] + gate * delta.neck[0],
+		rest[104] + gate * delta.neck[1],
+		rest[105] + gate * delta.neck[2],
+	];
 	return { keyframe: normalizeKeyframe(kf), jaw0 };
 }
 
@@ -412,5 +440,6 @@ export function emptyRestKeyframe(model: Arkit2FlameModel): FlameKeyframe {
 	const kf = zeroKeyframe();
 	kf.expression = Array.from(model.rest.subarray(0, 100));
 	kf.jawPose = [model.rest[100], model.rest[101], model.rest[102]];
+	kf.neckPose = [model.rest[103], model.rest[104], model.rest[105]];
 	return normalizeKeyframe(kf);
 }

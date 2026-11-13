@@ -17,6 +17,7 @@ import {
 	type IdleLoopHandle,
 } from "@/lib/optimodel/idle-loop";
 import {
+	DEFAULT_NECK_SCALE,
 	SpeechOverlayController,
 	speechOverlayFromFlame,
 } from "@/lib/optimodel/speech-overlay";
@@ -94,7 +95,9 @@ export function OptiModelViewport({
 		let core: AvatarCoreLike | null = null;
 		let raf = 0;
 		let speaking = false;
-		const overlay = new SpeechOverlayController();
+		const overlay = new SpeechOverlayController({
+			neckScale: DEFAULT_NECK_SCALE,
+		});
 		const viewReady = { current: false };
 		const stats = new RenderStats();
 
