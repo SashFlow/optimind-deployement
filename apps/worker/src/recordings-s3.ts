@@ -33,6 +33,8 @@ export function getRecordingsS3Client(): {
 } {
 	if (!client || !config) {
 		config = getRecordingsS3Config();
+		// GCS HMAC rejects AWS SDK v3 default CRC32 flexible checksums on
+		// PutObject (SignatureDoesNotMatch / "Invalid argument.").
 		client = new S3Client({
 			region: config.region,
 			endpoint: config.endpoint,
@@ -41,6 +43,8 @@ export function getRecordingsS3Client(): {
 				accessKeyId: config.accessKey,
 				secretAccessKey: config.secret,
 			},
+			requestChecksumCalculation: "WHEN_REQUIRED",
+			responseChecksumValidation: "WHEN_REQUIRED",
 		});
 	}
 	return { client, config };

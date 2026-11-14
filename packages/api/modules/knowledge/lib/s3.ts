@@ -33,6 +33,8 @@ export function getKnowledgeS3Client() {
 			accessKeyId: storage.accessKeyId,
 			secretAccessKey: storage.secretAccessKey,
 		},
+		requestChecksumCalculation: "WHEN_REQUIRED",
+		responseChecksumValidation: "WHEN_REQUIRED",
 	});
 	return s3Client;
 }

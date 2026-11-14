@@ -42,6 +42,8 @@ function getS3ClientFromConfig(cfg: Record<string, unknown>) {
 		region,
 		...(endpoint ? { endpoint, forcePathStyle: true } : {}),
 		credentials: { accessKeyId, secretAccessKey },
+		requestChecksumCalculation: "WHEN_REQUIRED",
+		responseChecksumValidation: "WHEN_REQUIRED",
 	});
 }
 

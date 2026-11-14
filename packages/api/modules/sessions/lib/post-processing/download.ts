@@ -84,6 +84,8 @@ function createRecordingsS3Client() {
 			accessKeyId: cfg.accessKey,
 			secretAccessKey: cfg.secret,
 		},
+		requestChecksumCalculation: "WHEN_REQUIRED",
+		responseChecksumValidation: "WHEN_REQUIRED",
 	});
 }
 

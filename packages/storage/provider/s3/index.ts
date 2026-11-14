@@ -34,6 +34,9 @@ export const getS3Client = () => {
 			accessKeyId: config.accessKeyId,
 			secretAccessKey: config.secretAccessKey,
 		},
+		// GCS HMAC is incompatible with AWS SDK default flexible checksums.
+		requestChecksumCalculation: "WHEN_REQUIRED",
+		responseChecksumValidation: "WHEN_REQUIRED",
 	});
 
 	return s3Client;
