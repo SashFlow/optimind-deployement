@@ -92,7 +92,7 @@ type KnowledgeDocumentsTableProps = {
 	isLoading?: boolean;
 	isError?: boolean;
 	isDeleting?: boolean;
-	onAddDocument: () => void;
+	onAddDocument?: () => void;
 	onDeleteDocument: (documentId: string) => Promise<void> | void;
 };
 
@@ -206,14 +206,16 @@ export function KnowledgeDocumentsTable({
 						))}
 					</SelectContent>
 				</Select>
-				<Button
-					type="button"
-					className="rounded-full"
-					onClick={onAddDocument}
-				>
-					<PlusIcon className="size-4" />
-					Add document
-				</Button>
+				{onAddDocument ? (
+					<Button
+						type="button"
+						className="rounded-full"
+						onClick={onAddDocument}
+					>
+						<PlusIcon className="size-4" />
+						Add document
+					</Button>
+				) : null}
 			</div>
 		</>
 	);

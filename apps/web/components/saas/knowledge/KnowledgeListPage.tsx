@@ -20,8 +20,10 @@ import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 export function KnowledgeListPage() {
 	const router = useRouter();
 	const queryClient = useQueryClient();
-	const { activeOrganization } = useActiveOrganization();
+	const { activeOrganization, activeOrganizationUserRole } =
+		useActiveOrganization();
 	const organizationId = activeOrganization?.id ?? "";
+	const canCreateKnowledge = activeOrganizationUserRole !== "member";
 
 	const query = useQuery({
 		...orpc.knowledge.list.queryOptions({
@@ -86,7 +88,7 @@ export function KnowledgeListPage() {
 	const items = query.data?.knowledgeBases ?? [];
 	const isLoading = !organizationId || query.isPending;
 
-	const createDialog = (
+	const createDialog = canCreateKnowledge ? (
 		<ResourceCreateDialog
 			title="Knowledge"
 			description="Add a knowledge base for agents to search."
@@ -111,7 +113,7 @@ export function KnowledgeListPage() {
 				});
 			}}
 		/>
-	);
+	) : null;
 
 	return (
 		<FolderTabs defaultValue="knowledge-base" className="h-full">
@@ -121,7 +123,9 @@ export function KnowledgeListPage() {
 						Knowledge Base
 					</FolderTabsTrigger>
 				</FolderTabsList>
-				<FolderTabsActions>{createDialog}</FolderTabsActions>
+				{createDialog ? (
+					<FolderTabsActions>{createDialog}</FolderTabsActions>
+				) : null}
 			</FolderTabsBar>
 			<FolderTabsContent value="knowledge-base">
 				<ResourcePage

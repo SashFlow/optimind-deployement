@@ -9,14 +9,16 @@ import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 
 export function CampaignCreateAction() {
 	const queryClient = useQueryClient();
-	const { activeOrganization } = useActiveOrganization();
+	const { activeOrganization, activeOrganizationUserRole } =
+		useActiveOrganization();
 	const organizationId = activeOrganization?.id ?? "";
+	const canCreateCampaigns = activeOrganizationUserRole !== "member";
 
 	const agentsQuery = useQuery({
 		...orpc.agents.list.queryOptions({
 			input: { organizationId },
 		}),
-		enabled: !!organizationId,
+		enabled: !!organizationId && canCreateCampaigns,
 	});
 
 	const listQueryKey = orpc.campaigns.list.key({
@@ -36,6 +38,10 @@ export function CampaignCreateAction() {
 	);
 
 	const defaultAgentId = agentsQuery.data?.agents[0]?.id;
+
+	if (!canCreateCampaigns) {
+		return null;
+	}
 
 	return (
 		<ResourceCreateDialog

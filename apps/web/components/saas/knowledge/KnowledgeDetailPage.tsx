@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AddDocumentDialog } from "@/components/saas/knowledge/AddDocumentDialog";
 import { KnowledgeDocumentsTable } from "@/components/saas/knowledge/KnowledgeDocumentsTable";
 import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import {
 	useCreateDocumentMutation,
 	useDeleteDocumentMutation,
@@ -15,6 +16,8 @@ import {
 
 export function KnowledgeDetailPage({ sourceId }: { sourceId: string }) {
 	const [addOpen, setAddOpen] = useState(false);
+	const { activeOrganizationUserRole } = useActiveOrganization();
+	const canCreateDocuments = activeOrganizationUserRole !== "member";
 	const query = useKnowledgeBaseQuery(sourceId);
 	const createMutation = useCreateDocumentMutation(sourceId, {
 		onSuccess: (doc) =>
@@ -65,18 +68,22 @@ export function KnowledgeDetailPage({ sourceId }: { sourceId: string }) {
 				isLoading={query.isFetching && !kb.documents.length}
 				isError={query.isError}
 				isDeleting={deleteMutation.isPending}
-				onAddDocument={() => setAddOpen(true)}
+				onAddDocument={
+					canCreateDocuments ? () => setAddOpen(true) : undefined
+				}
 				onDeleteDocument={async (documentId) => {
 					await deleteMutation.mutateAsync(documentId);
 				}}
 			/>
 
-			<AddDocumentDialog
-				open={addOpen}
-				onOpenChange={setAddOpen}
-				isPending={createMutation.isPending}
-				onCreate={(input) => createMutation.mutateAsync(input)}
-			/>
+			{canCreateDocuments ? (
+				<AddDocumentDialog
+					open={addOpen}
+					onOpenChange={setAddOpen}
+					isPending={createMutation.isPending}
+					onCreate={(input) => createMutation.mutateAsync(input)}
+				/>
+			) : null}
 		</section>
 	);
 }

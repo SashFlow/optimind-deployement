@@ -119,7 +119,11 @@ export function useAdminSettingsActions() {
 	return context;
 }
 
-export function useSettingsPageAction(handler: () => void, label = "Create") {
+export function useSettingsPageAction(
+	handler: () => void,
+	label = "Create",
+	enabled = true,
+) {
 	const { registerAction } = useAdminSettingsActions();
 	const handlerRef = useRef(handler);
 
@@ -128,12 +132,16 @@ export function useSettingsPageAction(handler: () => void, label = "Create") {
 	});
 
 	useEffect(() => {
+		if (!enabled) {
+			registerAction(null);
+			return () => registerAction(null);
+		}
 		registerAction({
 			label,
 			run: () => handlerRef.current(),
 		});
 		return () => registerAction(null);
-	}, [registerAction, label]);
+	}, [registerAction, label, enabled]);
 }
 
 export function useSettingsBulkActions(handlers: BulkHandlers) {

@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import type { PropsWithChildren } from "react";
+import { ImpersonationBanner } from "@/components/saas/admin/ImpersonationBanner";
 import { ConfirmationAlertProvider } from "@/components/saas/shared/ConfirmationAlertProvider";
 import { SessionProvider } from "@/context/SessionProvider";
 import { sessionQueryKey } from "@/services/auth";
@@ -52,6 +53,7 @@ export default async function SaaSLayout({ children }: PropsWithChildren) {
 			<NextIntlClientProvider messages={messages}>
 				<HydrationBoundary state={dehydrate(queryClient)}>
 					<SessionProvider>
+						<ImpersonationBanner />
 						<ActiveOrganizationProvider>
 							<ConfirmationAlertProvider>
 								{children}

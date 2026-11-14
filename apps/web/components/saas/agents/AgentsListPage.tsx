@@ -21,8 +21,10 @@ import { createDefaultAgentConfig } from "@/lib/agent-config";
 export function AgentsListPage() {
 	const router = useRouter();
 	const queryClient = useQueryClient();
-	const { activeOrganization } = useActiveOrganization();
+	const { activeOrganization, activeOrganizationUserRole } =
+		useActiveOrganization();
 	const organizationId = activeOrganization?.id ?? "";
+	const canCreateAgents = activeOrganizationUserRole !== "member";
 
 	const agentsQuery = useQuery({
 		...orpc.agents.list.queryOptions({
@@ -95,7 +97,7 @@ export function AgentsListPage() {
 	const agents = agentsQuery.data?.agents ?? [];
 	const isLoading = !organizationId || agentsQuery.isPending;
 
-	const createDialog = (
+	const createDialog = canCreateAgents ? (
 		<ResourceCreateDialog
 			title="Create agent"
 			description="Add a new voice agent to this organization."
@@ -121,7 +123,7 @@ export function AgentsListPage() {
 				});
 			}}
 		/>
-	);
+	) : null;
 
 	return (
 		<FolderTabs defaultValue="agents" className="h-full">
@@ -129,7 +131,9 @@ export function AgentsListPage() {
 				<FolderTabsList>
 					<FolderTabsTrigger value="agents">Agents</FolderTabsTrigger>
 				</FolderTabsList>
-				<FolderTabsActions>{createDialog}</FolderTabsActions>
+				{createDialog ? (
+					<FolderTabsActions>{createDialog}</FolderTabsActions>
+				) : null}
 			</FolderTabsBar>
 			<FolderTabsContent value="agents">
 				<ResourcePage

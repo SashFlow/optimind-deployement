@@ -50,6 +50,8 @@ import {
 	PencilIcon,
 	SearchIcon,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -62,6 +64,8 @@ import { DataTable } from "@/components/saas/shared/StandardDataTable";
 import { TableBodySkeleton } from "@/components/saas/shared/skeletons";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useSettingsPageAction } from "@/context/AdminSettingsActionsProvider";
+import { useSession } from "@/context/SessionProvider";
+import { organizationListQueryKey } from "@/services/organization";
 import {
 	type Account,
 	type AccountMembership,
@@ -211,9 +215,15 @@ export function AdminUsers({
 }: {
 	isSuperAdmin?: boolean;
 }) {
+	const t = useTranslations();
+	const router = useRouter();
 	const queryClient = useQueryClient();
-	const { activeOrganization } = useActiveOrganization();
+	const { user: sessionUser, reloadSession } = useSession();
+	const { activeOrganization, activeOrganizationUserRole } =
+		useActiveOrganization();
 	const activeOrganizationId = activeOrganization?.id ?? null;
+	const canInviteMembers = activeOrganizationUserRole !== "member";
+	const currentUserId = sessionUser?.id ?? null;
 	const usersQuery = useQuery({
 		...orpc.admin.users.list.queryOptions({
 			input: {
@@ -329,10 +339,14 @@ export function AdminUsers({
 		}
 	};
 
-	useSettingsPageAction(() => {
-		resetInviteForm();
-		setInviteOpen(true);
-	}, "Invite");
+	useSettingsPageAction(
+		() => {
+			resetInviteForm();
+			setInviteOpen(true);
+		},
+		"Invite",
+		canInviteMembers,
+	);
 
 	const invalidateUsers = async () => {
 		await Promise.all([
@@ -343,6 +357,47 @@ export function AdminUsers({
 				queryKey: orpc.admin.invitations.list.key(),
 			}),
 		]);
+	};
+
+	const impersonateUser = async (user: Account) => {
+		if (
+			!isSuperAdmin ||
+			user.invite_pending ||
+			// user.role === "admin" ||
+			user.id === currentUserId
+		) {
+			return;
+		}
+
+		setBusyId(user.id);
+		try {
+			const { error } = await authClient.admin.impersonateUser({
+				userId: user.id,
+			});
+			if (error) {
+				toast.error(
+					error.message || t("admin.users.impersonation.error"),
+				);
+				return;
+			}
+
+			await reloadSession();
+			await queryClient.invalidateQueries({
+				queryKey: organizationListQueryKey,
+			});
+			toast.success(
+				t("admin.users.impersonation.started", { name: user.name }),
+			);
+			router.push("/app");
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: t("admin.users.impersonation.error"),
+			);
+		} finally {
+			setBusyId(null);
+		}
 	};
 
 	const setOrganizationMembership = async ({
@@ -998,6 +1053,20 @@ export function AdminUsers({
 											>
 												Change roles
 											</DropdownMenuItem>
+											{isSuperAdmin &&
+											user.id !== currentUserId ? (
+												<DropdownMenuItem
+													onClick={() => {
+														void impersonateUser(
+															user,
+														);
+													}}
+												>
+													{t(
+														"admin.users.impersonate",
+													)}
+												</DropdownMenuItem>
+											) : null}
 											<DropdownMenuSeparator />
 											<DropdownMenuItem
 												className="text-destructive focus:text-destructive"
@@ -1019,7 +1088,7 @@ export function AdminUsers({
 		);
 
 		return cols;
-	}, [activeOrganizationId, busyId, isSuperAdmin]);
+	}, [activeOrganizationId, busyId, currentUserId, isSuperAdmin, t]);
 
 	const isLoading =
 		usersQuery.isPending ||

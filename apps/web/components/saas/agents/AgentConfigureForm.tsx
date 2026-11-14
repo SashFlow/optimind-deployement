@@ -27,6 +27,7 @@ import { GeneralSection } from "@/components/saas/agents/configure/sections/Gene
 import { PromptsSection } from "@/components/saas/agents/configure/sections/PromptsSection";
 import { ToolsSection } from "@/components/saas/agents/configure/sections/ToolsSection";
 import { VoiceSection } from "@/components/saas/agents/configure/sections/VoiceSection";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import type { AgentConfigDocument } from "@/lib/agent-config";
 import {
 	conversationModelSupportsWebSearch,
@@ -42,7 +43,7 @@ import {
 } from "@/services/api/hooks";
 import type { Agent } from "@/services/api/types";
 
-const SECTIONS = [
+const ALL_SECTIONS = [
 	{ value: "preview", label: "Preview" },
 	{ value: "general", label: "General" },
 	{ value: "prompts", label: "Persona" },
@@ -53,7 +54,11 @@ const SECTIONS = [
 	{ value: "advanced", label: "Advanced" },
 ] as const;
 
-type SectionValue = (typeof SECTIONS)[number]["value"];
+const MEMBER_SECTIONS = [
+	{ value: "preview", label: "Preview" },
+] as const satisfies ReadonlyArray<(typeof ALL_SECTIONS)[number]>;
+
+type SectionValue = (typeof ALL_SECTIONS)[number]["value"];
 
 const SECTION_SCROLL_CLASS =
 	"min-h-0 flex-1 overflow-y-auto py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
@@ -92,6 +97,9 @@ export function AgentConfigureForm({
 	onSave,
 	onPublish,
 }: AgentConfigureFormProps) {
+	const { activeOrganizationUserRole } = useActiveOrganization();
+	const canEditAgent = activeOrganizationUserRole !== "member";
+	const sections = canEditAgent ? ALL_SECTIONS : MEMBER_SECTIONS;
 	const [activeSection, setActiveSection] = useState<SectionValue>("preview");
 	const llmModels = useProviderModelsQuery("llm").data ?? [];
 	const realtimeModels = useProviderModelsQuery("realtime").data ?? [];
@@ -116,6 +124,15 @@ export function AgentConfigureForm({
 	);
 
 	useEffect(() => {
+		if (!canEditAgent && activeSection !== "preview") {
+			setActiveSection("preview");
+		}
+	}, [activeSection, canEditAgent]);
+
+	useEffect(() => {
+		if (!canEditAgent) {
+			return;
+		}
 		if (!webSearchSupported && config.tools_config.web_search) {
 			onConfigChange({
 				...config,
@@ -125,9 +142,12 @@ export function AgentConfigureForm({
 				},
 			});
 		}
-	}, [webSearchSupported, config.tools_config.web_search]);
+	}, [canEditAgent, webSearchSupported, config.tools_config.web_search]);
 
 	function updateConfig(patch: Partial<AgentConfigDocument>) {
+		if (!canEditAgent) {
+			return;
+		}
 		onConfigChange({ ...config, ...patch });
 	}
 
@@ -142,176 +162,204 @@ export function AgentConfigureForm({
 				}
 				className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden"
 			>
-				<div className="flex shrink-0 items-center gap-3">
-					<div className="min-w-0 flex-1">
-						<Select
-							value={activeSection}
-							onValueChange={(value) =>
-								value && setActiveSection(value as SectionValue)
-							}
-						>
-							<SelectTrigger
-								aria-label="Configure section"
-								className="h-9 w-full rounded-full bg-sidebar shadow-sm ring-1 ring-black/5 min-[1250px]:hidden"
+				{canEditAgent ? (
+					<div className="flex shrink-0 items-center gap-3">
+						<div className="min-w-0 flex-1">
+							<Select
+								value={activeSection}
+								onValueChange={(value) =>
+									value &&
+									setActiveSection(value as SectionValue)
+								}
 							>
-								<SelectValue placeholder="Select section" />
-							</SelectTrigger>
-							<SelectContent>
-								{SECTIONS.map((section) => (
-									<SelectItem
-										key={section.value}
-										value={section.value}
-									>
-										{section.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-
-						<div className="scrollbar-none hidden min-w-0 overflow-x-auto min-[1250px]:block">
-							<TabsList className="h-9 w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
-								{SECTIONS.map((section) => {
-									const isActive =
-										activeSection === section.value;
-									return (
-										<TabsTrigger
+								<SelectTrigger
+									aria-label="Configure section"
+									className="h-9 w-full rounded-full bg-sidebar shadow-sm ring-1 ring-black/5 min-[1250px]:hidden"
+								>
+									<SelectValue placeholder="Select section" />
+								</SelectTrigger>
+								<SelectContent>
+									{sections.map((section) => (
+										<SelectItem
 											key={section.value}
 											value={section.value}
-											className={cn(
-												"h-7 flex-none gap-2 rounded-full px-4 py-0 shadow-none transition-colors",
-												isActive
-													? "bg-secondary text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground"
-													: "text-muted-foreground hover:text-foreground",
-											)}
 										>
 											{section.label}
-										</TabsTrigger>
-									);
-								})}
-							</TabsList>
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+
+							<div className="scrollbar-none hidden min-w-0 overflow-x-auto min-[1250px]:block">
+								<TabsList className="h-9 w-max gap-0.5 rounded-full bg-sidebar p-1 text-muted-foreground">
+									{sections.map((section) => {
+										const isActive =
+											activeSection === section.value;
+										return (
+											<TabsTrigger
+												key={section.value}
+												value={section.value}
+												className={cn(
+													"h-7 flex-none gap-2 rounded-full px-4 py-0 shadow-none transition-colors",
+													isActive
+														? "bg-secondary text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground"
+														: "text-muted-foreground hover:text-foreground",
+												)}
+											>
+												{section.label}
+											</TabsTrigger>
+										);
+									})}
+								</TabsList>
+							</div>
 						</div>
+						<ButtonGroup className="h-9 shrink-0">
+							<Button
+								type="button"
+								disabled={actionsBusy || !onPublish}
+								onClick={() => void onPublish?.()}
+								className="h-9"
+							>
+								{isPublishing
+									? "Publishing…"
+									: isSaving
+										? "Saving…"
+										: "Publish"}
+							</Button>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										disabled={actionsBusy}
+										aria-label="More save options"
+										className="h-9 px-2"
+									>
+										<ChevronDownIcon className="size-3.5" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuItem
+										disabled={
+											!isDirty || actionsBusy || !onSave
+										}
+										onClick={() => void onSave?.()}
+									>
+										Save
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										disabled={actionsBusy || !onPublish}
+										onClick={() => void onPublish?.()}
+									>
+										Publish
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</ButtonGroup>
 					</div>
-					<ButtonGroup className="h-9 shrink-0">
-						<Button
-							type="button"
-							disabled={actionsBusy || !onPublish}
-							onClick={() => void onPublish?.()}
-							className="h-9"
-						>
-							{isPublishing
-								? "Publishing…"
-								: isSaving
-									? "Saving…"
-									: "Publish"}
-						</Button>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									type="button"
-									disabled={actionsBusy}
-									aria-label="More save options"
-									className="h-9 px-2"
-								>
-									<ChevronDownIcon className="size-3.5" />
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								<DropdownMenuItem
-									disabled={
-										!isDirty || actionsBusy || !onSave
-									}
-									onClick={() => void onSave?.()}
-								>
-									Save
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									disabled={actionsBusy || !onPublish}
-									onClick={() => void onPublish?.()}
-								>
-									Publish
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</ButtonGroup>
-				</div>
+				) : null}
 
 				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-					<TabsContent value="general" className={SECTION_TAB_CLASS}>
-						<div className={SECTION_SCROLL_CLASS}>
-							<GeneralSection
-								config={config}
-								onConfigChange={updateConfig}
-								providers={providers}
-								llmModels={llmModels}
-								realtimeModels={realtimeModels}
-								liveModels={liveModels}
-								sttModels={sttModels}
-								ttsModels={ttsModels}
-								voices={voices}
-								knowledgeBases={knowledgeBases}
-							/>
-						</div>
-					</TabsContent>
+					{canEditAgent ? (
+						<>
+							<TabsContent
+								value="general"
+								className={SECTION_TAB_CLASS}
+							>
+								<div className={SECTION_SCROLL_CLASS}>
+									<GeneralSection
+										config={config}
+										onConfigChange={updateConfig}
+										providers={providers}
+										llmModels={llmModels}
+										realtimeModels={realtimeModels}
+										liveModels={liveModels}
+										sttModels={sttModels}
+										ttsModels={ttsModels}
+										voices={voices}
+										knowledgeBases={knowledgeBases}
+									/>
+								</div>
+							</TabsContent>
 
-					<TabsContent value="voice" className={SECTION_TAB_CLASS}>
-						<div className={SECTION_SCROLL_CLASS}>
-							<VoiceSection
-								config={config}
-								onConfigChange={updateConfig}
-							/>
-						</div>
-					</TabsContent>
+							<TabsContent
+								value="voice"
+								className={SECTION_TAB_CLASS}
+							>
+								<div className={SECTION_SCROLL_CLASS}>
+									<VoiceSection
+										config={config}
+										onConfigChange={updateConfig}
+									/>
+								</div>
+							</TabsContent>
 
-					<TabsContent value="avatar" className={SECTION_TAB_CLASS}>
-						<div className={SECTION_SCROLL_CLASS}>
-							<AvatarSection
-								config={config}
-								organizationId={organizationId}
-								onConfigChange={updateConfig}
-							/>
-						</div>
-					</TabsContent>
+							<TabsContent
+								value="avatar"
+								className={SECTION_TAB_CLASS}
+							>
+								<div className={SECTION_SCROLL_CLASS}>
+									<AvatarSection
+										config={config}
+										organizationId={organizationId}
+										onConfigChange={updateConfig}
+									/>
+								</div>
+							</TabsContent>
 
-					<TabsContent value="prompts" className={SECTION_TAB_CLASS}>
-						<div className={SECTION_SCROLL_CLASS}>
-							<PromptsSection
-								config={config}
-								onConfigChange={updateConfig}
-							/>
-						</div>
-					</TabsContent>
+							<TabsContent
+								value="prompts"
+								className={SECTION_TAB_CLASS}
+							>
+								<div className={SECTION_SCROLL_CLASS}>
+									<PromptsSection
+										config={config}
+										onConfigChange={updateConfig}
+									/>
+								</div>
+							</TabsContent>
 
-					<TabsContent value="call" className={SECTION_TAB_CLASS}>
-						<div className={SECTION_SCROLL_CLASS}>
-							<CallSessionSection
-								config={config}
-								onConfigChange={updateConfig}
-							/>
-						</div>
-					</TabsContent>
+							<TabsContent
+								value="call"
+								className={SECTION_TAB_CLASS}
+							>
+								<div className={SECTION_SCROLL_CLASS}>
+									<CallSessionSection
+										config={config}
+										onConfigChange={updateConfig}
+									/>
+								</div>
+							</TabsContent>
 
-					<TabsContent value="tools" className={SECTION_TAB_CLASS}>
-						<div className={SECTION_SCROLL_CLASS}>
-							<ToolsSection
-								config={config}
-								orgTools={tools}
-								organizationId={organizationId}
-								agentId={agent.id}
-								webSearchSupported={webSearchSupported}
-								onConfigChange={updateConfig}
-							/>
-						</div>
-					</TabsContent>
+							<TabsContent
+								value="tools"
+								className={SECTION_TAB_CLASS}
+							>
+								<div className={SECTION_SCROLL_CLASS}>
+									<ToolsSection
+										config={config}
+										orgTools={tools}
+										organizationId={organizationId}
+										agentId={agent.id}
+										webSearchSupported={webSearchSupported}
+										onConfigChange={updateConfig}
+									/>
+								</div>
+							</TabsContent>
 
-					<TabsContent value="advanced" className={SECTION_TAB_CLASS}>
-						<div className={SECTION_SCROLL_CLASS}>
-							<AdvancedSection
-								config={config}
-								onConfigChange={updateConfig}
-								versionId={versionId}
-							/>
-						</div>
-					</TabsContent>
+							<TabsContent
+								value="advanced"
+								className={SECTION_TAB_CLASS}
+							>
+								<div className={SECTION_SCROLL_CLASS}>
+									<AdvancedSection
+										config={config}
+										onConfigChange={updateConfig}
+										versionId={versionId}
+									/>
+								</div>
+							</TabsContent>
+						</>
+					) : null}
 
 					<TabsContent value="preview" className={SECTION_TAB_CLASS}>
 						<div className="flex min-h-0 flex-1 flex-col overflow-hidden">

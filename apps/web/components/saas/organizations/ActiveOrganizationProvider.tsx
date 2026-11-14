@@ -68,7 +68,7 @@ export function ActiveOrganizationProvider({
 
 	const setActiveOrganization = async (organizationSlug: string | null) => {
 		nProgress.start();
-		const { data: newActiveOrganization } =
+		const { data: newActiveOrganization, error } =
 			await authClient.organization.setActive(
 				organizationSlug
 					? {
@@ -78,6 +78,13 @@ export function ActiveOrganizationProvider({
 							organizationId: null,
 						},
 			);
+
+		if (error) {
+			nProgress.done();
+			throw new Error(
+				error.message || "Failed to set active organization",
+			);
+		}
 
 		if (!newActiveOrganization) {
 			nProgress.done();
@@ -121,9 +128,12 @@ export function ActiveOrganizationProvider({
 			isOrganizationListFetched) &&
 		(!resolvedSlug || isActiveOrganizationFetched);
 
-	const activeOrganizationUserRole = activeOrganization?.members.find(
+	const memberRole = activeOrganization?.members.find(
 		(member) => member.userId === session?.userId,
 	)?.role;
+	// Platform admins can access orgs without membership; treat them as admins.
+	const activeOrganizationUserRole =
+		memberRole ?? (user?.role === "admin" ? "admin" : null);
 
 	return (
 		<ActiveOrganizationContext.Provider

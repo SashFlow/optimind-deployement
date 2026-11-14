@@ -94,6 +94,20 @@ export async function countAllOrganizations() {
 	return db.organization.count();
 }
 
+export async function listAllOrganizations() {
+	return db.organization.findMany({
+		orderBy: { createdAt: "desc" },
+	});
+}
+
+export async function listOrganizationsForUser(userId: string) {
+	const memberships = await db.member.findMany({
+		where: { userId },
+		include: { organization: true },
+	});
+	return memberships.map((membership) => membership.organization);
+}
+
 export async function getOrganizationById(id: string) {
 	return db.organization.findUnique({
 		where: { id },
@@ -107,6 +121,42 @@ export async function getOrganizationById(id: string) {
 export async function getOrganizationBySlug(slug: string) {
 	return db.organization.findUnique({
 		where: { slug },
+	});
+}
+
+export async function getFullOrganizationByIdOrSlug({
+	organizationId,
+	organizationSlug,
+	membersLimit = 100,
+}: {
+	organizationId?: string | null;
+	organizationSlug?: string | null;
+	membersLimit?: number;
+}) {
+	if (!organizationId && !organizationSlug) {
+		return null;
+	}
+
+	return db.organization.findFirst({
+		where: organizationSlug
+			? { slug: organizationSlug }
+			: { id: organizationId ?? undefined },
+		include: {
+			invitations: true,
+			members: {
+				take: membersLimit,
+				include: {
+					user: {
+						select: {
+							id: true,
+							name: true,
+							email: true,
+							image: true,
+						},
+					},
+				},
+			},
+		},
 	});
 }
 

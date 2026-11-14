@@ -5,18 +5,21 @@ import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SendHorizonalIcon } from "lucide-react";
 import { toast } from "sonner";
+import { MemberPermissionEmpty } from "@/components/saas/shared/MemberPermissionEmpty";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 
 export function CampaignsListPage() {
 	const queryClient = useQueryClient();
-	const { activeOrganization } = useActiveOrganization();
+	const { activeOrganization, activeOrganizationUserRole } =
+		useActiveOrganization();
 	const organizationId = activeOrganization?.id ?? "";
+	const canCreateCampaigns = activeOrganizationUserRole !== "member";
 
 	const query = useQuery({
 		...orpc.campaigns.list.queryOptions({
 			input: { organizationId },
 		}),
-		enabled: !!organizationId,
+		enabled: !!organizationId && canCreateCampaigns,
 	});
 
 	const listQueryKey = orpc.campaigns.list.key({
@@ -58,6 +61,15 @@ export function CampaignsListPage() {
 			onError: (error) => toast.error(error.message),
 		}),
 	);
+
+	if (!canCreateCampaigns) {
+		return (
+			<MemberPermissionEmpty
+				title="You don't have permissions to create campaigns"
+				description="Campaigns are managed by organization owners and admins. Ask one of them if you need access."
+			/>
+		);
+	}
 
 	const campaigns = query.data?.campaigns ?? [];
 	const isLoading = !organizationId || query.isPending;

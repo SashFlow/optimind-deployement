@@ -29,6 +29,8 @@ import { parse as parseCookies } from "cookie";
 import { buildOrganizationInviteUrl } from "./lib/invite";
 import { updateSeatsInOrganizationSubscription } from "./lib/organization";
 import { invitationOnlyPlugin } from "./plugins/invitation-only";
+import { platformAdminOrgAccessPlugin } from "./plugins/platform-admin-org-access";
+import { resilientStopImpersonatingPlugin } from "./plugins/resilient-stop-impersonating";
 
 const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY?.trim();
 const recaptchaMinScore = Number.parseFloat(
@@ -214,7 +216,11 @@ export const auth = betterAuth({
 	},
 	plugins: [
 		username(),
-		admin(),
+		admin({
+			impersonationSessionDuration: 60 * 60,
+		}),
+		// After admin(): overrides stopImpersonating with admin_session cookie fallback.
+		resilientStopImpersonatingPlugin(),
 		passkey(),
 		magicLink({
 			disableSignUp: false,
@@ -254,6 +260,8 @@ export const auth = betterAuth({
 				});
 			},
 		}),
+		// After organization(): platform admins can list/set/load any org.
+		platformAdminOrgAccessPlugin(),
 		openAPI(),
 		invitationOnlyPlugin(),
 		twoFactor(),

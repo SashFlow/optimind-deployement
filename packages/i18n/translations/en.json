@@ -53,7 +53,13 @@
 			},
 			"impersonate": "Impersonate",
 			"impersonation": {
-				"impersonating": "Impersonating as {name}..."
+				"error": "Could not impersonate user. Please try again.",
+				"impersonating": "Impersonating as {name}...",
+				"started": "Now impersonating {name}",
+				"stop": "Stop impersonating",
+				"stopError": "Could not stop impersonating. Please try again.",
+				"stopped": "Stopped impersonating",
+				"stopping": "Stopping..."
 			},
 			"loading": "Loading users...",
 			"resendVerificationMail": {

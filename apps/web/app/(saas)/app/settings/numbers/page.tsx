@@ -13,6 +13,7 @@ import { useState } from "react";
 import { DispatchRulesPanel } from "@/components/saas/numbers/DispatchRulesPanel";
 import { NumbersInventory } from "@/components/saas/numbers/NumbersInventory";
 import { SipTrunksPanel } from "@/components/saas/numbers/SipTrunksPanel";
+import { MemberPermissionEmpty } from "@/components/saas/shared/MemberPermissionEmpty";
 import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 import { useAgentsQuery } from "@/hooks/numbers";
 import type { Agent } from "@/types/numbers";
@@ -21,13 +22,26 @@ type NumbersTab = "numbers" | "trunks" | "routing";
 
 export default function NumbersPageContent() {
 	const [tab, setTab] = useState<NumbersTab>("numbers");
-	const { activeOrganization, loaded } = useActiveOrganization();
+	const { activeOrganization, activeOrganizationUserRole, loaded } =
+		useActiveOrganization();
 	const activeOrganizationId = activeOrganization?.id ?? null;
-	const agentsQuery = useAgentsQuery(activeOrganizationId);
+	const canManageNumbers = activeOrganizationUserRole !== "member";
+	const agentsQuery = useAgentsQuery(
+		canManageNumbers ? activeOrganizationId : null,
+	);
 	const agents = (agentsQuery.data ?? []) as Agent[];
 
 	if (!loaded) {
 		return <Skeleton className="h-full" />;
+	}
+
+	if (!canManageNumbers) {
+		return (
+			<MemberPermissionEmpty
+				title="You don't have permissions to manage numbers"
+				description="Numbers are managed by organization owners and admins. Ask one of them if you need access."
+			/>
+		);
 	}
 
 	return (

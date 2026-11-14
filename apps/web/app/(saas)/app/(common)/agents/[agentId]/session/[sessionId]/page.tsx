@@ -19,10 +19,13 @@ import {
 import type { SessionDetail } from "@/components/saas/agents/lib/hooks";
 import { useSessionDetailQuery } from "@/components/saas/agents/lib/hooks";
 import { PageSectionSkeleton } from "@/components/saas/shared/skeletons";
+import { useActiveOrganization } from "@/context/ActiveOrganizationProvider";
 
 export default function AgentSessionPage() {
 	const params = useParams<{ agentId: string; sessionId: string }>();
 	const sessionQuery = useSessionDetailQuery(params.sessionId);
+	const { activeOrganizationUserRole } = useActiveOrganization();
+	const canViewEvents = activeOrganizationUserRole !== "member";
 
 	if (sessionQuery.isLoading) {
 		return <PageSectionSkeleton variant="detail" />;
@@ -49,7 +52,11 @@ export default function AgentSessionPage() {
 					<FolderTabsTrigger value="overview">
 						Overview
 					</FolderTabsTrigger>
-					<FolderTabsTrigger value="events">Events</FolderTabsTrigger>
+					{canViewEvents ? (
+						<FolderTabsTrigger value="events">
+							Events
+						</FolderTabsTrigger>
+					) : null}
 					<FolderTabsTrigger value="memories">
 						Memories
 					</FolderTabsTrigger>
@@ -62,9 +69,11 @@ export default function AgentSessionPage() {
 			<FolderTabsContent value="overview">
 				<AgentSessionDetail session={session} />
 			</FolderTabsContent>
-			<FolderTabsContent value="events" scrollable={false}>
-				<SessionEventsPanel events={events} />
-			</FolderTabsContent>
+			{canViewEvents ? (
+				<FolderTabsContent value="events" scrollable={false}>
+					<SessionEventsPanel events={events} />
+				</FolderTabsContent>
+			) : null}
 			<FolderTabsContent value="memories" scrollable={false}>
 				<SessionMemoriesPanel session={session} />
 			</FolderTabsContent>
