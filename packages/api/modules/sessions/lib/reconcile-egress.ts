@@ -58,20 +58,40 @@ function extractFileUrl(egressInfo: {
 const MAX_INT4 = 2_147_483_647;
 
 /**
+ * LiveKit EgressInfo startedAt/endedAt are unix nanoseconds (timeUnixNano).
+ * Values exceed Number.MAX_SAFE_INTEGER, so keep them as bigint.
+ */
+export function egressUnixNano(
+	value?: bigint | number | string | null,
+): bigint | undefined {
+	if (value == null) {
+		return undefined;
+	}
+	try {
+		const ns = typeof value === "bigint" ? value : BigInt(value);
+		if (ns <= BigInt(0)) {
+			return undefined;
+		}
+		return ns;
+	} catch {
+		return undefined;
+	}
+}
+
+const NS_PER_MS = BigInt(1_000_000);
+
+/**
  * LiveKit reports startedAt/endedAt as nanosecond bigints. Converts to a Date,
  * or undefined when missing / non-positive / non-finite.
  */
 export function egressTimestampToDate(
-	value?: bigint | number,
+	value?: bigint | number | string | null,
 ): Date | undefined {
-	if (value == null) {
+	const ns = egressUnixNano(value);
+	if (ns == null) {
 		return undefined;
 	}
-	const ns = Number(value);
-	if (!Number.isFinite(ns) || ns <= 0) {
-		return undefined;
-	}
-	const ms = Math.round(ns / 1_000_000);
+	const ms = Number(ns / NS_PER_MS);
 	if (!Number.isFinite(ms) || ms <= 0) {
 		return undefined;
 	}
@@ -84,15 +104,15 @@ export function egressTimestampToDate(
  * (e.g. endedAt before startedAt), so we never write an out-of-range value.
  */
 export function egressDurationMs(info: {
-	startedAt?: bigint | number;
-	endedAt?: bigint | number;
+	startedAt?: bigint | number | string | null;
+	endedAt?: bigint | number | string | null;
 }): number | undefined {
-	if (!info.startedAt || !info.endedAt) {
+	const startedAt = egressUnixNano(info.startedAt);
+	const endedAt = egressUnixNano(info.endedAt);
+	if (startedAt == null || endedAt == null || endedAt < startedAt) {
 		return undefined;
 	}
-	const ms = Math.round(
-		(Number(info.endedAt) - Number(info.startedAt)) / 1_000_000,
-	);
+	const ms = Number((endedAt - startedAt) / NS_PER_MS);
 	if (!Number.isFinite(ms) || ms < 0 || ms > MAX_INT4) {
 		return undefined;
 	}
@@ -101,8 +121,8 @@ export function egressDurationMs(info: {
 
 /** Fields we sync from LiveKit EgressInfo onto our EgressJob row. */
 export function egressTimingFields(info: {
-	startedAt?: bigint | number;
-	endedAt?: bigint | number;
+	startedAt?: bigint | number | string | null;
+	endedAt?: bigint | number | string | null;
 }): {
 	startedAt?: Date;
 	endedAt?: Date;
@@ -115,6 +135,37 @@ export function egressTimingFields(info: {
 		...(startedAt ? { startedAt } : {}),
 		...(endedAt ? { endedAt } : {}),
 		...(durationMs != null ? { durationMs } : {}),
+	};
+}
+
+/**
+ * Persist raw LiveKit timeUnixNano on metadata so the merge worker can align
+ * tracks without losing sub-ms precision (Date columns are ms only).
+ */
+export function egressTimingMetadata(
+	existingMetadata: unknown,
+	info: {
+		startedAt?: bigint | number | string | null;
+		endedAt?: bigint | number | string | null;
+	},
+): {
+	[key: string]: string | number | boolean | null;
+} {
+	const prev =
+		existingMetadata &&
+		typeof existingMetadata === "object" &&
+		!Array.isArray(existingMetadata)
+			? { ...(existingMetadata as Record<string, unknown>) }
+			: {};
+	const startedAtNs = egressUnixNano(info.startedAt);
+	const endedAtNs = egressUnixNano(info.endedAt);
+	// Cast through unknown — metadata may contain nested JSON (arrays/objects).
+	return {
+		...prev,
+		...(startedAtNs != null ? { startedAtNs: startedAtNs.toString() } : {}),
+		...(endedAtNs != null ? { endedAtNs: endedAtNs.toString() } : {}),
+	} as unknown as {
+		[key: string]: string | number | boolean | null;
 	};
 }
 
@@ -241,6 +292,7 @@ export async function reconcileEgressJob(job: EgressJobLike) {
 			...(destination ? { destination } : {}),
 			errorMessage: info.error || undefined,
 			...egressTimingFields(info),
+			metadata: egressTimingMetadata(job.metadata, info),
 		});
 	} catch (error) {
 		logger.warn("Failed to reconcile egress job", {

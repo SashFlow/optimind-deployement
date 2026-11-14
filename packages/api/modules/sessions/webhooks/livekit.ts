@@ -15,6 +15,7 @@ import {
 } from "../lib/post-processing";
 import {
 	egressTimingFields,
+	egressTimingMetadata,
 	mapLivekitEgressStatus,
 } from "../lib/reconcile-egress";
 
@@ -111,6 +112,7 @@ export async function livekitWebhookHandler(
 							: {}),
 						errorMessage: info.error || undefined,
 						...egressTimingFields(info),
+						metadata: egressTimingMetadata(job.metadata, info),
 					});
 
 					if (

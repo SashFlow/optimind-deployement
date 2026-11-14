@@ -1,0 +1,27 @@
+{
+	"name": "@repo/worker",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "dotenv -c -e ../../.env.local -e ../../.env -- tsx watch src/index.ts",
+		"start": "dotenv -c -e ../../.env.local -e ../../.env -- tsx src/index.ts",
+		"start:prod": "node --import tsx src/index.ts",
+		"type-check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.758.0",
+		"@repo/database": "workspace:*",
+		"@repo/jobs": "workspace:*",
+		"@repo/livekit": "workspace:*",
+		"@repo/logs": "workspace:*",
+		"bullmq": "^5.58.5",
+		"tsx": "^4.20.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.2.4",
+		"@repo/tsconfig": "workspace:*",
+		"@types/node": "^24.6.0",
+		"dotenv-cli": "^11.0.0",
+		"typescript": "5.9.2"
+	}
+}

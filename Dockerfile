@@ -1,3 +1,12 @@
+# SaaS / Next.js web app
+#
+#   docker build -t optimind-saas .
+#   pnpm docker:build:web
+#
+# Worker image:
+#   docker build -f Dockerfile.worker -t optimind-worker .
+#   pnpm docker:build:worker
+
 FROM node:22-alpine AS base
 
 ENV PNPM_HOME="/pnpm"
@@ -53,10 +62,6 @@ RUN test -d apps/web/public/_avatarkit \
 	&& test -f apps/web/public/spatialreal/sdk/unified_model_body.pb.gz \
 	&& test -d apps/web/public/spatialreal/avatars/samira-a0a234f5 \
 	&& test -d apps/web/public/spatialreal/avatars/sanjay-3c409ac5
-
-# COPY --from=installer /app/apps/web/.next/standalone ./
-# COPY --from=installer /app/apps/web/.next/static ./apps/web/.next/static
-# COPY --from=installer /app/apps/web/public ./apps/web/public
 
 USER nextjs
 EXPOSE 3000

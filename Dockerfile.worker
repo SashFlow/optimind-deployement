@@ -1,0 +1,58 @@
+# Track-merge BullMQ worker (FFmpeg + Redis)
+#
+#   docker build -f Dockerfile.worker -t optimind-worker .
+#   pnpm docker:build:worker
+#
+# Runtime env (minimum):
+#   REDIS_URL, DATABASE_URL, recordings S3 / GCS credentials
+
+FROM node:22-alpine AS base
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable
+
+
+FROM base AS builder
+WORKDIR /app
+
+COPY . .
+
+RUN pnpm dlx turbo@^2.8.17 prune --scope=@repo/worker --docker
+
+
+FROM base AS installer
+WORKDIR /app
+
+COPY --from=builder /app/out/json/ ./
+RUN pnpm install --frozen-lockfile
+
+COPY --from=builder /app/out/full/ ./
+# Prisma client for @repo/database (worker has no compile step; runs TS via tsx).
+RUN pnpm turbo run generate --filter=@repo/worker...
+
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# ffmpeg required for track merge; openssl for Prisma on Alpine.
+RUN apk add --no-cache libc6-compat openssl ffmpeg \
+	&& addgroup -S nodejs \
+	&& adduser -S worker -G nodejs
+
+COPY --from=installer --chown=worker:nodejs /app/apps/worker ./apps/worker
+COPY --from=installer --chown=worker:nodejs /app/packages ./packages
+COPY --from=installer --chown=worker:nodejs /app/node_modules ./node_modules
+COPY --from=installer --chown=worker:nodejs /app/package.json ./package.json
+COPY --from=installer --chown=worker:nodejs /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=installer --chown=worker:nodejs /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+USER worker
+WORKDIR /app/apps/worker
+
+# Env is injected by the host/orchestrator (no dotenv files in the image).
+CMD ["node", "--import", "tsx", "src/index.ts"]
