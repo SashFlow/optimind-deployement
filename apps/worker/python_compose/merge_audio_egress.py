@@ -18,8 +18,7 @@ from pathlib import Path
 
 import numpy as np
 import soundfile as sf
-import torch
-import torchaudio
+from scipy.signal import resample_poly
 
 DIR = Path(__file__).resolve().parent
 DEFAULT_AGENT = DIR / "case2/agent_audio.ogg"
@@ -44,13 +43,9 @@ def load_mono(path: Path, target_sr: int = TARGET_SR) -> tuple[np.ndarray, int]:
         audio = audio.mean(axis=1)
     audio = audio.astype(np.float32, copy=False)
     if sr != target_sr:
-        audio = (
-            torchaudio.functional.resample(
-                torch.tensor(audio, dtype=torch.float32), sr, target_sr
-            )
-            .numpy()
-            .astype(np.float32)
-        )
+        # Polyphase resample (same role as torchaudio.functional.resample).
+        g = np.gcd(sr, target_sr)
+        audio = resample_poly(audio, target_sr // g, sr // g).astype(np.float32)
         sr = target_sr
     return audio, sr
 

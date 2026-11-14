@@ -1,4 +1,4 @@
-# Track-merge BullMQ worker (FFmpeg + Python egress-canvas compose + Redis)
+# Track-merge BullMQ worker (FFmpeg + scipy egress-canvas compose + Redis)
 #
 #   docker build -f Dockerfile.worker -t optimind-worker .
 #   pnpm docker:build:worker
@@ -34,7 +34,6 @@ COPY --from=builder /app/out/full/ ./
 RUN pnpm turbo run generate --filter=@repo/worker...
 
 
-# Bookworm (glibc) so PyTorch CPU wheels install for audio resample.
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 
@@ -42,7 +41,7 @@ ENV NODE_ENV=production
 ENV COMPOSE_MERGE_PY=/app/apps/worker/python_compose/compose_merge.py
 ENV COMPOSE_MERGE_PYTHON=python3
 
-# ffmpeg for mux; python + torch for egress-canvas compose.
+# ffmpeg for mux; python (numpy/scipy/soundfile) for egress-canvas compose.
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
 		ffmpeg \
@@ -62,13 +61,10 @@ COPY --from=installer --chown=worker:nodejs /app/package.json ./package.json
 COPY --from=installer --chown=worker:nodejs /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=installer --chown=worker:nodejs /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Compose scripts + deps (CPU torch).
+# Compose scripts + deps (no PyTorch — resample via scipy).
 COPY --chown=worker:nodejs apps/worker/python_compose/ ./apps/worker/python_compose/
 
 RUN python3 -m pip install --no-cache-dir --break-system-packages \
-		--index-url https://download.pytorch.org/whl/cpu \
-		torch torchaudio \
-	&& python3 -m pip install --no-cache-dir --break-system-packages \
 		-r /app/apps/worker/python_compose/requirements.txt \
 	&& chown -R worker:nodejs /app/apps/worker/python_compose
 

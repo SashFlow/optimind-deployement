@@ -18,7 +18,7 @@ out to `python_compose/compose_merge.py`.
 - `REDIS_URL` pointing at a Redis instance
 - Recordings S3 credentials (`S3_BUCKET_RECORDINGS` + access keys; see root `.env.example`)
 - System `ffmpeg` on `PATH`
-- Python 3 with `numpy`, `soundfile`, `torch`, `torchaudio` (see `python_compose/requirements.txt`)
+- Python 3 with `numpy`, `soundfile`, `scipy` (see `python_compose/requirements.txt`)
 
 ## Run
 
