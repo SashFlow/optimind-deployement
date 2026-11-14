@@ -409,6 +409,9 @@ importers:
       bullmq:
         specifier: ^5.58.5
         version: 5.81.5
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
     devDependencies:
       '@biomejs/biome':
         specifier: 2.2.4
@@ -422,9 +425,6 @@ importers:
       dotenv-cli:
         specifier: ^11.0.0
         version: 11.0.0
-      tsx:
-        specifier: ^4.20.6
-        version: 4.21.0
       typescript:
         specifier: 5.9.2
         version: 5.9.2
