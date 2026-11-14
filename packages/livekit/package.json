@@ -13,7 +13,7 @@
 		"type-check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@livekit/protocol": "^1.45.8",
+		"@livekit/protocol": "1.50.4",
 		"livekit-server-sdk": "^2.15.3",
 		"zod": "^4.1.11"
 	},

@@ -1,4 +1,4 @@
-import { RoomConfiguration } from "@livekit/protocol";
+import { RoomConfiguration } from "livekit-server-sdk";
 import { buildDispatchMetadata } from "@repo/api/modules/sessions/lib/dispatch-metadata";
 import {
 	resolveSessionEndUser,

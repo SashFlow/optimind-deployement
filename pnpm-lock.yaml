@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@livekit/protocol': 1.50.4
   '@tanstack/query-core': 5.90.20
   '@tanstack/react-query': 5.90.20
   '@types/react': 19.0.0
@@ -70,8 +71,8 @@ importers:
         specifier: ^2.9.19
         version: 2.9.19(livekit-client@2.22.3(@types/dom-mediacapture-record@1.0.22))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tslib@2.8.1)
       '@livekit/protocol':
-        specifier: ^1.45.8
-        version: 1.45.8
+        specifier: 1.50.4
+        version: 1.50.4
       '@mediapipe/tasks-vision':
         specifier: ^1.0.1
         version: 1.0.1
@@ -447,8 +448,8 @@ importers:
         specifier: ^2.32.0
         version: 2.32.0
       '@livekit/protocol':
-        specifier: ^1.45.8
-        version: 1.45.8
+        specifier: 1.50.4
+        version: 1.50.4
       '@orpc/client':
         specifier: ^1.9.0
         version: 1.13.7(@opentelemetry/api@1.9.1)
@@ -707,8 +708,8 @@ importers:
   packages/livekit:
     dependencies:
       '@livekit/protocol':
-        specifier: ^1.45.8
-        version: 1.45.8
+        specifier: 1.50.4
+        version: 1.50.4
       livekit-server-sdk:
         specifier: ^2.15.3
         version: 2.15.3
@@ -2527,9 +2528,6 @@ packages:
 
   '@livekit/mutex@1.1.1':
     resolution: {integrity: sha512-EsshAucklmpuUAfkABPxJNhzj9v2sG7JuzFDL4ML1oJQSV14sqrpTYnsaOudMAw9yOaW53NU3QQTlUQoRs4czw==}
-
-  '@livekit/protocol@1.45.8':
-    resolution: {integrity: sha512-Q+l57E7w/xxOBFVWzdX5rkAZO7ffyF+rlDzNUYq2SU114+5aTyCq+PK4unaEVDNd4952Af7wteKr3sOgasGuaA==}
 
   '@livekit/protocol@1.50.4':
     resolution: {integrity: sha512-L1uggNQAqyY21smQY8AllyOYbcv9Me9TaxwuLytL1R8ck9nbYPmQLNwEDi3pOFGAMa5F8I2nUi2Jc59W5awxlA==}
@@ -10307,10 +10305,6 @@ snapshots:
       usehooks-ts: 3.1.1(react@19.2.3)
 
   '@livekit/mutex@1.1.1': {}
-
-  '@livekit/protocol@1.45.8':
-    dependencies:
-      '@bufbuild/protobuf': 1.10.1
 
   '@livekit/protocol@1.50.4':
     dependencies:

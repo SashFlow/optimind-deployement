@@ -1,4 +1,4 @@
-﻿import { type RoomConfiguration, SIPTransport } from "@livekit/protocol";
+﻿import { SIPTransport } from "@livekit/protocol";
 import {
 	AccessToken,
 	type AccessTokenOptions,
@@ -8,6 +8,7 @@ import {
 	EgressStatus,
 	EncodedFileOutput,
 	EncodedFileType,
+	type RoomConfiguration,
 	RoomServiceClient,
 	S3Upload,
 	SipClient,
