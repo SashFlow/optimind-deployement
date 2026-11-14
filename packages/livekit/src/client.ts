@@ -5,6 +5,7 @@ import {
 	AgentDispatchClient,
 	DirectFileOutput,
 	EgressClient,
+	EgressStatus,
 	EncodedFileOutput,
 	EncodedFileType,
 	RoomServiceClient,
@@ -21,6 +22,7 @@ import {
 } from "./config";
 import { type EgressS3Config, resolveEgressStorageOutput } from "./egress-s3";
 
+export { EgressStatus };
 export type { EgressS3Config, EgressStorageOutput } from "./egress-s3";
 export {
 	buildGCPUpload,

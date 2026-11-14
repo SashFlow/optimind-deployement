@@ -138,16 +138,46 @@ export function egressTimingFields(info: {
 	};
 }
 
+type EgressTimingSource = {
+	startedAt?: bigint | number | string | null;
+	endedAt?: bigint | number | string | null;
+	fileResults?: Array<{ startedAt?: bigint | number | string | null }>;
+	file?: { startedAt?: bigint | number | string | null };
+	/** LiveKit oneof — only read when case === "file". */
+	result?: { case?: string; value?: unknown };
+};
+
+/**
+ * FileInfo.startedAt is the media clock (when recording actually began).
+ * Prefer over EgressInfo.startedAt when aligning track egresses.
+ */
+export function egressFileStartedAtNs(
+	info: EgressTimingSource,
+): bigint | undefined {
+	const fromResults = info.fileResults?.[0]?.startedAt;
+	if (fromResults != null) {
+		return egressUnixNano(fromResults);
+	}
+	if (info.file?.startedAt != null) {
+		return egressUnixNano(info.file.startedAt);
+	}
+	if (info.result?.case === "file" && info.result.value) {
+		const value = info.result.value as {
+			startedAt?: bigint | number | string | null;
+		};
+		return egressUnixNano(value.startedAt);
+	}
+	return undefined;
+}
+
 /**
  * Persist raw LiveKit timeUnixNano on metadata so the merge worker can align
  * tracks without losing sub-ms precision (Date columns are ms only).
+ * Prefer fileStartedAtNs (FileInfo media clock) when present.
  */
 export function egressTimingMetadata(
 	existingMetadata: unknown,
-	info: {
-		startedAt?: bigint | number | string | null;
-		endedAt?: bigint | number | string | null;
-	},
+	info: EgressTimingSource,
 ): {
 	[key: string]: string | number | boolean | null;
 } {
@@ -159,11 +189,15 @@ export function egressTimingMetadata(
 			: {};
 	const startedAtNs = egressUnixNano(info.startedAt);
 	const endedAtNs = egressUnixNano(info.endedAt);
+	const fileStartedAtNs = egressFileStartedAtNs(info);
 	// Cast through unknown — metadata may contain nested JSON (arrays/objects).
 	return {
 		...prev,
 		...(startedAtNs != null ? { startedAtNs: startedAtNs.toString() } : {}),
 		...(endedAtNs != null ? { endedAtNs: endedAtNs.toString() } : {}),
+		...(fileStartedAtNs != null
+			? { fileStartedAtNs: fileStartedAtNs.toString() }
+			: {}),
 	} as unknown as {
 		[key: string]: string | number | boolean | null;
 	};
