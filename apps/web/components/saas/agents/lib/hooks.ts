@@ -229,6 +229,21 @@ export function useSessionDetailQuery(sessionId: string | null | undefined) {
 					value === "STARTING"
 				);
 			});
+			const hasComposite = egressJobs.some(
+				(job: { type?: string }) =>
+					(job.type ?? "").toUpperCase() === "ROOM_COMPOSITE",
+			);
+			const hasCompletedTracks = egressJobs.some(
+				(job: { type?: string; status?: string }) => {
+					const type = (job.type ?? "").toUpperCase();
+					const value = (job.status ?? "").toUpperCase();
+					return (
+						(type === "TRACK" || type === "PARTICIPANT") &&
+						value === "COMPLETE"
+					);
+				},
+			);
+			const awaitingComposite = hasCompletedTracks && !hasComposite;
 			const metadata = query.state.data?.session?.metadata;
 			const postProcessing =
 				metadata &&
@@ -248,6 +263,7 @@ export function useSessionDetailQuery(sessionId: string | null | undefined) {
 				status === "ACTIVE" ||
 				status === "QUEUED" ||
 				egressOpen ||
+				awaitingComposite ||
 				postProcessingOpen
 			) {
 				return 5_000;

@@ -104,6 +104,54 @@ function isAudioRecording(job: {
 	return candidates.some(isAudioUrl);
 }
 
+function isCompositeEgressJob(job: { type?: string | null }) {
+	return (job.type ?? "").toUpperCase() === "ROOM_COMPOSITE";
+}
+
+function isTrackEgressJob(job: { type?: string | null }) {
+	const type = (job.type ?? "").toUpperCase();
+	return type === "TRACK" || type === "PARTICIPANT";
+}
+
+function isOpenEgressStatus(status: string | undefined | null) {
+	const value = (status ?? "").toUpperCase();
+	return value === "STARTING" || value === "ACTIVE" || value === "ENDING";
+}
+
+function egressStatusLabel(status: string) {
+	switch (status.toUpperCase()) {
+		case "STARTING":
+			return "in queue";
+		case "ACTIVE":
+		case "ENDING":
+			return "processing";
+		case "COMPLETE":
+			return "complete";
+		case "FAILED":
+			return "failed";
+		case "ABORTED":
+			return "aborted";
+		default:
+			return status.toLowerCase();
+	}
+}
+
+function egressProgressCopy(status: string) {
+	const value = status.toUpperCase();
+	if (value === "STARTING") {
+		return {
+			title: "In queue",
+			description:
+				"Composite recording is queued and will appear here when ready.",
+		};
+	}
+	return {
+		title: "Processing",
+		description:
+			"Composite recording is being prepared. Playback will appear when it finishes.",
+	};
+}
+
 function isS3Url(url: string) {
 	return /^s3:\/\//i.test(url);
 }
@@ -375,9 +423,7 @@ function EgressStatusBadge({
 }) {
 	const isComplete = status === "COMPLETE" || Boolean(ready);
 	const isFailed = status === "FAILED" || status === "ABORTED";
-	const inProgress =
-		!ready &&
-		(status === "ACTIVE" || status === "ENDING" || status === "STARTING");
+	const inProgress = !ready && isOpenEgressStatus(status);
 
 	return (
 		<span
@@ -408,13 +454,51 @@ function EgressStatusBadge({
 					)}
 				/>
 			)}
-			{ready && status !== "COMPLETE" ? "ready" : status.toLowerCase()}
+			{ready && status !== "COMPLETE"
+				? "ready"
+				: egressStatusLabel(status)}
 		</span>
 	);
 }
 
-function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
+function EgressPendingState({
+	title,
+	description,
+}: {
+	title: string;
+	description: string;
+}) {
+	return (
+		<div className="flex min-h-[22rem] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-primary/25 bg-primary/5 px-4 text-center">
+			<span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+				<LoaderCircleIcon className="size-5 animate-spin" />
+			</span>
+			<div className="space-y-1">
+				<p className="text-sm font-medium text-foreground">{title}</p>
+				<p className="max-w-sm text-xs text-muted-foreground">
+					{description}
+				</p>
+			</div>
+		</div>
+	);
+}
+
+function EgressPanel({
+	jobs,
+	pendingFallback,
+}: {
+	jobs: EgressJobRow[];
+	pendingFallback?: { title: string; description: string } | null;
+}) {
 	if (jobs.length === 0) {
+		if (pendingFallback) {
+			return (
+				<EgressPendingState
+					title={pendingFallback.title}
+					description={pendingFallback.description}
+				/>
+			);
+		}
 		return (
 			<div className="flex min-h-[22rem] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 text-center">
 				<VideoIcon className="size-8 text-muted-foreground/40" />
@@ -434,17 +518,10 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 					job.destination?.filepath ||
 					(job.fileUrl && isS3Url(job.fileUrl) ? job.fileUrl : null);
 				const audioOnly = isAudioRecording(job);
-				const inProgress =
-					status === "ACTIVE" ||
-					status === "ENDING" ||
-					status === "STARTING";
+				const inProgress = isOpenEgressStatus(status);
+				const progressCopy = egressProgressCopy(status);
 				const durationLabel = formatDuration(job.durationMs);
 				const startedLabel = formatDateTime(job.startedAt);
-				const trackRole =
-					(job.type === "TRACK" || job.type === "PARTICIPANT") &&
-					job.metadata?.role
-						? job.metadata.role.replace(/_/g, " ")
-						: null;
 				const FileIcon = audioOnly ? FileAudioIcon : FileVideoIcon;
 
 				return (
@@ -461,11 +538,6 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 											" ",
 										)}
 									</p>
-									{trackRole ? (
-										<span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[11px] capitalize text-muted-foreground">
-											{trackRole}
-										</span>
-									) : null}
 									{durationLabel !== "—" ? (
 										<span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
 											<ClockIcon className="size-3" />
@@ -479,14 +551,49 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 									</p>
 								) : null}
 							</div>
-							<EgressStatusBadge
-								status={status}
-								ready={Boolean(playableUrl)}
-							/>
+							<div className="flex flex-col items-end gap-1.5">
+								<EgressStatusBadge
+									status={status}
+									ready={Boolean(playableUrl) && !inProgress}
+								/>
+								{playableUrl && !inProgress ? (
+									<div className="flex items-center gap-3 mr-3">
+										<Button
+											asChild
+											variant="ghost"
+											size="icon"
+											className="size-4 rounded-lg"
+										>
+											<a
+												href={playableUrl}
+												download={filename}
+												aria-label={`Download ${filename}`}
+											>
+												<DownloadIcon className="size-3" />
+											</a>
+										</Button>
+										<Button
+											asChild
+											variant="ghost"
+											size="icon"
+											className="size-4 rounded-lg"
+										>
+											<a
+												href={playableUrl}
+												target="_blank"
+												rel="noreferrer"
+												aria-label={`Open ${filename}`}
+											>
+												<ExternalLinkIcon className="size-3" />
+											</a>
+										</Button>
+									</div>
+								) : null}
+							</div>
 						</div>
 
 						<div className="space-y-3 p-4">
-							{playableUrl ? (
+							{playableUrl && !inProgress ? (
 								<EgressMediaPlayer
 									url={playableUrl}
 									audioOnly={audioOnly}
@@ -499,11 +606,10 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 									</span>
 									<div className="min-w-0">
 										<p className="text-sm font-medium text-foreground">
-											Recording in progress
+											{progressCopy.title}
 										</p>
 										<p className="text-xs text-muted-foreground">
-											Output will appear here when the
-											recording finishes.
+											{progressCopy.description}
 										</p>
 									</div>
 								</div>
@@ -526,69 +632,27 @@ function EgressPanel({ jobs }: { jobs: EgressJobRow[] }) {
 								</p>
 							)}
 
-							{(playableUrl || storedPath) && (
+							{(playableUrl || storedPath) && !inProgress ? (
 								<div className="space-y-2">
-									<p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-										Output files
-									</p>
 									<div className="flex items-center gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5 shadow-sm">
-										<span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-											<FileIcon className="size-4" />
-										</span>
 										<div className="min-w-0 flex-1">
-											<p className="truncate text-sm font-medium">
-												{filename}
+											<p className="truncate text-sm font-medium text-center">
+												Session Recording
 											</p>
-											<p className="text-xs text-muted-foreground">
+											{/* <p className="text-xs text-muted-foreground">
 												{[
 													sizeLabel,
 													durationLabel !== "—"
 														? durationLabel
 														: null,
-													inProgress
-														? "Recording"
-														: null,
 												]
 													.filter(Boolean)
 													.join(" · ") || "Recording"}
-											</p>
+											</p> */}
 										</div>
-										{playableUrl ? (
-											<div className="flex shrink-0 items-center gap-0.5">
-												<Button
-													asChild
-													variant="ghost"
-													size="icon"
-													className="size-8 rounded-lg"
-												>
-													<a
-														href={playableUrl}
-														download={filename}
-														aria-label={`Download ${filename}`}
-													>
-														<DownloadIcon className="size-4" />
-													</a>
-												</Button>
-												<Button
-													asChild
-													variant="ghost"
-													size="icon"
-													className="size-8 rounded-lg"
-												>
-													<a
-														href={playableUrl}
-														target="_blank"
-														rel="noreferrer"
-														aria-label={`Open ${filename}`}
-													>
-														<ExternalLinkIcon className="size-4" />
-													</a>
-												</Button>
-											</div>
-										) : null}
 									</div>
 								</div>
-							)}
+							) : null}
 						</div>
 					</div>
 				);
@@ -1549,6 +1613,30 @@ function SessionNavigator({ session }: { session: SessionDetail }) {
 
 export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 	const egressJobs = session.egressJobs ?? [];
+	const compositeJobs = useMemo(
+		() => egressJobs.filter(isCompositeEgressJob),
+		[egressJobs],
+	);
+	const recordingPendingFallback = useMemo(() => {
+		if (compositeJobs.length > 0) {
+			return null;
+		}
+		const trackJobs = egressJobs.filter(isTrackEgressJob);
+		if (trackJobs.length === 0) {
+			return null;
+		}
+		if (trackJobs.some((job) => isOpenEgressStatus(job.status))) {
+			return egressProgressCopy("ACTIVE");
+		}
+		if (
+			trackJobs.some(
+				(job) => (job.status ?? "").toUpperCase() === "COMPLETE",
+			)
+		) {
+			return egressProgressCopy("STARTING");
+		}
+		return null;
+	}, [compositeJobs.length, egressJobs]);
 	const collectedFields = Object.entries(
 		session.metadata?.collectedData ?? {},
 	);
@@ -1632,15 +1720,22 @@ export function AgentSessionDetail({ session }: { session: SessionDetail }) {
 								Recording
 							</CardTitle>
 						</div>
-						{egressJobs.length > 0 ? (
+						{compositeJobs.length > 0 ? (
 							<span className="text-xs text-muted-foreground">
-								{egressJobs.length}{" "}
-								{egressJobs.length === 1 ? "job" : "jobs"}
+								{compositeJobs.length}{" "}
+								{compositeJobs.length === 1 ? "job" : "jobs"}
+							</span>
+						) : recordingPendingFallback ? (
+							<span className="text-xs text-muted-foreground capitalize">
+								{recordingPendingFallback.title}
 							</span>
 						) : null}
 					</CardHeader>
 					<CardContent className="p-4">
-						<EgressPanel jobs={egressJobs} />
+						<EgressPanel
+							jobs={compositeJobs}
+							pendingFallback={recordingPendingFallback}
+						/>
 					</CardContent>
 				</Card>
 			</div>
