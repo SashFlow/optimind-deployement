@@ -394,9 +394,6 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.758.0
         version: 3.1090.0
-      '@livekit/protocol':
-        specifier: ^1.45.8
-        version: 1.50.4
       '@repo/database':
         specifier: workspace:*
         version: link:../../packages/database
