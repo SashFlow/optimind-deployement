@@ -6,6 +6,7 @@
 		"dev": "dotenv -c -e ../../.env.local -e ../../.env -- tsx watch src/index.ts",
 		"start": "dotenv -c -e ../../.env.local -e ../../.env -- tsx src/index.ts",
 		"start:prod": "node --import tsx src/index.ts",
+		"merge:local": "dotenv -c -e ../../.env.local -e ../../.env -- tsx src/cli/merge-local.ts",
 		"type-check": "tsc --noEmit"
 	},
 	"dependencies": {

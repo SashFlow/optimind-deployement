@@ -1,7 +1,6 @@
-import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, extname, join } from "node:path";
+import { basename, dirname, extname, join } from "node:path";
 import {
 	getAgentSessionById,
 	getEgressJobById,
@@ -11,6 +10,7 @@ import {
 import type { MergeTracksJobData } from "@repo/jobs";
 import { EgressStatus, listEgress, recordingFilepath } from "@repo/livekit";
 import { logger } from "@repo/logs";
+import { runComposeMerge } from "../compose-merge";
 import {
 	downloadObjectToFile,
 	getRecordingsS3Config,
@@ -24,6 +24,8 @@ type TrackRole = (typeof TRACK_ROLES)[number];
 const NS_PER_MS = BigInt(1_000_000);
 const NS_PER_S = BigInt(1_000_000_000);
 
+type TrackSource = "livekit" | "db";
+
 type TrackInput = {
 	role: TrackRole;
 	localPath: string;
@@ -34,6 +36,36 @@ type TrackInput = {
 	fileStartedAtNs?: bigint;
 	endedAtNs?: bigint;
 	egressId?: string;
+	source: TrackSource;
+	/** True when LiveKit had the role but object key came from DB. */
+	objectKeyFromDb?: boolean;
+};
+
+export type RunTrackMergeOptions = {
+	sessionId: string;
+	organizationId: string;
+	/** When set with persistJob, updates this egress job row. */
+	mergeJobId?: string;
+	/** Work / output directory (created if missing). */
+	workDir: string;
+	/** Keep downloaded tracks + merged file in workDir (CLI). */
+	keepLocalFiles?: boolean;
+	/** Upload composite to recordings bucket (default true for jobs). */
+	upload?: boolean;
+	/** Persist COMPLETE/FAILED on mergeJobId (default true when mergeJobId set). */
+	persistJob?: boolean;
+	/** Optional absolute path for merged.mp4 (defaults under workDir). */
+	outputPath?: string;
+};
+
+export type RunTrackMergeResult = {
+	roomName: string;
+	outputPath: string;
+	outputKey: string;
+	sizeBytes?: number;
+	t0Ns: string;
+	trackOffsetsS: Record<string, number>;
+	uploaded: boolean;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -130,142 +162,6 @@ function extensionFromKey(key: string, fallback: string): string {
 	return fallback;
 }
 
-async function runFfmpeg(args: string[]): Promise<void> {
-	await new Promise<void>((resolve, reject) => {
-		const child = spawn("ffmpeg", ["-y", ...args], {
-			stdio: ["ignore", "pipe", "pipe"],
-		});
-		let stderr = "";
-		child.stderr?.on("data", (chunk: Buffer) => {
-			stderr += chunk.toString("utf8");
-		});
-		child.on("error", (error) => {
-			reject(
-				error instanceof Error &&
-					(error as NodeJS.ErrnoException).code === "ENOENT"
-					? new Error("ffmpeg not found on PATH")
-					: error,
-			);
-		});
-		child.on("close", (code) => {
-			if (code === 0) {
-				resolve();
-				return;
-			}
-			const tail = stderr.trim().slice(-2000);
-			reject(new Error(`ffmpeg exited with code ${code}: ${tail}`));
-		});
-	});
-}
-
-function delayMsForAdelay(delayS: number): string {
-	// adelay accepts milliseconds; keep fractional ms from ns alignment.
-	const ms = Math.max(0, delayS * 1000);
-	return ms.toFixed(3);
-}
-
-async function mergeWithFfmpeg(
-	tracks: TrackInput[],
-	outputPath: string,
-): Promise<void> {
-	const byRole = new Map(tracks.map((t) => [t.role, t]));
-	const video = byRole.get("user_video");
-	const audios = [byRole.get("user_audio"), byRole.get("agent_audio")].filter(
-		(t): t is TrackInput => Boolean(t),
-	);
-
-	if (!video && audios.length === 0) {
-		throw new Error("No usable tracks to merge");
-	}
-
-	const inputArgs: string[] = [];
-	const filterParts: string[] = [];
-	let nextIndex = 0;
-
-	let videoMap: string[] = [];
-	if (video) {
-		const idx = nextIndex++;
-		inputArgs.push("-i", video.localPath);
-		if (video.delayS > 0) {
-			filterParts.push(
-				`[${idx}:v]tpad=start_mode=add:start_duration=${video.delayS.toFixed(9)}[vout]`,
-			);
-			videoMap = ["-map", "[vout]"];
-		} else {
-			videoMap = ["-map", `${idx}:v:0`];
-		}
-	}
-
-	const audioLabels: string[] = [];
-	for (const audio of audios) {
-		const idx = nextIndex++;
-		inputArgs.push("-i", audio.localPath);
-		const label = `a${audioLabels.length}`;
-		if (audio.delayS > 0) {
-			const delay = delayMsForAdelay(audio.delayS);
-			filterParts.push(`[${idx}:a]adelay=${delay}|${delay}[${label}]`);
-		} else {
-			filterParts.push(`[${idx}:a]anull[${label}]`);
-		}
-		audioLabels.push(`[${label}]`);
-	}
-
-	let audioMap: string[] = [];
-	if (audioLabels.length === 1) {
-		filterParts.push(`${audioLabels[0]}aresample=async=1[aout]`);
-		audioMap = ["-map", "[aout]"];
-	} else if (audioLabels.length > 1) {
-		filterParts.push(
-			`${audioLabels.join("")}amix=inputs=${audioLabels.length}:duration=longest:normalize=0[amixed]`,
-			`[amixed]aresample=async=1[aout]`,
-		);
-		audioMap = ["-map", "[aout]"];
-	}
-
-	const filterArgs =
-		filterParts.length > 0
-			? ["-filter_complex", filterParts.join(";")]
-			: [];
-
-	if (video) {
-		await runFfmpeg([
-			...inputArgs,
-			...filterArgs,
-			...videoMap,
-			...audioMap,
-			"-c:v",
-			"libx264",
-			"-preset",
-			"veryfast",
-			"-crf",
-			"23",
-			"-pix_fmt",
-			"yuv420p",
-			"-c:a",
-			"aac",
-			"-b:a",
-			"192k",
-			"-movflags",
-			"+faststart",
-			outputPath,
-		]);
-		return;
-	}
-
-	await runFfmpeg([
-		...inputArgs,
-		...filterArgs,
-		...audioMap,
-		"-c:a",
-		"aac",
-		"-b:a",
-		"192k",
-		"-movflags",
-		"+faststart",
-		outputPath,
-	]);
-}
-
 type LivekitTrackEgress = {
 	role: TrackRole;
 	egressId: string;
@@ -285,7 +181,6 @@ function extractFileResult(info: {
 	}>;
 	result?: {
 		case?: string;
-		// LiveKit oneof — only read when case === "file".
 		value?: unknown;
 	};
 }): {
@@ -327,10 +222,6 @@ function trackFilepathFromRequest(info: {
 		: undefined;
 }
 
-/**
- * LiveKit listEgress by room — same source as the Python merge script.
- * Prefer FileInfo.startedAt (media clock) over EgressInfo.startedAt.
- */
 async function fetchTracksFromLivekit(
 	roomName: string,
 ): Promise<LivekitTrackEgress[]> {
@@ -376,7 +267,6 @@ async function fetchTracksFromLivekit(
 		});
 	}
 
-	// Deduplicate by role — keep earliest align time (Python behaviour).
 	const byRole = new Map<TrackRole, LivekitTrackEgress>();
 	for (const track of tracks) {
 		const prev = byRole.get(track.role);
@@ -391,11 +281,13 @@ async function fetchTracksFromLivekit(
 
 async function resolveRoomName(opts: {
 	sessionId: string;
-	mergeJobId: string;
+	mergeJobId?: string;
 }): Promise<string> {
-	const mergeJob = await getEgressJobById(opts.mergeJobId);
-	if (mergeJob?.roomName?.trim()) {
-		return mergeJob.roomName.trim();
+	if (opts.mergeJobId) {
+		const mergeJob = await getEgressJobById(opts.mergeJobId);
+		if (mergeJob?.roomName?.trim()) {
+			return mergeJob.roomName.trim();
+		}
 	}
 
 	const jobs = await listEgressJobsByAgentSessionId(opts.sessionId);
@@ -413,43 +305,43 @@ async function resolveRoomName(opts: {
 	throw new Error("Cannot resolve roomName for track merge");
 }
 
-export async function handleMergeTracks(
-	data: MergeTracksJobData,
-): Promise<void> {
-	const { sessionId, organizationId, mergeJobId } = data;
-	logger.info("Starting track merge", { sessionId, mergeJobId });
+/**
+ * Shared merge pipeline for BullMQ jobs and the local CLI.
+ */
+export async function runTrackMerge(
+	opts: RunTrackMergeOptions,
+): Promise<RunTrackMergeResult> {
+	const {
+		sessionId,
+		organizationId,
+		mergeJobId,
+		workDir,
+		keepLocalFiles = false,
+		upload = true,
+		persistJob = Boolean(mergeJobId),
+		outputPath: outputPathOpt,
+	} = opts;
 
-	await updateEgressJob(mergeJobId, { status: "ACTIVE" });
-
-	const workDir = await mkdtemp(join(tmpdir(), "merge-tracks-"));
+	await mkdir(workDir, { recursive: true });
+	const scratchDir = keepLocalFiles
+		? workDir
+		: await mkdtemp(join(tmpdir(), "merge-tracks-"));
 
 	try {
 		const roomName = await resolveRoomName({ sessionId, mergeJobId });
 		const s3 = getRecordingsS3Config();
 
 		let livekitTracks: LivekitTrackEgress[] = [];
+		let livekitListFailed = false;
 		try {
 			livekitTracks = await fetchTracksFromLivekit(roomName);
 			logger.info("Fetched LiveKit track egresses", {
 				sessionId,
 				roomName,
 				roles: livekitTracks.map((t) => t.role),
-				offsets: Object.fromEntries(
-					(() => {
-						if (livekitTracks.length === 0) {
-							return [] as Array<[string, number]>;
-						}
-						const t0 = livekitTracks.reduce((a, b) =>
-							a.alignNs < b.alignNs ? a : b,
-						).alignNs;
-						return livekitTracks.map((t) => [
-							t.role,
-							Number(t.alignNs - t0) / Number(NS_PER_S),
-						]);
-					})(),
-				),
 			});
 		} catch (error) {
+			livekitListFailed = true;
 			logger.warn("LiveKit listEgress failed; falling back to DB jobs", {
 				sessionId,
 				roomName,
@@ -522,7 +414,6 @@ export async function handleMergeTracks(
 			}
 		}
 
-		// LiveKit is source of truth for timestamps/locations; DB fills gaps.
 		const byRole = new Map<
 			TrackRole,
 			{
@@ -533,7 +424,8 @@ export async function handleMergeTracks(
 				endedAtNs?: bigint;
 				objectKey: string | null;
 				egressId?: string;
-				source: "livekit" | "db";
+				source: TrackSource;
+				objectKeyFromDb: boolean;
 			}
 		>();
 
@@ -554,12 +446,23 @@ export async function handleMergeTracks(
 				objectKey,
 				egressId: track.egressId,
 				source: "livekit",
+				objectKeyFromDb: false,
 			});
 		}
 
 		for (const [role, dbTrack] of dbByRole) {
 			const existing = byRole.get(role);
 			if (!existing) {
+				logger.warn("Track role resolved from DB fallback", {
+					sessionId,
+					roomName,
+					role,
+					source: "db",
+					alignNs: dbTrack.alignNs.toString(),
+					egressId: dbTrack.egressId ?? null,
+					objectKey: dbTrack.key,
+					livekitListFailed,
+				});
 				byRole.set(role, {
 					role,
 					alignNs: dbTrack.alignNs,
@@ -569,14 +472,54 @@ export async function handleMergeTracks(
 					objectKey: dbTrack.key,
 					egressId: dbTrack.egressId,
 					source: "db",
+					objectKeyFromDb: true,
 				});
 				continue;
 			}
-			// Prefer LiveKit timestamps; keep DB object key if LiveKit lacked one.
 			if (!existing.objectKey && dbTrack.key) {
+				logger.warn("Track object key filled from DB fallback", {
+					sessionId,
+					roomName,
+					role,
+					source: "livekit",
+					objectKeyFromDb: true,
+					alignNs: existing.alignNs.toString(),
+					egressId: existing.egressId ?? null,
+					objectKey: dbTrack.key,
+				});
 				existing.objectKey = dbTrack.key;
+				existing.objectKeyFromDb = true;
 			}
 		}
+
+		logger.info("Track resolution sources", {
+			sessionId,
+			roomName,
+			livekitListFailed,
+			roles: Object.fromEntries(
+				TRACK_ROLES.map((role) => {
+					const t = byRole.get(role);
+					if (!t) {
+						return [role, null];
+					}
+					return [
+						role,
+						{
+							source: t.source,
+							objectKeyFromDb: t.objectKeyFromDb,
+							alignNs: t.alignNs.toString(),
+							egressId: t.egressId ?? null,
+							hasObjectKey: Boolean(t.objectKey),
+						},
+					];
+				}),
+			),
+		});
+
+		const downloadDir = keepLocalFiles
+			? join(workDir, "tracks")
+			: scratchDir;
+		await mkdir(downloadDir, { recursive: true });
 
 		const prepared: TrackInput[] = [];
 		for (const role of TRACK_ROLES) {
@@ -585,7 +528,7 @@ export async function handleMergeTracks(
 				continue;
 			}
 			const localPath = join(
-				workDir,
+				downloadDir,
 				`${role}${extensionFromKey(track.objectKey, role.includes("video") ? ".mp4" : ".ogg")}`,
 			);
 			const resolvedKey = await downloadObjectToFile(
@@ -601,14 +544,15 @@ export async function handleMergeTracks(
 				fileStartedAtNs: track.fileStartedAtNs,
 				endedAtNs: track.endedAtNs,
 				egressId: track.egressId,
+				source: track.source,
+				objectKeyFromDb: track.objectKeyFromDb,
 			});
 			logger.info("Downloaded track for merge", {
 				role,
 				key: resolvedKey,
 				source: track.source,
+				objectKeyFromDb: track.objectKeyFromDb,
 				alignNs: track.alignNs.toString(),
-				fileStartedAtNs: track.fileStartedAtNs?.toString() ?? null,
-				startedAtNs: track.startedAtNs?.toString() ?? null,
 			});
 		}
 
@@ -618,12 +562,14 @@ export async function handleMergeTracks(
 			);
 		}
 
-		const hasVideo = prepared.some((t) => t.role === "user_video");
-		const hasAudio = prepared.some(
-			(t) => t.role === "user_audio" || t.role === "agent_audio",
-		);
-		if (!hasVideo && !hasAudio) {
-			throw new Error("Merged inputs missing video and audio");
+		const userAudio = prepared.find((t) => t.role === "user_audio");
+		const agentAudio = prepared.find((t) => t.role === "agent_audio");
+		const userVideo = prepared.find((t) => t.role === "user_video");
+
+		if (!userAudio || !agentAudio) {
+			throw new Error(
+				"Merged inputs require user_audio and agent_audio tracks",
+			);
 		}
 
 		const t0 = prepared.reduce((a, b) =>
@@ -635,7 +581,7 @@ export async function handleMergeTracks(
 			track.delayS = Number(delayNs) / Number(NS_PER_S);
 		}
 
-		logger.info("Track merge timeline", {
+		logger.info("Track merge timeline (egress)", {
 			sessionId,
 			roomName,
 			t0Ns: t0.toString(),
@@ -650,81 +596,229 @@ export async function handleMergeTracks(
 			sessionId,
 			roomName,
 		});
-		const outputPath = join(workDir, basename(outputKey) || "merged.mp4");
-
-		await mergeWithFfmpeg(prepared, outputPath);
-
-		const { sizeBytes } = await uploadFileToObject(
-			outputKey,
-			outputPath,
-			"video/mp4",
+		const outBase = basename(outputKey).replace(/\.mp4$/i, "") || "merged";
+		const wavInScratch = join(scratchDir, `${outBase}.wav`);
+		const mergedInScratch = join(
+			scratchDir,
+			basename(outputKey) || "merged.mp4",
 		);
 
-		const endedNs = prepared
-			.map((t) => t.endedAtNs)
-			.filter((t): t is bigint => typeof t === "bigint");
-		const mergeStartedAt = new Date(Number(t0 / NS_PER_MS));
-		const mergeEndedNs =
-			endedNs.length > 0
-				? endedNs.reduce((a, b) => (a > b ? a : b))
-				: null;
-		const mergeEndedAt =
-			mergeEndedNs != null
-				? new Date(Number(mergeEndedNs / NS_PER_MS))
-				: undefined;
-		const durationMs =
-			mergeEndedNs != null && mergeEndedNs >= t0
-				? Number((mergeEndedNs - t0) / NS_PER_MS)
-				: undefined;
-
-		const mergeJob = jobs.find((j) => j.id === mergeJobId);
-		const priorMeta = asRecord(mergeJob?.metadata);
-		const fileUrl = `s3://${s3.bucket}/${outputKey}`;
-		await updateEgressJob(mergeJobId, {
-			status: "COMPLETE",
-			fileUrl,
-			outputUrls: [fileUrl],
-			destination: {
-				bucket: s3.bucket,
-				region: s3.region,
-				filepath: outputKey,
-				endpoint: s3.endpoint ?? null,
-			},
-			startedAt: mergeStartedAt,
-			endedAt: mergeEndedAt,
-			durationMs,
-			sizeBytes,
-			errorMessage: null,
-			metadata: {
-				...priorMeta,
-				source: "track_merge",
-				alignedBy: "fileStartedAtNs|startedAtNs",
-				roomName,
-				t0Ns: t0.toString(),
-				trackOffsetsS: Object.fromEntries(
-					prepared.map((t) => [t.role, Number(t.delayS.toFixed(9))]),
-				),
-				tracks: Object.fromEntries(
-					prepared.map((t) => [
-						t.role,
-						{
-							egressId: t.egressId ?? null,
-							alignNs: t.alignNs.toString(),
-							fileStartedAtNs:
-								t.fileStartedAtNs?.toString() ?? null,
-							startedAtNs: t.startedAtNs?.toString() ?? null,
-						},
-					]),
-				),
-			},
+		const composeResult = await runComposeMerge({
+			agentPath: agentAudio.localPath,
+			userPath: userAudio.localPath,
+			agentEgressNs: agentAudio.alignNs,
+			userEgressNs: userAudio.alignNs,
+			outWav: wavInScratch,
+			padS: 0.5,
+			...(userVideo
+				? {
+						videoPath: userVideo.localPath,
+						videoEgressNs: userVideo.alignNs,
+						videoOut: mergedInScratch,
+					}
+				: {}),
 		});
 
+		const finalOutput =
+			outputPathOpt ??
+			(keepLocalFiles
+				? join(workDir, userVideo ? "merged.mp4" : "merged_audio.wav")
+				: userVideo
+					? mergedInScratch
+					: wavInScratch);
+
+		const composeArtifact = userVideo ? mergedInScratch : wavInScratch;
+		if (finalOutput !== composeArtifact) {
+			await mkdir(dirname(finalOutput), { recursive: true });
+			await copyFile(composeArtifact, finalOutput);
+		}
+
+		if (
+			keepLocalFiles &&
+			composeResult.outWav !== join(workDir, "merged_audio.wav")
+		) {
+			const wavDest = join(workDir, "merged_audio.wav");
+			if (composeResult.outWav !== wavDest) {
+				await copyFile(composeResult.outWav, wavDest).catch(
+					() => undefined,
+				);
+			}
+		}
+
+		const trackOffsetsS = Object.fromEntries(
+			prepared.map((t) => [t.role, Number(t.delayS.toFixed(9))]),
+		);
+		const trackSources = Object.fromEntries(
+			prepared.map((t) => [
+				t.role,
+				{
+					source: t.source,
+					objectKeyFromDb: Boolean(t.objectKeyFromDb),
+				},
+			]),
+		);
+
+		if (keepLocalFiles) {
+			await writeFile(
+				join(workDir, "merge_diagnostics.json"),
+				JSON.stringify(
+					{
+						sessionId,
+						roomName,
+						t0Ns: t0.toString(),
+						trackOffsetsS,
+						trackSources,
+						compose: composeResult,
+						tracks: prepared.map((t) => ({
+							role: t.role,
+							localPath: t.localPath,
+							delayS: t.delayS,
+							alignNs: t.alignNs.toString(),
+							egressId: t.egressId ?? null,
+							source: t.source,
+							objectKeyFromDb: Boolean(t.objectKeyFromDb),
+						})),
+					},
+					null,
+					2,
+				),
+				"utf8",
+			);
+		}
+
+		let sizeBytes: number | undefined;
+		let uploaded = false;
+		if (upload) {
+			const contentType = userVideo ? "video/mp4" : "audio/wav";
+			const uploadKey = userVideo
+				? outputKey
+				: outputKey.replace(/\.mp4$/i, ".wav");
+			const uploadedInfo = await uploadFileToObject(
+				uploadKey,
+				finalOutput,
+				contentType,
+			);
+			sizeBytes = uploadedInfo.sizeBytes;
+			uploaded = true;
+		} else {
+			const { stat } = await import("node:fs/promises");
+			sizeBytes = (await stat(finalOutput)).size;
+		}
+
+		const resolvedOutputKey = userVideo
+			? outputKey
+			: outputKey.replace(/\.mp4$/i, ".wav");
+
+		if (persistJob && mergeJobId) {
+			const endedNs = prepared
+				.map((t) => t.endedAtNs)
+				.filter((t): t is bigint => typeof t === "bigint");
+			const mergeStartedAt = new Date(Number(t0 / NS_PER_MS));
+			const mergeEndedNs =
+				endedNs.length > 0
+					? endedNs.reduce((a, b) => (a > b ? a : b))
+					: null;
+			const mergeEndedAt =
+				mergeEndedNs != null
+					? new Date(Number(mergeEndedNs / NS_PER_MS))
+					: undefined;
+			const durationMs =
+				mergeEndedNs != null && mergeEndedNs >= t0
+					? Number((mergeEndedNs - t0) / NS_PER_MS)
+					: undefined;
+
+			const mergeJob = jobs.find((j) => j.id === mergeJobId);
+			const priorMeta = asRecord(mergeJob?.metadata);
+			const fileUrl = `s3://${s3.bucket}/${resolvedOutputKey}`;
+			await updateEgressJob(mergeJobId, {
+				status: "COMPLETE",
+				fileUrl,
+				outputUrls: [fileUrl],
+				destination: {
+					bucket: s3.bucket,
+					region: s3.region,
+					filepath: resolvedOutputKey,
+					endpoint: s3.endpoint ?? null,
+				},
+				startedAt: mergeStartedAt,
+				endedAt: mergeEndedAt,
+				durationMs,
+				sizeBytes,
+				errorMessage: null,
+				metadata: {
+					...priorMeta,
+					source: "track_merge",
+					alignedBy: "fileStartedAtNs|startedAtNs",
+					composeEngine: "python_egress_canvas",
+					roomName,
+					t0Ns: t0.toString(),
+					trackOffsetsS,
+					trackSources,
+					spanS: composeResult.spanS,
+					tracks: Object.fromEntries(
+						prepared.map((t) => [
+							t.role,
+							{
+								egressId: t.egressId ?? null,
+								alignNs: t.alignNs.toString(),
+								fileStartedAtNs:
+									t.fileStartedAtNs?.toString() ?? null,
+								startedAtNs: t.startedAtNs?.toString() ?? null,
+								delayS: Number(t.delayS.toFixed(9)),
+								source: t.source,
+								objectKeyFromDb: Boolean(t.objectKeyFromDb),
+							},
+						]),
+					),
+				},
+			});
+		}
+
+		return {
+			roomName,
+			outputPath: finalOutput,
+			outputKey: resolvedOutputKey,
+			sizeBytes,
+			t0Ns: t0.toString(),
+			trackOffsetsS,
+			uploaded,
+		};
+	} finally {
+		if (!keepLocalFiles && scratchDir !== workDir) {
+			await rm(scratchDir, { recursive: true, force: true }).catch(
+				() => undefined,
+			);
+		}
+	}
+}
+
+export async function handleMergeTracks(
+	data: MergeTracksJobData,
+): Promise<void> {
+	const { sessionId, organizationId, mergeJobId } = data;
+	logger.info("Starting track merge", { sessionId, mergeJobId });
+
+	await updateEgressJob(mergeJobId, { status: "ACTIVE" });
+
+	const workDir = await mkdtemp(join(tmpdir(), "merge-job-"));
+
+	try {
+		const result = await runTrackMerge({
+			sessionId,
+			organizationId,
+			mergeJobId,
+			workDir,
+			upload: true,
+			persistJob: true,
+			keepLocalFiles: false,
+		});
 		logger.info("Track merge complete", {
 			sessionId,
 			mergeJobId,
-			roomName,
-			outputKey,
-			sizeBytes,
+			roomName: result.roomName,
+			outputKey: result.outputKey,
+			sizeBytes: result.sizeBytes,
+			trackOffsetsS: result.trackOffsetsS,
 		});
 	} catch (error) {
 		const message =

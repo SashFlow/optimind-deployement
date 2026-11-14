@@ -1,4 +1,3 @@
-import { Worker } from "bullmq";
 import {
 	getBullMqConnection,
 	MERGE_TRACKS_JOB_NAME,
@@ -7,6 +6,7 @@ import {
 	mergeTracksJobDataSchema,
 } from "@repo/jobs";
 import { logger } from "@repo/logs";
+import { Worker } from "bullmq";
 import { handleMergeTracks } from "./handlers/merge-tracks";
 
 const connection = getBullMqConnection();

@@ -1,10 +1,10 @@
-# Track-merge BullMQ worker (FFmpeg + Redis)
+# Track-merge BullMQ worker (FFmpeg + Python egress-canvas compose + Redis)
 #
 #   docker build -f Dockerfile.worker -t optimind-worker .
 #   pnpm docker:build:worker
 #
 # Runtime env (minimum):
-#   REDIS_URL, DATABASE_URL, recordings S3 / GCS credentials
+#   REDIS_URL, DATABASE_URL, recordings S3 / GCS credentials, LiveKit creds
 
 FROM node:22-alpine AS base
 
@@ -34,15 +34,26 @@ COPY --from=builder /app/out/full/ ./
 RUN pnpm turbo run generate --filter=@repo/worker...
 
 
-FROM node:22-alpine AS runner
+# Bookworm (glibc) so PyTorch CPU wheels install for audio resample.
+FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV COMPOSE_MERGE_PY=/app/apps/worker/python_compose/compose_merge.py
+ENV COMPOSE_MERGE_PYTHON=python3
 
-# ffmpeg required for track merge; openssl for Prisma on Alpine.
-RUN apk add --no-cache libc6-compat openssl ffmpeg \
-	&& addgroup -S nodejs \
-	&& adduser -S worker -G nodejs
+# ffmpeg for mux; python + torch for egress-canvas compose.
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+		ffmpeg \
+		python3 \
+		python3-pip \
+		python3-venv \
+		libsndfile1 \
+		ca-certificates \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& groupadd -r nodejs \
+	&& useradd -r -g nodejs worker
 
 COPY --from=installer --chown=worker:nodejs /app/apps/worker ./apps/worker
 COPY --from=installer --chown=worker:nodejs /app/packages ./packages
@@ -50,6 +61,16 @@ COPY --from=installer --chown=worker:nodejs /app/node_modules ./node_modules
 COPY --from=installer --chown=worker:nodejs /app/package.json ./package.json
 COPY --from=installer --chown=worker:nodejs /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=installer --chown=worker:nodejs /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+# Compose scripts + deps (CPU torch).
+COPY --chown=worker:nodejs apps/worker/python_compose/ ./apps/worker/python_compose/
+
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+		--index-url https://download.pytorch.org/whl/cpu \
+		torch torchaudio \
+	&& python3 -m pip install --no-cache-dir --break-system-packages \
+		-r /app/apps/worker/python_compose/requirements.txt \
+	&& chown -R worker:nodejs /app/apps/worker/python_compose
 
 USER worker
 WORKDIR /app/apps/worker
