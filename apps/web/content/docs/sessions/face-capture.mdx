@@ -10,6 +10,13 @@ LiveKit RPC `start_face_capture` on the candidate (typically from a Python `@fun
 After a well-framed face is detected, the web client uploads a full-frame JPEG to the backend and
 notifies the agent via `add_context`.
 
+Capture is blocked while:
+
+- More than one face is visible
+- Spectacles / glasses are detected (MediaPipe landmark + pixel heuristic)
+- Headphones / earbuds are detected (optional customer TFLite model at
+  `/models/accessory-detector.tflite`)
+
 ## Setup
 
 1. In **Call Session**, enable **Face verification**

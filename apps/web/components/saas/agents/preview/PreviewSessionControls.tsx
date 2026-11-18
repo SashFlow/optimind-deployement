@@ -24,7 +24,7 @@ import {
 } from "@repo/ui/dialog";
 import { Spinner } from "@repo/ui/spinner";
 import { cn } from "@repo/ui/utils";
-import { ConnectionState, RoomEvent, Track } from "livekit-client";
+import { ConnectionState, Track } from "livekit-client";
 import {
 	MessageSquareIcon,
 	MicIcon,
@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useSessionReconnect } from "@/hooks/useSessionReconnect";
 import {
 	isClientRenderedAvatar,
 	type PreviewAvatar,
@@ -160,6 +161,9 @@ export function PreviewSessionControls({
 	spatiusAppId,
 	onSpatiusAttached,
 	serverUrl,
+	sessionId = null,
+	participantToken = null,
+	onParticipantTokenRefresh,
 	onEnd,
 	maxDurationSeconds = null,
 	chatMandatory = false,
@@ -179,6 +183,10 @@ export function PreviewSessionControls({
 	/** Unlock LiveKitRoom connect after Spatius AvatarKit attach. */
 	onSpatiusAttached?: () => void;
 	serverUrl?: string | null;
+	/** Enables mid-session reconnect via refreshParticipantToken. */
+	sessionId?: string | null;
+	participantToken?: string | null;
+	onParticipantTokenRefresh?: (token: string) => void;
 	onEnd: () => void;
 	maxDurationSeconds?: number | null;
 	chatMandatory?: boolean;
@@ -217,6 +225,15 @@ export function PreviewSessionControls({
 	const didConnectRef = useRef(false);
 	const onEndRef = useRef(onEnd);
 	onEndRef.current = onEnd;
+
+	const { reconnecting } = useSessionReconnect({
+		sessionId,
+		participantToken,
+		serverUrl,
+		isEndingRef,
+		onParticipantTokenRefresh,
+		onGiveUp: () => onEndRef.current(),
+	});
 
 	// Proctoring requires a published camera track; keep it on for the session.
 	useEffect(() => {
@@ -315,30 +332,10 @@ export function PreviewSessionControls({
 		return () => window.clearInterval(timer);
 	}, [isConnected, maxDurationSeconds, room]);
 
-	useEffect(() => {
-		function handleDisconnected() {
-			if (isEndingRef.current) {
-				return;
-			}
-			toast.error(
-				didConnectRef.current
-					? "Preview session disconnected"
-					: "Failed to connect to session",
-			);
-			onEndRef.current();
-		}
-		function handleMediaDeviceError(error: Error) {
-			toast.error(error.message || "Microphone access failed");
-		}
-		room.on(RoomEvent.Disconnected, handleDisconnected);
-		room.on(RoomEvent.MediaDevicesError, handleMediaDeviceError);
-		return () => {
-			room.off(RoomEvent.Disconnected, handleDisconnected);
-			room.off(RoomEvent.MediaDevicesError, handleMediaDeviceError);
-		};
-	}, [room]);
-
 	const statusLabel = (() => {
+		if (reconnecting) {
+			return "Reconnecting…";
+		}
 		if (!isConnected) {
 			return "Connecting…";
 		}
@@ -431,7 +428,7 @@ export function PreviewSessionControls({
 		<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 sm:static sm:inset-auto sm:min-h-72 sm:size-full">
 			<Spinner className="size-8 text-muted-foreground" />
 			<p className="text-center text-sm text-muted-foreground">
-				Connecting…
+				{reconnecting ? "Reconnecting…" : "Connecting…"}
 			</p>
 		</div>
 	);

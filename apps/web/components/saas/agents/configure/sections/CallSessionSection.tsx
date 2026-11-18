@@ -468,6 +468,24 @@ export function CallSessionSection({
 							})
 						}
 					/>
+					<ToggleField
+						label="Confirmation input"
+						description="Allow the agent to open a checkbox confirmation (“I accept”) for answers or declarations via a tool call."
+						checked={
+							config.session_modalities.confirmation_input
+								?.enabled === true
+						}
+						onCheckedChange={(enabled) =>
+							onConfigChange({
+								session_modalities: {
+									...config.session_modalities,
+									confirmation_input: {
+										enabled,
+									},
+								},
+							})
+						}
+					/>
 					<div className="space-y-2 border-b py-3 last:border-b-0">
 						<Label className="text-sm font-medium">
 							Location tracking

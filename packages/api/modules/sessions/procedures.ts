@@ -591,6 +591,9 @@ const DEFAULT_TRIAL_SESSION_MODALITIES = {
 	otp_input: {
 		enabled: false,
 	},
+	confirmation_input: {
+		enabled: false,
+	},
 	location_tracking: "disabled" as const,
 };
 
@@ -638,6 +641,12 @@ function normalizeTrialSessionModalities(
 		typeof source.otp_input === "object" &&
 		!Array.isArray(source.otp_input)
 			? (source.otp_input as Record<string, unknown>)
+			: {};
+	const confirmationInputRaw =
+		source.confirmation_input &&
+		typeof source.confirmation_input === "object" &&
+		!Array.isArray(source.confirmation_input)
+			? (source.confirmation_input as Record<string, unknown>)
 			: {};
 
 	return {
@@ -689,6 +698,12 @@ function normalizeTrialSessionModalities(
 			enabled: Boolean(
 				otpInputRaw.enabled ??
 					DEFAULT_TRIAL_SESSION_MODALITIES.otp_input.enabled,
+			),
+		},
+		confirmation_input: {
+			enabled: Boolean(
+				confirmationInputRaw.enabled ??
+					DEFAULT_TRIAL_SESSION_MODALITIES.confirmation_input.enabled,
 			),
 		},
 		location_tracking: asLocationTracking(
@@ -2222,6 +2237,8 @@ async function requireParticipantSession(args: {
 	sessionId: string;
 	headers: Headers;
 	participantToken?: string | null;
+	/** Shown when session status is not QUEUED/ACTIVE. */
+	inactiveMessage?: string;
 }) {
 	const token = readParticipantToken(args.headers, args.participantToken);
 	if (!token) {
@@ -2249,13 +2266,63 @@ async function requireParticipantSession(args: {
 		});
 	}
 	if (session.status !== "QUEUED" && session.status !== "ACTIVE") {
+		const prefix =
+			args.inactiveMessage ??
+			"Session is no longer accepting Aadhaar OKYC";
 		throw new ORPCError("BAD_REQUEST", {
-			message: `Session is no longer accepting Aadhaar OKYC (status: ${session.status})`,
+			message: `${prefix} (status: ${session.status})`,
 		});
 	}
 
-	return session;
+	return { session, claims, token };
 }
+
+/**
+ * Remint a LiveKit participant JWT for an in-progress session so the client
+ * can reconnect after a transient drop without starting a new session.
+ */
+export const refreshParticipantToken = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/{id}/participant-token/refresh",
+		tags: ["Sessions"],
+		summary:
+			"Remint a participant JWT for the same LiveKit room (participant JWT auth)",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			participantToken: z.string().min(1).optional(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		const { session, claims } = await requireParticipantSession({
+			sessionId: input.id,
+			headers: context.headers,
+			participantToken: input.participantToken,
+			inactiveMessage: "Session is no longer joinable",
+		});
+
+		const roomName = session.livekitRoomName;
+		if (!roomName) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Session has no LiveKit room",
+			});
+		}
+
+		const participantToken = await createParticipantToken({
+			identity: claims.identity,
+			name: claims.name,
+			roomName,
+		});
+		const cfg = getLiveKitConfig();
+		return {
+			sessionId: session.id,
+			roomName,
+			serverUrl: cfg.url,
+			participantToken,
+		};
+	});
 
 export const requestAadhaarOtp = publicProcedure
 	.route({
@@ -2282,7 +2349,7 @@ export const requestAadhaarOtp = publicProcedure
 			});
 		}
 
-		const session = await requireParticipantSession({
+		const { session } = await requireParticipantSession({
 			sessionId: input.id,
 			headers: context.headers,
 			participantToken: input.participantToken,
@@ -2341,7 +2408,7 @@ export const verifyAadhaarOtp = publicProcedure
 			});
 		}
 
-		const session = await requireParticipantSession({
+		const { session } = await requireParticipantSession({
 			sessionId: input.id,
 			headers: context.headers,
 			participantToken: input.participantToken,

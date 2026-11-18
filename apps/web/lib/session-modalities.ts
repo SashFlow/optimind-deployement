@@ -26,6 +26,9 @@ export const DEFAULT_SESSION_MODALITIES: SessionModalitiesConfig = {
 	otp_input: {
 		enabled: false,
 	},
+	confirmation_input: {
+		enabled: false,
+	},
 	location_tracking: "disabled",
 	post_processing: {
 		enabled: false,
@@ -87,6 +90,12 @@ export function normalizeSessionModalities(
 		typeof source.otp_input === "object" &&
 		!Array.isArray(source.otp_input)
 			? (source.otp_input as Record<string, unknown>)
+			: {};
+	const confirmationInputRaw =
+		source.confirmation_input &&
+		typeof source.confirmation_input === "object" &&
+		!Array.isArray(source.confirmation_input)
+			? (source.confirmation_input as Record<string, unknown>)
 			: {};
 	const postProcessingRaw =
 		source.post_processing &&
@@ -150,6 +159,12 @@ export function normalizeSessionModalities(
 			enabled: Boolean(
 				otpInputRaw.enabled ??
 					DEFAULT_SESSION_MODALITIES.otp_input.enabled,
+			),
+		},
+		confirmation_input: {
+			enabled: Boolean(
+				confirmationInputRaw.enabled ??
+					DEFAULT_SESSION_MODALITIES.confirmation_input.enabled,
 			),
 		},
 		location_tracking: asLocationTracking(

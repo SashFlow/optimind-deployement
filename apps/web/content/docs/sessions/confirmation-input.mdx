@@ -1,0 +1,77 @@
+---
+title: Confirmation input
+description: Agent-triggered checkbox confirmation for answers and declarations
+---
+
+# Confirmation input
+
+When `session_modalities.confirmation_input.enabled` is true, the agent can open a
+centered confirmation popover by calling LiveKit RPC `start_confirmation` on the
+candidate participant. The candidate checks an accept box (default label **I accept**)
+and confirms; the client notifies the agent via `add_context`.
+
+## Flow
+
+```
+Agent tool / perform_rpc("start_confirmation")
+  → Client opens ConfirmationPopover
+  → Candidate checks accept label → Confirm
+  → add_context type "confirmation_accepted" (action: generate_reply)
+  → Or Decline → add_context type "confirmation_declined"
+```
+
+## RPC: `start_confirmation` (agent → candidate)
+
+Optional JSON payload:
+
+```json
+{
+  "prompt": "I confirm that the answers I provided are true and complete.",
+  "acceptLabel": "I accept"
+}
+```
+
+- `prompt` — statement shown above the checkbox (required for a useful UX).
+- `acceptLabel` — checkbox label (default `I accept`).
+
+Response: `{ "started": true }`.
+
+## RPC: `add_context` — accepted
+
+```json
+{
+  "state": "The candidate accepted the on-screen confirmation…",
+  "action": "generate_reply",
+  "type": "confirmation_accepted",
+  "details": {
+    "prompt": "…",
+    "acceptLabel": "I accept",
+    "acceptedAt": 1710000000000
+  }
+}
+```
+
+## RPC: `add_context` — declined
+
+```json
+{
+  "state": "The candidate declined the on-screen confirmation…",
+  "action": "generate_reply",
+  "type": "confirmation_declined",
+  "details": {
+    "prompt": "…",
+    "declinedAt": 1710000000000
+  }
+}
+```
+
+## Agent usage
+
+Call `start_confirmation` after asking a regulatory or declaration question, wait for
+`confirmation_accepted` / `confirmation_declined`, then continue.
+
+## Related
+
+- [Worker contract](/docs/sessions/worker-contract)
+- UI: `apps/web/components/saas/agents/session/confirmation-popover.tsx`,
+  `apps/web/hooks/useConfirmationInput.ts`

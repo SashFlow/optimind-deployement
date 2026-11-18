@@ -161,6 +161,10 @@ export type SessionOtpInputConfig = {
 	enabled: boolean;
 };
 
+export type SessionConfirmationInputConfig = {
+	enabled: boolean;
+};
+
 export type SessionPostProcessingPrompts = {
 	face_liveness: string;
 	id_extraction: string;
@@ -226,6 +230,8 @@ export type SessionModalitiesConfig = {
 	memory: boolean;
 	proctoring: SessionProctoringConfig;
 	otp_input: SessionOtpInputConfig;
+	/** Agent can open an on-screen checkbox confirmation via RPC. */
+	confirmation_input: SessionConfirmationInputConfig;
 	/**
 	 * Browser geolocation before join: disabled (hidden), optional (can skip),
 	 * or mandatory (must grant to start).
@@ -468,6 +474,9 @@ export function createDefaultAgentConfig(): AgentConfigDocument {
 			otp_input: {
 				enabled: false,
 			},
+			confirmation_input: {
+				enabled: false,
+			},
 			location_tracking: "disabled",
 			post_processing: {
 				enabled: false,
@@ -602,6 +611,10 @@ export function normalizeAgentConfig(
 			otp_input: {
 				...defaults.session_modalities.otp_input,
 				...(c.session_modalities?.otp_input ?? {}),
+			},
+			confirmation_input: {
+				...defaults.session_modalities.confirmation_input,
+				...(c.session_modalities?.confirmation_input ?? {}),
 			},
 			location_tracking:
 				c.session_modalities?.location_tracking === "optional" ||

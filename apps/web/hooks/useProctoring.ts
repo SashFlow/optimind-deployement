@@ -27,12 +27,22 @@ import {
 	type BodyDetection,
 } from "@/lib/proctoring/bodyCapture";
 import {
+	createAccessoryDetector,
+	detectAccessories,
+} from "@/lib/proctoring/accessoryDetect";
+import {
 	boxDelta as faceBoxDelta,
 	captureFace,
 	evaluateFaceFraming,
 	type FaceCaptureResult,
 	type FaceDetection,
 } from "@/lib/proctoring/faceCapture";
+import {
+	createMicAnalyser,
+	evaluateLipSyncMismatch,
+	mouthOpennessFromLandmarks,
+	type MicAnalyser,
+} from "@/lib/proctoring/lipSyncCheck";
 import {
 	boxDelta,
 	captureIdCard,
@@ -77,6 +87,7 @@ interface Observation {
 	personCount: number;
 	devices: string[];
 	gazeAway: boolean;
+	mouthOpenness: number;
 }
 
 interface CheckState {
@@ -184,6 +195,7 @@ function observe(
 	const { multiplePeople, additionalDevice, gaze } = config.checks;
 
 	const faceCount = faceResult.faceLandmarks.length;
+	const primaryFace = faceResult.faceLandmarks[0];
 	return {
 		faceCount,
 		personCount: categories.filter(
@@ -199,6 +211,10 @@ function observe(
 			)
 			.map((c) => c.categoryName),
 		gazeAway: faceCount > 0 && isGazeAway(faceResult, gaze),
+		mouthOpenness:
+			faceCount === 1 && primaryFace
+				? mouthOpennessFromLandmarks(primaryFace)
+				: 0,
 	} satisfies Observation;
 }
 
@@ -211,7 +227,8 @@ interface AgentContext {
 		| "id_captured"
 		| "face_captured"
 		| "body_framing"
-		| "body_captured";
+		| "body_captured"
+		| "lip_sync_mismatch";
 	details?: Record<string, unknown>;
 }
 
@@ -318,7 +335,8 @@ export function useProctoring({
 	onBodyCapture,
 }: UseProctoringOptions = {}) {
 	const room = useRoomContext();
-	const { cameraTrack, isCameraEnabled } = useLocalParticipant();
+	const { cameraTrack, isCameraEnabled, microphoneTrack } =
+		useLocalParticipant();
 	const videoTrack =
 		cameraTrack?.track instanceof LocalVideoTrack
 			? cameraTrack.track
@@ -715,6 +733,13 @@ export function useProctoring({
 		let detectors: Detectors | undefined;
 		const checkStates = new Map<ProctoringViolation, CheckState>();
 		const video = attachHiddenVideo(videoTrack, "Proctoring");
+		let micAnalyser: MicAnalyser | null = null;
+		let lipState = { mismatchMs: 0, lastMouth: 0, lastMic: 0 };
+		let lipReportedAt = Number.NEGATIVE_INFINITY;
+		let lastLipTickAt = Date.now();
+
+		const micMediaTrack = microphoneTrack?.track?.mediaStreamTrack;
+		micAnalyser = createMicAnalyser(micMediaTrack);
 
 		const evaluate = (
 			type: ProctoringViolation,
@@ -764,6 +789,7 @@ export function useProctoring({
 				// Holding a card up to the camera would trip every check, so skip inference and forget
 				// any in-progress violations; they start fresh once capture ends.
 				checkStates.clear();
+				lipState = { mismatchMs: 0, lastMouth: 0, lastMic: 0 };
 			} else if (isVideoReady(video)) {
 				try {
 					const obs = observe(detectors, video, cfg);
@@ -799,6 +825,38 @@ export function useProctoring({
 						obs.faceCount === 1 && obs.gazeAway,
 						now,
 					);
+
+					// Lightweight lip-vs-mic check (proxy speaker heuristic).
+					if (obs.faceCount === 1 && micAnalyser) {
+						const deltaMs = Math.max(0, now - lastLipTickAt);
+						lastLipTickAt = now;
+						const lip = evaluateLipSyncMismatch(lipState, {
+							micLevel: micAnalyser.level(),
+							mouthOpenness: obs.mouthOpenness,
+							deltaMs,
+							now,
+							lastReportedAt: lipReportedAt,
+						});
+						lipState = lip.state;
+						lipReportedAt = lip.lastReportedAt;
+						if (lip.mismatch) {
+							toast.warning("Speech / lip mismatch", {
+								id: "proctoring-lip-sync",
+								description:
+									"Please speak yourself and keep your face visible while answering.",
+							});
+							void sendContext(room, {
+								state: "Microphone speech was detected without matching lip movement. The candidate may have someone else speaking for them.",
+								action: "generate_reply",
+								type: "lip_sync_mismatch",
+								details: {
+									micLevel: lip.state.lastMic,
+									mouthOpenness: lip.state.lastMouth,
+									at: now,
+								},
+							});
+						}
+					}
 				} catch (error) {
 					console.error("Proctoring: frame analysis failed", error);
 				}
@@ -837,10 +895,12 @@ export function useProctoring({
 			videoTrack.detach(video);
 			detectors?.face.close();
 			detectors?.objects.close();
+			micAnalyser?.close();
 		};
 	}, [
 		proctoringActive,
 		videoTrack,
+		microphoneTrack,
 		room,
 		wasmBaseUrl,
 		faceModelUrl,
@@ -952,6 +1012,8 @@ export function useProctoring({
 		let capturing = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		let faceLandmarker: FaceLandmarker | undefined;
+		let accessoryDetector: ObjectDetector | null = null;
+		const sampleCanvas = document.createElement("canvas");
 		const video = attachHiddenVideo(videoTrack, "Face capture");
 		const startedAt = Date.now();
 		let stableFrames = 0;
@@ -977,11 +1039,24 @@ export function useProctoring({
 						video,
 						performance.now(),
 					);
+					const accessories = detectAccessories(
+						accessoryDetector,
+						video,
+						{
+							minConfidence: cfg.accessoryMinConfidence,
+							labels: cfg.accessoryLabels,
+						},
+					);
 					const detection = evaluateFaceFraming(
 						result,
 						video.videoWidth,
 						video.videoHeight,
 						cfg,
+						{
+							video,
+							sampleCanvas,
+							earphonesDetected: accessories.detected,
+						},
 					);
 					const stable =
 						lastBox !== null &&
@@ -1057,8 +1132,13 @@ export function useProctoring({
 				} catch {
 					faceLandmarker = await create("CPU");
 				}
+				accessoryDetector = await createAccessoryDetector({
+					wasmBaseUrl: cfg.wasmBaseUrl,
+					modelAssetPath: cfg.faceCapture.accessoryModelUrl,
+				});
 				if (cancelled) {
 					faceLandmarker.close();
+					accessoryDetector?.close();
 					return;
 				}
 				void tick();
@@ -1078,6 +1158,7 @@ export function useProctoring({
 			clearTimeout(timer);
 			videoTrack.detach(video);
 			faceLandmarker?.close();
+			accessoryDetector?.close();
 		};
 	}, [cameraReady, videoTrack, mode, faceCaptureStatus, submitFaceCapture]);
 

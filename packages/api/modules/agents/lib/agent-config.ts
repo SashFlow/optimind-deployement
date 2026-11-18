@@ -262,6 +262,13 @@ export const agentConfigSchema = z
 					.passthrough()
 					.optional()
 					.default({ enabled: false }),
+				confirmation_input: z
+					.object({
+						enabled: z.boolean(),
+					})
+					.passthrough()
+					.optional()
+					.default({ enabled: false }),
 				location_tracking: z
 					.enum(["disabled", "optional", "mandatory"])
 					.optional()

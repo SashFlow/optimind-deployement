@@ -101,6 +101,17 @@ export interface FaceCaptureConfig {
 	jpegQuality: number;
 	/** Padding added around the detected face when cropping, as a fraction of the face size. */
 	cropPadding: number;
+	/** Block capture when landmark glasses heuristic fires. */
+	blockGlasses: boolean;
+	/**
+	 * URL/path to a customer-supplied TFLite ObjectDetector for headphones /
+	 * earbuds (e.g. `/models/accessory-detector.tflite`). Empty disables.
+	 */
+	accessoryModelUrl: string;
+	/** Minimum accessory detector score (0-1). */
+	accessoryMinConfidence: number;
+	/** Labels treated as earphones/headphones (lowercase). */
+	accessoryLabels: string[];
 }
 
 export interface BodyCaptureConfig {
@@ -259,6 +270,18 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 		minConfidence: 0.5,
 		jpegQuality: 0.92,
 		cropPadding: 0.2,
+		blockGlasses: true,
+		/** Drop your TFLite model at this public path to enable earphone gating. */
+		accessoryModelUrl: "/models/accessory-detector.tflite",
+		accessoryMinConfidence: 0.45,
+		accessoryLabels: [
+			"headphones",
+			"earbuds",
+			"earphones",
+			"headset",
+			"earphone",
+			"earbud",
+		],
 	},
 	bodyCapture: {
 		intervalMs: 150,

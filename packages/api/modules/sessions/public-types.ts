@@ -27,6 +27,9 @@ export type PublicAgentPreview = {
 		otp_input: {
 			enabled: boolean;
 		};
+		confirmation_input: {
+			enabled: boolean;
+		};
 		location_tracking: "disabled" | "optional" | "mandatory";
 	};
 	maxDurationSeconds: number | null;

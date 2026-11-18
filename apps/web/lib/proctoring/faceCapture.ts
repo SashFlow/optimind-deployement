@@ -3,6 +3,10 @@ import type {
 	NormalizedLandmark,
 } from "@mediapipe/tasks-vision";
 import type { FaceCaptureConfig } from "@/lib/proctoring/config";
+import {
+	detectGlassesFromLandmarks,
+	videoFrameImageData,
+} from "@/lib/proctoring/glassesDetect";
 import { boxDelta, type NormalizedRect } from "@/lib/proctoring/idCard";
 
 export type FaceCaptureHint =
@@ -11,6 +15,8 @@ export type FaceCaptureHint =
 	| "move_closer"
 	| "move_back"
 	| "center"
+	| "remove_glasses"
+	| "remove_earphones"
 	| "hold_steady";
 
 export const FACE_CAPTURE_HINTS: Record<FaceCaptureHint, string> = {
@@ -19,6 +25,8 @@ export const FACE_CAPTURE_HINTS: Record<FaceCaptureHint, string> = {
 	move_closer: "Move a little closer to the camera",
 	move_back: "Move a little farther from the camera",
 	center: "Center your face in the box",
+	remove_glasses: "Please remove your spectacles / glasses",
+	remove_earphones: "Please remove earphones or headphones",
 	hold_steady: "Hold steady…",
 };
 
@@ -30,6 +38,8 @@ export interface FaceDetection {
 	confidence: number;
 	box: NormalizedRect | null;
 	hint: FaceCaptureHint;
+	glassesDetected?: boolean;
+	earphonesDetected?: boolean;
 }
 
 export interface FaceCaptureResult {
@@ -84,12 +94,22 @@ function landmarksBox(landmarks: NormalizedLandmark[]): NormalizedRect {
 	};
 }
 
+export type EvaluateFaceFramingOptions = {
+	/** Current camera frame for glasses pixel sampling. */
+	video?: HTMLVideoElement | null;
+	/** Reused canvas for ImageData sampling. */
+	sampleCanvas?: HTMLCanvasElement;
+	/** True when accessory TFLite model detected headphones/earbuds. */
+	earphonesDetected?: boolean;
+};
+
 /** Evaluate whether a MediaPipe face result is well framed for capture. */
 export function evaluateFaceFraming(
 	result: FaceLandmarkerResult,
 	frameWidth: number,
 	frameHeight: number,
 	config: FaceCaptureConfig,
+	options: EvaluateFaceFramingOptions = {},
 ): FaceDetection {
 	const faces = result.faceLandmarks;
 	if (faces.length === 0) {
@@ -137,6 +157,19 @@ export function evaluateFaceFraming(
 		config.minConfidence;
 	const confidence = clamp(score, 0, 1);
 
+	let glassesDetected = false;
+	if (config.blockGlasses && options.video) {
+		const imageData = videoFrameImageData(
+			options.video,
+			options.sampleCanvas,
+		);
+		if (imageData) {
+			glassesDetected = detectGlassesFromLandmarks(landmarks, imageData);
+		}
+	}
+
+	const earphonesDetected = Boolean(options.earphonesDetected);
+
 	let hint: FaceCaptureHint = "hold_steady";
 	if (confidence < config.minConfidence) {
 		hint = "no_face";
@@ -149,6 +182,10 @@ export function evaluateFaceFraming(
 		offsetY > config.centerTolerance
 	) {
 		hint = "center";
+	} else if (glassesDetected) {
+		hint = "remove_glasses";
+	} else if (earphonesDetected) {
+		hint = "remove_earphones";
 	}
 
 	return {
@@ -157,6 +194,8 @@ export function evaluateFaceFraming(
 		confidence,
 		box,
 		hint,
+		glassesDetected,
+		earphonesDetected,
 	};
 }
 

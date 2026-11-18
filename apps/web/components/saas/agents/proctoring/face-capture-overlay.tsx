@@ -77,8 +77,9 @@ export function FaceCaptureOverlay() {
 						Verify your face
 					</h2>
 					<p className="text-muted-foreground text-sm">
-						Center your face in the oval. We capture and submit
-						automatically once you hold still.
+						Center your face in the oval. Remove glasses and
+						earphones. We capture and submit automatically once you
+						hold still.
 					</p>
 				</div>
 

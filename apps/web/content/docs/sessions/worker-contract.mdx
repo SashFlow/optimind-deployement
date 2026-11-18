@@ -252,6 +252,9 @@ Payload (JSON string):
       | "body_framing" | "body_captured"
       | "otp_submitted" | "otp_resend_requested"
       | "aadhaar_otp_verified" | "aadhaar_otp_failed"
+      | "confirmation_accepted" | "confirmation_declined"
+      | "customer_away" | "customer_back"
+      | "lip_sync_mismatch"
   details?: Record<string, unknown>
 }
 ```
@@ -263,6 +266,9 @@ Payload (JSON string):
 - `otp_submitted` includes `details.code`; the worker/agent validates the code.
 - `otp_resend_requested` asks the agent to resend the OTP out-of-band.
 - `aadhaar_otp_verified` / `aadhaar_otp_failed` are sent after the browser verifies (or fails) Aadhaar eKYC via Deepvue.
+- `confirmation_accepted` / `confirmation_declined` are sent from the confirmation popover.
+- `customer_away` / `customer_back` are sent when the browser tab is hidden/shown for several seconds during an active session.
+- `lip_sync_mismatch` is sent when mic energy is high but lip landmarks are not moving (possible proxy speaker).
 
 ### `start_id_capture` (agent → candidate)
 
@@ -298,6 +304,22 @@ Response: `{ "started": true }`.
 
 Registered only when `session_modalities.otp_input.enabled` is true. See
 [OTP input](/docs/sessions/otp-input).
+
+### `start_confirmation` (agent → candidate)
+
+Opens the checkbox confirmation popover. Optional payload:
+
+```json
+{
+  "prompt": "I confirm that the answers I provided are true and complete.",
+  "acceptLabel": "I accept"
+}
+```
+
+Response: `{ "started": true }`.
+
+Registered only when `session_modalities.confirmation_input.enabled` is true. See
+[Confirmation input](/docs/sessions/confirmation-input).
 
 ### `start_aadhaar_otp_input` (agent → candidate)
 
@@ -357,6 +379,7 @@ The report / terminal lifecycle handlers:
 | `POST` | `/api/sessions/{id}/egress` | Start room-composite egress → S3 |
 | `POST` | `/api/sessions/{id}/end` | Cancel session + delete LiveKit room |
 | `POST` | `/api/sessions/{id}/participant-files` | Participant JWT upload → `SessionFile` |
+| `POST` | `/api/sessions/{id}/participant-token/refresh` | Participant JWT → remint join token for reconnect |
 | `POST` | `/api/sessions/{id}/id-card-ocr` | Participant JWT → OCR latest ID card (fast LLM) |
 | `POST` | `/api/sessions/{id}/aadhaar/okyc/otp` | Participant JWT → request Aadhaar eKYC OTP (Deepvue) |
 | `POST` | `/api/sessions/{id}/aadhaar/okyc/otp/verify` | Participant JWT → verify Aadhaar eKYC OTP (Deepvue) |

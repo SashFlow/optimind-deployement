@@ -497,6 +497,13 @@ export function AgentConfigurePreview({
 				spatiusAppId={sessionCredentials.spatiusAppId}
 				onSpatiusAttached={spatiusHost.markAttached}
 				serverUrl={sessionCredentials.serverUrl}
+				sessionId={sessionCredentials.sessionId}
+				participantToken={sessionCredentials.token}
+				onParticipantTokenRefresh={(token) =>
+					setSessionCredentials((prev) =>
+						prev ? { ...prev, token } : prev,
+					)
+				}
 				onEnd={handleEndSession}
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
@@ -525,6 +532,9 @@ export function AgentConfigurePreview({
 				) : null}
 				<SessionInteractionProvider
 					otpInputEnabled={sessionModalities.otp_input.enabled}
+					confirmationInputEnabled={
+						sessionModalities.confirmation_input.enabled
+					}
 					sessionId={sessionCredentials.sessionId}
 					participantToken={sessionCredentials.token}
 				>
@@ -590,6 +600,7 @@ export function AgentConfigurePreview({
 		proctoringEnabled,
 		sessionCredentials,
 		sessionModalities.otp_input.enabled,
+		sessionModalities.confirmation_input.enabled,
 		sessionModalities.proctoring.proactive_response,
 		spatiusHost.connect,
 		spatiusHost.markAttached,

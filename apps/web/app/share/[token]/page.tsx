@@ -431,6 +431,11 @@ export default function SharedTrialPage() {
 				spatiusAppId={credentials.spatiusAppId}
 				onSpatiusAttached={spatiusHost.markAttached}
 				serverUrl={credentials.serverUrl}
+				sessionId={credentials.sessionId}
+				participantToken={credentials.token}
+				onParticipantTokenRefresh={(token) =>
+					setCredentials((prev) => (prev ? { ...prev, token } : prev))
+				}
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}
@@ -464,6 +469,9 @@ export default function SharedTrialPage() {
 					) : null}
 					<SessionInteractionProvider
 						otpInputEnabled={sessionModalities.otp_input.enabled}
+						confirmationInputEnabled={
+							sessionModalities.confirmation_input.enabled
+						}
 						sessionId={credentials.sessionId}
 						participantToken={credentials.token}
 					>

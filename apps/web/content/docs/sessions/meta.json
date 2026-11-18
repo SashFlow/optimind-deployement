@@ -6,6 +6,7 @@
 		"face-capture",
 		"body-capture",
 		"otp-input",
+		"confirmation-input",
 		"user-responses"
 	]
 }
