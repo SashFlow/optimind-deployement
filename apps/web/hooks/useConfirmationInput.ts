@@ -4,6 +4,7 @@ import { useRoomContext } from "@livekit/components-react";
 import { ParticipantKind, type Room } from "livekit-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useDeferUntilAgentTurnEnd } from "@/hooks/useDeferUntilAgentTurnEnd";
 
 /** RPC the agent can call on the candidate to open the confirmation popover. */
 export const START_CONFIRMATION_RPC = "start_confirmation";
@@ -83,6 +84,7 @@ export function useConfirmationInput({
 	enabled = false,
 }: UseConfirmationInputOptions = {}) {
 	const room = useRoomContext();
+	const runAfterAgentTurnEnd = useDeferUntilAgentTurnEnd();
 	const [open, setOpen] = useState(false);
 	const [options, setOptions] = useState<ConfirmationInputOptions>({
 		prompt: "Please confirm to continue.",
@@ -179,7 +181,8 @@ export function useConfirmationInput({
 
 		try {
 			room.registerRpcMethod(START_CONFIRMATION_RPC, async (data) => {
-				openConfirmation(parseStartPayload(data.payload));
+				const options = parseStartPayload(data.payload);
+				runAfterAgentTurnEnd(() => openConfirmation(options));
 				return JSON.stringify({ started: true });
 			});
 		} catch (error) {
@@ -190,7 +193,7 @@ export function useConfirmationInput({
 			return;
 		}
 		return () => room.unregisterRpcMethod(START_CONFIRMATION_RPC);
-	}, [enabled, openConfirmation, room]);
+	}, [enabled, openConfirmation, room, runAfterAgentTurnEnd]);
 
 	return {
 		open,

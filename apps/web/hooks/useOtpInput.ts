@@ -2,6 +2,7 @@ import { useRoomContext } from "@livekit/components-react";
 import { ParticipantKind, type Room } from "livekit-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useDeferUntilAgentTurnEnd } from "@/hooks/useDeferUntilAgentTurnEnd";
 
 /** RPC the agent can call on the candidate to open the OTP input popover. */
 export const START_OTP_INPUT_RPC = "start_otp_input";
@@ -73,6 +74,7 @@ interface UseOtpInputOptions {
 
 export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 	const room = useRoomContext();
+	const runAfterAgentTurnEnd = useDeferUntilAgentTurnEnd();
 	const [open, setOpen] = useState(false);
 	const [options, setOptions] = useState<OtpInputOptions>({
 		length: DEFAULT_OTP_LENGTH,
@@ -200,7 +202,8 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 
 		try {
 			room.registerRpcMethod(START_OTP_INPUT_RPC, async (data) => {
-				openOtpInput(parseStartPayload(data.payload));
+				const options = parseStartPayload(data.payload);
+				runAfterAgentTurnEnd(() => openOtpInput(options));
 				return JSON.stringify({ started: true });
 			});
 		} catch (error) {
@@ -211,7 +214,7 @@ export function useOtpInput({ enabled = false }: UseOtpInputOptions = {}) {
 			return;
 		}
 		return () => room.unregisterRpcMethod(START_OTP_INPUT_RPC);
-	}, [enabled, openOtpInput, room]);
+	}, [enabled, openOtpInput, room, runAfterAgentTurnEnd]);
 
 	const resendCooldownSeconds = Math.max(
 		0,

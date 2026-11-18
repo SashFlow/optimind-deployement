@@ -10,6 +10,7 @@ import type {
 import { LocalVideoTrack, ParticipantKind, type Room } from "livekit-client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useDeferUntilAgentTurnEnd } from "@/hooks/useDeferUntilAgentTurnEnd";
 import {
 	mergeProctoringConfig,
 	type ProctoringAction,
@@ -335,6 +336,7 @@ export function useProctoring({
 	onBodyCapture,
 }: UseProctoringOptions = {}) {
 	const room = useRoomContext();
+	const runAfterAgentTurnEnd = useDeferUntilAgentTurnEnd();
 	const { cameraTrack, isCameraEnabled, microphoneTrack } =
 		useLocalParticipant();
 	const videoTrack =
@@ -1347,6 +1349,7 @@ export function useProctoring({
 
 	// Lets the agent ask for the candidate's ID, e.g. from a `verify_identity` tool.
 	// Independent of proctoring — only requires idVerification.
+	// Defer the overlay until the agent finishes speaking so it doesn't cover TTS.
 	useEffect(() => {
 		if (!idVerification) {
 			return;
@@ -1354,7 +1357,7 @@ export function useProctoring({
 
 		try {
 			room.registerRpcMethod(START_ID_CAPTURE_RPC, async () => {
-				startIdCapture();
+				runAfterAgentTurnEnd(startIdCapture);
 				return JSON.stringify({ started: true });
 			});
 		} catch (error) {
@@ -1365,7 +1368,7 @@ export function useProctoring({
 			return;
 		}
 		return () => room.unregisterRpcMethod(START_ID_CAPTURE_RPC);
-	}, [room, idVerification, startIdCapture]);
+	}, [room, idVerification, runAfterAgentTurnEnd, startIdCapture]);
 
 	// Lets the agent ask for the candidate's face, e.g. from a `verify_face` tool.
 	// Independent of proctoring — only requires faceVerification.
@@ -1376,7 +1379,7 @@ export function useProctoring({
 
 		try {
 			room.registerRpcMethod(START_FACE_CAPTURE_RPC, async () => {
-				startFaceCapture();
+				runAfterAgentTurnEnd(startFaceCapture);
 				return JSON.stringify({ started: true });
 			});
 		} catch (error) {
@@ -1387,7 +1390,7 @@ export function useProctoring({
 			return;
 		}
 		return () => room.unregisterRpcMethod(START_FACE_CAPTURE_RPC);
-	}, [room, faceVerification, startFaceCapture]);
+	}, [room, faceVerification, runAfterAgentTurnEnd, startFaceCapture]);
 
 	// Lets the agent ask for the candidate's body framing, e.g. from a body capture tool.
 	// Independent of proctoring — only requires bodyVerification.
@@ -1398,7 +1401,7 @@ export function useProctoring({
 
 		try {
 			room.registerRpcMethod(START_BODY_CAPTURE_RPC, async () => {
-				startBodyCapture();
+				runAfterAgentTurnEnd(startBodyCapture);
 				return JSON.stringify({ started: true });
 			});
 		} catch (error) {
@@ -1409,7 +1412,7 @@ export function useProctoring({
 			return;
 		}
 		return () => room.unregisterRpcMethod(START_BODY_CAPTURE_RPC);
-	}, [room, bodyVerification, startBodyCapture]);
+	}, [room, bodyVerification, runAfterAgentTurnEnd, startBodyCapture]);
 
 	return {
 		config,

@@ -3,6 +3,7 @@ import { orpcClient } from "@shared/lib/orpc-client";
 import { ParticipantKind, type Room } from "livekit-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useDeferUntilAgentTurnEnd } from "@/hooks/useDeferUntilAgentTurnEnd";
 
 /** RPC the agent can call on the candidate to open Aadhaar OTP input. */
 export const START_AADHAAR_OTP_INPUT_RPC = "start_aadhaar_otp_input";
@@ -115,6 +116,7 @@ export function useAadhaarOtpInput({
 	participantToken = null,
 }: UseAadhaarOtpInputOptions = {}) {
 	const room = useRoomContext();
+	const runAfterAgentTurnEnd = useDeferUntilAgentTurnEnd();
 	const [open, setOpen] = useState(false);
 	const [options, setOptions] = useState<AadhaarOtpInputOptions>({
 		length: DEFAULT_OTP_LENGTH,
@@ -365,7 +367,7 @@ export function useAadhaarOtpInput({
 							error: "aadhaar_number required (12 digits)",
 						});
 					}
-					openAadhaarOtpInput(parsed);
+					runAfterAgentTurnEnd(() => openAadhaarOtpInput(parsed));
 					return JSON.stringify({ started: true });
 				},
 			);
@@ -377,7 +379,7 @@ export function useAadhaarOtpInput({
 			return;
 		}
 		return () => room.unregisterRpcMethod(START_AADHAAR_OTP_INPUT_RPC);
-	}, [enabled, openAadhaarOtpInput, room]);
+	}, [enabled, openAadhaarOtpInput, room, runAfterAgentTurnEnd]);
 
 	const resendCooldownSeconds = Math.max(
 		0,
