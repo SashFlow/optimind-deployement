@@ -70,8 +70,13 @@ Response: `{ "started": true }`.
 Call `start_confirmation` after asking a regulatory or declaration question, wait for
 `confirmation_accepted` / `confirmation_declined`, then continue.
 
+Questionnaire agents can also open this popover with every saved Q&A listed in
+`prompt` via `confirm_responses` before uploading `User_response.json` — see
+[User responses](/docs/sessions/user-responses).
+
 ## Related
 
+- [User responses](/docs/sessions/user-responses) (confirm all answers before submit)
 - [Worker contract](/docs/sessions/worker-contract)
 - UI: `apps/web/components/saas/agents/session/confirmation-popover.tsx`,
   `apps/web/hooks/useConfirmationInput.ts`

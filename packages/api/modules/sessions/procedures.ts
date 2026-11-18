@@ -52,6 +52,7 @@ import {
 	uploadEndUserFile,
 	withSignedFileUrls,
 } from "./lib/end-user-files";
+import { checkFaceAccessories } from "./lib/face-accessory-check";
 import { ocrSessionIdCard } from "./lib/id-card-ocr";
 import { generateEndUserMemoriesSafe } from "./lib/memories";
 import {
@@ -2541,6 +2542,105 @@ export const ocrIdCard = publicProcedure
 			if (message.includes("not configured")) {
 				throw new ORPCError("INTERNAL_SERVER_ERROR", {
 					message: "ID card OCR is not configured",
+				});
+			}
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message: message.slice(0, 500),
+			});
+		}
+	});
+
+export const faceAccessoryCheck = publicProcedure
+	.route({
+		method: "POST",
+		path: "/sessions/{id}/face-accessory-check",
+		tags: ["Sessions"],
+		summary:
+			"Check a face-capture JPEG for glasses/headphones with Gemini (participant JWT auth)",
+	})
+	.input(
+		z.object({
+			id: z.string(),
+			/** Base64 (or data-URL) JPEG payload — not persisted. */
+			contentBase64: z.string().min(1),
+			contentType: z.string().max(200).optional(),
+			/** Optional when Authorization: Bearer <livekit-jwt> is set. */
+			participantToken: z.string().min(1).optional(),
+		}),
+	)
+	.handler(async ({ input, context }) => {
+		const token = readParticipantToken(
+			context.headers,
+			input.participantToken,
+		);
+		if (!token) {
+			throw new ORPCError("UNAUTHORIZED", {
+				message: "Participant token required",
+			});
+		}
+
+		let claims: Awaited<ReturnType<typeof verifyParticipantToken>>;
+		try {
+			claims = await verifyParticipantToken(token);
+		} catch {
+			throw new ORPCError("UNAUTHORIZED", {
+				message: "Invalid or expired participant token",
+			});
+		}
+
+		const session = await getAgentSessionById(input.id);
+		if (!session) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		if (session.livekitRoomName !== claims.roomName) {
+			throw new ORPCError("FORBIDDEN", {
+				message: "Token does not match this session",
+			});
+		}
+		if (session.status !== "QUEUED" && session.status !== "ACTIVE") {
+			throw new ORPCError("BAD_REQUEST", {
+				message: `Session is no longer accepting face checks (status: ${session.status})`,
+			});
+		}
+
+		let bytes: Uint8Array;
+		try {
+			bytes = decodeBase64Payload(input.contentBase64);
+		} catch (error) {
+			if (error instanceof ORPCError) {
+				throw error;
+			}
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Invalid image payload",
+			});
+		}
+		if (bytes.byteLength > MAX_PARTICIPANT_FILE_BYTES) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: `Image exceeds ${MAX_PARTICIPANT_FILE_BYTES} bytes`,
+			});
+		}
+
+		const mimeType = (input.contentType || "image/jpeg").trim();
+		if (!mimeType.toLowerCase().startsWith("image/")) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "contentType must be an image/* MIME type",
+			});
+		}
+
+		try {
+			const check = await checkFaceAccessories({
+				bytes,
+				mimeType,
+			});
+			return { check };
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: "Face accessory check failed";
+			if (message.includes("not configured")) {
+				throw new ORPCError("INTERNAL_SERVER_ERROR", {
+					message: "Face accessory check is not configured",
 				});
 			}
 			throw new ORPCError("INTERNAL_SERVER_ERROR", {

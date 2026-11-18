@@ -3,10 +3,6 @@ import type {
 	NormalizedLandmark,
 } from "@mediapipe/tasks-vision";
 import type { FaceCaptureConfig } from "@/lib/proctoring/config";
-import {
-	detectGlassesFromLandmarks,
-	videoFrameImageData,
-} from "@/lib/proctoring/glassesDetect";
 import { boxDelta, type NormalizedRect } from "@/lib/proctoring/idCard";
 
 export type FaceCaptureHint =
@@ -17,7 +13,8 @@ export type FaceCaptureHint =
 	| "center"
 	| "remove_glasses"
 	| "remove_earphones"
-	| "hold_steady";
+	| "hold_steady"
+	| "checking_accessories";
 
 export const FACE_CAPTURE_HINTS: Record<FaceCaptureHint, string> = {
 	no_face: "Position your face inside the box",
@@ -28,6 +25,7 @@ export const FACE_CAPTURE_HINTS: Record<FaceCaptureHint, string> = {
 	remove_glasses: "Please remove your spectacles / glasses",
 	remove_earphones: "Please remove earphones or headphones",
 	hold_steady: "Hold steady…",
+	checking_accessories: "Checking for glasses and headphones…",
 };
 
 export interface FaceDetection {
@@ -40,6 +38,8 @@ export interface FaceDetection {
 	hint: FaceCaptureHint;
 	glassesDetected?: boolean;
 	earphonesDetected?: boolean;
+	/** Candidate-facing direction from Gemini when accessories block capture. */
+	directionMessage?: string;
 }
 
 export interface FaceCaptureResult {
@@ -95,12 +95,17 @@ function landmarksBox(landmarks: NormalizedLandmark[]): NormalizedRect {
 }
 
 export type EvaluateFaceFramingOptions = {
-	/** Current camera frame for glasses pixel sampling. */
-	video?: HTMLVideoElement | null;
-	/** Reused canvas for ImageData sampling. */
-	sampleCanvas?: HTMLCanvasElement;
-	/** True when accessory TFLite model detected headphones/earbuds. */
+	/** True when Gemini reported glasses / spectacles. */
+	glassesDetected?: boolean;
+	/** True when Gemini reported headphones / earbuds. */
 	earphonesDetected?: boolean;
+	/** Gemini candidate-facing direction when accessories are present. */
+	geminiMessage?: string;
+	/**
+	 * When accessory gating is enabled but Gemini has not returned a result yet.
+	 * Blocks capture and shows a waiting hint once framing is otherwise good.
+	 */
+	accessoryCheckPending?: boolean;
 };
 
 /** Evaluate whether a MediaPipe face result is well framed for capture. */
@@ -157,18 +162,16 @@ export function evaluateFaceFraming(
 		config.minConfidence;
 	const confidence = clamp(score, 0, 1);
 
-	let glassesDetected = false;
-	if (config.blockGlasses && options.video) {
-		const imageData = videoFrameImageData(
-			options.video,
-			options.sampleCanvas,
-		);
-		if (imageData) {
-			glassesDetected = detectGlassesFromLandmarks(landmarks, imageData);
-		}
-	}
-
-	const earphonesDetected = Boolean(options.earphonesDetected);
+	const glassesDetected = Boolean(
+		config.blockGlasses && options.glassesDetected,
+	);
+	const earphonesDetected = Boolean(
+		config.blockHeadphones && options.earphonesDetected,
+	);
+	const accessoryGating = config.blockGlasses || config.blockHeadphones;
+	const accessoryCheckPending = Boolean(
+		accessoryGating && options.accessoryCheckPending,
+	);
 
 	let hint: FaceCaptureHint = "hold_steady";
 	if (confidence < config.minConfidence) {
@@ -186,7 +189,15 @@ export function evaluateFaceFraming(
 		hint = "remove_glasses";
 	} else if (earphonesDetected) {
 		hint = "remove_earphones";
+	} else if (accessoryCheckPending) {
+		hint = "checking_accessories";
 	}
+
+	const directionMessage =
+		(hint === "remove_glasses" || hint === "remove_earphones") &&
+		options.geminiMessage?.trim()
+			? options.geminiMessage.trim()
+			: undefined;
 
 	return {
 		detected: hint === "hold_steady",
@@ -196,6 +207,7 @@ export function evaluateFaceFraming(
 		hint,
 		glassesDetected,
 		earphonesDetected,
+		directionMessage,
 	};
 }
 

@@ -9,7 +9,7 @@ import {
 import { Button } from "@repo/ui/button";
 import { cn } from "@repo/ui/utils";
 import { Track } from "livekit-client";
-import { Loader } from "lucide-react";
+import { Loader, XIcon } from "lucide-react";
 import { useMemo } from "react";
 import { useProctoringContext } from "@/context/proctoring-provider";
 import {
@@ -50,6 +50,7 @@ export function BodyCaptureOverlay() {
 		bodyDetection,
 		bodyCapture,
 		startBodyCapture,
+		cancelBodyCapture,
 	} = proctoring;
 
 	const width = cameraTrack?.dimensions?.width || 1280;
@@ -68,8 +69,18 @@ export function BodyCaptureOverlay() {
 			aria-labelledby="body-capture-title"
 			className="bg-background/90 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
 		>
-			<div className="bg-background border-input/50 flex w-full max-w-2xl flex-col gap-4 rounded-lg border p-4 drop-shadow-md/3">
-				<div>
+			<div className="bg-background border-input/50 relative flex w-full max-w-2xl flex-col gap-4 rounded-lg border p-4 drop-shadow-md/3">
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					className="absolute top-3 right-3 size-8"
+					aria-label="Close"
+					onClick={cancelBodyCapture}
+				>
+					<XIcon className="size-4" />
+				</Button>
+				<div className="pr-8">
 					<h2
 						id="body-capture-title"
 						className="text-lg font-semibold"

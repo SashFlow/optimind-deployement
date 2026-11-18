@@ -49,6 +49,12 @@ interface ProctoringProviderProps {
 	 */
 	bodyVerification?: boolean;
 	config?: ProctoringConfigOverrides;
+	/** Live session id for mid-capture Gemini accessory checks. */
+	sessionId?: string | null;
+	/** LiveKit participant JWT for mid-capture Gemini accessory checks. */
+	participantToken?: string | null;
+	/** Demo playground password for Gemini accessory checks without a session. */
+	demoCapturePassword?: string | null;
 	onIdCapture?: (result: IdCaptureResult) => Promise<unknown> | unknown;
 	onFaceCapture?: (result: FaceCaptureResult) => Promise<unknown> | unknown;
 	onBodyCapture?: (result: BodyCaptureResult) => Promise<unknown> | unknown;
@@ -62,6 +68,9 @@ export function ProctoringProvider({
 	faceVerification = false,
 	bodyVerification = false,
 	config,
+	sessionId = null,
+	participantToken = null,
+	demoCapturePassword = null,
 	onIdCapture,
 	onFaceCapture,
 	onBodyCapture,
@@ -110,6 +119,9 @@ export function ProctoringProvider({
 		faceVerification: faceVerification && isConnected,
 		bodyVerification: bodyVerification && isConnected,
 		config: mergedConfig,
+		sessionId,
+		participantToken,
+		demoCapturePassword,
 		onIdCapture,
 		onFaceCapture,
 		onBodyCapture,

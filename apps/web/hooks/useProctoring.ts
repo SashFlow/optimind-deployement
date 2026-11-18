@@ -28,9 +28,11 @@ import {
 	type BodyDetection,
 } from "@/lib/proctoring/bodyCapture";
 import {
-	createAccessoryDetector,
-	detectAccessories,
-} from "@/lib/proctoring/accessoryDetect";
+	checkDemoFaceAccessories,
+	checkFaceAccessories,
+	encodeVideoFrameJpeg,
+	type FaceAccessoryClientResult,
+} from "@/lib/proctoring/check-face-accessories";
 import {
 	boxDelta as faceBoxDelta,
 	captureFace,
@@ -299,6 +301,15 @@ interface UseProctoringOptions {
 	 */
 	bodyVerification?: boolean;
 	config?: ProctoringConfigOverrides;
+	/** Live session id for mid-capture Gemini accessory checks. */
+	sessionId?: string | null;
+	/** LiveKit participant JWT for mid-capture Gemini accessory checks. */
+	participantToken?: string | null;
+	/**
+	 * Demo playground password. When set (and no session credentials), face
+	 * capture polls `/api/demo/face-accessory-check` with Gemini.
+	 */
+	demoCapturePassword?: string | null;
 	/**
 	 * Pushes a captured ID card to the backend.
 	 * Throw to mark the capture as failed so the candidate can retry.
@@ -331,6 +342,9 @@ export function useProctoring({
 	faceVerification = false,
 	bodyVerification = false,
 	config: overrides,
+	sessionId = null,
+	participantToken = null,
+	demoCapturePassword = null,
 	onIdCapture,
 	onFaceCapture,
 	onBodyCapture,
@@ -358,6 +372,12 @@ export function useProctoring({
 	onFaceCaptureRef.current = onFaceCapture;
 	const onBodyCaptureRef = useRef(onBodyCapture);
 	onBodyCaptureRef.current = onBodyCapture;
+	const sessionIdRef = useRef(sessionId);
+	sessionIdRef.current = sessionId;
+	const participantTokenRef = useRef(participantToken);
+	participantTokenRef.current = participantToken;
+	const demoCapturePasswordRef = useRef(demoCapturePassword);
+	demoCapturePasswordRef.current = demoCapturePassword;
 	/** Sync guards so overlapping ticks / double submits can't fire add_context twice. */
 	const idSubmitInFlightRef = useRef(false);
 	const idContextSentRef = useRef(false);
@@ -1000,6 +1020,7 @@ export function useProctoring({
 	}, [cameraReady, videoTrack, mode, idCaptureStatus, submitIdCapture]);
 
 	// Face capture loop. Uses a dedicated FaceLandmarker so it doesn't contend with proctoring.
+	// Glasses / headphones are gated by Gemini still-JPEG polls (~1 FPS).
 	useEffect(() => {
 		if (
 			!cameraReady ||
@@ -1014,12 +1035,14 @@ export function useProctoring({
 		let capturing = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		let faceLandmarker: FaceLandmarker | undefined;
-		let accessoryDetector: ObjectDetector | null = null;
-		const sampleCanvas = document.createElement("canvas");
+		const encodeCanvas = document.createElement("canvas");
 		const video = attachHiddenVideo(videoTrack, "Face capture");
 		const startedAt = Date.now();
 		let stableFrames = 0;
 		let lastBox: NormalizedRect | null = null;
+		let accessoryResult: FaceAccessoryClientResult | null = null;
+		let accessoryInFlight = false;
+		let lastAccessoryPollAt = 0;
 
 		const tick = async () => {
 			if (cancelled || capturing || !faceLandmarker) {
@@ -1037,17 +1060,63 @@ export function useProctoring({
 
 			if (isVideoReady(video)) {
 				try {
+					const accessoryGating =
+						cfg.blockGlasses || cfg.blockHeadphones;
+					const session = sessionIdRef.current?.trim() || "";
+					const token = participantTokenRef.current?.trim() || "";
+					const demoPassword =
+						demoCapturePasswordRef.current?.trim() || "";
+					const canPollSession = Boolean(session && token);
+					const canPollDemo = Boolean(demoPassword);
+					const canPollAccessories = Boolean(
+						accessoryGating && (canPollSession || canPollDemo),
+					);
+
+					if (
+						canPollAccessories &&
+						!accessoryInFlight &&
+						Date.now() - lastAccessoryPollAt >=
+							cfg.geminiAccessoryPollMs
+					) {
+						lastAccessoryPollAt = Date.now();
+						accessoryInFlight = true;
+						void (async () => {
+							try {
+								const frame = await encodeVideoFrameJpeg(
+									video,
+									cfg.jpegQuality,
+									encodeCanvas,
+								);
+								if (!frame || cancelled) {
+									return;
+								}
+								const check = canPollSession
+									? await checkFaceAccessories({
+											sessionId: session,
+											participantToken: token,
+											frame,
+										})
+									: await checkDemoFaceAccessories({
+											password: demoPassword,
+											frame,
+										});
+								if (!cancelled) {
+									accessoryResult = check;
+								}
+							} catch (error) {
+								console.warn(
+									"Face capture: accessory check failed",
+									error,
+								);
+							} finally {
+								accessoryInFlight = false;
+							}
+						})();
+					}
+
 					const result = faceLandmarker.detectForVideo(
 						video,
 						performance.now(),
-					);
-					const accessories = detectAccessories(
-						accessoryDetector,
-						video,
-						{
-							minConfidence: cfg.accessoryMinConfidence,
-							labels: cfg.accessoryLabels,
-						},
 					);
 					const detection = evaluateFaceFraming(
 						result,
@@ -1055,9 +1124,12 @@ export function useProctoring({
 						video.videoHeight,
 						cfg,
 						{
-							video,
-							sampleCanvas,
-							earphonesDetected: accessories.detected,
+							glassesDetected: accessoryResult?.glassesDetected,
+							earphonesDetected:
+								accessoryResult?.headphonesDetected,
+							geminiMessage: accessoryResult?.message,
+							accessoryCheckPending:
+								canPollAccessories && accessoryResult === null,
 						},
 					);
 					const stable =
@@ -1134,13 +1206,8 @@ export function useProctoring({
 				} catch {
 					faceLandmarker = await create("CPU");
 				}
-				accessoryDetector = await createAccessoryDetector({
-					wasmBaseUrl: cfg.wasmBaseUrl,
-					modelAssetPath: cfg.faceCapture.accessoryModelUrl,
-				});
 				if (cancelled) {
 					faceLandmarker.close();
-					accessoryDetector?.close();
 					return;
 				}
 				void tick();
@@ -1160,7 +1227,6 @@ export function useProctoring({
 			clearTimeout(timer);
 			videoTrack.detach(video);
 			faceLandmarker?.close();
-			accessoryDetector?.close();
 		};
 	}, [cameraReady, videoTrack, mode, faceCaptureStatus, submitFaceCapture]);
 

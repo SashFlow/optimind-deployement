@@ -232,6 +232,21 @@ Response: `{ ocr: { idType, extracted, confidence, summary, model } }`. Uses a f
 model (`gemini-3.1-flash-lite` by default). Result is persisted on
 `session.metadata.idCardOcr` and passed to the agent via `add_context` `details.ocr`.
 
+While face capture is scanning, the web client polls Gemini with still JPEGs (~1 FPS):
+
+```http
+POST /api/sessions/{session_id}/face-accessory-check
+Authorization: Bearer <livekit-participant-jwt>
+Content-Type: application/json
+
+{ "contentBase64": "<jpeg-base64>", "contentType": "image/jpeg" }
+```
+
+Response:
+`{ check: { glassesDetected, headphonesDetected, clear, message, model } }`.
+Poll frames are **not** persisted as session files. Capture proceeds only when framing is
+stable and `clear` is true (or accessory gating is disabled).
+
 ## Client ↔ agent LiveKit RPCs
 
 ### `add_context` (candidate → agent)

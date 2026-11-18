@@ -485,6 +485,8 @@ export default function SharedTrialPage() {
 								idVerification={idVerificationEnabled}
 								faceVerification={faceVerificationEnabled}
 								bodyVerification={bodyVerificationEnabled}
+								sessionId={credentials.sessionId}
+								participantToken={credentials.token}
 								config={{
 									bodyCapture: {
 										contextIntervalMs:

@@ -13,9 +13,8 @@ notifies the agent via `add_context`.
 Capture is blocked while:
 
 - More than one face is visible
-- Spectacles / glasses are detected (MediaPipe landmark + pixel heuristic)
-- Headphones / earbuds are detected (optional customer TFLite model at
-  `/models/accessory-detector.tflite`)
+- Spectacles / glasses or headphones / earbuds are detected (Gemini still-JPEG
+  check at ~1 FPS while the overlay is scanning; direction text is shown in the UI)
 
 ## Setup
 

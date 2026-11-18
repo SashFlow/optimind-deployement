@@ -547,6 +547,8 @@ export function AgentConfigurePreview({
 							idVerification={idVerificationEnabled}
 							faceVerification={faceVerificationEnabled}
 							bodyVerification={bodyVerificationEnabled}
+							sessionId={sessionCredentials.sessionId}
+							participantToken={sessionCredentials.token}
 							config={{
 								bodyCapture: {
 									contextIntervalMs:

@@ -1,28 +1,32 @@
 ---
 title: User responses
-description: Python tools to save each Q&A during a call and upload User_response.json for the session.
+description: Python tools to save each Q&A during a call, confirm them on screen, and upload User_response.json for the session.
 ---
 
 Questionnaire agents (for example MER calls) should persist structured answers as they
-go, then upload a single JSON file when the interview is complete.
+go, show them for confirmation, then upload a single JSON file when the interview is complete.
 
-Use two Python tools:
+Use three Python tools:
 
 | Tool | When to call | What it does |
 |------|----------------|--------------|
 | `save_answer` | After each clear user answer | Buffers one question + answer in session memory |
-| `submit_user_responses` | After the last question (or before ending the call) | Uploads `User_response.json` for the session end user |
+| `confirm_responses` | After the last question | Opens the confirmation popover listing every saved Q&A |
+| `submit_user_responses` | After the user accepts confirmation | Uploads `User_response.json` for the session end user |
 
 ## Setup
 
 1. Create an org **Python tool** (Tools → Create Python tool).
-2. Paste the sample class below (both methods live in one tool pack).
+2. Paste the sample class below (all methods live in one tool pack).
 3. Attach that tool to the agent’s **on call** phase so the model can call them mid-session.
-4. Instruct the agent (system prompt) to call `save_answer` after every answer, and
-   `submit_user_responses` once all required questions are done.
+4. Enable **Confirmation input** on the agent
+   (`session_modalities.confirmation_input.enabled`) so `start_confirmation` is registered.
+5. Instruct the agent (system prompt) to call `save_answer` after every answer,
+   `confirm_responses` once all required questions are done, wait for accept/decline,
+   then `submit_user_responses` only after acceptance.
 
-No Call Session toggle is required — these tools only need the worker API key and a
-session that has an end user (so file upload succeeds).
+These tools need the worker API key and a session that has an end user (so file upload
+succeeds). Confirmation also requires the confirmation-input modality.
 
 ## Flow
 
@@ -31,9 +35,15 @@ Agent asks question
   → User answers
   → save_answer(question, answer)   # buffer in host.records
   → …repeat…
-  → submit_user_responses()
+  → confirm_responses()
+       → start_confirmation RPC (lists all Q&A on screen)
+  → User accepts (confirmation_accepted) or declines (confirmation_declined)
+  → submit_user_responses(user_confirmed=True)   # only after accept
        → POST /internal/sessions/{id}/files  (User_response.json)
 ```
+
+If the user declines, ask which answers need correction, call `save_answer` again for
+those items, then re-run `confirm_responses` before submitting.
 
 ### Uploaded file shape
 
@@ -72,6 +82,23 @@ class Tools:
     def __init__(self, host):
         self.host = host
 
+    def _valid_records(self):
+        return [
+            item
+            for item in list(self.host.records)
+            if isinstance(item, dict)
+            and str(item.get("question", "")).strip()
+            and str(item.get("answer", "")).strip()
+        ]
+
+    def _format_responses_for_display(self, records) -> str:
+        lines = []
+        for index, item in enumerate(records, start=1):
+            question = str(item.get("question", "")).strip()
+            answer = str(item.get("answer", "")).strip()
+            lines.append(f"{index}. Q: {question}\n   A: {answer}")
+        return "\n".join(lines)
+
     @function_tool()
     async def save_answer(self, question: str, answer: str) -> str:
         """Save the current question and the user's answer.
@@ -85,17 +112,82 @@ class Tools:
             return "error: both question and answer are required"
 
         self.host.records.append({"question": q, "answer": a})
+        # New or corrected answers invalidate any prior confirmation.
+        self.host.state["responses_confirmed"] = False
         return f"Saved answer ({len(self.host.records)} total)."
 
     @function_tool()
-    async def submit_user_responses(self, context: RunContext) -> str:
+    async def confirm_responses(self, context: RunContext) -> str:
+        """Show all saved Q&A on screen and ask the user to confirm them.
+
+        Call once after all interview questions are answered and before
+        submit_user_responses. Opens the confirmation popover with every saved
+        response. Then wait for confirmation_accepted or confirmation_declined
+        before continuing.
+        """
+        records = self._valid_records()
+        if not records:
+            return "error: no answers saved yet — call save_answer first"
+
+        summary = self._format_responses_for_display(records)
+        prompt = (
+            "Please review your answers below and confirm they are correct:\n\n"
+            f"{summary}\n\n"
+            "I confirm that these answers are true and complete."
+        )
+        payload = json.dumps(
+            {
+                "prompt": prompt,
+                "acceptLabel": "I confirm these answers are correct",
+            }
+        )
+
+        try:
+            room_io = context.session.room_io
+        except RuntimeError:
+            return "error: room not available yet"
+
+        participant = room_io.linked_participant
+        if participant is None:
+            return "error: no candidate participant in the room"
+
+        self.host.state["responses_confirmed"] = False
+        try:
+            response = await room_io.room.local_participant.perform_rpc(
+                destination_identity=participant.identity,
+                method="start_confirmation",
+                payload=payload,
+            )
+        except Exception as exc:
+            return f"error: confirmation UI failed ({exc})"
+
+        return (
+            f"Confirmation UI opened with {len(records)} response(s): {response}. "
+            "Wait for confirmation_accepted before calling submit_user_responses "
+            "with user_confirmed=True. If confirmation_declined, ask which answers "
+            "to correct, call save_answer again, then call confirm_responses again."
+        )
+
+    @function_tool()
+    async def submit_user_responses(
+        self,
+        context: RunContext,
+        user_confirmed: bool = False,
+    ) -> str:
         """Upload all saved Q&A pairs as User_response.json for this session.
 
-        Call once after the interview questions are complete (before ending the
-        call). Requires at least one prior save_answer call.
+        Call once after confirm_responses and the user accepted on screen
+        (confirmation_accepted). Set user_confirmed=True only after that accept.
+        Do not call this if the user declined.
         """
         del context
-        records = list(self.host.records)
+        if not user_confirmed:
+            return (
+                "error: responses not confirmed — call confirm_responses, wait "
+                "for the user to accept, then call again with user_confirmed=True"
+            )
+
+        records = self._valid_records()
         if not records:
             return "error: no answers saved yet — call save_answer first"
 
@@ -108,7 +200,6 @@ class Tools:
                     "answer": item.get("answer"),
                 }
                 for item in records
-                if isinstance(item, dict)
             ],
         }
         body = json.dumps(payload, indent=2) + "\n"
@@ -122,6 +213,7 @@ class Tools:
         if result is None:
             return "error: failed to upload User_response.json"
 
+        self.host.state["responses_confirmed"] = True
         return f"Uploaded User_response.json with {payload['count']} response(s)."
 ```
 
@@ -131,20 +223,25 @@ Add something like this to the agent instructions:
 
 ```
 After each interview answer, call save_answer with the question you asked and the
-user's answer. When all required questions are done, call submit_user_responses
-once before wrapping up the call.
+user's answer. When all required questions are done, call confirm_responses and wait
+for the on-screen result. Only after confirmation_accepted, call
+submit_user_responses with user_confirmed=True before wrapping up the call. If the
+user declines, ask what to change, save_answer again, then confirm_responses again.
 ```
 
 ### How to test
 
 1. Create the Python tool pack and attach it to a preview/share agent.
-2. Join a web session that has an end user.
-3. Ask the agent a couple of interview questions and answer them.
-4. Confirm tool calls: `save_answer` then `submit_user_responses`.
-5. Open the session detail → files and verify `User_response.json`.
+2. Enable confirmation input on the agent.
+3. Join a web session that has an end user.
+4. Ask the agent a couple of interview questions and answer them.
+5. Confirm tool calls: `save_answer` → `confirm_responses` → accept on screen →
+   `submit_user_responses(user_confirmed=True)`.
+6. Open the session detail → files and verify `User_response.json`.
 
 ## Related
 
+- [Confirmation input](/docs/sessions/confirmation-input) (`start_confirmation` popover)
 - [Worker contract](/docs/sessions/worker-contract) (end-user file upload)
-- Host helpers: `records`, `upload_file` in the voice worker `PythonToolHost`
+- Host helpers: `records`, `state`, `upload_file` in the voice worker `PythonToolHost`
 - Post-processing PDF attachment also named `User_response.json` (from collected data / transcript)
