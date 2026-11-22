@@ -41,8 +41,15 @@ function stopStream(stream: MediaStream | null) {
 
 export function useLocalPreviewMedia(options?: {
 	enabled?: boolean;
+	/**
+	 * When true (e.g. proctoring / mandatory video), open the camera as soon as
+	 * the lobby mounts so the track can be published into the room instead of
+	 * calling setCameraEnabled after connect.
+	 */
+	autoStartCamera?: boolean;
 }): LocalPreviewMedia {
 	const enabled = options?.enabled ?? true;
+	const autoStartCamera = options?.autoStartCamera ?? false;
 	const [micEnabled, setMicEnabled] = useState(false);
 	const [cameraEnabled, setCameraEnabled] = useState(false);
 	const [audioDeviceId, setAudioDeviceId] = useState("");
@@ -57,6 +64,7 @@ export function useLocalPreviewMedia(options?: {
 	const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
 
 	const pendingRef = useRef(false);
+	const autoStartAttemptedRef = useRef(false);
 	const videoStreamRef = useRef<MediaStream | null>(null);
 	const audioProbeRef = useRef<MediaStream | null>(null);
 	const audioDeviceIdRef = useRef(audioDeviceId);
@@ -244,6 +252,7 @@ export function useLocalPreviewMedia(options?: {
 		try {
 			await acquireCamera();
 			setCameraEnabled(true);
+			autoStartAttemptedRef.current = true;
 		} catch (error) {
 			setCameraEnabled(false);
 			toast.error(
@@ -256,6 +265,38 @@ export function useLocalPreviewMedia(options?: {
 			setPermissionPending(null);
 		}
 	}, [acquireCamera, cameraEnabled, enabled]);
+
+	// Prefetch camera on the lobby when it will be required in-session (proctoring).
+	useEffect(() => {
+		if (
+			!enabled ||
+			!autoStartCamera ||
+			cameraEnabled ||
+			autoStartAttemptedRef.current ||
+			pendingRef.current
+		) {
+			return;
+		}
+		autoStartAttemptedRef.current = true;
+		pendingRef.current = true;
+		setPermissionPending("camera");
+		void (async () => {
+			try {
+				await acquireCamera();
+				setCameraEnabled(true);
+			} catch (error) {
+				setCameraEnabled(false);
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Camera permission denied",
+				);
+			} finally {
+				pendingRef.current = false;
+				setPermissionPending(null);
+			}
+		})();
+	}, [acquireCamera, autoStartCamera, cameraEnabled, enabled]);
 
 	// Restart camera stream when the selected device changes while camera is on.
 	useEffect(() => {
@@ -297,6 +338,7 @@ export function useLocalPreviewMedia(options?: {
 			stopPreview();
 			setMicEnabled(false);
 			setCameraEnabled(false);
+			autoStartAttemptedRef.current = false;
 		}
 	}, [enabled, stopPreview]);
 

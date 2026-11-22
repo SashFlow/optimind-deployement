@@ -36,6 +36,7 @@ import {
 	requestSessionLocation,
 	type SessionLocation,
 } from "@/lib/session-location";
+import { warmProctoringDetectors } from "@/lib/proctoring/detectors";
 import {
 	type LocalPreviewMedia,
 	useLocalPreviewMedia,
@@ -213,9 +214,12 @@ function DevicePills({
 function PreviewStage({
 	media,
 	busy,
+	videoMandatory = false,
 }: {
 	media: LocalPreviewMedia;
 	busy: boolean;
+	/** When true (proctoring), camera stays on and cannot be turned off. */
+	videoMandatory?: boolean;
 }) {
 	const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -302,16 +306,26 @@ function PreviewStage({
 					variant="secondary"
 					aria-label={
 						media.cameraEnabled
-							? "Turn camera off"
+							? videoMandatory
+								? "Camera required"
+								: "Turn camera off"
 							: "Turn camera on"
 					}
 					aria-pressed={media.cameraEnabled}
-					disabled={busy}
+					title={
+						videoMandatory && media.cameraEnabled
+							? "Camera is required for this session"
+							: undefined
+					}
+					disabled={busy || (videoMandatory && media.cameraEnabled)}
 					className={cn(
 						"size-11 rounded-full shadow-md sm:size-9",
 						media.cameraEnabled
 							? "bg-white text-zinc-900 hover:bg-white/90"
 							: "bg-red-600 text-white hover:bg-red-600/90",
+						videoMandatory &&
+							media.cameraEnabled &&
+							"cursor-not-allowed opacity-90",
 					)}
 					onClick={() => void media.toggleCamera()}
 				>
@@ -347,8 +361,22 @@ export function SessionPrejoinLobby({
 	className,
 	lobbyRef,
 }: SessionPrejoinLobbyProps) {
-	const media = useLocalPreviewMedia({ enabled: showWebMedia });
+	const media = useLocalPreviewMedia({
+		enabled: showWebMedia,
+		// Proctoring / mandatory video: open the camera on the lobby so the
+		// live track is published on join instead of setCameraEnabled mid-call.
+		autoStartCamera: videoMandatory,
+	});
 	const [highlightMissing, setHighlightMissing] = useState(false);
+
+	// Prefetch MediaPipe WASM + models while the candidate is still on the lobby
+	// so the first agent turn isn't competing with model download / init.
+	useEffect(() => {
+		if (!showWebMedia || !videoMandatory || !media.cameraEnabled) {
+			return;
+		}
+		warmProctoringDetectors();
+	}, [media.cameraEnabled, showWebMedia, videoMandatory]);
 	const [locationStatus, setLocationStatus] =
 		useState<LocationPermissionStatus>("idle");
 	const [location, setLocation] = useState<SessionLocation | null>(null);
@@ -523,7 +551,11 @@ export function SessionPrejoinLobby({
 				{/* Preview column */}
 				<div className="flex min-w-0 shrink-0 flex-col justify-center gap-3 lg:min-h-0 lg:flex-1 lg:shrink">
 					{showWebMedia ? (
-						<PreviewStage media={media} busy={busy} />
+						<PreviewStage
+							media={media}
+							busy={busy}
+							videoMandatory={videoMandatory}
+						/>
 					) : (
 						<div className="mx-auto flex aspect-[4/3] w-full max-w-xl items-center justify-center rounded-2xl bg-muted/40 sm:aspect-video sm:max-w-2xl lg:mx-0 lg:w-full lg:max-w-none">
 							<div className="flex flex-col items-center gap-2 text-muted-foreground sm:gap-3">

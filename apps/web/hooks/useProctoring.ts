@@ -1,10 +1,13 @@
-import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
+import {
+	useLocalParticipant,
+	useRoomContext,
+	useVoiceAssistant,
+} from "@livekit/components-react";
 import type {
 	Category,
 	FaceLandmarker,
 	FaceLandmarkerResult,
 	Matrix,
-	ObjectDetector,
 	PoseLandmarker,
 } from "@mediapipe/tasks-vision";
 import { LocalVideoTrack, ParticipantKind, type Room } from "livekit-client";
@@ -33,6 +36,11 @@ import {
 	encodeVideoFrameJpeg,
 	type FaceAccessoryClientResult,
 } from "@/lib/proctoring/check-face-accessories";
+import {
+	acquireProctoringDetectors,
+	type ProctoringDetectors,
+	releaseProctoringDetectors,
+} from "@/lib/proctoring/detectors";
 import {
 	boxDelta as faceBoxDelta,
 	captureFace,
@@ -80,11 +88,6 @@ export const START_FACE_CAPTURE_RPC = "start_face_capture";
 /** RPC the agent can call on the candidate to open body capture. */
 export const START_BODY_CAPTURE_RPC = "start_body_capture";
 
-interface Detectors {
-	face: FaceLandmarker;
-	objects: ObjectDetector;
-}
-
 interface Observation {
 	faceCount: number;
 	personCount: number;
@@ -99,48 +102,6 @@ interface CheckState {
 }
 
 const RAD_TO_DEG = 180 / Math.PI;
-
-async function createDetectors(config: ProctoringConfig): Promise<Detectors> {
-	const { FilesetResolver, FaceLandmarker, ObjectDetector } = await import(
-		"@mediapipe/tasks-vision"
-	);
-	const vision = await FilesetResolver.forVisionTasks(config.wasmBaseUrl);
-
-	const create = async (delegate: "GPU" | "CPU") =>
-		Promise.all([
-			FaceLandmarker.createFromOptions(vision, {
-				baseOptions: { modelAssetPath: config.faceModelUrl, delegate },
-				runningMode: "VIDEO",
-				numFaces: config.maxFaces,
-				minFaceDetectionConfidence: config.faceConfidence,
-				minFacePresenceConfidence: config.faceConfidence,
-				outputFaceBlendshapes: true,
-				outputFacialTransformationMatrixes: true,
-			}),
-			ObjectDetector.createFromOptions(vision, {
-				baseOptions: {
-					modelAssetPath: config.objectModelUrl,
-					delegate,
-				},
-				runningMode: "VIDEO",
-				maxResults: 10,
-				// Per-check thresholds are applied later; keep this low so they can be tuned freely.
-				scoreThreshold: 0.2,
-			}),
-		]);
-
-	try {
-		const [face, objects] = await create("GPU");
-		return { face, objects };
-	} catch (error) {
-		console.warn(
-			"Proctoring: GPU delegate unavailable, falling back to CPU",
-			error,
-		);
-		const [face, objects] = await create("CPU");
-		return { face, objects };
-	}
-}
 
 /** Head yaw/pitch in degrees from MediaPipe's column-major 4x4 facial transformation matrix. */
 function headRotation(matrix: Matrix) {
@@ -184,7 +145,7 @@ function isGazeAway(
 }
 
 function observe(
-	detectors: Detectors,
+	detectors: ProctoringDetectors,
 	video: HTMLVideoElement,
 	config: ProctoringConfig,
 ) {
@@ -351,6 +312,9 @@ export function useProctoring({
 }: UseProctoringOptions = {}) {
 	const room = useRoomContext();
 	const runAfterAgentTurnEnd = useDeferUntilAgentTurnEnd();
+	const { state: agentState } = useVoiceAssistant();
+	const agentStateRef = useRef(agentState);
+	agentStateRef.current = agentState;
 	const { cameraTrack, isCameraEnabled, microphoneTrack } =
 		useLocalParticipant();
 	const videoTrack =
@@ -751,14 +715,23 @@ export function useProctoring({
 		}
 
 		let cancelled = false;
+		let released = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
-		let detectors: Detectors | undefined;
+		let detectors: ProctoringDetectors | undefined;
 		const checkStates = new Map<ProctoringViolation, CheckState>();
 		const video = attachHiddenVideo(videoTrack, "Proctoring");
 		let micAnalyser: MicAnalyser | null = null;
 		let lipState = { mismatchMs: 0, lastMouth: 0, lastMic: 0 };
 		let lipReportedAt = Number.NEGATIVE_INFINITY;
 		let lastLipTickAt = Date.now();
+
+		const releaseOnce = () => {
+			if (released) {
+				return;
+			}
+			released = true;
+			releaseProctoringDetectors();
+		};
 
 		const micMediaTrack = microphoneTrack?.track?.mediaStreamTrack;
 		micAnalyser = createMicAnalyser(micMediaTrack);
@@ -801,11 +774,23 @@ export function useProctoring({
 			// });
 		};
 
+		const agentBusy = () => {
+			const state = agentStateRef.current;
+			return state === "speaking" || state === "thinking";
+		};
+
 		const tick = () => {
 			if (cancelled || !detectors) {
 				return;
 			}
 			const cfg = configRef.current;
+
+			// Yield the main thread / CPU while the avatar is playing so the
+			// first (and later) TTS turns stay in lip-sync. Resume when listening.
+			if (agentBusy()) {
+				timer = setTimeout(tick, Math.max(250, cfg.intervalMs));
+				return;
+			}
 
 			if (modeRef.current !== "PROCTORING") {
 				// Holding a card up to the camera would trip every check, so skip inference and forget
@@ -887,8 +872,7 @@ export function useProctoring({
 			timer = setTimeout(tick, cfg.intervalMs);
 		};
 
-		createDetectors({
-			...configRef.current,
+		acquireProctoringDetectors({
 			wasmBaseUrl,
 			faceModelUrl,
 			objectModelUrl,
@@ -897,26 +881,25 @@ export function useProctoring({
 		})
 			.then((created) => {
 				if (cancelled) {
-					created.face.close();
-					created.objects.close();
+					releaseOnce();
 					return;
 				}
 				detectors = created;
 				tick();
 			})
-			.catch((error) =>
+			.catch((error) => {
+				released = true;
 				console.error(
 					"Proctoring: failed to load MediaPipe models",
 					error,
-				),
-			);
+				);
+			});
 
 		return () => {
 			cancelled = true;
 			clearTimeout(timer);
 			videoTrack.detach(video);
-			detectors?.face.close();
-			detectors?.objects.close();
+			releaseOnce();
 			micAnalyser?.close();
 		};
 	}, [
