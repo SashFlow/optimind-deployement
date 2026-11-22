@@ -42,7 +42,86 @@ Return JSON only:
 - deviceDetection: phones, tablets, laptops, headphones, earbuds, second screens, printed photos, virtual backgrounds — list concrete devices observed
 - Prefer concrete timed events when evidence supports them; use empty arrays when nothing notable
 - underwriterReviewRecommended true when integrity risk is material`,
+		disposition: `You are classifying the outcome of an insurance video verification / awareness journey.
+Use the provided session context (end reason, status, transcript, user responses, and prior capture/integrity summaries). There is NO external MPRO/proposal database — infer mismatches only from what the customer said vs what the agent stated or what responses imply.
+Return JSON only:
+{"disposition":"positive"|"negative"|"call_drop"|"call_cancel","category":string|null,"subcategory":string|null,"confidence":number,"summary":string,"reasons":string[],"mismatchFields":string[]}
+
+Disposition definitions:
+- positive: Customer successfully completes the verification and awareness journey with no material mismatch or cancel/fraud signals.
+- negative: Journey completed, but customer responses conflict with details stated in the conversation (premium, policy term, PPT, annuity start/portion, benefits). Case remains complete but marked Negative.
+- call_drop: Journey NOT completed due to customer, connectivity, technical, authentication, or interaction interruptions.
+- call_cancel: Fraud / misconduct / unauthorized assistance — third-party interference, impersonation, fraudulent activity, lip-sync/proxy verification, market conduct violation, unauthorized assistance.
+
+Category allow-list (pick one matching the disposition; null only for positive if unsure):
+- positive: "Verification Completed"
+- negative: "Premium Amount Mismatch" | "Policy Term Mismatch" | "Premium Payment Term (PPT) Mismatch" | "Annuity Start Date Mismatch" | "Annuity Portion / Allocation Mismatch" | "Benefit Mismatch" | "Other Mismatch"
+- call_drop: "Connectivity & Technical Issues" | "Customer Unavailable / Inactive" | "Verification & Authentication Issues" | "Customer Decision / Intent" | "Language-Related Issues"
+- call_cancel: "Third-Party Interference" | "Customer Impersonation" | "Fraudulent Activity" | "Lip-Sync / Proxy Verification" | "Market Conduct Violation" | "Unauthorized Assistance"
+
+Priority rules:
+1. Prefer call_cancel when fraud/proxy/third-party/impersonation/unauthorized assistance signals dominate (including strong media-integrity multi-user / device cues).
+2. Prefer call_drop when the journey is incomplete or end reason suggests drop/timeout/left/error, and there is no clear cancel/fraud case.
+3. Prefer negative when the customer completed verification but stated values conflict with what they were told / confirmed inconsistently.
+4. Prefer positive only when verification completes without material mismatch or cancel/drop signals.
+- confidence is 0..1
+- reasons: short concrete evidence bullets from transcript/responses/integrity
+- mismatchFields: for negative, keys like premium, policy_term, ppt, annuity_start_date, annuity_portion, benefit; empty otherwise
+- summary: one short underwriter-facing sentence`,
 	};
+
+export const DISPOSITION_CATEGORIES = {
+	positive: ["Verification Completed"],
+	negative: [
+		"Premium Amount Mismatch",
+		"Policy Term Mismatch",
+		"Premium Payment Term (PPT) Mismatch",
+		"Annuity Start Date Mismatch",
+		"Annuity Portion / Allocation Mismatch",
+		"Benefit Mismatch",
+		"Other Mismatch",
+	],
+	call_drop: [
+		"Connectivity & Technical Issues",
+		"Customer Unavailable / Inactive",
+		"Verification & Authentication Issues",
+		"Customer Decision / Intent",
+		"Language-Related Issues",
+	],
+	call_cancel: [
+		"Third-Party Interference",
+		"Customer Impersonation",
+		"Fraudulent Activity",
+		"Lip-Sync / Proxy Verification",
+		"Market Conduct Violation",
+		"Unauthorized Assistance",
+	],
+} as const;
+
+export const DISPOSITION_RESPONSE_SCHEMA = {
+	type: "object",
+	properties: {
+		disposition: {
+			type: "string",
+			enum: ["positive", "negative", "call_drop", "call_cancel"],
+		},
+		category: { type: ["string", "null"] },
+		subcategory: { type: ["string", "null"] },
+		confidence: { type: "number" },
+		summary: { type: "string" },
+		reasons: { type: "array", items: { type: "string" } },
+		mismatchFields: { type: "array", items: { type: "string" } },
+	},
+	required: [
+		"disposition",
+		"category",
+		"subcategory",
+		"confidence",
+		"summary",
+		"reasons",
+		"mismatchFields",
+	],
+} as const;
 
 /** Enforced Gemini JSON schema so vitals cannot be omitted/null. */
 export const BODY_ASSESSMENT_RESPONSE_SCHEMA = {
@@ -157,6 +236,11 @@ export function resolvePostProcessingConfig(
 				promptsRaw.media_integrity.trim()
 					? promptsRaw.media_integrity
 					: DEFAULT_POST_PROCESSING_PROMPTS.media_integrity,
+			disposition:
+				typeof promptsRaw.disposition === "string" &&
+				promptsRaw.disposition.trim()
+					? promptsRaw.disposition
+					: DEFAULT_POST_PROCESSING_PROMPTS.disposition,
 		},
 	};
 }

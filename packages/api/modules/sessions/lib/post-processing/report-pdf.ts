@@ -1,6 +1,10 @@
 import PDFDocument from "pdfkit";
 import { REPORT_LOGO_PNG } from "./report-logo";
-import type { PostProcessingResult, TimedMediaFinding } from "./types";
+import type {
+	CallDisposition,
+	PostProcessingResult,
+	TimedMediaFinding,
+} from "./types";
 
 /* -------------------------------------------------------------------------- */
 /*  Brand                                                                     */
@@ -215,6 +219,35 @@ function toneFromText(text: unknown): Tone {
 		return "warn";
 	}
 	return "neutral";
+}
+
+function dispositionLabel(disposition: CallDisposition): string {
+	switch (disposition) {
+		case "positive":
+			return "Positive";
+		case "negative":
+			return "Negative";
+		case "call_drop":
+			return "Call Drop";
+		case "call_cancel":
+			return "Call Cancel";
+		default:
+			return disposition;
+	}
+}
+
+function toneFromDisposition(disposition: CallDisposition): Tone {
+	switch (disposition) {
+		case "positive":
+			return "good";
+		case "negative":
+		case "call_cancel":
+			return "bad";
+		case "call_drop":
+			return "warn";
+		default:
+			return "neutral";
+	}
 }
 
 function toneColors(tone: Tone) {
@@ -1076,8 +1109,15 @@ export async function buildPostProcessingPdf(args: {
 	doc.x = left;
 
 	/* Summary tiles --------------------------------------------------------- */
-	const { face, idCard, body } = args.result;
+	const { face, idCard, body, disposition } = args.result;
 	const tiles: Array<{ label: string; value: string; tone: Tone }> = [];
+	if (disposition) {
+		tiles.push({
+			label: "Disposition",
+			value: dispositionLabel(disposition.disposition),
+			tone: toneFromDisposition(disposition.disposition),
+		});
+	}
 	if (body) {
 		tiles.push({
 			label: "Identity",
@@ -1111,6 +1151,48 @@ export async function buildPostProcessingPdf(args: {
 		});
 	}
 	summaryTiles(doc, tiles);
+
+	/* Disposition ----------------------------------------------------------- */
+	if (disposition) {
+		const dispositionRows: Row[] = [
+			{
+				label: "Category",
+				value: disposition.category ?? "—",
+			},
+			{
+				label: "Subcategory",
+				value: disposition.subcategory ?? "—",
+			},
+			{
+				label: "Confidence",
+				value: pct(disposition.confidence),
+			},
+			{
+				label: "Reasons",
+				value:
+					disposition.reasons.length > 0
+						? disposition.reasons.map((r) => `• ${r}`).join("\n")
+						: "—",
+			},
+		];
+		if (disposition.disposition === "negative") {
+			dispositionRows.push({
+				label: "Mismatch fields",
+				chips: disposition.mismatchFields,
+				chipTone: "bad",
+				value: "—",
+			});
+		}
+		section(doc, {
+			title: "Disposition",
+			tag: {
+				text: dispositionLabel(disposition.disposition).toUpperCase(),
+				tone: toneFromDisposition(disposition.disposition),
+			},
+			rows: dispositionRows,
+			summary: disposition.summary,
+		});
+	}
 
 	/* Session --------------------------------------------------------------- */
 	section(doc, {

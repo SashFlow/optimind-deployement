@@ -294,6 +294,7 @@ export const agentConfigSchema = z
 								id_extraction: z.string(),
 								body_assessment: z.string(),
 								media_integrity: z.string().optional(),
+								disposition: z.string().optional(),
 							})
 							.passthrough()
 							.optional(),

@@ -202,6 +202,11 @@ export function normalizeSessionModalities(
 						? postProcessingPromptsRaw.media_integrity
 						: DEFAULT_SESSION_MODALITIES.post_processing.prompts
 								.media_integrity,
+				disposition:
+					typeof postProcessingPromptsRaw.disposition === "string"
+						? postProcessingPromptsRaw.disposition
+						: DEFAULT_SESSION_MODALITIES.post_processing.prompts
+								.disposition,
 			},
 		},
 	};

@@ -128,6 +128,19 @@ export type SessionDetail = {
 				summary: string;
 				underwriterReviewRecommended: boolean;
 			};
+			disposition?: {
+				disposition:
+					| "positive"
+					| "negative"
+					| "call_drop"
+					| "call_cancel";
+				category: string | null;
+				subcategory: string | null;
+				confidence: number;
+				summary: string;
+				reasons: string[];
+				mismatchFields: string[];
+			};
 			reportFileId?: string;
 			videoUnavailable?: boolean;
 		};

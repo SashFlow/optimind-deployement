@@ -977,6 +977,46 @@ function PostProcessingStatusBadge({ status }: { status: string | undefined }) {
 	);
 }
 
+function dispositionDisplayLabel(
+	disposition: "positive" | "negative" | "call_drop" | "call_cancel",
+) {
+	switch (disposition) {
+		case "positive":
+			return "Positive";
+		case "negative":
+			return "Negative";
+		case "call_drop":
+			return "Call Drop";
+		case "call_cancel":
+			return "Call Cancel";
+		default:
+			return disposition;
+	}
+}
+
+function DispositionBadge({
+	disposition,
+}: {
+	disposition: "positive" | "negative" | "call_drop" | "call_cancel";
+}) {
+	const tone =
+		disposition === "positive"
+			? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+			: disposition === "call_drop"
+				? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+				: "bg-destructive/15 text-destructive";
+	return (
+		<span
+			className={cn(
+				"inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+				tone,
+			)}
+		>
+			{dispositionDisplayLabel(disposition)}
+		</span>
+	);
+}
+
 function formatMediaClock(ms: number | null | undefined) {
 	if (ms == null || !Number.isFinite(ms) || ms < 0) {
 		return null;
@@ -1232,6 +1272,56 @@ export function SessionPostProcessingPanel({
 					</CardContent>
 				) : null}
 			</Card>
+
+			{result.disposition ? (
+				<Card className="shadow-xs">
+					<CardHeader className="flex-row items-center justify-between space-y-0">
+						<div>
+							<CardTitle className="text-base font-bold leading-none">
+								Disposition
+							</CardTitle>
+							<p className="mt-1 text-xs text-muted-foreground">
+								AI classification from transcript, responses,
+								and integrity signals — not a final underwriting
+								decision.
+							</p>
+						</div>
+						<DispositionBadge
+							disposition={result.disposition.disposition}
+						/>
+					</CardHeader>
+					<CardContent className="space-y-3">
+						<DetailGrid
+							entries={[
+								[
+									"Category",
+									result.disposition.category ?? "—",
+								],
+								[
+									"Subcategory",
+									result.disposition.subcategory ?? "—",
+								],
+								[
+									"Confidence",
+									`${Math.round(result.disposition.confidence * 100)}%`,
+								],
+								["Summary", result.disposition.summary],
+								["Reasons", result.disposition.reasons],
+								...(result.disposition.disposition ===
+								"negative"
+									? ([
+											[
+												"Mismatch fields",
+												result.disposition
+													.mismatchFields,
+											],
+										] as Array<[string, unknown]>)
+									: []),
+							]}
+						/>
+					</CardContent>
+				</Card>
+			) : null}
 
 			{sessionArtifacts}
 

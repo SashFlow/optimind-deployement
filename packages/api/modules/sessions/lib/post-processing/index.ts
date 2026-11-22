@@ -10,6 +10,8 @@ import {
 import { generateJsonFromMedia, hasGeminiApiKey } from "./gemini";
 import {
 	BODY_ASSESSMENT_RESPONSE_SCHEMA,
+	DISPOSITION_CATEGORIES,
+	DISPOSITION_RESPONSE_SCHEMA,
 	resolvePostProcessingConfig,
 } from "./prompts";
 import {
@@ -21,6 +23,8 @@ import {
 } from "./report-pdf";
 import type {
 	BodyAssessmentResult,
+	CallDisposition,
+	DispositionResult,
 	FaceLivenessResult,
 	IdExtractionResult,
 	MediaIntegrityResult,
@@ -197,6 +201,132 @@ function parseTimedFindings(value: unknown): TimedMediaFinding[] {
 		});
 	}
 	return findings;
+}
+
+function parseCallDisposition(value: unknown): CallDisposition | null {
+	if (
+		value === "positive" ||
+		value === "negative" ||
+		value === "call_drop" ||
+		value === "call_cancel"
+	) {
+		return value;
+	}
+	return null;
+}
+
+function normalizeDispositionCategory(
+	disposition: CallDisposition,
+	category: string | null,
+): string | null {
+	if (!category) {
+		return disposition === "positive" ? "Verification Completed" : null;
+	}
+	const allowed = DISPOSITION_CATEGORIES[disposition] as readonly string[];
+	const exact = allowed.find(
+		(item) => item.toLowerCase() === category.toLowerCase(),
+	);
+	if (exact) {
+		return exact;
+	}
+	if (disposition === "negative") {
+		return "Other Mismatch";
+	}
+	return category;
+}
+
+function parseDisposition(raw: unknown): DispositionResult | null {
+	const data = asRecord(raw);
+	const disposition = parseCallDisposition(data.disposition);
+	if (!disposition) {
+		return null;
+	}
+	const categoryRaw = asString(data.category).trim();
+	return {
+		disposition,
+		category: normalizeDispositionCategory(
+			disposition,
+			categoryRaw || null,
+		),
+		subcategory: asString(data.subcategory).trim() || null,
+		confidence: Math.min(1, Math.max(0, asNumber(data.confidence) ?? 0)),
+		summary: asString(data.summary, "No disposition summary provided."),
+		reasons: asStringArray(data.reasons),
+		mismatchFields:
+			disposition === "negative"
+				? asStringArray(data.mismatchFields)
+				: [],
+	};
+}
+
+function truncateText(value: string, maxChars: number) {
+	if (value.length <= maxChars) {
+		return value;
+	}
+	return `${value.slice(0, maxChars)}…`;
+}
+
+function buildDispositionContext(args: {
+	status: string;
+	endReason?: string | null;
+	transcriptSegments: ReportTranscriptSegment[];
+	userResponses: UserResponseEntry[];
+	result: PostProcessingResult;
+}): string {
+	const transcriptLines = args.transcriptSegments
+		.slice(0, 120)
+		.map((segment) => {
+			const role = segment.role.toUpperCase();
+			return `${role}: ${segment.text}`;
+		});
+	const transcriptText = truncateText(transcriptLines.join("\n"), 12_000);
+
+	const responseLines = args.userResponses.map((entry) => {
+		const answer =
+			entry.answer == null
+				? ""
+				: typeof entry.answer === "string"
+					? entry.answer
+					: JSON.stringify(entry.answer);
+		return `Q: ${entry.question}\nA: ${answer}`;
+	});
+	const responsesText = truncateText(responseLines.join("\n\n"), 6_000);
+
+	const digests: string[] = [];
+	if (args.result.face) {
+		digests.push(
+			`Face liveness: pass=${args.result.face.livenessPass}, confidence=${args.result.face.confidence}, summary=${args.result.face.summary}`,
+		);
+	}
+	if (args.result.idCard) {
+		digests.push(
+			`ID extraction: confidence=${args.result.idCard.confidence}, summary=${args.result.idCard.summary}`,
+		);
+	}
+	if (args.result.body) {
+		digests.push(
+			`Body underwriting: identity=${args.result.body.underwriting.identityStatus}, liveness=${args.result.body.underwriting.livenessStatus}, review=${args.result.body.underwriting.underwriterReviewRecommended}, flags=${args.result.body.underwriting.exceptionFlags.join(", ") || "none"}, summary=${args.result.body.underwriting.summary}`,
+		);
+	}
+	if (args.result.mediaIntegrity) {
+		digests.push(
+			`Media integrity: multiVoices=${args.result.mediaIntegrity.multipleVoices.detected}, multiUsers=${args.result.mediaIntegrity.multipleUsers.detected}, devices=${args.result.mediaIntegrity.deviceDetection.devices.join(", ") || "none"}, review=${args.result.mediaIntegrity.underwriterReviewRecommended}, summary=${args.result.mediaIntegrity.summary}`,
+		);
+	}
+
+	return [
+		`Session status: ${args.status}`,
+		`End reason: ${args.endReason ?? "unknown"}`,
+		"",
+		"Prior analysis digests:",
+		digests.length > 0 ? digests.join("\n") : "(none)",
+		"",
+		"User responses:",
+		responsesText || "(none)",
+		"",
+		"Transcript:",
+		transcriptText || "(none)",
+	].join("\n");
 }
 
 function parseMediaIntegrity(
@@ -771,6 +901,41 @@ Use startMs/endMs relative to each attached file's own timeline when possible.`;
 		const egressEntries = buildEgressEntries(
 			reportSession.egressJobs ?? session.egressJobs ?? [],
 		);
+
+		try {
+			const dispositionContext = buildDispositionContext({
+				status: reportSession.status,
+				endReason: reportSession.endReason,
+				transcriptSegments,
+				userResponses,
+				result,
+			});
+			const dispositionPrompt = `${config.prompts.disposition}
+
+Session context:
+${dispositionContext}`;
+			const parsedDisposition = parseDisposition(
+				await generateJsonFromMedia({
+					model: config.model,
+					prompt: dispositionPrompt,
+					media: [],
+					responseJsonSchema: DISPOSITION_RESPONSE_SCHEMA,
+				}),
+			);
+			if (parsedDisposition) {
+				result.disposition = parsedDisposition;
+			} else {
+				logger.warn("Disposition response missing valid disposition", {
+					sessionId,
+				});
+			}
+		} catch (error) {
+			logger.warn("Disposition analysis failed; continuing report", {
+				sessionId,
+				error,
+			});
+		}
+
 		const pdf = await buildPostProcessingPdf({
 			sessionId: session.id,
 			agentName: session.agent?.name,

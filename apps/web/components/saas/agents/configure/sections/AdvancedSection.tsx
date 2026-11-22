@@ -160,7 +160,7 @@ export function AdvancedSection({
 			<div className="px-4 py-4 md:px-5">
 				<ConfigureSectionToggle
 					title="Post Processing"
-					description="After a call ends, run Gemini multimodal analysis on face, ID, body captures, and session audio/video integrity (issues, multiple voices/users, devices)."
+					description="After a call ends, run Gemini multimodal analysis on face, ID, body captures, session audio/video integrity, and call disposition (Positive / Negative / Call Drop / Call Cancel)."
 					checked={
 						config.session_modalities.post_processing.enabled ===
 						true
@@ -316,6 +316,40 @@ export function AdvancedSection({
 														.post_processing
 														.prompts,
 													media_integrity:
+														event.target.value,
+												},
+											},
+										},
+									})
+								}
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label
+								htmlFor="post-processing-disposition"
+								className="text-sm font-medium"
+							>
+								Disposition prompt
+							</Label>
+							<Textarea
+								id="post-processing-disposition"
+								className="min-h-28 bg-background font-mono text-xs"
+								value={
+									config.session_modalities.post_processing
+										.prompts.disposition
+								}
+								onChange={(event) =>
+									onConfigChange({
+										session_modalities: {
+											...config.session_modalities,
+											post_processing: {
+												...config.session_modalities
+													.post_processing,
+												prompts: {
+													...config.session_modalities
+														.post_processing
+														.prompts,
+													disposition:
 														event.target.value,
 												},
 											},

@@ -87,6 +87,22 @@ export type MediaIntegrityResult = {
 	underwriterReviewRecommended: boolean;
 };
 
+export type CallDisposition =
+	| "positive"
+	| "negative"
+	| "call_drop"
+	| "call_cancel";
+
+export type DispositionResult = {
+	disposition: CallDisposition;
+	category: string | null;
+	subcategory: string | null;
+	confidence: number;
+	summary: string;
+	reasons: string[];
+	mismatchFields: string[];
+};
+
 export type PostProcessingResult = {
 	status: PostProcessingStatus;
 	startedAt?: string;
@@ -97,6 +113,7 @@ export type PostProcessingResult = {
 	idCard?: IdExtractionResult;
 	body?: BodyAssessmentResult;
 	mediaIntegrity?: MediaIntegrityResult;
+	disposition?: DispositionResult;
 	reportFileId?: string;
 	/** Prior run used stills only; allow one retry when egress video becomes ready. */
 	videoUnavailable?: boolean;
@@ -110,6 +127,7 @@ export type PostProcessingConfig = {
 		id_extraction: string;
 		body_assessment: string;
 		media_integrity: string;
+		disposition: string;
 	};
 };
 
