@@ -27,6 +27,7 @@ import {
 	SessionPrejoinLobby,
 	type SessionPrejoinMediaSelection,
 } from "@/components/saas/agents/preview/SessionPrejoinLobby";
+import { VariableValueInput } from "@/components/saas/agents/VariableValueInput";
 import { ProctoringProvider } from "@/context/proctoring-provider";
 import { SessionInteractionProvider } from "@/context/session-interaction-provider";
 import { useGsplatAvatarWarmup } from "@/hooks/useGsplatAvatarWarmup";
@@ -164,49 +165,14 @@ function VariableField({
 		? `Enter ${label.toLowerCase()}`
 		: "Optional";
 
-	if (variable.variable_type === "number") {
-		return (
-			<Input
-				id={id}
-				type="number"
-				value={value}
-				onChange={(event) => onChange(event.target.value)}
-				placeholder={placeholder}
-				className="h-11 rounded-xl sm:h-10"
-			/>
-		);
-	}
-
-	if (
-		variable.variable_type === "link" ||
-		variable.variable_type === "file"
-	) {
-		return (
-			<Input
-				id={id}
-				type="url"
-				value={value}
-				onChange={(event) => onChange(event.target.value)}
-				placeholder={
-					variable.variable_type === "file"
-						? "Paste file URL"
-						: "https://"
-				}
-				className="h-11 rounded-xl sm:h-10"
-			/>
-		);
-	}
-
 	return (
-		<Input
+		<VariableValueInput
 			id={id}
-			type="text"
+			variable={variable}
 			value={value}
-			onChange={(event) => onChange(event.target.value)}
+			onChange={onChange}
 			placeholder={placeholder}
-			className="h-11 rounded-xl sm:h-10"
-			autoComplete="name"
-			autoCapitalize="words"
+			className="h-11 rounded-xl bg-background sm:h-10"
 		/>
 	);
 }

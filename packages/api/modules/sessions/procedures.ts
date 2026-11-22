@@ -539,10 +539,32 @@ function trialUnavailableReason(trial: {
 	return null;
 }
 
+function normalizeTrialDefaultValues(raw: unknown): Array<{
+	label: string;
+	value: string;
+}> {
+	if (!Array.isArray(raw)) {
+		return [];
+	}
+	return raw
+		.map((item) => {
+			const entry = item as { label?: string; value?: string };
+			return {
+				label: typeof entry.label === "string" ? entry.label : "",
+				value: typeof entry.value === "string" ? entry.value : "",
+			};
+		})
+		.filter((item) => item.label.trim() || item.value.trim());
+}
+
 function normalizeTrialVariables(raw: unknown): Array<{
 	name: string;
 	variable_type: "link" | "text" | "number" | "file";
 	required: boolean;
+	default_values: Array<{
+		label: string;
+		value: string;
+	}>;
 }> {
 	const allowed = new Set(["link", "text", "number", "file"]);
 	if (Array.isArray(raw)) {
@@ -552,6 +574,7 @@ function normalizeTrialVariables(raw: unknown): Array<{
 					name?: string;
 					variable_type?: string;
 					required?: boolean;
+					default_values?: unknown;
 				};
 				const name = (v.name ?? "").trim();
 				const variable_type = allowed.has(v.variable_type ?? "")
@@ -561,6 +584,9 @@ function normalizeTrialVariables(raw: unknown): Array<{
 					name,
 					variable_type,
 					required: Boolean(v.required),
+					default_values: normalizeTrialDefaultValues(
+						v.default_values,
+					),
 				};
 			})
 			.filter((item) => item.name.length > 0);
@@ -570,6 +596,7 @@ function normalizeTrialVariables(raw: unknown): Array<{
 			name,
 			variable_type: "text" as const,
 			required: false,
+			default_values: [],
 		}));
 	}
 	return [];

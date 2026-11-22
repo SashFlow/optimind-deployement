@@ -187,6 +187,14 @@ export const agentConfigSchema = z
 							"file",
 						]),
 						required: z.boolean(),
+						default_values: z
+							.array(
+								z.object({
+									label: z.string(),
+									value: z.string(),
+								}),
+							)
+							.optional(),
 					})
 					.passthrough(),
 			)

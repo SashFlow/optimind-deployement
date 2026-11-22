@@ -13,7 +13,10 @@ import { Switch } from "@repo/ui/switch";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { forwardRef, useImperativeHandle } from "react";
 import { useStableRowIds } from "@/components/saas/agents/configure/useStableRowIds";
-import type { AgentVariableDefinition } from "@/lib/agent-config";
+import type {
+	AgentVariableDefaultValue,
+	AgentVariableDefinition,
+} from "@/lib/agent-config";
 
 const VARIABLE_TYPE_OPTIONS: {
 	value: AgentVariableDefinition["variable_type"];
@@ -25,11 +28,16 @@ const VARIABLE_TYPE_OPTIONS: {
 	{ value: "file", label: "File" },
 ];
 
+function createEmptyDefaultValue(): AgentVariableDefaultValue {
+	return { label: "", value: "" };
+}
+
 function createEmptyVariable(): AgentVariableDefinition {
 	return {
 		name: "",
 		variable_type: "text",
 		required: false,
+		default_values: [],
 	};
 }
 
@@ -65,6 +73,51 @@ export const VariablesEditor = forwardRef<
 				i === index ? { ...variable, ...patch } : variable,
 			),
 		);
+	}
+
+	function defaultsFor(variable: AgentVariableDefinition) {
+		return variable.default_values ?? [];
+	}
+
+	function updateDefaultValue(
+		variableIndex: number,
+		defaultIndex: number,
+		patch: Partial<AgentVariableDefaultValue>,
+	) {
+		const variable = variables[variableIndex];
+		if (!variable) {
+			return;
+		}
+		updateVariable(variableIndex, {
+			default_values: defaultsFor(variable).map((entry, i) =>
+				i === defaultIndex ? { ...entry, ...patch } : entry,
+			),
+		});
+	}
+
+	function addDefaultValue(variableIndex: number) {
+		const variable = variables[variableIndex];
+		if (!variable) {
+			return;
+		}
+		updateVariable(variableIndex, {
+			default_values: [
+				...defaultsFor(variable),
+				createEmptyDefaultValue(),
+			],
+		});
+	}
+
+	function removeDefaultValue(variableIndex: number, defaultIndex: number) {
+		const variable = variables[variableIndex];
+		if (!variable) {
+			return;
+		}
+		updateVariable(variableIndex, {
+			default_values: defaultsFor(variable).filter(
+				(_, i) => i !== defaultIndex,
+			),
+		});
 	}
 
 	function addVariable() {
@@ -105,19 +158,13 @@ export const VariablesEditor = forwardRef<
 
 	return (
 		<div className="space-y-2">
-			<div className="overflow-hidden rounded-lg border bg-background">
-				<div className="hidden gap-2 border-b bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground sm:grid sm:grid-cols-[1fr_7rem_5.5rem_2rem]">
-					<span>Name</span>
-					<span>Type</span>
-					<span>Optional</span>
-					<span className="sr-only">Remove</span>
-				</div>
-				<div className="divide-y">
-					{variables.map((variable, index) => (
-						<div
-							key={rowIds[index] ?? index}
-							className="grid gap-2 px-3 py-2 sm:grid-cols-[1fr_7rem_5.5rem_2rem] sm:items-center"
-						>
+			<div className="overflow-hidden rounded-lg border bg-background divide-y">
+				{variables.map((variable, index) => (
+					<div
+						key={rowIds[index] ?? index}
+						className="space-y-2 px-3 py-2"
+					>
+						<div className="grid gap-2 sm:grid-cols-[1fr_7rem_5.5rem_2rem] sm:items-center">
 							<Input
 								value={variable.name}
 								onChange={(e) =>
@@ -180,8 +227,93 @@ export const VariablesEditor = forwardRef<
 								</Button>
 							</div>
 						</div>
-					))}
-				</div>
+
+						<div className="space-y-2 rounded-md border border-dashed bg-muted/20 p-2">
+							<div className="flex items-center justify-between gap-2">
+								<p className="text-xs font-medium text-muted-foreground">
+									Default values
+								</p>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="h-7 px-2 text-xs"
+									onClick={() => addDefaultValue(index)}
+								>
+									<PlusIcon className="size-3.5" />
+									Add
+								</Button>
+							</div>
+							{defaultsFor(variable).length === 0 ? (
+								<p className="text-xs text-muted-foreground">
+									Optional. Preview users can pick these or
+									type their own.
+								</p>
+							) : (
+								<div className="space-y-1.5">
+									{defaultsFor(variable).map(
+										(entry, defaultIndex) => (
+											<div
+												key={`${rowIds[index]}-default-${defaultIndex}`}
+												className="grid gap-2 sm:grid-cols-[1fr_1fr_2rem] sm:items-center"
+											>
+												<Input
+													value={entry.label}
+													onChange={(e) =>
+														updateDefaultValue(
+															index,
+															defaultIndex,
+															{
+																label: e.target
+																	.value,
+															},
+														)
+													}
+													placeholder="Label"
+													className="h-8 bg-background text-sm"
+													aria-label="Default value label"
+												/>
+												<Input
+													value={entry.value}
+													onChange={(e) =>
+														updateDefaultValue(
+															index,
+															defaultIndex,
+															{
+																value: e.target
+																	.value,
+															},
+														)
+													}
+													placeholder="Value"
+													className="h-8 bg-background text-sm"
+													aria-label="Default value"
+												/>
+												<div className="flex items-center justify-end">
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														onClick={() =>
+															removeDefaultValue(
+																index,
+																defaultIndex,
+															)
+														}
+														aria-label="Remove default value"
+														className="text-muted-foreground"
+													>
+														<Trash2Icon />
+													</Button>
+												</div>
+											</div>
+										),
+									)}
+								</div>
+							)}
+						</div>
+					</div>
+				))}
 			</div>
 
 			{hideAddButton ? null : (

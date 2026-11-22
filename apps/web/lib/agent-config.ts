@@ -131,10 +131,17 @@ export type DataCollectionField = {
 	options: string[];
 };
 
+export type AgentVariableDefaultValue = {
+	label: string;
+	value: string;
+};
+
 export type AgentVariableDefinition = {
 	name: string;
 	variable_type: "link" | "text" | "number" | "file";
 	required: boolean;
+	/** Suggested values shown on preview/trial; users may pick one or enter a custom value. */
+	default_values: AgentVariableDefaultValue[];
 };
 
 export type SessionTrackRequirement = "mandatory" | "optional";
@@ -371,6 +378,7 @@ const DEFAULT_CALLER_NAME_VARIABLE: AgentVariableDefinition = {
 	name: "caller_name",
 	variable_type: "text",
 	required: true,
+	default_values: [],
 };
 
 export function syncToolsFromPhases(
@@ -524,6 +532,21 @@ export function getVoicemailConfigError(
 	return null;
 }
 
+function normalizeDefaultValues(raw: unknown): AgentVariableDefaultValue[] {
+	if (!Array.isArray(raw)) {
+		return [];
+	}
+	return raw
+		.map((item) => {
+			const entry = item as Partial<AgentVariableDefaultValue>;
+			return {
+				label: typeof entry.label === "string" ? entry.label : "",
+				value: typeof entry.value === "string" ? entry.value : "",
+			};
+		})
+		.filter((item) => item.label.trim() || item.value.trim());
+}
+
 export function normalizeVariables(raw: unknown): AgentVariableDefinition[] {
 	if (Array.isArray(raw)) {
 		return raw
@@ -533,6 +556,7 @@ export function normalizeVariables(raw: unknown): AgentVariableDefinition[] {
 					name: v.name ?? "",
 					variable_type: v.variable_type ?? "text",
 					required: v.required ?? false,
+					default_values: normalizeDefaultValues(v.default_values),
 				};
 			})
 			.filter((item) => item.name.trim());
@@ -542,6 +566,7 @@ export function normalizeVariables(raw: unknown): AgentVariableDefinition[] {
 			name,
 			variable_type: "text" as const,
 			required: false,
+			default_values: [],
 		}));
 	}
 	return [];

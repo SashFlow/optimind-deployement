@@ -9,6 +9,10 @@ export type PublicAgentPreview = {
 		name: string;
 		variable_type: "link" | "text" | "number" | "file";
 		required: boolean;
+		default_values: Array<{
+			label: string;
+			value: string;
+		}>;
 	}>;
 	sessionModalities: {
 		call_type: "web" | "phone" | "both";

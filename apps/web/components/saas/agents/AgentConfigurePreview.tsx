@@ -46,6 +46,7 @@ import { fetchSessionCredentials } from "@/services/api/livekit";
 import { uploadPreviewAsset } from "@/services/api/preview-assets";
 import { fetchConfigureSpatialRealWarmup } from "@/services/api/spatialreal-warmup";
 import type { Agent } from "@/services/api/types";
+import { VariableValueInput } from "./VariableValueInput";
 import { PreviewSessionControls } from "./preview/PreviewSessionControls";
 import { PublishPrefetchedCamera } from "./preview/PublishPrefetchedCamera";
 import {
@@ -125,73 +126,49 @@ function VariableInput({
 }) {
 	const id = `preview-var-${variable.name}`;
 
-	if (variable.variable_type === "number") {
-		return (
-			<Input
-				id={id}
-				type="number"
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				placeholder={variable.required ? "Required" : "Optional"}
-				className="bg-background text-sm"
-			/>
-		);
-	}
-
-	if (variable.variable_type === "file") {
-		return (
-			<div className="space-y-2">
-				<Input
-					id={id}
-					type="url"
-					value={value}
-					onChange={(e) => onChange(e.target.value)}
-					placeholder="Paste file URL"
-					className="bg-background text-sm"
-				/>
-				<div className="flex items-center gap-2">
-					<Label
-						htmlFor={`${id}-upload`}
-						className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"
+	const fileUploadAddon =
+		variable.variable_type === "file" ? (
+			<div className="flex items-center gap-2">
+				<Label
+					htmlFor={`${id}-upload`}
+					className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"
+				>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={uploading}
+						onClick={() =>
+							document.getElementById(`${id}-upload`)?.click()
+						}
 					>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							disabled={uploading}
-							onClick={() =>
-								document.getElementById(`${id}-upload`)?.click()
-							}
-						>
-							<UploadIcon className="size-3.5" />
-							{uploading ? "Uploading..." : "Upload file"}
-						</Button>
-					</Label>
-					<input
-						id={`${id}-upload`}
-						type="file"
-						className="hidden"
-						onChange={(e) => {
-							const file = e.target.files?.[0];
-							if (file) {
-								onUpload(file);
-							}
-							e.target.value = "";
-						}}
-					/>
-				</div>
+						<UploadIcon className="size-3.5" />
+						{uploading ? "Uploading..." : "Upload file"}
+					</Button>
+				</Label>
+				<input
+					id={`${id}-upload`}
+					type="file"
+					className="hidden"
+					onChange={(e) => {
+						const file = e.target.files?.[0];
+						if (file) {
+							onUpload(file);
+						}
+						e.target.value = "";
+					}}
+				/>
 			</div>
-		);
-	}
+		) : null;
 
 	return (
-		<Input
+		<VariableValueInput
 			id={id}
-			type={variable.variable_type === "link" ? "url" : "text"}
+			variable={variable}
 			value={value}
-			onChange={(e) => onChange(e.target.value)}
-			placeholder={variable.required ? "Required" : "Optional"}
+			onChange={onChange}
 			className="bg-background text-sm"
+			freeformAddon={fileUploadAddon}
 		/>
 	);
 }
