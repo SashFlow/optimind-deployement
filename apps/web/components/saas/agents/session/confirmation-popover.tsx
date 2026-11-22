@@ -86,7 +86,7 @@ function parseConfirmationPrompt(prompt: string): ParsedConfirmationPrompt {
 			}
 		}
 
-		const qa = block.match(/^(.*?)\s*A:\s*([\s\S]+)$/is);
+		const qa = block.match(/^([\s\S]*?)\s*A:\s*([\s\S]+)$/i);
 		if (!qa?.[1] || qa[2] === undefined) {
 			continue;
 		}
