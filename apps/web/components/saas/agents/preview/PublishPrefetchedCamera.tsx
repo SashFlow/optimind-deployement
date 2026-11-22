@@ -13,6 +13,11 @@ import { toast } from "sonner";
 /**
  * Publishes a camera MediaStreamTrack that was already open in the prejoin
  * lobby, so LiveKit does not tear down and reacquire the device on join.
+ *
+ * Guarantees at most one Camera publication: if something else already
+ * published the camera (or a racing setCameraEnabled finished first), we
+ * reuse that publication instead of adding a second track that room-composite
+ * egress would tile side-by-side.
  */
 export function PublishPrefetchedCamera({
 	track,
@@ -29,13 +34,40 @@ export function PublishPrefetchedCamera({
 	useEffect(() => {
 		let cancelled = false;
 
-		async function publish() {
+		async function ensureCamera() {
 			if (cancelled || publishedRef.current) {
 				return;
 			}
 			publishedRef.current = true;
 
 			const mediaTrack = trackRef.current;
+			const deviceOpts = videoDeviceId
+				? { deviceId: videoDeviceId }
+				: undefined;
+
+			const existing = room.localParticipant.getTrackPublication(
+				Track.Source.Camera,
+			);
+			if (existing?.track) {
+				// Another path already published the camera — drop the unused
+				// prejoin track so we don't hold a second device open locally.
+				const publishedMedia = existing.track.mediaStreamTrack;
+				if (
+					mediaTrack.readyState === "live" &&
+					mediaTrack !== publishedMedia
+				) {
+					mediaTrack.stop();
+				}
+				if (existing.isMuted) {
+					try {
+						await room.localParticipant.setCameraEnabled(true);
+					} catch {
+						// Publication exists; unmute failure is non-fatal here.
+					}
+				}
+				return;
+			}
+
 			try {
 				if (mediaTrack.readyState === "live") {
 					const deviceId =
@@ -48,30 +80,48 @@ export function PublishPrefetchedCamera({
 						false,
 					);
 					localTrack.source = Track.Source.Camera;
+
+					// Re-check after async gap — another publisher may have won.
+					const raced = room.localParticipant.getTrackPublication(
+						Track.Source.Camera,
+					);
+					if (raced?.track) {
+						localTrack.stop();
+						if (raced.isMuted) {
+							await room.localParticipant.setCameraEnabled(true);
+						}
+						return;
+					}
+
 					await room.localParticipant.publishTrack(localTrack);
 					return;
 				}
 
-				await room.localParticipant.setCameraEnabled(
-					true,
-					videoDeviceId ? { deviceId: videoDeviceId } : undefined,
-				);
+				await room.localParticipant.setCameraEnabled(true, deviceOpts);
 			} catch (error) {
 				publishedRef.current = false;
-				toast.error(
-					error instanceof Error
-						? error.message
-						: "Camera could not be published",
-				);
+				try {
+					await room.localParticipant.setCameraEnabled(
+						true,
+						deviceOpts,
+					);
+					publishedRef.current = true;
+				} catch {
+					toast.error(
+						error instanceof Error
+							? error.message
+							: "Camera could not be published",
+					);
+				}
 			}
 		}
 
 		if (room.state === ConnectionState.Connected) {
-			void publish();
+			void ensureCamera();
 		}
 
 		const handleConnected = () => {
-			void publish();
+			void ensureCamera();
 		};
 		room.on(RoomEvent.Connected, handleConnected);
 		return () => {

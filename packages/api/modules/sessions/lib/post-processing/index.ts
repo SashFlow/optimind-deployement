@@ -831,14 +831,18 @@ export async function runPostProcessing(
 		].filter((part): part is MediaPart => Boolean(part));
 
 		if (integrityMedia.length > 0) {
-			const mediaLabels = [
-				tracks.userVideo ? "user_video" : null,
-				tracks.userAudio ? "user_audio" : null,
-				tracks.agentAudio ? "agent_audio" : null,
-			].filter((label): label is string => Boolean(label));
+			const mediaLabels =
+				tracks.partLabels.length > 0
+					? tracks.partLabels
+					: [
+							tracks.userVideo ? "user_video" : null,
+							tracks.userAudio ? "user_audio" : null,
+							tracks.agentAudio ? "agent_audio" : null,
+						].filter((label): label is string => Boolean(label));
 			const integrityPrompt = `${config.prompts.media_integrity}
 
 Media parts are attached in this order: ${mediaLabels.join(", ")}.
+Parts may come from track egress (user_video / user_audio / agent_audio) or room_composite / merged session recordings.
 Use startMs/endMs relative to each attached file's own timeline when possible.`;
 			result.mediaIntegrity = parseMediaIntegrity(
 				await generateJsonFromMedia({
@@ -881,7 +885,7 @@ Use startMs/endMs relative to each attached file's own timeline when possible.`;
 				},
 				mediaAvailable,
 				summary:
-					"Media integrity analysis skipped because no downloadable egress tracks were available.",
+					"Media integrity analysis skipped because no downloadable track or room-composite egress recordings were available.",
 				underwriterReviewRecommended: true,
 			};
 		}

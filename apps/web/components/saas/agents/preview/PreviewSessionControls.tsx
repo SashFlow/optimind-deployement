@@ -169,6 +169,12 @@ export function PreviewSessionControls({
 	chatMandatory = false,
 	proctoringEnabled = false,
 	proctoringNotice = null,
+	/**
+	 * When true, `PublishPrefetchedCamera` owns publishing the camera. Do not call
+	 * `setCameraEnabled` here — that races the prefetch publish and creates a second
+	 * room video track (duplicate panes in room-composite egress).
+	 */
+	prefetchedCamera = false,
 	/** Inside the app shell — fill parent instead of locking to viewport height. */
 	embedded = false,
 }: {
@@ -192,6 +198,7 @@ export function PreviewSessionControls({
 	chatMandatory?: boolean;
 	proctoringEnabled?: boolean;
 	proctoringNotice?: string | null;
+	prefetchedCamera?: boolean;
 	embedded?: boolean;
 }) {
 	const room = useRoomContext();
@@ -236,17 +243,30 @@ export function PreviewSessionControls({
 	});
 
 	// Proctoring requires a published camera track; keep it on for the session.
+	// Skip when a prefetched track is being published — calling setCameraEnabled in
+	// parallel opens a second Camera publication and room-composite records both.
 	useEffect(() => {
-		if (!proctoringEnabled || !isConnected) {
+		if (!proctoringEnabled || !isConnected || prefetchedCamera) {
 			return;
 		}
-		if (isCameraEnabled) {
+		if (
+			isCameraEnabled ||
+			cameraTrackRef?.publication ||
+			room.localParticipant.getTrackPublication(Track.Source.Camera)
+		) {
 			return;
 		}
 		void room.localParticipant.setCameraEnabled(true).catch(() => {
 			toast.error("Camera is required while proctoring is enabled");
 		});
-	}, [proctoringEnabled, isConnected, isCameraEnabled, room]);
+	}, [
+		proctoringEnabled,
+		isConnected,
+		prefetchedCamera,
+		isCameraEnabled,
+		cameraTrackRef,
+		room,
+	]);
 
 	const shouldWaitForAgent = isConnected && !hasAgent;
 	// SpatialReal / arkit / Spatius render client-side; anam publishes video.

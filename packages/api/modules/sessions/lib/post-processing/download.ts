@@ -10,8 +10,9 @@ import {
 } from "../egress-media-url";
 import type { MediaPart } from "./types";
 
-const MAX_VIDEO_BYTES = 15 * 1024 * 1024;
-const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
+/** Source recordings can exceed Gemini inline limits; we downsample video to 1fps after download. */
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 40 * 1024 * 1024;
 
 async function streamToBuffer(body: unknown): Promise<Buffer> {
 	if (!body) {
@@ -182,6 +183,8 @@ export type SessionMediaTracks = {
 	userVideo: MediaPart | null;
 	userAudio: MediaPart | null;
 	agentAudio: MediaPart | null;
+	/** Prompt labels for attached parts, in userVideo → userAudio → agentAudio order. */
+	partLabels: string[];
 };
 
 function pickCompleteRole(
@@ -195,34 +198,121 @@ function pickCompleteRole(
 	);
 }
 
+function integrityPartLabel(job: EgressJobLike, fallback: string): string {
+	const meta = asRecord(job.metadata);
+	if (typeof meta.role === "string" && meta.role.trim()) {
+		return meta.role;
+	}
+	if (meta.source === "track_merge") {
+		return "session_recording_merged";
+	}
+	if (job.type === "ROOM_COMPOSITE" || meta.kind === "room_composite") {
+		return isEgressAudioOnly(job)
+			? "room_composite_audio"
+			: "room_composite";
+	}
+	return fallback;
+}
+
+function listScoredVideoJobs(jobs: EgressJobLike[]): EgressJobLike[] {
+	return [...jobs]
+		.map((job) => ({ job, score: scoreVideoEgressJob(job) }))
+		.filter((row) => row.score >= 0)
+		.sort((a, b) => b.score - a.score)
+		.map((row) => row.job);
+}
+
+/** Audio-only room composites / merges (no track roles) for integrity review. */
+function listAudioOnlyCompositeJobs(jobs: EgressJobLike[]): EgressJobLike[] {
+	return jobs.filter((job) => {
+		if (job.status !== "COMPLETE" || !isEgressAudioOnly(job)) {
+			return false;
+		}
+		const meta = asRecord(job.metadata);
+		const isComposite =
+			job.type === "ROOM_COMPOSITE" ||
+			meta.kind === "room_composite" ||
+			meta.source === "track_merge";
+		if (!isComposite) {
+			return false;
+		}
+		if (
+			typeof job.sizeBytes === "number" &&
+			job.sizeBytes > MAX_AUDIO_BYTES
+		) {
+			return false;
+		}
+		return true;
+	});
+}
+
+async function firstDownloadable(
+	candidates: EgressJobLike[],
+	maxBytes: number,
+): Promise<{ part: MediaPart; job: EgressJobLike } | null> {
+	const seen = new Set<EgressJobLike>();
+	for (const job of candidates) {
+		if (!job || seen.has(job)) {
+			continue;
+		}
+		seen.add(job);
+		const part = await downloadEgressJobBytes(job, maxBytes);
+		if (part) {
+			return { part, job };
+		}
+	}
+	return null;
+}
+
 /**
- * Download per-track egress media for Gemini media-integrity analysis.
- * Prefers explicit track roles; falls back to best non-audio video for userVideo.
+ * Download egress media for Gemini media-integrity analysis.
+ * Supports both egress modes:
+ * - track: prefer role-tagged TRACK jobs (user_video / user_audio / agent_audio)
+ * - room_composite: fall back to ROOM_COMPOSITE / track_merge (A/V or audio-only)
+ * If a preferred job fails to download, tries the next candidate.
  */
 export async function downloadSessionMediaTracks(
 	jobs: EgressJobLike[],
 ): Promise<SessionMediaTracks> {
-	const userVideoJob =
-		pickCompleteRole(jobs, "user_video") ??
-		[...jobs]
-			.map((job) => ({ job, score: scoreVideoEgressJob(job) }))
-			.filter((row) => row.score >= 0)
-			.sort((a, b) => b.score - a.score)[0]?.job ??
-		null;
-	const userAudioJob = pickCompleteRole(jobs, "user_audio");
-	const agentAudioJob = pickCompleteRole(jobs, "agent_audio");
+	const roleUserVideo = pickCompleteRole(jobs, "user_video");
+	const roleUserAudio = pickCompleteRole(jobs, "user_audio");
+	const roleAgentAudio = pickCompleteRole(jobs, "agent_audio");
 
-	const [userVideo, userAudio, agentAudio] = await Promise.all([
-		userVideoJob
-			? downloadEgressJobBytes(userVideoJob, MAX_VIDEO_BYTES)
-			: Promise.resolve(null),
-		userAudioJob
-			? downloadEgressJobBytes(userAudioJob, MAX_AUDIO_BYTES)
-			: Promise.resolve(null),
-		agentAudioJob
-			? downloadEgressJobBytes(agentAudioJob, MAX_AUDIO_BYTES)
-			: Promise.resolve(null),
-	]);
+	const videoCandidates = [
+		roleUserVideo,
+		...listScoredVideoJobs(jobs),
+	].filter((job): job is EgressJobLike => Boolean(job));
 
-	return { userVideo, userAudio, agentAudio };
+	const videoHit = await firstDownloadable(videoCandidates, MAX_VIDEO_BYTES);
+
+	// When no video is available, room-composite audio-only recordings still
+	// need integrity review (SIP / phone / audio-only composite mode).
+	const audioCandidates = [
+		roleUserAudio,
+		...(videoHit ? [] : listAudioOnlyCompositeJobs(jobs)),
+	].filter((job): job is EgressJobLike => Boolean(job));
+
+	const audioHit = await firstDownloadable(audioCandidates, MAX_AUDIO_BYTES);
+
+	const agentHit = roleAgentAudio
+		? await firstDownloadable([roleAgentAudio], MAX_AUDIO_BYTES)
+		: null;
+
+	const partLabels: string[] = [];
+	if (videoHit) {
+		partLabels.push(integrityPartLabel(videoHit.job, "user_video"));
+	}
+	if (audioHit) {
+		partLabels.push(integrityPartLabel(audioHit.job, "user_audio"));
+	}
+	if (agentHit) {
+		partLabels.push(integrityPartLabel(agentHit.job, "agent_audio"));
+	}
+
+	return {
+		userVideo: videoHit?.part ?? null,
+		userAudio: audioHit?.part ?? null,
+		agentAudio: agentHit?.part ?? null,
+		partLabels,
+	};
 }

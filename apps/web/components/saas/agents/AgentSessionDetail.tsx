@@ -406,7 +406,7 @@ function EgressMediaPlayer({
 		<video
 			controls
 			preload="metadata"
-			className="aspect-video w-full rounded-xl bg-black object-contain ring-1 ring-black/10"
+			className="mx-auto block h-auto max-h-[min(22rem,calc(100vh-18rem))] w-full rounded-xl bg-black object-contain ring-1 ring-black/10"
 		>
 			<source src={url} type={contentType ?? "video/mp4"} />
 			<track kind="captions" />
@@ -508,7 +508,7 @@ function EgressPanel({
 	}
 
 	return (
-		<div className="no-scrollbar max-h-[32rem] min-h-[22rem] space-y-3 overflow-y-auto pr-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+		<div className="space-y-3">
 			{jobs.map((job) => {
 				const playableUrl = pickPlayableUrl(job);
 				const status = (job.status ?? "unknown").toUpperCase();
@@ -1131,9 +1131,9 @@ export function SessionPostProcessingPanel({
 			onClick={() => rerunMutation.mutate({ id: session.id })}
 		>
 			{isRunning ? (
-				<LoaderCircleIcon className="size-4 animate-spin" />
+				<LoaderCircleIcon className="size-3 animate-spin mr-1" />
 			) : (
-				<RefreshCwIcon className="size-4" />
+				<RefreshCwIcon className="size-3 mr-1" />
 			)}
 			Regenerate
 		</Button>
@@ -1259,7 +1259,7 @@ export function SessionPostProcessingPanel({
 									target="_blank"
 									rel="noreferrer"
 								>
-									<DownloadIcon className="size-4" />
+									<DownloadIcon className="size-3 mr-1" />
 									PDF
 								</a>
 							</Button>

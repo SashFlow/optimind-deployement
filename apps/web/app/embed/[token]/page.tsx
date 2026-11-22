@@ -244,6 +244,7 @@ function EmbedAgentPageContent() {
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}
+				prefetchedCamera={Boolean(joinMedia?.cameraTrack)}
 				onEnd={() => {
 					releasePrefetchedCameraTrack(joinMedia);
 					setCredentials(null);

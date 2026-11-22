@@ -405,6 +405,7 @@ export default function SharedTrialPage() {
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}
+				prefetchedCamera={Boolean(joinMedia?.cameraTrack)}
 				onEnd={() => {
 					releasePrefetchedCameraTrack(joinMedia);
 					setCredentials(null);

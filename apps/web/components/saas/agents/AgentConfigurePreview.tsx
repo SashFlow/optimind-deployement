@@ -485,6 +485,7 @@ export function AgentConfigurePreview({
 				maxDurationSeconds={maxDurationSeconds}
 				chatMandatory={chatMandatory}
 				proctoringEnabled={proctoringEnabled}
+				prefetchedCamera={Boolean(joinMedia?.cameraTrack)}
 				embedded
 			/>
 		);

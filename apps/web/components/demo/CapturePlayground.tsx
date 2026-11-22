@@ -16,6 +16,7 @@ import { ConnectionState, Track } from "livekit-client";
 import { Loader, Shield, Video, VideoOff } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ConfirmationDialog } from "@/components/saas/agents/session/confirmation-popover";
 import {
 	ProctoringProvider,
 	useProctoringContext,
@@ -25,6 +26,22 @@ import type { FaceCaptureResult } from "@/lib/proctoring/faceCapture";
 import type { IdCaptureResult } from "@/lib/proctoring/idCard";
 
 const DEMO_PASSWORD_STORAGE_KEY = "demo-captures-password";
+
+const DEMO_CONFIRMATION_PROMPT = `Please review your answers below and confirm they are correct:
+
+1. Q: Annual income, premium, and payment term. A: Customer confirmed annual income of seven lakh, premium of fifty thousand, payment term of seven years.
+2. Q: Maturity period for the policy. A: Customer confirmed a maturity period of fifteen years.
+3. Q: Mode of premium payment. A: Customer confirmed annual mode of premium payment.
+4. Q: Nominee name and relationship. A: Customer confirmed nominee as spouse, named Priya Sharma.
+5. Q: Any existing life insurance policies. A: Customer confirmed no other existing life insurance policies.
+6. Q: Tobacco or nicotine use in the last twelve months. A: Customer confirmed no tobacco or nicotine use.
+7. Q: Any hospitalization in the last three years. A: Customer confirmed no hospitalization in the last three years.
+8. Q: Current occupation and nature of work. A: Customer confirmed occupation as software engineer, desk-based office work.
+9. Q: Preferred communication language. A: Customer confirmed English as the preferred language.
+
+I confirm that these answers are true and complete.`;
+
+const DEMO_CONFIRMATION_ACCEPT_LABEL = "I confirm these answers are correct.";
 
 type DemoCredentials = {
 	serverUrl: string;
@@ -96,9 +113,9 @@ function CaptureControls({
 					Capture playground
 				</h1>
 				<p className="text-muted-foreground text-sm">
-					Test ID, face, body capture, and continuous proctoring
-					without an agent. Capture overlays open from the buttons —
-					no verification flags or tool RPCs required.
+					Test ID, face, body capture, confirmation UI, and continuous
+					proctoring without an agent. Overlays open from the buttons
+					— no verification flags or tool RPCs required.
 				</p>
 			</div>
 
@@ -183,7 +200,7 @@ function CaptureControls({
 				)}
 			</div>
 
-			<div className="grid gap-3 sm:grid-cols-3">
+			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<Button
 					type="button"
 					disabled={!proctoring.isCameraReady || busy}
@@ -205,6 +222,7 @@ function CaptureControls({
 				>
 					Start body capture
 				</Button>
+				<ConfirmationPreviewButton />
 			</div>
 
 			{!proctoring.isCameraReady ? (
@@ -303,6 +321,51 @@ function CaptureRoom({
 				/>
 			</ProctoringProvider>
 		</LiveKitRoom>
+	);
+}
+
+function ConfirmationPreviewButton({
+	variant = "outline",
+	className,
+}: {
+	variant?: "outline" | "default";
+	className?: string;
+}) {
+	const [open, setOpen] = useState(false);
+	const [checked, setChecked] = useState(false);
+
+	return (
+		<>
+			<Button
+				type="button"
+				variant={variant}
+				className={className}
+				onClick={() => {
+					setChecked(false);
+					setOpen(true);
+				}}
+			>
+				Preview confirmation
+			</Button>
+			{open ? (
+				<ConfirmationDialog
+					prompt={DEMO_CONFIRMATION_PROMPT}
+					acceptLabel={DEMO_CONFIRMATION_ACCEPT_LABEL}
+					checked={checked}
+					onCheckedChange={setChecked}
+					onAccept={() => {
+						toast.success("Confirmation preview accepted");
+						setOpen(false);
+						setChecked(false);
+					}}
+					onDecline={() => {
+						toast.message("Confirmation preview declined");
+						setOpen(false);
+						setChecked(false);
+					}}
+				/>
+			) : null}
+		</>
 	);
 }
 
@@ -429,6 +492,7 @@ export function CapturePlayground() {
 							"Continue"
 						)}
 					</Button>
+					<ConfirmationPreviewButton className="w-full" />
 				</form>
 			</div>
 		);

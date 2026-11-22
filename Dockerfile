@@ -43,6 +43,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# ffmpeg: downsample session video to 1fps before Gemini post-processing
+RUN apk add --no-cache ffmpeg
+
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 
 # Owned by nextjs: withSpatialReal / withAvatarkit write into package .cache on

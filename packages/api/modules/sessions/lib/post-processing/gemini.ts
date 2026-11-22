@@ -1,5 +1,6 @@
 import { createPartFromBase64, GoogleGenAI } from "@google/genai";
 import { logger } from "@repo/logs";
+import { downsampleMediaForGemini } from "./downsample-video";
 import type { MediaPart } from "./types";
 
 function getApiKey() {
@@ -45,9 +46,10 @@ export async function generateJsonFromMedia(args: {
 	temperature?: number;
 }): Promise<unknown> {
 	const client = getClient();
+	const media = await downsampleMediaForGemini(args.media);
 	const parts = [
 		{ text: args.prompt },
-		...args.media.map((item) =>
+		...media.map((item) =>
 			createPartFromBase64(
 				item.bytes.toString("base64"),
 				item.mimeType || "application/octet-stream",
