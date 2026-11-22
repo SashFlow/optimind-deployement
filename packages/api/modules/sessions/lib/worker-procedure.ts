@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { publicProcedure } from "../../../orpc/procedures";
+import { timingSafeEqualString } from "../../shared/timing-safe";
 
 export const workerProcedure = publicProcedure.use(
 	async ({ context, next }) => {
@@ -14,7 +15,7 @@ export const workerProcedure = publicProcedure.use(
 			context.headers.get("x-worker-api-key") ??
 			context.headers.get("X-Worker-Api-Key");
 
-		if (!provided || provided !== expected) {
+		if (!timingSafeEqualString(provided, expected)) {
 			throw new ORPCError("UNAUTHORIZED");
 		}
 

@@ -522,6 +522,14 @@ export async function upsertTranscriptFromHistory(data: {
 		.join("\n");
 	const wordCount = fullText.split(/\s+/).filter((w) => w.length > 0).length;
 	const status = data.status ?? "FINAL";
+	const retentionDays = Number.parseInt(
+		process.env.TRANSCRIPT_RETENTION_DAYS ?? "365",
+		10,
+	);
+	const retentionExpiresAt =
+		Number.isFinite(retentionDays) && retentionDays > 0
+			? new Date(Date.now() + retentionDays * 24 * 60 * 60 * 1000)
+			: null;
 
 	return db.$transaction(async (tx) => {
 		const transcript = await tx.transcript.upsert({
@@ -534,12 +542,14 @@ export async function upsertTranscriptFromHistory(data: {
 				status,
 				fullText,
 				wordCount,
+				retentionExpiresAt: retentionExpiresAt ?? undefined,
 			},
 			update: {
 				language: data.language,
 				status,
 				fullText,
 				wordCount,
+				...(retentionExpiresAt ? { retentionExpiresAt } : {}),
 			},
 		});
 

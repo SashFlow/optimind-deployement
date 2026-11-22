@@ -1,9 +1,11 @@
 import {
 	AgentUsageLimitExceededError,
+	assertContactCallable,
 	createAgentSession,
 	createWorkflowApproval,
 	getAgentById,
 	getCampaignById,
+	getCampaignContactById,
 	searchChunks,
 } from "@repo/database";
 import {
@@ -186,6 +188,26 @@ export async function handleAgent(
 		args.context,
 	) ?? {}) as Record<string, unknown>;
 
+	const campaignContactIdRaw =
+		cfg.campaignContactId ?? cfg.contactId ?? contactMetadata.contactId;
+	const campaignContactId = campaignContactIdRaw
+		? String(resolveTemplate(String(campaignContactIdRaw), args.context))
+		: undefined;
+	if (campaignContactId) {
+		const contact = await getCampaignContactById(campaignContactId);
+		if (contact) {
+			assertContactCallable(contact);
+		}
+	} else if (
+		direction === "OUTBOUND" &&
+		campaign.mode === "OUTBOUND_LIST" &&
+		phoneNumber
+	) {
+		throw new Error(
+			"Outbound dial requires a campaign contact with consent (campaignContactId)",
+		);
+	}
+
 	const roomName = `wf-${args.run.id.slice(0, 8)}-${args.node.id.slice(0, 6)}-${Date.now()}`;
 	const recordingEnabled =
 		cfg.recordingEnabled !== undefined
@@ -235,7 +257,7 @@ export async function handleAgent(
 		config: configSnapshot as Record<string, unknown>,
 		source: "campaign",
 		campaign_id: args.run.campaignId,
-		campaign_contact_id: null,
+		campaign_contact_id: campaignContactId ?? null,
 		phone_number: phoneNumber ?? null,
 		from_number: null,
 		sip_trunk_id: null,

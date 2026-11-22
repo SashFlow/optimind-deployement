@@ -176,6 +176,7 @@ export async function enqueueCampaignContacts(
 		where: {
 			campaignId,
 			doNotContact: false,
+			consentGiven: true,
 			status: { in: ["PENDING", "PAUSED", "RESCHEDULED", "FAILED"] },
 			...(contactIds?.length ? { id: { in: contactIds } } : {}),
 		},
@@ -213,6 +214,7 @@ export async function listQueuedContacts(campaignId: string, limit = 20) {
 			campaignId,
 			status: "QUEUED",
 			doNotContact: false,
+			consentGiven: true,
 			OR: [
 				{ nextAttemptAt: null },
 				{ nextAttemptAt: { lte: new Date() } },
@@ -221,6 +223,19 @@ export async function listQueuedContacts(campaignId: string, limit = 20) {
 		orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "asc" }],
 		take: limit,
 	});
+}
+
+/** Returns true when a contact may be dialed / messaged. */
+export function assertContactCallable(contact: {
+	doNotContact: boolean;
+	consentGiven: boolean;
+}): void {
+	if (contact.doNotContact) {
+		throw new Error("Contact is marked do-not-contact");
+	}
+	if (!contact.consentGiven) {
+		throw new Error("Contact has not given consent for outreach");
+	}
 }
 
 export async function getRecallContext(contactId: string, limit = 5) {

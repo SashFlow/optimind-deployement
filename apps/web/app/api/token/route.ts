@@ -4,6 +4,12 @@ import {
 	resolveSessionEndUser,
 	toDispatchEndUser,
 } from "@repo/api/modules/sessions/lib/end-user";
+import {
+	checkRateLimit,
+	getClientIp,
+	rateLimitResponse,
+} from "@repo/api/modules/shared/rate-limit";
+import { requireOrgMembership } from "@repo/api/modules/shared/require-org-membership";
 import { auth } from "@repo/auth";
 import {
 	AgentUsageLimitExceededError,
@@ -72,6 +78,15 @@ function configEgressMode(config: unknown): "track" | "room_composite" {
 
 export async function POST(req: Request) {
 	try {
+		const ip = getClientIp(req.headers);
+		const rate = checkRateLimit(`token:${ip}`, {
+			limit: 30,
+			windowMs: 60_000,
+		});
+		if (!rate.ok) {
+			return rateLimitResponse(rate);
+		}
+
 		const cfg = getLiveKitConfig();
 
 		const body = await req.json().catch(() => ({}));
@@ -109,6 +124,19 @@ export async function POST(req: Request) {
 		let agentMetadata: string | undefined;
 
 		if (organizationId && agentId) {
+			// Org-scoped session creation requires authenticated membership.
+			const authSession = await auth.api
+				.getSession({ headers: req.headers })
+				.catch(() => null);
+			if (!authSession?.user?.id) {
+				return new NextResponse("Unauthorized", { status: 401 });
+			}
+			try {
+				await requireOrgMembership(organizationId, authSession.user.id);
+			} catch {
+				return new NextResponse("Forbidden", { status: 403 });
+			}
+
 			const agent = await getAgentById(agentId);
 			if (!agent || agent.organizationId !== organizationId) {
 				return new NextResponse("Agent not found", { status: 404 });
@@ -125,15 +153,9 @@ export async function POST(req: Request) {
 				recordingOverride ?? configRecordingEnabled(configSnapshot);
 			const egressMode = configEgressMode(configSnapshot);
 
-			// Login is optional here: link to the signed-in user when present.
-			const authSession = await auth.api
-				.getSession({ headers: req.headers })
-				.catch(() => null);
 			const endUser = await resolveSessionEndUser(
 				{ organizationId, agentId: agent.id },
-				authSession?.user
-					? { kind: "user", user: authSession.user }
-					: { kind: "anonymous" },
+				{ kind: "user", user: authSession.user },
 			);
 
 			let session: Awaited<ReturnType<typeof createAgentSession>>;

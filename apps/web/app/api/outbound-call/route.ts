@@ -3,6 +3,12 @@ import {
 	resolveSessionEndUser,
 	toDispatchEndUser,
 } from "@repo/api/modules/sessions/lib/end-user";
+import {
+	checkRateLimit,
+	getClientIp,
+	rateLimitResponse,
+} from "@repo/api/modules/shared/rate-limit";
+import { requireOrgMembership } from "@repo/api/modules/shared/require-org-membership";
 import { auth } from "@repo/auth";
 import {
 	AgentUsageLimitExceededError,
@@ -66,6 +72,15 @@ function configEgressMode(config: unknown): "track" | "room_composite" {
 
 export async function POST(req: Request) {
 	try {
+		const ip = getClientIp(req.headers);
+		const rate = checkRateLimit(`outbound:${ip}`, {
+			limit: 20,
+			windowMs: 60_000,
+		});
+		if (!rate.ok) {
+			return rateLimitResponse(rate);
+		}
+
 		const body = (await req.json()) as OutboundCallBody;
 		const phoneNumber = normalizePhoneNumber(body.phoneNumber ?? "");
 		const slug = (body.slug ?? "").trim();
@@ -92,6 +107,27 @@ export async function POST(req: Request) {
 		let metadata: string;
 
 		if (body.organizationId && body.agentId) {
+			const authSession = await auth.api
+				.getSession({ headers: req.headers })
+				.catch(() => null);
+			if (!authSession?.user?.id) {
+				return NextResponse.json(
+					{ error: "Unauthorized" },
+					{ status: 401 },
+				);
+			}
+			try {
+				await requireOrgMembership(
+					body.organizationId,
+					authSession.user.id,
+				);
+			} catch {
+				return NextResponse.json(
+					{ error: "Forbidden" },
+					{ status: 403 },
+				);
+			}
+
 			const agent = await getAgentById(body.agentId);
 			if (!agent || agent.organizationId !== body.organizationId) {
 				return NextResponse.json(
@@ -119,15 +155,9 @@ export async function POST(req: Request) {
 					? body.contactMetadata
 					: {};
 
-			// Login is optional here: signed-in user, otherwise the dialled number.
-			const authSession = await auth.api
-				.getSession({ headers: req.headers })
-				.catch(() => null);
 			const endUser = await resolveSessionEndUser(
 				{ organizationId: body.organizationId, agentId: agent.id },
-				authSession?.user
-					? { kind: "user", user: authSession.user }
-					: { kind: "phone", phone: phoneNumber, contactMetadata },
+				{ kind: "phone", phone: phoneNumber, contactMetadata },
 			);
 
 			let session: Awaited<ReturnType<typeof createAgentSession>>;

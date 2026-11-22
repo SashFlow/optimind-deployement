@@ -10,9 +10,29 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger as honoLogger } from "hono/logger";
 import { mergeOpenApiSchemas } from "./lib/openapi-schema";
+import { checkRateLimit, getClientIp } from "./modules/shared/rate-limit";
+import { verifyWebhookHmac } from "./modules/shared/signed-token";
 import { livekitWebhookHandler } from "./modules/sessions/webhooks/livekit";
 import { openApiHandler, rpcHandler } from "./orpc/handler";
 import { router } from "./orpc/router";
+
+const isProd = process.env.NODE_ENV === "production";
+const allowOpenApiDocs = process.env.ALLOW_OPENAPI_DOCS === "true" || !isProd;
+
+async function requireOpenApiAccess(c: {
+	req: { raw: Request };
+}): Promise<Response | null> {
+	if (allowOpenApiDocs) {
+		return null;
+	}
+	const session = await auth.api
+		.getSession({ headers: c.req.raw.headers })
+		.catch(() => null);
+	if (session?.user?.role === "admin") {
+		return null;
+	}
+	return new Response("Not Found", { status: 404 });
+}
 
 export const app = new Hono()
 	.basePath("/api")
@@ -22,17 +42,49 @@ export const app = new Hono()
 	.use(
 		cors({
 			origin: getBaseUrl(),
-			allowHeaders: ["Content-Type", "Authorization", "X-Worker-Api-Key"],
+			allowHeaders: [
+				"Content-Type",
+				"Authorization",
+				"X-Worker-Api-Key",
+				"X-Webhook-Signature",
+				"X-Webhook-Timestamp",
+			],
 			allowMethods: ["POST", "GET", "PATCH", "PUT", "DELETE", "OPTIONS"],
 			exposeHeaders: ["Content-Length"],
 			maxAge: 600,
 			credentials: true,
 		}),
 	)
+	// Global abuse protection (auth + public endpoints share this ceiling)
+	.use("*", async (c, next) => {
+		const ip = getClientIp(c.req.raw.headers);
+		const path = c.req.path;
+		const isAuth = path.includes("/auth/");
+		const isPublicSensitive =
+			path.includes("/aadhaar") ||
+			path.includes("/newsletter") ||
+			path.includes("/contact") ||
+			path.includes("/workflows/hooks");
+		const limit = isAuth ? 40 : isPublicSensitive ? 20 : 120;
+		const result = checkRateLimit(`api:${ip}:${isAuth ? "auth" : "gen"}`, {
+			limit,
+			windowMs: 60_000,
+		});
+		if (!result.ok) {
+			return c.text("Too Many Requests", 429, {
+				"Retry-After": String(result.retryAfterSec),
+			});
+		}
+		await next();
+	})
 	// Auth handler
 	.on(["POST", "GET"], "/auth/**", (c) => auth.handler(c.req.raw))
-	// OpenAPI schema endpoint
+	// OpenAPI schema endpoint (gated in production)
 	.get("/openapi", async (c) => {
+		const denied = await requireOpenApiAccess(c);
+		if (denied) {
+			return denied;
+		}
 		const authSchema = await auth.api.generateOpenAPISchema();
 
 		const appSchema = await new OpenAPIGenerator({
@@ -58,6 +110,10 @@ export const app = new Hono()
 		return c.json(mergedSchema);
 	})
 	.get("/orpc-openapi", async (c) => {
+		const denied = await requireOpenApiAccess(c);
+		if (denied) {
+			return denied;
+		}
 		const appSchema = await new OpenAPIGenerator({
 			schemaConverters: [new ZodToJsonSchemaConverter()],
 		}).generate(router, {
@@ -69,35 +125,62 @@ export const app = new Hono()
 
 		return c.json(appSchema);
 	})
-	// Scalar API reference based on OpenAPI schema
-	.get(
-		"/docs",
-		Scalar({
+	// Scalar API reference based on OpenAPI schema (gated in production)
+	.get("/docs", async (c, next) => {
+		const denied = await requireOpenApiAccess(c);
+		if (denied) {
+			return denied;
+		}
+		const handler = Scalar({
 			theme: "saturn",
 			url: "/api/openapi",
-		}),
-	)
+		});
+		return handler(c, next);
+	})
 	// Payments webhook handler
 	.post("/webhooks/payments", (c) => paymentsWebhookHandler(c.req.raw))
 	// LiveKit egress / room webhook handler
 	.post("/webhooks/livekit", (c) => livekitWebhookHandler(c.req.raw))
-	// Campaign workflow webhook trigger
+	// Campaign workflow webhook trigger (HMAC optional but enforced when secret set)
 	.post("/workflows/hooks/:token", async (c) => {
 		const token = c.req.param("token");
+		const rawText = await c.req.text();
 		let body: unknown = {};
 		try {
-			body = await c.req.json();
+			body = rawText ? JSON.parse(rawText) : {};
 		} catch {
-			const text = await c.req.text();
-			body = text ? { raw: text } : {};
+			body = rawText ? { raw: rawText } : {};
 		}
 		const headers: Record<string, string> = {};
 		c.req.raw.headers.forEach((v, k) => {
 			headers[k] = v;
 		});
-		const { startWebhookRun } = await import(
+
+		const { startWebhookRun, getWorkflowWebhookSecret } = await import(
 			"./modules/workflows/procedures"
 		);
+		const webhookSecret = await getWorkflowWebhookSecret(token);
+		if (webhookSecret) {
+			const verified = verifyWebhookHmac({
+				rawBody: rawText,
+				signatureHeader:
+					c.req.header("x-webhook-signature") ??
+					c.req.header("X-Webhook-Signature") ??
+					null,
+				timestampHeader:
+					c.req.header("x-webhook-timestamp") ??
+					c.req.header("X-Webhook-Timestamp") ??
+					null,
+				secret: webhookSecret,
+			});
+			if (!verified.ok) {
+				return c.json(
+					{ ok: false, error: "Invalid webhook signature" },
+					401,
+				);
+			}
+		}
+
 		try {
 			const run = await startWebhookRun(token, {
 				body,

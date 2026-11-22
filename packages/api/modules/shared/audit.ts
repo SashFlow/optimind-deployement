@@ -16,7 +16,11 @@ export type AuditResourceType =
 	| "sip_dispatch_rule"
 	| "invite"
 	| "organization"
-	| "session";
+	| "session"
+	| "end_user"
+	| "transcript"
+	| "auth_session"
+	| "impersonation";
 
 function firstHeaderValue(value: string | null): string | undefined {
 	if (!value) {
@@ -37,6 +41,49 @@ export function getRequestAuditMeta(headers: Headers) {
 			headers.get("x-correlation-id") ??
 			undefined,
 	};
+}
+
+const PII_KEYS = new Set([
+	"email",
+	"phone",
+	"phoneE164",
+	"aadhaar",
+	"aadhaar_number",
+	"otp",
+	"password",
+	"accessToken",
+	"refreshToken",
+	"token",
+]);
+
+function redactValue(key: string, value: unknown): unknown {
+	if (PII_KEYS.has(key)) {
+		return "[REDACTED]";
+	}
+	if (Array.isArray(value)) {
+		return value.map((item) =>
+			typeof item === "object" && item
+				? redactObject(item as Record<string, unknown>)
+				: item,
+		);
+	}
+	if (value && typeof value === "object") {
+		return redactObject(value as Record<string, unknown>);
+	}
+	return value;
+}
+
+function redactObject(
+	input: Record<string, unknown> | object | null | undefined,
+): Record<string, unknown> {
+	if (!input || typeof input !== "object") {
+		return {};
+	}
+	const out: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(input)) {
+		out[key] = redactValue(key, value);
+	}
+	return out;
 }
 
 export async function recordAudit(input: {
@@ -62,8 +109,8 @@ export async function recordAudit(input: {
 			ipAddress: meta.ipAddress,
 			userAgent: meta.userAgent,
 			requestId: meta.requestId,
-			before: (input.before ?? {}) as object,
-			after: (input.after ?? {}) as object,
+			before: JSON.parse(JSON.stringify(redactObject(input.before))),
+			after: JSON.parse(JSON.stringify(redactObject(input.after))),
 		});
 	} catch (error) {
 		logger.error("Failed to write audit log", { error, input });

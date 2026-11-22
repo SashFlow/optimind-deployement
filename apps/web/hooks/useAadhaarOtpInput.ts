@@ -156,6 +156,10 @@ export function useAadhaarOtpInput({
 			id: sid,
 			aadhaar_number: aadhaarNumber,
 			participantToken: token,
+			// Explicit DPDP/UIDAI-aligned consent captured in-session UI.
+			consent: true,
+			consent_purpose:
+				"Aadhaar eKYC identity verification for this session",
 		});
 	}, []);
 

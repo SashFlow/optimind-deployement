@@ -72,9 +72,25 @@ export async function generateEndUserMemories(sessionId: string) {
 	if (!process.env.OPENAI_API_KEY) {
 		return;
 	}
+	if (process.env.DISABLE_END_USER_MEMORIES === "true") {
+		return;
+	}
 	const session = await getAgentSessionById(sessionId);
 	const metadata = asRecord(session?.metadata);
 	if (!session?.endUser || metadata.memoriesGeneratedAt) {
+		return;
+	}
+	const orgMeta = asRecord(
+		(
+			session as {
+				organization?: { metadata?: unknown };
+			}
+		).organization?.metadata,
+	);
+	if (
+		orgMeta.disableAiMemory === true ||
+		orgMeta.disable_ai_memory === true
+	) {
 		return;
 	}
 	const modalities = asRecord(

@@ -191,6 +191,20 @@ export const createUploadUrl = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const kb = await requireKb(input.id, context.user.id);
+		const { assertKnowledgeUpload } = await import(
+			"../shared/upload-policy"
+		);
+		try {
+			assertKnowledgeUpload({
+				fileName: input.fileName,
+				contentType: input.contentType,
+			});
+		} catch (error) {
+			throw new ORPCError("BAD_REQUEST", {
+				message:
+					error instanceof Error ? error.message : "Invalid upload",
+			});
+		}
 		const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 		const path = `knowledge/${kb.organizationId}/${input.id}/${nanoid()}-${safeName}`;
 		const bucket = getKnowledgeBucket();

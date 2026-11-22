@@ -270,6 +270,12 @@ export const createContact = protectedProcedure
 	)
 	.handler(async ({ input, context }) => {
 		const campaign = await requireCampaign(input.id, context.user.id);
+		if (campaign.mode === "OUTBOUND_LIST" && !input.consentGiven) {
+			throw new ORPCError("BAD_REQUEST", {
+				message:
+					"consentGiven is required for outbound campaign contacts",
+			});
+		}
 		const contact = await createCampaignContact({
 			organizationId: campaign.organizationId,
 			campaignId: campaign.id,

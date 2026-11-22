@@ -27,7 +27,13 @@ export async function Document({
 			>
 				<NuqsAdapter>
 					<ConsentProvider
-						initialConsent={consentCookie?.value === "true"}
+						initialConsent={
+							consentCookie?.value === "true"
+								? true
+								: consentCookie?.value === "false"
+									? false
+									: undefined
+						}
 					>
 						<ClientProviders>{children}</ClientProviders>
 					</ConsentProvider>

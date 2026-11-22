@@ -417,6 +417,28 @@ export const decideApproval = publicProcedure
 		return { approval };
 	});
 
+/**
+ * Returns the HMAC secret for a workflow webhook when configured.
+ * Prefer WORKFLOW_WEBHOOK_HMAC_SECRET (global) or workflow envVars.webhookSecret.
+ * When unset, token-only auth remains (set the secret in production).
+ */
+export async function getWorkflowWebhookSecret(
+	token: string,
+): Promise<string | null> {
+	const globalSecret = process.env.WORKFLOW_WEBHOOK_HMAC_SECRET?.trim();
+	if (globalSecret) {
+		return globalSecret;
+	}
+	const workflow = await getCampaignWorkflowByWebhookToken(token);
+	if (!workflow) {
+		return null;
+	}
+	const env = envVarsToRecord(workflow.envVars);
+	const perWorkflow =
+		typeof env.webhookSecret === "string" ? env.webhookSecret.trim() : "";
+	return perWorkflow || null;
+}
+
 /** Internal helper used by Next.js webhook route */
 export async function startWebhookRun(
 	token: string,

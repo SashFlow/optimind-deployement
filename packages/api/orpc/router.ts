@@ -15,6 +15,7 @@ import { newsletterRouter } from "../modules/newsletter/router";
 import { organizationsRouter } from "../modules/organizations/router";
 import { paymentsRouter } from "../modules/payments/router";
 import { previewAssetsRouter } from "../modules/preview-assets/router";
+import { privacyRouter } from "../modules/privacy/router";
 import { sessionsRouter } from "../modules/sessions/router";
 import { telephonyRouter } from "../modules/telephony/router";
 import { toolsRouter } from "../modules/tools/router";
@@ -42,6 +43,7 @@ export const router = publicProcedure
 		telephony: telephonyRouter,
 		sessions: sessionsRouter,
 		endUsers: endUsersRouter,
+		privacy: privacyRouter,
 		catalog: catalogRouter,
 		dashboard: dashboardRouter,
 		tools: toolsRouter,

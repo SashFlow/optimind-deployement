@@ -1,4 +1,5 @@
 import {
+	DeleteObjectCommand,
 	GetObjectCommand,
 	PutObjectCommand,
 	S3Client,
@@ -103,3 +104,21 @@ export const uploadObject: UploadObjectHandler = async (
 		throw new Error("Could not upload object");
 	}
 };
+
+export async function deleteObject(
+	path: string,
+	{ bucket }: { bucket: string },
+): Promise<void> {
+	const client = getS3Client();
+	try {
+		await client.send(
+			new DeleteObjectCommand({
+				Bucket: bucket,
+				Key: path,
+			}),
+		);
+	} catch (e) {
+		logger.error(e);
+		throw new Error("Could not delete object");
+	}
+}

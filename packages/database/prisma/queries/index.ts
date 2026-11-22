@@ -9,6 +9,7 @@ export * from "./invitations";
 export * from "./jobs";
 export * from "./knowledge";
 export * from "./organizations";
+export * from "./privacy";
 export * from "./provider-rates";
 export * from "./purchases";
 export * from "./sessions";

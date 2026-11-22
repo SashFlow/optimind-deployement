@@ -5,6 +5,7 @@ import {
 	getPurchasesByOrganizationId,
 	getPurchasesByUserId,
 	getUserByEmail,
+	writeAuditLog,
 } from "@repo/database";
 import type { Locale } from "@repo/i18n";
 import { logger } from "@repo/logs";
@@ -98,6 +99,71 @@ export const auth = betterAuth({
 				}
 
 				await updateSeatsInOrganizationSubscription(organizationId);
+			}
+
+			// Auth event auditing (LOGIN / LOGOUT / impersonation) for SOC2 CC6/CC7.
+			const session = ctx.context.session;
+			const userId = session?.user?.id ?? session?.session?.userId;
+			const activeOrgId =
+				(session?.session as { activeOrganizationId?: string | null })
+					?.activeOrganizationId ?? null;
+			const ipAddress =
+				ctx.request?.headers
+					.get("x-forwarded-for")
+					?.split(",")[0]
+					?.trim() ??
+				ctx.request?.headers.get("x-real-ip") ??
+				undefined;
+			const userAgent =
+				ctx.request?.headers.get("user-agent") ?? undefined;
+
+			const writeAuthAudit = async (
+				actionType: "LOGIN" | "LOGOUT" | "UPDATE",
+				resourceType: string,
+				after?: Record<string, unknown>,
+			) => {
+				if (!userId || !activeOrgId) {
+					return;
+				}
+				try {
+					await writeAuditLog({
+						organizationId: activeOrgId,
+						actionType,
+						resourceType,
+						resourceId: userId,
+						userId,
+						actorType: "USER",
+						ipAddress,
+						userAgent,
+						before: {},
+						after: JSON.parse(JSON.stringify(after ?? {})),
+					});
+				} catch (error) {
+					logger.error("Failed to write auth audit log", { error });
+				}
+			};
+
+			if (
+				ctx.path.startsWith("/sign-in") ||
+				ctx.path.startsWith("/sign-up") ||
+				ctx.path.startsWith("/magic-link/verify") ||
+				ctx.path.startsWith("/passkey/verify") ||
+				ctx.path.startsWith("/two-factor/verify")
+			) {
+				await writeAuthAudit("LOGIN", "auth_session", {
+					path: ctx.path,
+				});
+			} else if (ctx.path.startsWith("/sign-out")) {
+				await writeAuthAudit("LOGOUT", "auth_session", {
+					path: ctx.path,
+				});
+			} else if (ctx.path.includes("impersonate")) {
+				await writeAuthAudit("UPDATE", "impersonation", {
+					path: ctx.path,
+					impersonatedBy: (
+						session?.session as { impersonatedBy?: string | null }
+					)?.impersonatedBy,
+				});
 			}
 		}),
 		before: createAuthMiddleware(async (ctx) => {

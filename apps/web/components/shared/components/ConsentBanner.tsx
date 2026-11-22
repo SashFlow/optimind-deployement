@@ -6,18 +6,13 @@ import { CookieIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function ConsentBanner() {
-	const { userHasConsented, allowCookies, declineCookies } =
-		useCookieConsent();
+	const { consentDecided, allowCookies, declineCookies } = useCookieConsent();
 	const [mounted, setMounted] = useState(false);
 	useEffect(() => {
 		setMounted(true);
 	}, []);
 
-	if (!mounted) {
-		return null;
-	}
-
-	if (userHasConsented) {
+	if (!mounted || consentDecided) {
 		return null;
 	}
 
@@ -27,9 +22,10 @@ export function ConsentBanner() {
 				<CookieIcon className="block size-6 shrink-0 text-5xl text-primary/60 mt-1" />
 				<div>
 					<p className="text-sm leading-normal">
-						We use cookies and similar technologies to improve your
-						experience, analyze traffic, and personalize content.
-						You can accept all cookies to allow them.
+						We use necessary cookies to run the service. Optional
+						analytics cookies help us improve OptiMind. You can
+						decline analytics; essential cookies will still work.
+						See our Privacy Policy for details.
 					</p>
 					<div className="mt-4 flex gap-2">
 						<Button
@@ -37,13 +33,13 @@ export function ConsentBanner() {
 							className="flex-1"
 							onClick={() => declineCookies()}
 						>
-							Decline
+							Decline analytics
 						</Button>
 						<Button
 							className="flex-1"
 							onClick={() => allowCookies()}
 						>
-							Allow
+							Allow analytics
 						</Button>
 					</div>
 				</div>

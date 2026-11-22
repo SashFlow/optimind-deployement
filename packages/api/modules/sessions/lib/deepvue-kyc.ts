@@ -247,11 +247,18 @@ export async function requestAadhaarOkycOtp(args: {
 		throw new Error("DEEPVUE_ID and DEEPVUE_SECRET must be set");
 	}
 
+	const consent = args.consent === "Y" || args.consent === "y" ? "Y" : null;
+	if (!consent) {
+		throw new Error(
+			"End-user consent is required before requesting Aadhaar OTP",
+		);
+	}
+
 	const { ok, status, data } = await deepvuePostWithRetry(
 		"/v2/ekyc/aadhaar/generate-otp",
 		{
 			aadhaar_number: args.aadhaarNumber,
-			consent: "Y",
+			consent,
 			purpose: args.purpose ?? config.purpose,
 		},
 		config,
@@ -294,10 +301,17 @@ export async function verifyAadhaarOkycOtp(args: {
 		throw new Error("DEEPVUE_ID and DEEPVUE_SECRET must be set");
 	}
 
+	const consent = args.consent === "Y" || args.consent === "y" ? "Y" : null;
+	if (!consent) {
+		throw new Error(
+			"End-user consent is required before verifying Aadhaar OTP",
+		);
+	}
+
 	const query: Record<string, string> = {
 		otp: args.otp,
 		reference_id: args.referenceId,
-		consent: "Y",
+		consent,
 		purpose: args.purpose ?? config.purpose,
 		generate_pdf: args.generatePdf ? "true" : "false",
 	};

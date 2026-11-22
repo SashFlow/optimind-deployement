@@ -70,7 +70,8 @@ export const config = {
 		// Whether users should be able to sign in with a password
 		enablePasswordLogin: true,
 		// Whether users should be activate two factor authentication
-		enableTwoFactor: false,
+		// Required for platform admins (enforced in auth middleware).
+		enableTwoFactor: true,
 		// where users should be redirected after the sign in
 		redirectAfterSignIn: "/app/dashboard",
 		// where users should be redirected after logout

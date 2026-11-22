@@ -2159,6 +2159,23 @@ export const uploadParticipantFile = publicProcedure
 			});
 		}
 
+		const { assertParticipantUpload } = await import(
+			"../shared/upload-policy"
+		);
+		try {
+			assertParticipantUpload({
+				fileName: name,
+				contentType,
+				sizeBytes: bytes.byteLength,
+				maxBytes: MAX_PARTICIPANT_FILE_BYTES,
+			});
+		} catch (error) {
+			throw new ORPCError("BAD_REQUEST", {
+				message:
+					error instanceof Error ? error.message : "Invalid upload",
+			});
+		}
+
 		try {
 			const file = await uploadEndUserBytes({
 				session: {
@@ -2185,6 +2202,9 @@ type AadhaarOkycMetadata = {
 	aadhaarLast4: string;
 	requestedAt: number;
 	verifiedAt?: number;
+	consentGiven?: boolean;
+	consentAt?: number;
+	consentPurpose?: string;
 };
 
 function readAadhaarOkycMetadata(
@@ -2215,7 +2235,25 @@ function readAadhaarOkycMetadata(
 		Number.isFinite(record.verifiedAt)
 			? record.verifiedAt
 			: undefined;
-	return { referenceId, aadhaarLast4, requestedAt, verifiedAt };
+	const consentGiven = record.consentGiven === true;
+	const consentAt =
+		typeof record.consentAt === "number" &&
+		Number.isFinite(record.consentAt)
+			? record.consentAt
+			: undefined;
+	const consentPurpose =
+		typeof record.consentPurpose === "string"
+			? record.consentPurpose
+			: undefined;
+	return {
+		referenceId,
+		aadhaarLast4,
+		requestedAt,
+		verifiedAt,
+		consentGiven,
+		consentAt,
+		consentPurpose,
+	};
 }
 
 async function requireParticipantSession(args: {
@@ -2272,6 +2310,9 @@ export const requestAadhaarOtp = publicProcedure
 				.string()
 				.trim()
 				.regex(/^\d{12}$/, "Aadhaar number must be 12 digits"),
+			/** Explicit end-user consent for Aadhaar eKYC (DPDP / UIDAI). */
+			consent: z.literal(true),
+			consent_purpose: z.string().min(1).max(200).optional(),
 			participantToken: z.string().min(1).optional(),
 		}),
 	)
@@ -2289,14 +2330,20 @@ export const requestAadhaarOtp = publicProcedure
 		});
 
 		try {
+			const purpose = input.consent_purpose;
 			const { referenceId } = await requestAadhaarOkycOtp({
 				aadhaarNumber: input.aadhaar_number,
+				consent: "Y",
+				purpose,
 			});
 
 			const aadhaarOkyc: AadhaarOkycMetadata = {
 				referenceId,
 				aadhaarLast4: input.aadhaar_number.slice(-4),
 				requestedAt: Date.now(),
+				consentGiven: true,
+				consentAt: Date.now(),
+				consentPurpose: purpose,
 			};
 			await patchAgentSessionMetadata(session.id, { aadhaarOkyc });
 
@@ -2353,6 +2400,11 @@ export const verifyAadhaarOtp = publicProcedure
 				message: "No Aadhaar OTP request found for this session",
 			});
 		}
+		if (!existing.consentGiven) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Aadhaar consent was not recorded for this session",
+			});
+		}
 
 		const endUserPhone =
 			session.endUser &&
@@ -2366,6 +2418,8 @@ export const verifyAadhaarOtp = publicProcedure
 				referenceId: existing.referenceId,
 				otp: input.otp,
 				mobileNumber: input.mobile_number ?? endUserPhone,
+				consent: "Y",
+				purpose: existing.consentPurpose,
 			});
 
 			if (result.verified) {

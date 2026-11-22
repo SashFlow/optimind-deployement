@@ -1,7 +1,7 @@
 import { listAuditLogs } from "@repo/database";
 import { z } from "zod";
 import { protectedProcedure } from "../../orpc/procedures";
-import { requireOrgMembership } from "../shared/require-org-membership";
+import { requireOrgAdmin } from "../shared/require-org-role";
 
 const actionTypeSchema = z.enum([
 	"CREATE",
@@ -32,7 +32,7 @@ export const list = protectedProcedure
 		}),
 	)
 	.handler(async ({ input, context }) => {
-		await requireOrgMembership(input.organizationId, context.user.id);
+		await requireOrgAdmin(input.organizationId, context.user.id);
 
 		const actionRaw = input.actionType ?? input.action;
 		const actionType = actionRaw

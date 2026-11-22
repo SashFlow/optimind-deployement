@@ -118,6 +118,12 @@ export function AadhaarOtpInputPopover() {
 							? "Requesting OTP from UIDAI…"
 							: description}
 					</p>
+					<p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+						By continuing you consent to Aadhaar eKYC verification
+						for identity confirmation in this session. OTP and
+						Aadhaar details are processed by our KYC provider for
+						this purpose only.
+					</p>
 					{requestError ? (
 						<p className="text-destructive mt-2 text-sm">
 							{requestError}

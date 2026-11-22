@@ -62,15 +62,16 @@ export async function extractTextFromBuffer(
 }
 
 export async function extractTextFromUrl(url: string): Promise<string> {
-	const response = await fetch(url, {
-		headers: { "User-Agent": "OptimindKnowledgeBot/1.0" },
-		redirect: "follow",
-	});
+	const { fetchSafeExternalUrl } = await import("../../shared/ssrf");
+	const response = await fetchSafeExternalUrl(url);
 	if (!response.ok) {
 		throw new Error(`Failed to fetch URL (${response.status})`);
 	}
 	const contentType = response.headers.get("content-type") ?? "";
 	const buffer = Buffer.from(await response.arrayBuffer());
+	if (buffer.byteLength > 10 * 1024 * 1024) {
+		throw new Error("Remote content exceeds size limit");
+	}
 	const fileName = url.split("?")[0]?.split("/").pop() ?? "page.html";
 	if (
 		contentType.includes("text/html") ||
