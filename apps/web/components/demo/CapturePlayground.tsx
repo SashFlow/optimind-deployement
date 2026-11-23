@@ -190,7 +190,7 @@ function CaptureControls({
 				{trackRef?.publication.track && proctoring.isCameraReady ? (
 					<VideoTrack
 						trackRef={trackRef}
-						className="absolute inset-0 size-full object-cover"
+						className="absolute inset-0 size-full object-contain"
 					/>
 				) : (
 					<div className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-white/80">

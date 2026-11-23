@@ -86,7 +86,7 @@ export function IdCaptureOverlay() {
 				</div>
 
 				<div
-					className="relative w-full overflow-hidden rounded-md bg-black"
+					className="relative mx-auto w-full max-h-[min(52dvh,420px)] overflow-hidden rounded-md bg-black sm:max-h-none"
 					style={{ aspectRatio: `${width} / ${height}` }}
 				>
 					{showPreview ? (
@@ -100,7 +100,7 @@ export function IdCaptureOverlay() {
 						<>
 							<VideoTrack
 								trackRef={trackRef}
-								className="absolute inset-0 size-full object-cover"
+								className="absolute inset-0 size-full object-contain"
 							/>
 							<div
 								aria-hidden

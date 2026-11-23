@@ -8,11 +8,21 @@ import {
 	AccordionTrigger,
 } from "@repo/ui/accordion";
 import { Button } from "@repo/ui/button";
+import {
+	Drawer,
+	DrawerClose,
+	DrawerContent,
+	DrawerDescription,
+	DrawerFooter,
+	DrawerHeader,
+	DrawerTitle,
+	DrawerTrigger,
+} from "@repo/ui/drawer";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Switch } from "@repo/ui/switch";
 import { cn } from "@repo/ui/utils";
-import { PhoneIcon, UploadIcon } from "lucide-react";
+import { ChevronRightIcon, PhoneIcon, UploadIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useOptionalAppHeader } from "@/components/shared/app-header-provider";
@@ -117,14 +127,16 @@ function VariableInput({
 	onChange,
 	onUpload,
 	uploading,
+	idPrefix = "preview-var",
 }: {
 	variable: AgentVariableDefinition;
 	value: string;
 	onChange: (value: string) => void;
 	onUpload: (file: File) => void;
 	uploading: boolean;
+	idPrefix?: string;
 }) {
-	const id = `preview-var-${variable.name}`;
+	const id = `${idPrefix}-${variable.name}`;
 
 	const fileUploadAddon =
 		variable.variable_type === "file" ? (
@@ -264,6 +276,26 @@ export function AgentConfigurePreview({
 			avatar.provider === "arkit",
 		avatarId: avatar.avatarId,
 	});
+
+	const [variablesDrawerOpen, setVariablesDrawerOpen] = useState(false);
+
+	const filledVariableCount = useMemo(
+		() =>
+			definedVariables.filter(
+				(variable) =>
+					(variableValues[variable.name] ?? "").trim().length > 0,
+			).length,
+		[definedVariables, variableValues],
+	);
+	const missingRequiredCount = useMemo(
+		() =>
+			definedVariables.filter(
+				(variable) =>
+					variable.required &&
+					!(variableValues[variable.name] ?? "").trim(),
+			).length,
+		[definedVariables, variableValues],
+	);
 
 	function updateVariableValue(name: string, value: string) {
 		setVariableValues((current) => ({ ...current, [name]: value }));
@@ -692,35 +724,55 @@ export function AgentConfigurePreview({
 				) : null}
 
 				{definedVariables.length > 0 ? (
-					<Accordion
-						type="multiple"
-						defaultValue={[]}
-						className="w-full gap-0"
-					>
-						<AccordionItem value="variables" className="border-b-0">
-							<AccordionTrigger className="py-2.5 text-sm hover:no-underline [&>svg]:ml-2">
-								Variables
-							</AccordionTrigger>
-							<AccordionContent className="pb-3">
-								<div className="space-y-3">
-									<p className="text-xs text-pretty text-muted-foreground">
-										Values for session variables used in
-										this preview.
-									</p>
-									{hasUnsavedVariables ? (
-										<p className="text-xs text-amber-600 dark:text-amber-500">
-											Save draft to test new variables in
-											preview.
-										</p>
-									) : null}
-									<div className="max-h-48 space-y-3 overflow-y-auto pr-1">
+					<>
+						{/* Mobile: drawer instead of inline accordion */}
+						<div className="sm:hidden">
+							<Drawer
+								open={variablesDrawerOpen}
+								onOpenChange={setVariablesDrawerOpen}
+							>
+								<DrawerTrigger
+									render={
+										<button
+											type="button"
+											className="flex w-full items-center justify-between gap-3 rounded-xl border border-border/80 bg-background px-3.5 py-3 text-left shadow-sm"
+										>
+											<span className="min-w-0">
+												<span className="block text-sm font-medium">
+													Variables
+												</span>
+												<span className="text-muted-foreground mt-0.5 block truncate text-xs">
+													{missingRequiredCount > 0
+														? `${missingRequiredCount} required missing`
+														: `${filledVariableCount} of ${definedVariables.length} filled`}
+												</span>
+											</span>
+											<ChevronRightIcon className="text-muted-foreground size-4 shrink-0" />
+										</button>
+									}
+								/>
+								<DrawerContent className="max-h-[85dvh]">
+									<DrawerHeader className="text-left">
+										<DrawerTitle>Variables</DrawerTitle>
+										<DrawerDescription>
+											Values for session variables used in
+											this preview.
+										</DrawerDescription>
+									</DrawerHeader>
+									<div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-2">
+										{hasUnsavedVariables ? (
+											<p className="text-xs text-amber-600 dark:text-amber-500">
+												Save draft to test new variables
+												in preview.
+											</p>
+										) : null}
 										{definedVariables.map((variable) => (
 											<div
 												key={variable.name}
 												className="space-y-1.5"
 											>
 												<Label
-													htmlFor={`preview-var-${variable.name}`}
+													htmlFor={`preview-var-mobile-${variable.name}`}
 													className="text-xs text-muted-foreground"
 												>
 													{variable.name}
@@ -737,6 +789,7 @@ export function AgentConfigurePreview({
 													</span>
 												</Label>
 												<VariableInput
+													idPrefix="preview-var-mobile"
 													variable={variable}
 													value={
 														variableValues[
@@ -763,10 +816,102 @@ export function AgentConfigurePreview({
 											</div>
 										))}
 									</div>
-								</div>
-							</AccordionContent>
-						</AccordionItem>
-					</Accordion>
+									<DrawerFooter>
+										<DrawerClose asChild>
+											<Button className="w-full rounded-full">
+												Done
+											</Button>
+										</DrawerClose>
+									</DrawerFooter>
+								</DrawerContent>
+							</Drawer>
+						</div>
+
+						{/* Desktop / tablet: accordion */}
+						<Accordion
+							type="multiple"
+							defaultValue={["variables"]}
+							className="hidden w-full gap-0 sm:block"
+						>
+							<AccordionItem
+								value="variables"
+								className="border-b-0"
+							>
+								<AccordionTrigger className="py-2.5 text-sm hover:no-underline [&>svg]:ml-2">
+									Variables
+								</AccordionTrigger>
+								<AccordionContent className="pb-3">
+									<div className="space-y-3">
+										<p className="text-xs text-pretty text-muted-foreground">
+											Values for session variables used in
+											this preview.
+										</p>
+										{hasUnsavedVariables ? (
+											<p className="text-xs text-amber-600 dark:text-amber-500">
+												Save draft to test new variables
+												in preview.
+											</p>
+										) : null}
+										<div className="space-y-3">
+											{definedVariables.map(
+												(variable) => (
+													<div
+														key={variable.name}
+														className="space-y-1.5"
+													>
+														<Label
+															htmlFor={`preview-var-${variable.name}`}
+															className="text-xs text-muted-foreground"
+														>
+															{variable.name}
+															{variable.required ? (
+																<span className="text-destructive">
+																	{" "}
+																	*
+																</span>
+															) : null}
+															<span className="ml-1.5 font-normal">
+																(
+																{
+																	variable.variable_type
+																}
+																)
+															</span>
+														</Label>
+														<VariableInput
+															variable={variable}
+															value={
+																variableValues[
+																	variable
+																		.name
+																] ?? ""
+															}
+															onChange={(value) =>
+																updateVariableValue(
+																	variable.name,
+																	value,
+																)
+															}
+															onUpload={(file) =>
+																void handleUpload(
+																	variable.name,
+																	file,
+																)
+															}
+															uploading={
+																uploadingField ===
+																variable.name
+															}
+														/>
+													</div>
+												),
+											)}
+										</div>
+									</div>
+								</AccordionContent>
+							</AccordionItem>
+						</Accordion>
+					</>
 				) : hasUnsavedVariables ? (
 					<p className="text-xs text-amber-600 dark:text-amber-500">
 						Save draft to test new variables in preview.

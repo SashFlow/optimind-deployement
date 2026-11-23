@@ -140,7 +140,7 @@ function useLocalTrackRef(source: Track.Source) {
 }
 
 const VIDEO_FILL_CLASS =
-	"absolute inset-0 size-full object-cover sm:static sm:inset-auto sm:object-contain";
+	"absolute inset-0 size-full object-contain sm:static sm:inset-auto";
 /**
  * Mobile: absolute fill of the stage. Desktop: largest 16:9 that fits.
  */

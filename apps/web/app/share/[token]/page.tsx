@@ -631,8 +631,8 @@ export default function SharedTrialPage() {
 				) : null}
 
 				{variables.length > 0 ? (
-					<div className="space-y-3">
-						<div className="grid gap-3 sm:gap-4">
+					<div className="space-y-2 sm:space-y-3">
+						<div className="grid gap-2.5 sm:gap-4">
 							{variables.map((variable) => {
 								const label = formatVariableLabel(
 									variable.name,
@@ -640,7 +640,7 @@ export default function SharedTrialPage() {
 								return (
 									<div
 										key={variable.name}
-										className="min-w-0 space-y-1.5"
+										className="min-w-0 space-y-1"
 									>
 										<Label
 											htmlFor={`share-var-${variable.name}`}

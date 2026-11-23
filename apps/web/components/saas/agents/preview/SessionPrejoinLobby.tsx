@@ -37,6 +37,7 @@ import {
 	type SessionLocation,
 } from "@/lib/session-location";
 import { warmProctoringDetectors } from "@/lib/proctoring/detectors";
+import { useVisualViewportKeyboard } from "@/hooks/useVisualViewportKeyboard";
 import {
 	type LocalPreviewMedia,
 	useLocalPreviewMedia,
@@ -251,14 +252,14 @@ function PreviewStage({
 	}, [media.audioOutputDeviceId]);
 
 	return (
-		<div className="relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-2xl bg-zinc-900 shadow-sm ring-1 ring-black/10 sm:aspect-video sm:max-w-2xl lg:mx-0 lg:w-full lg:max-w-none">
+		<div className="relative mx-auto aspect-video w-full max-w-xl overflow-hidden rounded-2xl bg-zinc-900 shadow-sm ring-1 ring-black/10 sm:max-w-2xl lg:mx-0 lg:w-full lg:max-w-none">
 			<video
 				ref={videoRef}
 				autoPlay
 				playsInline
 				muted
 				className={cn(
-					"size-full scale-x-[-1] object-cover rounded-2xl",
+					"size-full scale-x-[-1] rounded-2xl object-contain",
 					media.cameraEnabled ? "opacity-100" : "opacity-0",
 				)}
 			/>
@@ -367,7 +368,36 @@ export function SessionPrejoinLobby({
 		// live track is published on join instead of setCameraEnabled mid-call.
 		autoStartCamera: videoMandatory,
 	});
+	const { keyboardOpen } = useVisualViewportKeyboard();
+	const scrollRootRef = useRef<HTMLDivElement>(null);
 	const [highlightMissing, setHighlightMissing] = useState(false);
+
+	// Keep the focused variable/phone field above the keyboard on mobile.
+	useEffect(() => {
+		const root = scrollRootRef.current;
+		if (!root) {
+			return;
+		}
+		const onFocusIn = (event: FocusEvent) => {
+			const target = event.target;
+			if (
+				!(target instanceof HTMLElement) ||
+				!target.matches(
+					"input, textarea, select, [contenteditable=true]",
+				)
+			) {
+				return;
+			}
+			window.setTimeout(() => {
+				target.scrollIntoView({
+					block: "center",
+					behavior: "smooth",
+				});
+			}, 120);
+		};
+		root.addEventListener("focusin", onFocusIn);
+		return () => root.removeEventListener("focusin", onFocusIn);
+	}, []);
 
 	// Prefetch MediaPipe WASM + models while the candidate is still on the lobby
 	// so the first agent turn isn't competing with model download / init.
@@ -540,16 +570,27 @@ export function SessionPrejoinLobby({
 			)}
 		>
 			<div
+				ref={scrollRootRef}
 				className={cn(
 					"mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:gap-5 sm:p-5 sm:pb-8 lg:flex-row lg:items-stretch lg:gap-8 lg:overflow-hidden lg:p-6 lg:pb-6",
 					// Sticky CTA: room for the fixed start bar. In-app: clear the floating bottom nav.
+					// When the keyboard is open, drop the sticky-bar reserve so fields aren't crushed.
 					stickyMobileCta
-						? "pb-28"
-						: "pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-8",
+						? keyboardOpen
+							? "pb-4"
+							: "pb-28"
+						: keyboardOpen
+							? "pb-4 sm:pb-8"
+							: "pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-8",
 				)}
 			>
-				{/* Preview column */}
-				<div className="flex min-w-0 shrink-0 flex-col justify-center gap-3 lg:min-h-0 lg:flex-1 lg:shrink">
+				{/* Preview column — collapse on mobile while typing so variables stay usable */}
+				<div
+					className={cn(
+						"min-w-0 shrink-0 flex-col justify-center gap-3 lg:flex lg:min-h-0 lg:flex-1 lg:shrink",
+						keyboardOpen ? "hidden lg:flex" : "flex",
+					)}
+				>
 					{showWebMedia ? (
 						<PreviewStage
 							media={media}
@@ -557,7 +598,7 @@ export function SessionPrejoinLobby({
 							videoMandatory={videoMandatory}
 						/>
 					) : (
-						<div className="mx-auto flex aspect-[4/3] w-full max-w-xl items-center justify-center rounded-2xl bg-muted/40 sm:aspect-video sm:max-w-2xl lg:mx-0 lg:w-full lg:max-w-none">
+						<div className="mx-auto flex aspect-video w-full max-w-xl items-center justify-center rounded-2xl bg-muted/40 sm:max-w-2xl lg:mx-0 lg:w-full lg:max-w-none">
 							<div className="flex flex-col items-center gap-2 text-muted-foreground sm:gap-3">
 								<div className="flex size-12 items-center justify-center rounded-full bg-background shadow-sm sm:size-14">
 									<PhoneIcon className="size-5 sm:size-6" />
@@ -579,7 +620,12 @@ export function SessionPrejoinLobby({
 
 				{/* Details + CTA — sits right under preview on mobile so Start stays reachable */}
 				<div className="flex w-full shrink-0 flex-col gap-3 sm:gap-4 lg:w-[22rem] lg:justify-center xl:w-sm">
-					<div className="space-y-2 text-center">
+					<div
+						className={cn(
+							"space-y-2 text-center",
+							keyboardOpen && "hidden sm:block",
+						)}
+					>
 						<h1 className="font-semibold text-xl tracking-tight text-balance sm:text-2xl">
 							{title}
 						</h1>
@@ -596,13 +642,26 @@ export function SessionPrejoinLobby({
 					</div>
 
 					{children ? (
-						<div className="space-y-3 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:max-h-[28vh] lg:max-h-[50vh] lg:space-y-4">
+						<div
+							className={cn(
+								"space-y-3 overscroll-contain pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden lg:space-y-4",
+								// One scroll owner on mobile (outer column). Cap height only from sm+ / when keyboard closed.
+								keyboardOpen
+									? "overflow-visible"
+									: "overflow-y-auto sm:max-h-[28vh] lg:max-h-[50vh]",
+							)}
+						>
 							{children}
 						</div>
 					) : null}
 
 					{locationEnabled ? (
-						<div className="flex flex-col gap-2">
+						<div
+							className={cn(
+								"flex flex-col gap-2",
+								keyboardOpen && "hidden sm:flex",
+							)}
+						>
 							<Button
 								type="button"
 								variant={
@@ -643,6 +702,7 @@ export function SessionPrejoinLobby({
 								highlightMissing
 									? "font-medium text-destructive"
 									: "text-muted-foreground",
+								keyboardOpen && "hidden sm:block",
 							)}
 						>
 							{missingNotices.join(" · ")}
@@ -654,6 +714,9 @@ export function SessionPrejoinLobby({
 						className={cn(
 							"flex flex-col gap-2",
 							stickyMobileCta && "hidden sm:flex",
+							keyboardOpen &&
+								stickyMobileCta === false &&
+								"hidden sm:flex",
 						)}
 					>
 						{startButton}
@@ -669,20 +732,11 @@ export function SessionPrejoinLobby({
 							</Button>
 						) : null}
 					</div>
-
-					{/* Devices after CTA on mobile/tablet so primary action stays above the fold */}
-					{showWebMedia ? (
-						<DevicePills
-							media={media}
-							busy={busy}
-							className="lg:hidden"
-						/>
-					) : null}
 				</div>
 			</div>
 
-			{/* Sticky mobile start bar — standalone share/embed only (no app bottom nav) */}
-			{stickyMobileCta ? (
+			{/* Sticky mobile start bar — hide while keyboard is open so inputs aren't crushed */}
+			{stickyMobileCta && !keyboardOpen ? (
 				<div className="fixed inset-x-0 bottom-0 z-20 border-t border-border/60 bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:hidden">
 					<div className="mx-auto flex w-full max-w-xl flex-col gap-2">
 						{startButton}

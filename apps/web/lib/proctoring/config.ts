@@ -256,11 +256,12 @@ export const DEFAULT_PROCTORING_CONFIG: ProctoringConfig = {
 		requiredStableFrames: 5,
 		stabilityTolerance: 0.02,
 		/** Width of the face oval relative to the frame width. */
-		guideWidthRatio: 0.36,
+		guideWidthRatio: 0.42,
 		/** Visual height/width of the oval (~face proportions). */
 		aspectRatio: 1.3,
-		minFaceWidthRatio: 0.55,
-		maxFaceWidthRatio: 1.15,
+		/** Face may be smaller in-frame so candidates need not sit so close. */
+		minFaceWidthRatio: 0.45,
+		maxFaceWidthRatio: 1.1,
 		centerTolerance: 0.18,
 		minConfidence: 0.5,
 		jpegQuality: 0.92,

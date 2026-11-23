@@ -8,6 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/select";
+import { cn } from "@repo/ui/utils";
 import * as React from "react";
 import type {
 	AgentVariableDefaultValue,
@@ -121,7 +122,7 @@ export function VariableValueInput({
 
 	if (defaults.length === 0) {
 		return (
-			<div className="space-y-2">
+			<div className="space-y-2 scroll-mt-24 scroll-mb-28">
 				{freeformInput}
 				{freeformAddon}
 			</div>
@@ -135,42 +136,58 @@ export function VariableValueInput({
 			: undefined;
 
 	return (
-		<div className="space-y-2">
-			<Select
-				value={selectValue}
-				onValueChange={(next) => {
-					if (!next) {
-						return;
-					}
-					if (next === CUSTOM_VALUE) {
-						setCustomMode(true);
-						onChange(customDraft);
-						return;
-					}
-					setCustomMode(false);
-					setCustomDraft("");
-					onChange(next);
-				}}
-			>
-				<SelectTrigger
-					id={showCustomInput ? undefined : id}
-					className={className ?? "w-full"}
+		<div className="space-y-2 scroll-mt-24 scroll-mb-28">
+			{/* Hide the select on narrow screens while typing a custom value — avoids stacked crowding with the keyboard open */}
+			<div className={cn(showCustomInput && "hidden sm:block")}>
+				<Select
+					value={selectValue}
+					onValueChange={(next) => {
+						if (!next) {
+							return;
+						}
+						if (next === CUSTOM_VALUE) {
+							setCustomMode(true);
+							onChange(customDraft);
+							return;
+						}
+						setCustomMode(false);
+						setCustomDraft("");
+						onChange(next);
+					}}
 				>
-					<SelectValue placeholder="Select a value" />
-				</SelectTrigger>
-				<SelectContent>
-					{defaults.map((entry) => (
-						<SelectItem key={entry.value} value={entry.value}>
-							{entry.label}
+					<SelectTrigger
+						id={showCustomInput ? undefined : id}
+						className={className ?? "w-full"}
+					>
+						<SelectValue placeholder="Select a value" />
+					</SelectTrigger>
+					<SelectContent>
+						{defaults.map((entry) => (
+							<SelectItem key={entry.value} value={entry.value}>
+								{entry.label}
+							</SelectItem>
+						))}
+						<SelectItem value={CUSTOM_VALUE}>
+							Custom value
 						</SelectItem>
-					))}
-					<SelectItem value={CUSTOM_VALUE}>Custom value</SelectItem>
-				</SelectContent>
-			</Select>
+					</SelectContent>
+				</Select>
+			</div>
 			{showCustomInput ? (
 				<>
 					{freeformInput}
 					{freeformAddon}
+					<button
+						type="button"
+						className="text-muted-foreground text-xs underline-offset-2 hover:underline sm:hidden"
+						onClick={() => {
+							setCustomMode(false);
+							setCustomDraft("");
+							onChange(matched?.value ?? "");
+						}}
+					>
+						Choose from list
+					</button>
 				</>
 			) : null}
 		</div>
