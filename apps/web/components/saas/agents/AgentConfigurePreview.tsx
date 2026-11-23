@@ -12,10 +12,7 @@ import {
 	Drawer,
 	DrawerClose,
 	DrawerContent,
-	DrawerDescription,
 	DrawerFooter,
-	DrawerHeader,
-	DrawerTitle,
 	DrawerTrigger,
 } from "@repo/ui/drawer";
 import { Input } from "@repo/ui/input";
@@ -56,18 +53,18 @@ import { fetchSessionCredentials } from "@/services/api/livekit";
 import { uploadPreviewAsset } from "@/services/api/preview-assets";
 import { fetchConfigureSpatialRealWarmup } from "@/services/api/spatialreal-warmup";
 import type { Agent } from "@/services/api/types";
-import { VariableValueInput } from "./VariableValueInput";
-import { PreviewSessionControls } from "./preview/PreviewSessionControls";
-import { PublishPrefetchedCamera } from "./preview/PublishPrefetchedCamera";
 import {
 	releasePrefetchedCameraTrack,
 	resolveLiveKitAudioOption,
 	resolveLiveKitVideoOption,
 } from "./preview/livekit-prejoin-media";
+import { PreviewSessionControls } from "./preview/PreviewSessionControls";
+import { PublishPrefetchedCamera } from "./preview/PublishPrefetchedCamera";
 import {
-	type SessionPrejoinMediaSelection,
 	SessionPrejoinLobby,
+	type SessionPrejoinMediaSelection,
 } from "./preview/SessionPrejoinLobby";
+import { VariableValueInput } from "./VariableValueInput";
 
 type PreviewMedia = "web" | "phone";
 
@@ -752,13 +749,13 @@ export function AgentConfigurePreview({
 									}
 								/>
 								<DrawerContent className="max-h-[85dvh]">
-									<DrawerHeader className="text-left">
+									{/* <DrawerHeader className="text-left">
 										<DrawerTitle>Variables</DrawerTitle>
 										<DrawerDescription>
 											Values for session variables used in
 											this preview.
 										</DrawerDescription>
-									</DrawerHeader>
+									</DrawerHeader> */}
 									<div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-2">
 										{hasUnsavedVariables ? (
 											<p className="text-xs text-amber-600 dark:text-amber-500">
@@ -842,10 +839,10 @@ export function AgentConfigurePreview({
 								</AccordionTrigger>
 								<AccordionContent className="pb-3">
 									<div className="space-y-3">
-										<p className="text-xs text-pretty text-muted-foreground">
+										{/* <p className="text-xs text-pretty text-muted-foreground">
 											Values for session variables used in
 											this preview.
-										</p>
+										</p> */}
 										{hasUnsavedVariables ? (
 											<p className="text-xs text-amber-600 dark:text-amber-500">
 												Save draft to test new variables
